@@ -26,6 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const menuItems = [
     ...(user?.role === 'OWNER' ? [{ icon: MapPin, label: 'Branches', href: '/branches' }] : []),
     { icon: Users, label: 'Users & Roles', href: '/users' },
+    { icon: Package, label: 'Product Categories', href: '/product-categories' },
     { icon: Package, label: 'Products', href: '/products' },
     { icon: Banknote, label: 'Payroll & HR', href: '/payroll' },
     { icon: Settings, label: 'Settings', href: '/settings' },

@@ -1,4 +1,5 @@
 "use client";
+import { EthDatePicker } from "@/components/EthDatePicker";
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -351,14 +352,14 @@ export default function UsersPage() {
                 </div>
                  <div className="space-y-2">
                   <label className="text-sm font-medium">Start Date</label>
-                  <Input name="startDate" type="date" defaultValue={editingUser?.startDate ? editingUser.startDate.split('T')[0] : ""} />
+                  <EthDatePicker name="startDate" defaultValue={editingUser?.startDate ? editingUser.startDate.split('T')[0] : ""} />
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-2">
                   <label className="text-sm font-medium">Last Paid Date</label>
-                  <Input name="lastPaidDate" type="date" defaultValue={editingUser?.lastPaidDate ? editingUser.lastPaidDate.split('T')[0] : ""} />
+                  <EthDatePicker name="lastPaidDate" defaultValue={editingUser?.lastPaidDate ? editingUser.lastPaidDate.split('T')[0] : ""} />
                 </div>
               </div>
 
