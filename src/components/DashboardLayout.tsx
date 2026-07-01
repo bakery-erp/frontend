@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, LayoutDashboard, Store, Users, MapPin, Package, Settings, Banknote, Layers, Boxes, ArrowRightLeft, ChefHat } from 'lucide-react';
+import { LogOut, LayoutDashboard, Store, Users, MapPin, Package, Settings, Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -29,6 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { icon: ChefHat, label: 'Production Batches', href: '/production' },
     { icon: Layers, label: 'Product Categories', href: '/product-categories' },
     { icon: Package, label: 'Products', href: '/products' },
+    ...((user?.role === 'OWNER' || user?.role === 'ADMIN') ? [{ icon: BarChart3, label: 'Reports', href: '/reports' }] : []),
     { icon: Boxes, label: 'Stock & Inventory', href: '/stock' },
     { icon: ArrowRightLeft, label: 'Stock Movements', href: '/stock-movements' },
     { icon: Banknote, label: 'Payroll & HR', href: '/payroll' },

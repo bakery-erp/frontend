@@ -14,6 +14,8 @@ interface ProductCategory {
   id: string;
   name: string;
   type: "PRODUCED" | "RESELL";
+  parentId?: string | null;
+  parent?: { id: string; name: string; type: "PRODUCED" | "RESELL" } | null;
 }
 
 interface FinancialCategory {
@@ -47,6 +49,9 @@ export default function ProductsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const formatCategoryLabel = (category: ProductCategory) =>
+    category.parent ? `${category.parent.name} / ${category.name}` : category.name;
 
   useEffect(() => {
     fetchData();
@@ -140,7 +145,7 @@ export default function ProductsPage() {
                 <TableCell className="font-medium">
                   {prod.name} {prod.flavor && <span className="text-xs text-zinc-500 ml-1">({prod.flavor})</span>}
                 </TableCell>
-                <TableCell>{prod.category?.name || "Unknown"}</TableCell>
+                <TableCell>{prod.category ? formatCategoryLabel(prod.category) : "Unknown"}</TableCell>
                 <TableCell>{prod.financialCategory?.name || "-"}</TableCell>
                 <TableCell>{prod.category?.type || "N/A"}</TableCell>
                 <TableCell>{prod.unitType}</TableCell>
@@ -182,11 +187,11 @@ export default function ProductsPage() {
                 </div>
                 
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="text-sm font-medium mb-1 block">Category</label>
+                  <label className="text-sm font-medium mb-1 block">Category / Subcategory</label>
                   <select name="categoryId" required defaultValue={editingProduct?.categoryId || ""} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
                     <option value="" disabled>Select Category</option>
                     {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
+                      <option key={c.id} value={c.id}>{formatCategoryLabel(c)} ({c.type})</option>
                     ))}
                   </select>
                 </div>

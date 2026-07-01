@@ -2,10 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    turbopack: {
-      root: '..',
-    },
+  turbopack: {
+    root: '/home/nebiyu/Desktop/Growth circle/ERP',
   },
 };
 
