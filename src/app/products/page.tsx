@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +14,12 @@ interface ProductCategory {
   id: string;
   name: string;
   type: "PRODUCED" | "RESELL";
+}
+
+interface FinancialCategory {
+  id: string;
+  name: string;
+  type: "REVENUE" | "EXPENSE";
 }
 
 interface Product {
@@ -25,11 +32,17 @@ interface Product {
   isActive: boolean;
   categoryId: string;
   category?: ProductCategory;
+  financialCategoryId?: string;
+  financialCategory?: FinancialCategory;
 }
 
 export default function ProductsPage() {
+  const { user } = useAuth();
+  const isAdminOrOwner = user?.role === 'ADMIN' || user?.role === 'OWNER';
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,12 +55,14 @@ export default function ProductsPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [resProd, resCat] = await Promise.all([
+      const [resProd, resCat, resFinCat] = await Promise.all([
         api.get("/products"),
-        api.get("/product-categories")
+        api.get("/product-categories"),
+        api.get("/financial-categories?type=REVENUE")
       ]);
       setProducts(resProd.data);
       setCategories(resCat.data);
+      setFinancialCategories(resFinCat.data);
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Error");
       console.error(e);
@@ -62,6 +77,7 @@ export default function ProductsPage() {
     const formData = new FormData(e.currentTarget);
     const data = {
       categoryId: formData.get("categoryId"),
+      financialCategoryId: formData.get("financialCategoryId") || undefined,
       name: formData.get("name"),
       flavor: formData.get("flavor") || undefined,
       unitType: formData.get("unitType"),
@@ -94,7 +110,9 @@ export default function ProductsPage() {
     <DashboardLayout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Products</h1>
-        <Button onClick={() => setIsAddOpen(true)}>Add Product</Button>
+        {isAdminOrOwner && (
+          <Button onClick={() => setIsAddOpen(true)}>Add Product</Button>
+        )}
       </div>
 
       <div className="bg-white border rounded-lg overflow-hidden">
@@ -103,25 +121,27 @@ export default function ProductsPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Financial Cat</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Sell Price</TableHead>
               <TableHead>Cost Price</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
+              {isAdminOrOwner && <TableHead className="w-[100px]"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-zinc-400">Loading products...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-zinc-400">Loading products...</TableCell></TableRow>
             ) : products.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-zinc-400">No products found. Create a category first.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-zinc-400">No products found. Create a category first.</TableCell></TableRow>
             ) : products.map(prod => (
               <TableRow key={prod.id}>
                 <TableCell className="font-medium">
                   {prod.name} {prod.flavor && <span className="text-xs text-zinc-500 ml-1">({prod.flavor})</span>}
                 </TableCell>
                 <TableCell>{prod.category?.name || "Unknown"}</TableCell>
+                <TableCell>{prod.financialCategory?.name || "-"}</TableCell>
                 <TableCell>{prod.category?.type || "N/A"}</TableCell>
                 <TableCell>{prod.unitType}</TableCell>
                 <TableCell>{Number(prod.basePrice).toFixed(2)} ETB</TableCell>
@@ -131,9 +151,11 @@ export default function ProductsPage() {
                     {prod.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="sm" onClick={() => setEditingProduct(prod)}>Edit</Button>
-                </TableCell>
+                {isAdminOrOwner && (
+                  <TableCell>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingProduct(prod)}>Edit</Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -186,6 +208,16 @@ export default function ProductsPage() {
                 <div className="col-span-2 sm:col-span-1">
                   <label className="text-sm font-medium mb-1 block">Cost/Buy Price (ETB) - Optional</label>
                   <Input name="buyPrice" type="number" step="0.01" defaultValue={editingProduct?.buyPrice ?? ""} />
+                </div>
+                
+                <div className="col-span-2">
+                  <label className="text-sm font-medium mb-1 block">Financial Category (Revenue)</label>
+                  <select name="financialCategoryId" defaultValue={editingProduct?.financialCategoryId || ""} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
+                    <option value="">None (No financial tracking)</option>
+                    {financialCategories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 {editingProduct && (

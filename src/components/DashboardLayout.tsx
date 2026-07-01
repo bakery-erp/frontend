@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, LayoutDashboard, Store, Users, MapPin, Package, Settings, Banknote } from 'lucide-react';
+import { LogOut, LayoutDashboard, Store, Users, MapPin, Package, Settings, Banknote, Layers, Boxes, ArrowRightLeft, ChefHat } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -26,8 +26,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const menuItems = [
     ...(user?.role === 'OWNER' ? [{ icon: MapPin, label: 'Branches', href: '/branches' }] : []),
     { icon: Users, label: 'Users & Roles', href: '/users' },
-    { icon: Package, label: 'Product Categories', href: '/product-categories' },
+    { icon: ChefHat, label: 'Production Batches', href: '/production' },
+    { icon: Layers, label: 'Product Categories', href: '/product-categories' },
     { icon: Package, label: 'Products', href: '/products' },
+    { icon: Boxes, label: 'Stock & Inventory', href: '/stock' },
+    { icon: ArrowRightLeft, label: 'Stock Movements', href: '/stock-movements' },
     { icon: Banknote, label: 'Payroll & HR', href: '/payroll' },
     { icon: Settings, label: 'Settings', href: '/settings' },
   ];
@@ -57,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <ul className="space-y-1">
             {menuItems.map((item, i) => (
               <li key={i}>
-                <Link href={item.href} className={`flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-colors ${pathname.startsWith(item.href) ? 'bg-zinc-100 text-black' : 'text-zinc-600 hover:bg-zinc-50 hover:text-black'}`}>
+                <Link href={item.href} className={`flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-colors ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'bg-zinc-100 text-black' : 'text-zinc-600 hover:bg-zinc-50 hover:text-black'}`}>
                   <item.icon className="w-4 h-4 opacity-70" />
                   <span>{item.label}</span>
                 </Link>
