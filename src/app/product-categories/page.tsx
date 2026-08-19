@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type CategoryType = "PRODUCED" | "RESELL";
 
@@ -94,15 +95,19 @@ export default function ProductCategoriesPage() {
     }
   };
 
-  const handleDelete = async (category: Category) => {
-    if (!confirm(`Delete ${category.name}?`)) return;
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
     try {
-      await api.delete(`/product-categories/${category.id}`);
+      await api.delete(`/product-categories/${categoryToDelete.id}`);
       toast.success("Category deleted");
       fetchCategories();
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Error");
       console.error(e);
+    } finally {
+      setCategoryToDelete(null);
     }
   };
 
@@ -264,7 +269,7 @@ export default function ProductCategoriesPage() {
                 <TableCell>{getChildCount(cat.id)}</TableCell>
                 <TableCell className="space-x-2">
                   {canManage && <Button variant="ghost" size="sm" onClick={() => setEditingCategory(cat)}>Edit</Button>}
-                  {canManage && <Button variant="ghost" size="sm" onClick={() => handleDelete(cat)}>Delete</Button>}
+                  {canManage && <Button variant="ghost" size="sm" onClick={() => setCategoryToDelete(cat)}>Delete</Button>}
                 </TableCell>
               </TableRow>
             ))}
@@ -297,7 +302,7 @@ export default function ProductCategoriesPage() {
                   <TableCell>{cat._count?.products || 0}</TableCell>
                   <TableCell className="space-x-2">
                     {canManage && <Button variant="ghost" size="sm" onClick={() => setEditingCategory(cat)}>Edit</Button>}
-                    {canManage && <Button variant="ghost" size="sm" onClick={() => handleDelete(cat)}>Delete</Button>}
+                    {canManage && <Button variant="ghost" size="sm" onClick={() => setCategoryToDelete(cat)}>Delete</Button>}
                   </TableCell>
                 </TableRow>
               ))}
@@ -358,6 +363,17 @@ export default function ProductCategoriesPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Category Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!categoryToDelete}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={confirmDeleteCategory}
+        title="Delete Product Category"
+        description={`Are you sure you want to delete '${categoryToDelete?.name}'? This action cannot be undone.`}
+        confirmText="Delete Category"
+        variant="danger"
+      />
     </DashboardLayout>
   );
 }
