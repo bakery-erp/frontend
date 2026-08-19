@@ -6,9 +6,9 @@ import { useBranch } from '@/context/BranchContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { 
-  LogOut, LayoutDashboard, Store, Users, MapPin, Package, Settings, 
-  Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck, 
+import {
+  LogOut, LayoutDashboard, Store, Users, MapPin, Package, Settings,
+  Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
   CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X
 } from 'lucide-react';
 
@@ -61,7 +61,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { icon: Layers, label: 'Product Categories', href: '/product-categories' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER' || role === 'BAKER') ? [
-      { icon: Package, label: 'Products', href: '/products' }
+      { icon: Package, label: 'Products', href: '/products' },
+      { icon: ArrowRightLeft, label: 'Product Conversions', href: '/product-conversions' }
     ] : []),
     { icon: Boxes, label: 'Stock & Inventory', href: '/stock' },
     ...((isOwner || isAdmin) ? [
@@ -90,7 +91,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-[10px] uppercase font-bold text-[#E2C7B4] tracking-widest block">{user?.role} PORTAL</span>
           </div>
         </div>
-        <button 
+        <button
           onClick={() => setIsMobileOpen(false)}
           className="lg:hidden text-[#E2C7B4] hover:text-white p-1"
         >
@@ -106,13 +107,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
             return (
               <li key={i}>
-                <Link 
-                  href={item.href} 
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-[#E87A18] text-white shadow-[0_4px_16px_rgba(232,122,24,0.45)] transform scale-[1.02]' 
+                <Link
+                  href={item.href}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${isActive
+                      ? 'bg-[#E87A18] text-white shadow-[0_4px_16px_rgba(232,122,24,0.45)] transform scale-[1.02]'
                       : 'text-[#E2C7B4] hover:bg-[#5A3A23] hover:text-white'
-                  }`}
+                    }`}
                 >
                   <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#E2C7B4]'}`} />
                   <span>{item.label}</span>
@@ -129,8 +129,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="text-sm font-bold text-white truncate">{user?.fullName}</p>
           <p className="text-xs text-[#CBB29F] truncate">{user?.phone}</p>
         </div>
-        <Button 
-          className="w-full justify-center bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md border-0 h-10 transition-all" 
+        <Button
+          className="w-full justify-center bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md border-0 h-10 transition-all"
           onClick={logout}
         >
           <LogOut className="w-4 h-4 mr-2" /> Logout
@@ -143,17 +143,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-[#FAF7EE] text-[#2C1B10] flex p-3 md:p-6 font-sans">
       {/* Mobile & Tablet Drawer Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
       {/* Mobile & Tablet Sidebar Drawer */}
-      <aside 
-        className={`fixed inset-y-0 left-0 w-72 bg-[#4A2E1B] text-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden shadow-2xl ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+      <aside
+        className={`fixed inset-y-0 left-0 w-72 bg-[#4A2E1B] text-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden shadow-2xl ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {sidebarContent}
       </aside>
@@ -168,7 +167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Top Header Bar */}
         <header className="h-16 bg-[#FFFDF8]/90 backdrop-blur-md border border-[#EDE4D5] rounded-2xl sticky top-3 md:top-6 z-30 px-4 md:px-6 flex items-center justify-between shadow-[0_4px_20px_rgba(74,46,27,0.04)] mb-4 md:mb-6">
           <div className="flex items-center space-x-3 md:space-x-4">
-            <button 
+            <button
               onClick={() => setIsMobileOpen(true)}
               className="lg:hidden p-2 rounded-xl bg-[#F4ECE1] text-[#4A2E1B] hover:bg-[#E0D5C3] transition-colors"
               aria-label="Open menu"
