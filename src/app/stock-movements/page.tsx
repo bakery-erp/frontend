@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
+import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
 
 interface Branch {
@@ -43,12 +44,11 @@ interface StockMovement {
 
 export default function StockMovementsPage() {
   const { user } = useAuth();
+  const { selectedBranchId } = useBranch();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
   const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   
   const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -58,44 +58,25 @@ export default function StockMovementsPage() {
   const [movementType, setMovementType] = useState<"IN" | "OUT" | "ADJUSTMENT">("IN");
   const [selectedStockItem, setSelectedStockItem] = useState<string>("");
 
-  const fetchBranches = useCallback(async () => {
-    if (!isGlobalAdmin) return;
-    try {
-      const res = await api.get("/branches");
-      setBranches(res.data);
-      if (res.data.length > 0 && !selectedBranchId) {
-        setSelectedBranchId(res.data[0].id);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [isGlobalAdmin, selectedBranchId]);
-
   const fetchItems = useCallback(async () => {
     try {
-      const endpoint = (isGlobalAdmin && selectedBranchId) 
+      const endpoint = selectedBranchId 
         ? `/stock-items?branchId=${selectedBranchId}` 
         : `/stock-items`;
-      if (isGlobalAdmin && !selectedBranchId) return;
       const res = await api.get(endpoint);
       setStockItems(res.data);
     } catch (e) {
       console.error(e);
     }
-  }, [isGlobalAdmin, selectedBranchId]);
+  }, [selectedBranchId]);
 
   const fetchMovements = useCallback(async () => {
     setIsLoading(true);
     try {
-      const endpoint = (isGlobalAdmin && selectedBranchId) 
+      const endpoint = selectedBranchId 
         ? `/stock-movements?branchId=${selectedBranchId}` 
         : `/stock-movements`;
         
-      if (isGlobalAdmin && !selectedBranchId) {
-         setMovements([]);
-         setIsLoading(false);
-         return;
-      }
       const res = await api.get(endpoint);
       setMovements(res.data);
     } catch (e: any) {
@@ -104,11 +85,7 @@ export default function StockMovementsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [isGlobalAdmin, selectedBranchId]);
-
-  useEffect(() => {
-    fetchBranches();
-  }, [fetchBranches]);
+  }, [selectedBranchId]);
 
   useEffect(() => {
     fetchItems();
@@ -169,18 +146,6 @@ export default function StockMovementsPage() {
           <p className="text-sm text-zinc-500 mt-1">Track IN, OUT, and ADJUSTMENTS for your inventory</p>
         </div>
         <div className="flex items-center gap-3">
-          {isGlobalAdmin && (
-            <select 
-              value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="border rounded-md h-10 px-3 bg-white text-sm"
-            >
-              <option value="" disabled>Select Branch</option>
-              {branches.map(b => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          )}
           <Button onClick={() => setIsAddOpen(true)}>Record Movement</Button>
         </div>
       </div>
@@ -217,8 +182,8 @@ export default function StockMovementsPage() {
                   {mov.type === "OUT" || mov.type === "PRODUCTION_USAGE" ? "-" : "+"}
                   {Number(mov.quantity).toFixed(2)} <span className="text-xs text-zinc-400 font-normal">{mov.stockItem?.unitType}</span>
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate text-zinc-600" title={mov.reason || "-"}>
-                  {mov.reason || "-"}
+                <TableCell className="max-w-[200px] truncate text-zinc-600" title={mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "-"}>
+                  {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "-"}
                 </TableCell>
                 <TableCell>{mov.user?.fullName}</TableCell>
               </TableRow>
