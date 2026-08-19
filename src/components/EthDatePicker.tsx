@@ -3,31 +3,43 @@ import { EthDateTime } from "ethiopian-calendar-date-converter";
 
 const ETH_MONTHS = ["Meskerem", "Tikimt", "Hidar", "Tahsas", "Tir", "Yakatit", "Maggabit", "Miyazya", "Ginbot", "Sene", "Hamle", "Nehase", "Pagume"];
 
+function formatYmdLocal(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function EthDatePicker({ name, defaultValue }: { name: string, defaultValue?: string }) {
-  const [y, setY] = useState(new EthDateTime(new Date().getFullYear() - 8, 1, 1).year);
+  const [mounted, setMounted] = useState(false);
+  const [y, setY] = useState(2016);
   const [m, setM] = useState(1);
   const [d, setD] = useState(1);
 
   useEffect(() => {
+    setMounted(true);
     if (defaultValue) {
-      const ec = EthDateTime.fromEuropeanDate(new Date(defaultValue));
-      setY(ec.year);
-      setM(ec.month);
-      setD(ec.date);
-    } else {
-      const ec = EthDateTime.fromEuropeanDate(new Date());
-      setY(ec.year);
-      setM(ec.month);
-      setD(ec.date);
+      const parsed = new Date(defaultValue);
+      if (!isNaN(parsed.getTime())) {
+        const ec = EthDateTime.fromEuropeanDate(parsed);
+        setY(ec.year);
+        setM(ec.month);
+        setD(ec.date);
+        return;
+      }
     }
+    const ec = EthDateTime.fromEuropeanDate(new Date());
+    setY(ec.year);
+    setM(ec.month);
+    setD(ec.date);
   }, [defaultValue]);
 
   let isLeapYear = y % 4 === 3;
   let maxDays = m === 13 ? (isLeapYear ? 6 : 5) : 30;
   
   const safeD = d > maxDays ? maxDays : d;
-  const gcDateObj = new EthDateTime(y, m, safeD).toEuropeanDate();
-  const gcDateStr = gcDateObj ? gcDateObj.toISOString().split('T')[0] : "";
+  const gcDateObj = mounted ? new EthDateTime(y, m, safeD).toEuropeanDate() : null;
+  const gcDateStr = gcDateObj ? formatYmdLocal(gcDateObj) : "";
 
   return (
     <div className="flex flex-row gap-1 border rounded-md px-1 py-1 w-full bg-white text-zinc-900 border-zinc-200">

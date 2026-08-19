@@ -18,10 +18,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         localStorage.removeItem('token');
         window.dispatchEvent(new Event('auth-error'));
       }
+    } else if (error.code === 'ERR_NETWORK' && typeof window !== 'undefined') {
+      console.warn('Network offline or backend server unreachable.');
     }
     return Promise.reject(error);
   }
