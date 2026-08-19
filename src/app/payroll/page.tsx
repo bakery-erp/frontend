@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { useBranch } from "@/context/BranchContext";
 import {
   DollarSign,
   FileText,
@@ -110,6 +111,7 @@ interface CalcResult {
 
 export default function PayrollPage() {
   const { user } = useAuth();
+  const { selectedBranchId } = useBranch();
   const [activeTab, setActiveTab] = useState<Tab>("RUN");
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingLoans, setIsLoadingLoans] = useState(true);
@@ -148,12 +150,13 @@ export default function PayrollPage() {
     if (activeTab === "HISTORY" || activeTab === "RUN") fetchHistory();
     if (activeTab === "LOANS") fetchLoans();
     if (activeTab === "PENALTIES") fetchPenalties();
-  }, [activeTab]);
+  }, [activeTab, selectedBranchId]);
 
   const fetchUsers = async () => {
     try {
       setIsLoadingUsers(true);
-      const { data } = await api.get("/users");
+      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
+      const { data } = await api.get("/users", { params });
       setUsers(data.filter((u: User) => u.role !== "OWNER"));
     } catch {
     } finally {
@@ -163,7 +166,8 @@ export default function PayrollPage() {
   const fetchHistory = async () => {
     try {
       setIsLoadingHistory(true);
-      const { data } = await api.get("/payroll");
+      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
+      const { data } = await api.get("/payroll", { params });
       setHistory(data);
     } catch {
     } finally {
@@ -173,7 +177,9 @@ export default function PayrollPage() {
   const fetchLoans = async () => {
     try {
       setIsLoadingLoans(true);
-      const { data } = await api.get("/loans?type=EMPLOYEE");
+      const params: any = { type: "EMPLOYEE" };
+      if (selectedBranchId) params.branchId = selectedBranchId;
+      const { data } = await api.get("/loans", { params });
       setLoans(data);
     } catch {
     } finally {
@@ -183,7 +189,8 @@ export default function PayrollPage() {
   const fetchPenalties = async () => {
     try {
       setIsLoadingPenalties(true);
-      const { data } = await api.get("/penalties");
+      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
+      const { data } = await api.get("/penalties", { params });
       setPenalties(data);
     } catch {
     } finally {
@@ -260,7 +267,7 @@ export default function PayrollPage() {
     const fd = new FormData(e.currentTarget);
     try {
       await api.post("/loans", {
-        type: "EMPLOYEE",
+        type: fd.get("type") || "STAFF_LOAN",
         userId: fd.get("userId"),
         totalAmount: fd.get("amount"),
       });
@@ -298,20 +305,20 @@ export default function PayrollPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Payroll & Finance
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
+            Payroll & Staff Loans
           </h1>
-          <p className="text-zinc-500 mt-1">
-            Manage personnel salaries, deductions, and payment records.
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
+            Manage personnel salaries, salary advance loans, attendance penalties, and payout distribution
           </p>
         </div>
-        <div className="flex bg-white/50 p-1 rounded-lg border border-zinc-200">
+        <div className="flex flex-wrap bg-white p-1.5 rounded-2xl border border-[#EDE4D5] shadow-xs gap-1 w-full lg:w-auto">
           <Button
             variant={activeTab === "RUN" ? "default" : "ghost"}
             onClick={() => setActiveTab("RUN")}
-            className={activeTab === "RUN" ? "bg-black text-white" : ""}
+            className={activeTab === "RUN" ? "bg-[#4A2E1B] text-white font-bold rounded-xl" : "text-[#4A2E1B] font-semibold hover:bg-[#F4ECE1] rounded-xl"}
           >
             <Wallet className="w-4 h-4 mr-2" /> Calculator
           </Button>
@@ -858,6 +865,19 @@ export default function PayrollPage() {
                       {u.fullName}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">
+                  Loan Classification / Type
+                </label>
+                <select
+                  name="type"
+                  required
+                  className="w-full h-10 border rounded-md px-3 text-sm"
+                >
+                  <option value="STAFF_LOAN">Staff Loan (Multi-Month Installment)</option>
+                  <option value="SALARY_ADVANCE">Salary Advance (Pre-payment of current month salary)</option>
                 </select>
               </div>
               <div>

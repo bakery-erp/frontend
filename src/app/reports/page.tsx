@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { useBranch } from "@/context/BranchContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +15,22 @@ type ReportMode = "summary" | "period";
 type Period = "daily" | "weekly" | "monthly" | "quarterly" | "semester" | "yearly";
 
 type ReportResponse = {
-  period: string;
-  branchId: string;
+  period?: string;
+  branchId?: string;
   from?: string;
   to?: string;
   date?: string;
-  totals: {
+  salesTotal?: number;
+  cashLeftoverTotal?: number;
+  companyExpenseTotal?: number;
+  ownerExpenseTotal?: number;
+  loanTotal?: number;
+  supplierDeliveryCost?: number;
+  payrollTotal?: number;
+  totalExpenses?: number;
+  totalExpense?: number;
+  netIncome?: number;
+  totals?: {
     openingLeftoverQuantity: number;
     salesTotal: number;
     cashLeftoverTotal: number;
@@ -131,10 +142,10 @@ function money(value: number | undefined | null) {
 
 export default function ReportsPage() {
   const { user } = useAuth();
+  const { selectedBranchId, branches } = useBranch();
   const [mode, setMode] = useState<ReportMode>("summary");
   const [period, setPeriod] = useState<Period>("monthly");
   const [branchId, setBranchId] = useState<string>("");
-  const [branches, setBranches] = useState<BranchOption[]>([]);
   const [from, setFrom] = useState(new Date().toISOString().slice(0, 10));
   const [to, setTo] = useState(new Date().toISOString().slice(0, 10));
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -147,23 +158,20 @@ export default function ReportsPage() {
 
   const allowed = user?.role === "OWNER" || user?.role === "ADMIN";
 
-  const loadBranches = async () => {
-    try {
-      const res = await api.get<BranchOption[]>("/branches");
-      setBranches(res.data);
-      setBranchId((current) => current || user?.branchId || res.data[0]?.id || "");
-    } catch (error) {
-      console.error(error);
+  useEffect(() => {
+    if (selectedBranchId !== undefined) {
+      setBranchId(selectedBranchId || "");
     }
-  };
+  }, [selectedBranchId]);
 
   const buildUrl = () => {
-    const branchQuery = branchId ? `branchId=${branchId}&` : "";
+    const activeBranch = branchId || selectedBranchId;
+    const branchQuery = activeBranch ? `branchId=${activeBranch}&` : "";
     if (mode === "summary") {
-      return `/reports/summary?${branchQuery}from=${from}&to=${to}`;
+      return `/reports/range?${branchQuery}from=${from}&to=${to}`;
     }
-    const params = new URLSearchParams({ period });
-    if (branchId) params.set("branchId", branchId);
+    const params = new URLSearchParams();
+    if (activeBranch) params.set("branchId", activeBranch);
     if (period === "daily") params.set("date", date);
     if (period === "weekly") params.set("endDate", date);
     if (period === "monthly") {
@@ -179,7 +187,7 @@ export default function ReportsPage() {
       params.set("semester", semester);
     }
     if (period === "yearly") params.set("year", year);
-    return `/reports/period?${params.toString()}`;
+    return `/reports/period/${period}?${params.toString()}`;
   };
 
   const loadReport = async () => {
@@ -197,19 +205,19 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (allowed) {
-      loadBranches();
       loadReport();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [branchId, selectedBranchId]);
 
   const salesRows = useMemo(() => {
     const rows: Array<{ label: string; quantity: number; total: number; date: string }> = [];
-    for (const session of report?.sessions || []) {
-      for (const sale of session.sales) {
-        for (const item of sale.items) {
+    const sessionsList = Array.isArray(report?.sessions) ? report.sessions : [];
+    for (const session of sessionsList) {
+      for (const sale of session.sales || []) {
+        for (const item of sale.items || []) {
           rows.push({
-            label: item.product.flavor ? `${item.product.name} (${item.product.flavor})` : item.product.name,
+            label: item.product?.flavor ? `${item.product.name} (${item.product.flavor})` : item.product?.name || "Product",
             quantity: item.quantity,
             total: item.subtotal,
             date: session.date,
@@ -222,12 +230,13 @@ export default function ReportsPage() {
 
   const openingLeftoverRows = useMemo(() => {
     const rows: Array<{ key: string; sessionDate: string; productName: string; quantity: number }> = [];
-    for (const session of report?.sessions || []) {
+    const sessionsList = Array.isArray(report?.sessions) ? report.sessions : [];
+    for (const session of sessionsList) {
       for (const [index, row] of (session.openingLeftoverRecords || []).entries()) {
         rows.push({
           key: `${session.id}-${index}`,
           sessionDate: session.date,
-          productName: row.product.flavor ? `${row.product.name} (${row.product.flavor})` : row.product.name,
+          productName: row.product?.flavor ? `${row.product.name} (${row.product.flavor})` : row.product?.name || "Product",
           quantity: row.quantityRemaining,
         });
       }
@@ -235,12 +244,25 @@ export default function ReportsPage() {
     return rows;
   }, [report]);
 
+  const totals = report?.totals || {
+    openingLeftoverQuantity: 0,
+    salesTotal: report?.salesTotal ?? 0,
+    cashLeftoverTotal: report?.cashLeftoverTotal ?? 0,
+    companyExpenseTotal: report?.companyExpenseTotal ?? 0,
+    ownerExpenseTotal: report?.ownerExpenseTotal ?? 0,
+    loanTotal: report?.loanTotal ?? 0,
+    supplierDeliveryCost: report?.supplierDeliveryCost ?? 0,
+    payrollTotal: report?.payrollTotal ?? 0,
+    totalExpense: report?.totalExpenses ?? report?.totalExpense ?? 0,
+    netIncome: report?.netIncome ?? 0,
+  };
+
   const visualTotals = [
-    { label: "Opening Leftovers", value: report?.totals.openingLeftoverQuantity ?? 0, tone: "bg-violet-500", display: (value: number) => String(value) },
-    { label: "Sales", value: report?.totals.salesTotal ?? 0, tone: "bg-emerald-500", display: money },
-    { label: "Net Income", value: report?.totals.netIncome ?? 0, tone: "bg-sky-500", display: money },
-    { label: "Expenses", value: report?.totals.totalExpense ?? 0, tone: "bg-rose-500", display: money },
-    { label: "Loans", value: report?.totals.loanTotal ?? 0, tone: "bg-amber-500", display: money },
+    { label: "Opening Leftovers", value: totals.openingLeftoverQuantity ?? 0, tone: "bg-violet-500", display: (value: number) => String(value) },
+    { label: "Sales", value: totals.salesTotal ?? 0, tone: "bg-emerald-500", display: money },
+    { label: "Net Income", value: totals.netIncome ?? 0, tone: "bg-sky-500", display: money },
+    { label: "Expenses", value: totals.totalExpense ?? 0, tone: "bg-rose-500", display: money },
+    { label: "Loans", value: totals.loanTotal ?? 0, tone: "bg-amber-500", display: money },
   ];
   const maxVisual = Math.max(...visualTotals.map((item) => item.value), 1);
 
@@ -276,7 +298,7 @@ export default function ReportsPage() {
               <option value="">Select a branch</option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
-                  {branch.name} {branch.isActive ? "" : "(Inactive)"}
+                  {branch.name}
                 </option>
               ))}
             </select>
@@ -409,18 +431,18 @@ export default function ReportsPage() {
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
-            <Card><CardHeader><CardTitle className="text-sm">Opening Leftovers</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{report.totals.openingLeftoverQuantity}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Sales</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(report.totals.salesTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Cash Leftover</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(report.totals.cashLeftoverTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Total Expense</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(report.totals.totalExpense)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Net Income</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(report.totals.netIncome)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Opening Leftovers</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{totals.openingLeftoverQuantity}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Sales</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(totals.salesTotal)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Cash Leftover</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(totals.cashLeftoverTotal)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Total Expense</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(totals.totalExpense)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Net Income</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(totals.netIncome)}</CardContent></Card>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
-            <Card><CardHeader><CardTitle className="text-sm">Company Expense</CardTitle></CardHeader><CardContent>{money(report.totals.companyExpenseTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Owner Expense</CardTitle></CardHeader><CardContent>{money(report.totals.ownerExpenseTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Loans</CardTitle></CardHeader><CardContent>{money(report.totals.loanTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Supplier Cost</CardTitle></CardHeader><CardContent>{money(report.totals.supplierDeliveryCost)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Company Expense</CardTitle></CardHeader><CardContent>{money(totals.companyExpenseTotal)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Owner Expense</CardTitle></CardHeader><CardContent>{money(totals.ownerExpenseTotal)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Loans</CardTitle></CardHeader><CardContent>{money(totals.loanTotal)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-sm">Supplier Cost</CardTitle></CardHeader><CardContent>{money(totals.supplierDeliveryCost)}</CardContent></Card>
           </div>
 
           <Card className="mb-6">
@@ -440,9 +462,9 @@ export default function ReportsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {report.dailyBreakdown.length === 0 ? (
+                  {(report.dailyBreakdown || []).length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center text-zinc-400">No entries in this range</TableCell></TableRow>
-                  ) : report.dailyBreakdown.map((row) => (
+                  ) : (report.dailyBreakdown || []).map((row) => (
                     <TableRow key={row.date}>
                       <TableCell>{row.date}</TableCell>
                       <TableCell>{row.openingLeftoverQuantity}</TableCell>
@@ -527,11 +549,11 @@ export default function ReportsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {report.expenses.length === 0 ? (
+                    {(report.expenses || []).length === 0 ? (
                       <TableRow><TableCell colSpan={4} className="text-center text-zinc-400">No expenses</TableCell></TableRow>
-                    ) : report.expenses.map((expense) => (
+                    ) : (report.expenses || []).map((expense) => (
                       <TableRow key={expense.id}>
-                        <TableCell>{expense.date}</TableCell>
+                        <TableCell>{expense.date ? new Date(expense.date).toISOString().slice(0, 10) : '-'}</TableCell>
                         <TableCell>{expense.financialCategory?.name || expense.category}</TableCell>
                         <TableCell>{expense.description || expense.category}</TableCell>
                         <TableCell>{money(expense.amount)}</TableCell>
@@ -555,11 +577,11 @@ export default function ReportsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {report.loans.length === 0 ? (
+                    {(report.loans || []).length === 0 ? (
                       <TableRow><TableCell colSpan={4} className="text-center text-zinc-400">No loans</TableCell></TableRow>
-                    ) : report.loans.map((loan) => (
+                    ) : (report.loans || []).map((loan) => (
                       <TableRow key={loan.id}>
-                        <TableCell>{loan.date}</TableCell>
+                        <TableCell>{loan.date ? new Date(loan.date).toISOString().slice(0, 10) : '-'}</TableCell>
                         <TableCell>{loan.type}</TableCell>
                         <TableCell>{loan.user?.fullName || loan.entityId || '-'}</TableCell>
                         <TableCell>{money(loan.totalAmount)}</TableCell>
@@ -584,13 +606,13 @@ export default function ReportsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {report.productionBatches.length === 0 ? (
+                    {(report.productionBatches || []).length === 0 ? (
                       <TableRow><TableCell colSpan={3} className="text-center text-zinc-400">No production batches</TableCell></TableRow>
-                    ) : report.productionBatches.map((batch) => (
+                    ) : (report.productionBatches || []).map((batch) => (
                       <TableRow key={batch.id}>
-                        <TableCell>{batch.date}</TableCell>
+                        <TableCell>{batch.date ? new Date(batch.date).toISOString().slice(0, 10) : '-'}</TableCell>
                         <TableCell>{batch.user?.fullName || '-'}</TableCell>
-                        <TableCell>{batch.items.map((item) => `${item.product.name}${item.product.flavor ? ` (${item.product.flavor})` : ''} x${item.quantityProduced}`).join(', ')}</TableCell>
+                        <TableCell>{(batch.items || []).map((item) => `${item.product?.name || 'Product'}${item.product?.flavor ? ` (${item.product.flavor})` : ''} x${item.quantityProduced}`).join(', ')}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -611,14 +633,14 @@ export default function ReportsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {report.supplierDeliveries.length === 0 ? (
+                    {(report.supplierDeliveries || []).length === 0 ? (
                       <TableRow><TableCell colSpan={4} className="text-center text-zinc-400">No supplier deliveries</TableCell></TableRow>
-                    ) : report.supplierDeliveries.map((delivery) => (
+                    ) : (report.supplierDeliveries || []).map((delivery) => (
                       <TableRow key={delivery.id}>
-                        <TableCell>{new Date(delivery.createdAt).toISOString().slice(0, 10)}</TableCell>
-                        <TableCell>{delivery.supplier.name}</TableCell>
-                        <TableCell>{delivery.product.name}</TableCell>
-                        <TableCell>{money(delivery.unitBuyPrice * (delivery.quantityReceived - delivery.returnedQuantity))}</TableCell>
+                        <TableCell>{delivery.createdAt ? new Date(delivery.createdAt).toISOString().slice(0, 10) : '-'}</TableCell>
+                        <TableCell>{delivery.supplier?.name || '-'}</TableCell>
+                        <TableCell>{delivery.product?.name || '-'}</TableCell>
+                        <TableCell>{money((delivery.unitBuyPrice || 0) * ((delivery.quantityReceived || 0) - (delivery.returnedQuantity || 0)))}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

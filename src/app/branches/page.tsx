@@ -51,10 +51,11 @@ export default function BranchesPage() {
   const [formData, setFormData] = useState({ name: "", address: "" });
   const [submitting, setSubmitting] = useState(false);
 
+  const isOwner = user?.role === "OWNER";
+
   useEffect(() => {
-    // Only owners can manage branches
     if (!user) return;
-    if (user.role !== "OWNER") {
+    if (user.role !== "OWNER" && user.role !== "ADMIN") {
       router.push("/");
       toast.error("Unauthorized access to Branch Management.");
       return;
@@ -75,6 +76,7 @@ export default function BranchesPage() {
   };
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    if (!isOwner) return;
     try {
       setToggleLoading(id);
       await api.patch(`/branches/${id}`, { isActive: !currentStatus });
@@ -91,6 +93,7 @@ export default function BranchesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOwner) return;
     if (!formData.name.trim()) return toast.error("Branch name is required.");
     
     setSubmitting(true);
@@ -117,6 +120,7 @@ export default function BranchesPage() {
   };
 
   const handleOpenDialog = (branch?: Branch) => {
+    if (!isOwner) return;
     if (branch) {
       setEditingBranch(branch);
       setFormData({ name: branch.name, address: branch.address || "" });
@@ -145,61 +149,66 @@ export default function BranchesPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">Branch Management</h1>
             <p className="text-gray-500 mt-1">
-              Manage bakery locations, addresses, and operational status.
+              {isOwner
+                ? "Manage bakery locations, addresses, and operational status."
+                : "View operational details for your assigned branch location."}
             </p>
           </div>
 
-          <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add Branch
-          </Button>
+          {isOwner && (
+            <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add Branch
+            </Button>
+          )}
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>{editingBranch ? "Edit Branch" : "Add New Branch"}</DialogTitle>
-                <DialogDescription>
-                  {editingBranch
-                    ? "Update the details of the existing branch location."
-                    : "Create a new branch location for your bakery operations."}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">
-                    Branch Name <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    id="name"
-                    placeholder="e.g., Downtown Bakery"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="address" className="text-sm font-medium">
-                    Address
-                  </label>
-                  <Input
-                    id="address"
-                    placeholder="e.g., 123 Main St, Cityville"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  />
-                </div>
-                <DialogFooter className="pt-4">
-                  <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? "Saving..." : editingBranch ? "Save Changes" : "Create Branch"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          {isOwner && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>{editingBranch ? "Edit Branch" : "Add New Branch"}</DialogTitle>
+                  <DialogDescription>
+                    {editingBranch
+                      ? "Update the details of the existing branch location."
+                      : "Create a new branch location for your bakery operations."}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <label htmlFor="name" className="text-sm font-medium">
+                      Branch Name <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      id="name"
+                      placeholder="e.g., Downtown Bakery"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="address" className="text-sm font-medium">
+                      Address
+                    </label>
+                    <Input
+                      id="address"
+                      placeholder="e.g., 123 Main St, Cityville"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    />
+                  </div>
+                  <DialogFooter className="pt-4">
+                    <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={submitting}>
+                      {submitting ? "Saving..." : editingBranch ? "Save Changes" : "Create Branch"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Filters and Search */}
@@ -263,27 +272,31 @@ export default function BranchesPage() {
                       {new Date(branch.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-500" htmlFor={`switch-${branch.id}`}>
-                            {toggleLoading === branch.id ? "Updating..." : branch.isActive ? "Disable" : "Enable"}
-                          </label>
-                          <Switch
-                            id={`switch-${branch.id}`}
-                            checked={branch.isActive}
-                            disabled={toggleLoading === branch.id}
-                            onCheckedChange={() => handleToggleStatus(branch.id, branch.isActive)}
-                          />
+                      {isOwner ? (
+                        <div className="flex justify-end items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-gray-500" htmlFor={`switch-${branch.id}`}>
+                              {toggleLoading === branch.id ? "Updating..." : branch.isActive ? "Disable" : "Enable"}
+                            </label>
+                            <Switch
+                              id={`switch-${branch.id}`}
+                              checked={branch.isActive}
+                              disabled={toggleLoading === branch.id}
+                              onCheckedChange={() => handleToggleStatus(branch.id, branch.isActive)}
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenDialog(branch)}
+                            className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDialog(branch)}
-                          className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 font-medium">Read-Only</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
-import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, MoreVertical } from "lucide-react";
+import { useBranch } from "@/context/BranchContext";
+import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -52,15 +53,49 @@ interface User {
   } | null;
 }
 
+interface PasswordResetRequest {
+  id: string;
+  userId: string;
+  phone: string;
+  status: "PENDING" | "RESOLVED" | "REJECTED";
+  requestedAt: string;
+  resolvedAt: string | null;
+  user: {
+    id: string;
+    fullName: string;
+    phone: string;
+    role: string;
+    branch?: { name: string } | null;
+  };
+}
+
 const SHIFTS = ["DAY", "NIGHT"];
 
 export default function UsersPage() {
   const { user } = useAuth();
+  const { selectedBranchId } = useBranch();
   const [users, setUsers] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
+  const [resetRequests, setResetRequests] = useState<PasswordResetRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"users" | "requests">("users");
+
+  // Reset Password Dialog State
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState<User | PasswordResetRequest["user"] | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | undefined>(undefined);
+  const [customNewPassword, setCustomNewPassword] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Copy Result Modal State
+  const [generatedResult, setGeneratedResult] = useState<{
+    tempPassword: string;
+    employeeName: string;
+    employeePhone: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
   
   // Dialog states
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
@@ -71,24 +106,81 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedBranchId]);
 
   const fetchData = async () => {
     try {
       const [usersRes, branchesRes, rolesRes] = await Promise.all([
-        api.get<User[]>("/users"),
+        api.get<User[]>("/users", { params: selectedBranchId ? { branchId: selectedBranchId } : {} }),
         api.get<Branch[]>("/branches"),
         api.get<string[]>("/users/roles").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CASHIER", "SAMBUSA_WORKER"] }))
       ]);
       setUsers(usersRes.data);
       setBranches(branchesRes.data);
       setRoles(rolesRes.data);
+
+      if (user?.role === "OWNER" || user?.role === "ADMIN") {
+        api.get<PasswordResetRequest[]>("/auth/password-reset-requests")
+          .then((res) => setResetRequests(res.data))
+          .catch(() => {});
+      }
     } catch (error) {
       toast.error("Failed to fetch data");
       console.error(error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const pendingCount = resetRequests.filter((r) => r.status === "PENDING").length;
+
+  const openResetPassword = (targetUser: User | PasswordResetRequest["user"], requestId?: string) => {
+    setSelectedUserForReset(targetUser);
+    setSelectedRequestId(requestId);
+    setCustomNewPassword("");
+    setIsResetModalOpen(true);
+  };
+
+  const handleGeneratePassword = async () => {
+    if (!selectedUserForReset) return;
+    setIsGenerating(true);
+    try {
+      const { data } = await api.post("/auth/admin-reset-password", {
+        targetUserId: selectedUserForReset.id,
+        requestId: selectedRequestId,
+        customPassword: customNewPassword ? customNewPassword : undefined,
+      });
+
+      toast.success("Password reset successfully!");
+      setIsResetModalOpen(false);
+      setGeneratedResult({
+        tempPassword: data.tempPassword,
+        employeeName: data.employee.fullName,
+        employeePhone: data.employee.phone,
+      });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to reset password");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await api.post(`/auth/password-reset-requests/${requestId}/reject`);
+      toast.success("Password reset request rejected");
+      fetchData();
+    } catch (err: any) {
+      toast.error("Failed to reject request");
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success("Password copied to clipboard");
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const filteredUsers = users.filter((u) =>
@@ -185,6 +277,36 @@ export default function UsersPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+          <div className="flex border-b border-zinc-200 bg-white px-4 pt-2 gap-4">
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
+                activeTab === "users"
+                  ? "border-black text-black"
+                  : "border-transparent text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              Personnel Directory ({users.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("requests")}
+              className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === "requests"
+                  ? "border-black text-black"
+                  : "border-transparent text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              <span>Password Reset Requests</span>
+              {pendingCount > 0 && (
+                <span className="bg-amber-600 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
         <div className="p-4 border-b border-zinc-200 bg-zinc-50/50 flex items-center justify-between">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -197,76 +319,168 @@ export default function UsersPage() {
           </div>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Personnel</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Branch</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
-                  No users found.
-                </TableCell>
+        {activeTab === "users" ? (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Personnel</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Branch</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              filteredUsers.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500">
-                        <UserIcon className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-zinc-900">{u.fullName}</p>
-                        <p className="text-xs text-zinc-500">{u.phone}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-semibold">
-                      {u.role.replace("_", " ")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {u.branch ? (
-                      <div className="flex items-center text-zinc-600 text-sm">
-                        <Building2 className="w-3 h-3 mr-1" />
-                        {u.branch.name}
-                      </div>
-                    ) : (
-                      <span className="text-zinc-400 text-sm">Unassigned</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={u.isActive}
-                      onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
-                      disabled={user?.role !== "OWNER" && user?.role !== "ADMIN"}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                       <Button variant="ghost" size="sm" onClick={() => openView(u)}>
-                        <Eye className="w-4 h-4 text-zinc-500" />
-                      </Button>
-                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(u)}>
-                          <Edit2 className="w-4 h-4 text-blue-600" />
-                        </Button>
-                      )}
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
+                    No users found.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredUsers.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500">
+                          <UserIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-zinc-900">{u.fullName}</p>
+                          <p className="text-xs text-zinc-500">{u.phone}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-semibold">
+                        {u.role.replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {u.branch ? (
+                        <div className="flex items-center text-zinc-600 text-sm">
+                          <Building2 className="w-3 h-3 mr-1" />
+                          {u.branch.name}
+                        </div>
+                      ) : (
+                        <span className="text-zinc-400 text-sm">Unassigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={u.isActive}
+                        onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
+                        disabled={user?.role !== "OWNER" && user?.role !== "ADMIN"}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openView(u)}>
+                          <Eye className="w-4 h-4 text-zinc-500" />
+                        </Button>
+                        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Reset Password"
+                              onClick={() => openResetPassword(u)}
+                            >
+                              <Key className="w-4 h-4 text-amber-600" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(u)}>
+                              <Edit2 className="w-4 h-4 text-blue-600" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Employee</TableHead>
+                <TableHead>Phone Number</TableHead>
+                <TableHead>Requested Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {resetRequests.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
+                    No password reset requests found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                resetRequests.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                          <Key className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-zinc-900">{r.user?.fullName || "Employee"}</p>
+                          <p className="text-xs text-zinc-500">{r.user?.branch?.name || "Global / Unassigned"}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{r.phone}</TableCell>
+                    <TableCell className="text-xs text-zinc-500">
+                      {format(new Date(r.requestedAt), "PPpp")}
+                    </TableCell>
+                    <TableCell>
+                      {r.status === "PENDING" && (
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-semibold text-[10px]">
+                          PENDING REQUEST
+                        </Badge>
+                      )}
+                      {r.status === "RESOLVED" && (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold text-[10px]">
+                          RESOLVED
+                        </Badge>
+                      )}
+                      {r.status === "REJECTED" && (
+                        <Badge className="bg-zinc-100 text-zinc-600 border-zinc-300 font-semibold text-[10px]">
+                          REJECTED
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {r.status === "PENDING" && (
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => openResetPassword(r.user, r.id)}
+                            className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold h-8 rounded-lg"
+                          >
+                            <Key className="w-3.5 h-3.5 mr-1" />
+                            Generate Password
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRejectRequest(r.id)}
+                            className="text-xs h-8 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
       {/* CREATE & EDIT DIALOG */}
@@ -470,6 +684,122 @@ export default function UsersPage() {
                 <Edit2 className="w-4 h-4 mr-2" /> Edit Employee
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GENERATE / RESET PASSWORD DIALOG */}
+      <Dialog open={isResetModalOpen} onOpenChange={setIsResetModalOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-amber-600" />
+              Reset Employee Password
+            </DialogTitle>
+            <DialogDescription>
+              Generate a new access password for employee account.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUserForReset && (
+            <div className="space-y-4 py-2">
+              <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 font-medium">Employee Name:</span>
+                  <span className="font-bold text-zinc-900">{selectedUserForReset.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 font-medium">Phone Number:</span>
+                  <span className="font-mono text-zinc-900">{selectedUserForReset.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 font-medium">Role / Branch:</span>
+                  <span className="text-zinc-900">{selectedUserForReset.role} • {selectedUserForReset.branch?.name || "Global"}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-700">Custom New Password (Optional)</label>
+                <Input
+                  type="text"
+                  placeholder="Leave empty to auto-generate secure code (e.g. Bakery#A4K8)"
+                  value={customNewPassword}
+                  onChange={(e) => setCustomNewPassword(e.target.value)}
+                  className="h-10 text-xs"
+                />
+                <p className="text-[11px] text-zinc-500">
+                  If left empty, a readable 8-character password will automatically be created.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsResetModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleGeneratePassword}
+              disabled={isGenerating}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+            >
+              {isGenerating ? "Generating..." : "Generate & Set Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* COPY GENERATED PASSWORD RESULT MODAL */}
+      <Dialog open={!!generatedResult} onOpenChange={() => setGeneratedResult(null)}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              New Password Generated
+            </DialogTitle>
+            <DialogDescription>
+              Provide this temporary password to the employee immediately.
+            </DialogDescription>
+          </DialogHeader>
+
+          {generatedResult && (
+            <div className="space-y-4 py-2">
+              <div className="text-xs text-zinc-600">
+                Password successfully updated for <strong className="text-zinc-900">{generatedResult.employeeName}</strong> ({generatedResult.employeePhone}).
+              </div>
+
+              <div className="p-4 bg-zinc-900 text-amber-400 rounded-xl border border-zinc-800 text-center space-y-2">
+                <div className="text-[10px] uppercase font-bold tracking-widest text-zinc-400">Temporary Password</div>
+                <div className="text-2xl font-mono font-bold tracking-wider select-all">{generatedResult.tempPassword}</div>
+              </div>
+
+              <Button
+                onClick={() => copyToClipboard(generatedResult.tempPassword)}
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2 h-11 text-xs font-bold border-zinc-300"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    Copied to Clipboard!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-zinc-600" />
+                    Copy Temporary Password
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              onClick={() => setGeneratedResult(null)}
+              className="w-full bg-black text-white hover:bg-zinc-800"
+            >
+              Done
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
