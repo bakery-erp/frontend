@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { BranchProvider } from "@/context/BranchContext";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "Bakery ERP Management",
@@ -18,12 +18,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+      <body className="font-sans antialiased bg-zinc-50 text-zinc-900">
+        <ErrorBoundary>
+          <AuthProvider>
+            <BranchProvider>
+              {children}
+              <Toaster />
+            </BranchProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
 }
+
