@@ -59,6 +59,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user && user.role !== 'OWNER' && user.role !== 'ADMIN') {
+      if (user.role === 'EMPLOYEE') {
+        router.push('/my-profile');
+        return;
+      }
       if (user.role === 'CASHIER') {
         router.push('/daily-sessions');
         return;
