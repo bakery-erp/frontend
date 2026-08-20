@@ -25,6 +25,7 @@ import {
 
 interface ProductHistoryRecord {
   id: string;
+  rawId?: string;
   date: string;
   createdAt: string;
   type: "PRODUCED" | "RESELL";
@@ -34,6 +35,8 @@ interface ProductHistoryRecord {
   basePrice: number;
   unitBuyPrice?: number;
   quantity: number;
+  returnedQuantity?: number;
+  netQuantity?: number;
   subtotal: number;
   sourceName: string;
   sessionId?: string | null;
@@ -105,6 +108,11 @@ export default function DailyProductHistoryPage() {
   const [resellIsPaid, setResellIsPaid] = useState(true);
   const [resellItems, setResellItems] = useState<ResellLineItem[]>([]);
 
+  // Log Return Modal States
+  const [selectedRecordForReturn, setSelectedRecordForReturn] = useState<ProductHistoryRecord | null>(null);
+  const [returnQuantityInput, setReturnQuantityInput] = useState<string>("0");
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+
   // Fetch filter dropdown options on branch change
   useEffect(() => {
     const fetchFilterOptions = async () => {
@@ -130,8 +138,52 @@ export default function DailyProductHistoryPage() {
 
   const handleSetToday = () => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
-    setStartDate(todayStr);
-    setEndDate(todayStr);
+    if (startDate === todayStr && endDate === todayStr) {
+      // Toggle OFF: Reset to default 30-day range
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      setStartDate(format(d, "yyyy-MM-dd"));
+      setEndDate(todayStr);
+    } else {
+      // Toggle ON: Set to today only
+      setStartDate(todayStr);
+      setEndDate(todayStr);
+    }
+  };
+
+  const openReturnModal = (record: ProductHistoryRecord) => {
+    setSelectedRecordForReturn(record);
+    setReturnQuantityInput(String(record.returnedQuantity || 0));
+  };
+
+  const handleSaveReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRecordForReturn) return;
+
+    const returnQty = Math.max(0, parseInt(returnQuantityInput, 10) || 0);
+    if (returnQty > selectedRecordForReturn.quantity) {
+      toast.error(`Return quantity cannot exceed total recorded quantity (${selectedRecordForReturn.quantity})`);
+      return;
+    }
+
+    setIsSubmittingReturn(true);
+    try {
+      const rawId = selectedRecordForReturn.rawId || selectedRecordForReturn.id.replace(/^(prod_|resell_)/, "");
+
+      if (selectedRecordForReturn.type === "RESELL") {
+        await api.patch(`/supplier-deliveries/${rawId}`, { returnedQuantity: returnQty });
+      } else {
+        await api.patch(`/production-batches/items/${rawId}/return`, { returnedQuantity: returnQty });
+      }
+
+      toast.success(`Logged ${returnQty} returned item(s) for ${selectedRecordForReturn.productName}`);
+      setSelectedRecordForReturn(null);
+      fetchHistory();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to update return quantity");
+    } finally {
+      setIsSubmittingReturn(false);
+    }
   };
 
   const fetchHistory = async () => {
@@ -492,11 +544,11 @@ export default function DailyProductHistoryPage() {
               <TableHead className="font-extrabold text-[#2C1B10]">Date & Time</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Product Name</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Category Type</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Quantity (Pcs)</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">Qty (Recorded / Net)</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Unit Sell Price</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Est. Total Value</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Source / Logged By</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Notes / Status</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">Net Subtotal Value</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">Source / Supplier</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10] text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -539,8 +591,18 @@ export default function DailyProductHistoryPage() {
                     )}
                   </TableCell>
 
-                  <TableCell className="font-extrabold font-mono text-sm text-[#2C1B10]">
-                    {row.quantity.toLocaleString()} <span className="text-[10px] text-zinc-400 font-normal">Pcs</span>
+                  <TableCell className="font-mono text-xs">
+                    <div className="font-extrabold text-[#2C1B10]">
+                      {row.quantity.toLocaleString()} Pcs <span className="text-[10px] text-zinc-400 font-normal">(Recorded)</span>
+                    </div>
+                    {row.returnedQuantity && row.returnedQuantity > 0 ? (
+                      <div className="text-[11px] text-red-600 font-semibold flex items-center gap-1 mt-0.5">
+                        <span>↩ {row.returnedQuantity} Returned</span>
+                        <span className="text-zinc-500 font-normal">→ Net: {row.netQuantity}</span>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-zinc-400 font-normal">0 returned</div>
+                    )}
                   </TableCell>
 
                   <TableCell className="font-mono text-xs text-zinc-700">
@@ -555,8 +617,15 @@ export default function DailyProductHistoryPage() {
                     {row.sourceName}
                   </TableCell>
 
-                  <TableCell className="text-xs text-zinc-500">
-                    {row.notes || "-"}
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openReturnModal(row)}
+                      className="border-[#EDE4D5] hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 text-xs font-bold rounded-xl h-7 px-2.5 inline-flex items-center gap-1 text-[#4A2E1B]"
+                    >
+                      ↩ Log Return
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -564,6 +633,70 @@ export default function DailyProductHistoryPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Record Product Return Submit Dialog Modal */}
+      <Dialog open={!!selectedRecordForReturn} onOpenChange={(open) => !open && setSelectedRecordForReturn(null)}>
+        <DialogContent className="bg-white border-[#EDE4D5] max-w-md rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+              ↩ Record Product Return / Damage
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedRecordForReturn && (
+            <form onSubmit={handleSaveReturn} className="space-y-4 py-2">
+              <div className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5] text-xs space-y-1">
+                <div><span className="font-bold text-[#8C7361]">Product:</span> <span className="font-extrabold text-[#2C1B10]">{selectedRecordForReturn.productName}</span></div>
+                <div><span className="font-bold text-[#8C7361]">Source:</span> {selectedRecordForReturn.sourceName}</div>
+                <div><span className="font-bold text-[#8C7361]">Recorded Quantity:</span> <span className="font-mono font-bold">{selectedRecordForReturn.quantity} Pcs</span></div>
+                <div><span className="font-bold text-[#8C7361]">Unit Sell Price:</span> <span className="font-mono">{selectedRecordForReturn.basePrice.toFixed(2)} ETB</span></div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-[#2C1B10] mb-1">
+                  Returned / Unsold Quantity (Pcs)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  max={selectedRecordForReturn.quantity}
+                  value={returnQuantityInput}
+                  onChange={(e) => setReturnQuantityInput(e.target.value)}
+                  placeholder="Enter returned items"
+                  className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-mono text-sm font-bold text-[#2C1B10]"
+                  required
+                />
+                <p className="text-[11px] text-[#8C7361] mt-1">
+                  This quantity is automatically subtracted from net calculations & total valuation.
+                </p>
+              </div>
+
+              <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-[11px] text-amber-900 font-medium space-y-0.5">
+                <div>Net Billable Qty: <span className="font-bold font-mono text-amber-950">{Math.max(0, selectedRecordForReturn.quantity - (parseInt(returnQuantityInput, 10) || 0))} Pcs</span></div>
+                <div>Updated Net Valuation: <span className="font-bold font-mono text-amber-950">{(Math.max(0, selectedRecordForReturn.quantity - (parseInt(returnQuantityInput, 10) || 0)) * selectedRecordForReturn.basePrice).toFixed(2)} ETB</span></div>
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-0 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSelectedRecordForReturn(null)}
+                  className="border-[#EDE4D5] rounded-xl text-xs font-bold text-[#4A2E1B]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmittingReturn}
+                  className="bg-[#E87A18] hover:bg-[#d66d12] text-white font-bold rounded-xl text-xs"
+                >
+                  {isSubmittingReturn ? "Saving..." : "Save Return Record"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Multi-Product Resell Purchase Dialog Modal */}
       <Dialog open={isResellModalOpen} onOpenChange={setIsResellModalOpen}>
