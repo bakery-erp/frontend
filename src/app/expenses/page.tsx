@@ -75,9 +75,31 @@ export default function ExpensesPage() {
   const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
   const [isSaving, setIsSaving] = useState(false);
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isTodayActive = filterFrom === todayStr && filterTo === todayStr;
+
+  const handleToggleToday = () => {
+    if (isTodayActive) {
+      // Toggle OFF: set range to 30 days ago
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      setFilterFrom(d.toISOString().slice(0, 10));
+      setFilterTo(todayStr);
+    } else {
+      // Toggle ON: set to today
+      setFilterFrom(todayStr);
+      setFilterTo(todayStr);
+    }
+  };
+
   useEffect(() => {
     if (canAccess) {
       loadExpenses();
+    }
+  }, [selectedBranchId, filterFrom, filterTo]);
+
+  useEffect(() => {
+    if (canAccess) {
       loadCategories();
       loadActiveSession();
     }
@@ -404,6 +426,18 @@ export default function ExpensesPage() {
               className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
             />
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleToggleToday}
+            className={`border-[#EDE4D5] font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors ${
+              isTodayActive
+                ? "bg-[#4A2E1B] text-white hover:bg-[#382214] border-[#4A2E1B]"
+                : "bg-white text-[#4A2E1B] hover:bg-[#FAF6F0]"
+            }`}
+          >
+            📅 Today Only {isTodayActive && "✓"}
+          </Button>
           <Button
             onClick={loadExpenses}
             variant="outline"

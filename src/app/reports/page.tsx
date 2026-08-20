@@ -319,7 +319,31 @@ export default function ReportsPage() {
                 <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">End Date</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">End Date</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const todayStr = new Date().toISOString().slice(0, 10);
+                      if (from === todayStr && to === todayStr) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 30);
+                        setFrom(d.toISOString().slice(0, 10));
+                        setTo(todayStr);
+                      } else {
+                        setFrom(todayStr);
+                        setTo(todayStr);
+                      }
+                    }}
+                    className={`text-xs px-2 py-0.5 rounded font-bold transition-colors ${
+                      from === new Date().toISOString().slice(0, 10) && to === new Date().toISOString().slice(0, 10)
+                        ? "bg-[#4A2E1B] text-white"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                    }`}
+                  >
+                    📅 Today Only
+                  </button>
+                </div>
                 <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
               </div>
             </>

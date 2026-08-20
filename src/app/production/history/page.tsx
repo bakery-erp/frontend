@@ -92,11 +92,7 @@ export default function DailyProductHistoryPage() {
   const [productFilter, setProductFilter] = useState("");
   const [allProducts, setAllProducts] = useState<ProductItem[]>([]);
 
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return format(d, "yyyy-MM-dd");
-  });
+  const [startDate, setStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
 
   // Resell Modal States (Multi-Product Line Items)
