@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
-import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History } from "lucide-react";
 
 interface Branch { id: string; name: string; }
 interface Product { id: string; name: string; unitType: string; category?: { type: string } }
@@ -223,6 +223,9 @@ export default function ProductionPage() {
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Manage daily & nightly baking schedules, material usage, and approval requests</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button onClick={() => window.location.href = '/production/history'} variant="outline" className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm flex items-center gap-1.5">
+            <History className="w-4 h-4 text-[#E87A18]" /> View Product History Table
+          </Button>
           <Button onClick={() => setIsAddOpen(true)} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5">
             <Plus className="w-4 h-4" /> Log Production Batch
           </Button>

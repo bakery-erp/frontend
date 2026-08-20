@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   LogOut, LayoutDashboard, Store, Users, MapPin, Package, Settings,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
-  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X
+  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -52,7 +52,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...(isOwner ? [{ icon: MapPin, label: 'Branches', href: '/branches' }] : []),
     ...((isOwner || isAdmin) ? [{ icon: Users, label: 'Users & Staff', href: '/users' }] : []),
     ...((isOwner || isAdmin || role === 'BAKER' || role === 'SAMBUSA_WORKER') ? [
-      { icon: ChefHat, label: 'Production Batches', href: '/production' }
+      { icon: ChefHat, label: 'Production Batches', href: '/production' },
+      { icon: History, label: 'Daily Product History', href: '/production/history' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: CalendarDays, label: 'Daily Sessions', href: '/daily-sessions' }
