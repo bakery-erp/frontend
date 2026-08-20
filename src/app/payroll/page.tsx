@@ -225,11 +225,13 @@ export default function PayrollPage() {
       );
       setCalcData(data);
       setBonus(0);
-      setDeductLoans(true);
-      setDeductPenalties(true);
+      const hasLoans = data.openLoans && data.openLoans.length > 0;
+      const hasPenalties = data.undeductedPenalties && data.undeductedPenalties.length > 0;
+      setDeductLoans(hasLoans);
+      setDeductPenalties(hasPenalties);
       setCustomBaseSalary(String(data.proratedBase || 0));
-      setCustomLoanDeduction(String(data.loanDeductions || 0));
-      setCustomPenaltyDeduction(String(data.penaltyDeductions || 0));
+      setCustomLoanDeduction(hasLoans ? String(data.loanDeductions || 0) : "0");
+      setCustomPenaltyDeduction(hasPenalties ? String(data.penaltyDeductions || 0) : "0");
       setCustomFinalAmount("");
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to calculate");
@@ -664,11 +666,19 @@ export default function PayrollPage() {
                         <input
                           type="checkbox"
                           id="deductLoansCheck"
-                          checked={deductLoans}
+                          disabled={!calcData.openLoans || calcData.openLoans.length === 0}
+                          checked={deductLoans && calcData.openLoans && calcData.openLoans.length > 0}
                           onChange={(e) => setDeductLoans(e.target.checked)}
-                          className="mr-2 w-4 h-4 accent-amber-800 rounded border-amber-300 cursor-pointer"
+                          className="mr-2 w-4 h-4 accent-amber-800 rounded border-amber-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         />
-                        <label htmlFor="deductLoansCheck" className="text-sm font-semibold text-amber-950 cursor-pointer">
+                        <label
+                          htmlFor="deductLoansCheck"
+                          className={`text-sm font-semibold cursor-pointer ${
+                            calcData.openLoans && calcData.openLoans.length > 0
+                              ? "text-amber-950"
+                              : "text-zinc-400 cursor-not-allowed"
+                          }`}
+                        >
                           Monthly Loan Deduction for This Run (ETB)
                         </label>
                       </div>
@@ -676,10 +686,10 @@ export default function PayrollPage() {
                         type="number"
                         step="0.01"
                         min="0"
-                        disabled={!deductLoans}
+                        disabled={!deductLoans || !calcData.openLoans || calcData.openLoans.length === 0}
                         placeholder="0.00"
-                        className="w-36 text-right font-bold text-amber-900 bg-white border-amber-300 disabled:opacity-40"
-                        value={customLoanDeduction}
+                        className="w-36 text-right font-bold text-amber-900 bg-white border-amber-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                        value={calcData.openLoans && calcData.openLoans.length > 0 ? customLoanDeduction : "0"}
                         onChange={(e) => setCustomLoanDeduction(e.target.value)}
                       />
                     </div>
@@ -726,11 +736,19 @@ export default function PayrollPage() {
                         <input
                           type="checkbox"
                           id="deductPenaltiesCheck"
-                          checked={deductPenalties}
+                          disabled={!calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
+                          checked={deductPenalties && calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0}
                           onChange={(e) => setDeductPenalties(e.target.checked)}
-                          className="mr-2 w-4 h-4 accent-rose-800 rounded border-rose-300 cursor-pointer"
+                          className="mr-2 w-4 h-4 accent-rose-800 rounded border-rose-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         />
-                        <label htmlFor="deductPenaltiesCheck" className="text-sm font-semibold text-rose-950 cursor-pointer">
+                        <label
+                          htmlFor="deductPenaltiesCheck"
+                          className={`text-sm font-semibold cursor-pointer ${
+                            calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0
+                              ? "text-rose-950"
+                              : "text-zinc-400 cursor-not-allowed"
+                          }`}
+                        >
                           Deduct Penalty Fines for This Run (ETB)
                         </label>
                       </div>
@@ -738,10 +756,10 @@ export default function PayrollPage() {
                         type="number"
                         step="0.01"
                         min="0"
-                        disabled={!deductPenalties}
+                        disabled={!deductPenalties || !calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
                         placeholder="0.00"
-                        className="w-36 text-right font-bold text-rose-900 bg-white border-rose-300 disabled:opacity-40"
-                        value={customPenaltyDeduction}
+                        className="w-36 text-right font-bold text-rose-900 bg-white border-rose-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                        value={calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0 ? customPenaltyDeduction : "0"}
                         onChange={(e) => setCustomPenaltyDeduction(e.target.value)}
                       />
                     </div>
