@@ -136,6 +136,20 @@ export default function DailyProductHistoryPage() {
     fetchHistory();
   }, [selectedBranchId, startDate, endDate, typeFilter, supplierFilter, productFilter]);
 
+  const handleSupplierSelect = (val: string) => {
+    setSupplierFilter(val);
+    if (val && typeFilter === "PRODUCED") {
+      setTypeFilter("RESELL");
+    }
+  };
+
+  const handleTypeFilterSelect = (type: "ALL" | "PRODUCED" | "RESELL") => {
+    setTypeFilter(type);
+    if (type === "PRODUCED") {
+      setSupplierFilter("");
+    }
+  };
+
   const handleSetToday = () => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
     if (startDate === todayStr && endDate === todayStr) {
@@ -421,7 +435,7 @@ export default function DailyProductHistoryPage() {
             <div className="flex items-center gap-1 bg-[#FAF6F0] p-1.5 rounded-xl border border-[#EDE4D5]">
               <button
                 type="button"
-                onClick={() => setTypeFilter("ALL")}
+                onClick={() => handleTypeFilterSelect("ALL")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
                   typeFilter === "ALL"
                     ? "bg-[#4A2E1B] text-white shadow-sm"
@@ -432,7 +446,7 @@ export default function DailyProductHistoryPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTypeFilter("PRODUCED")}
+                onClick={() => handleTypeFilterSelect("PRODUCED")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
                   typeFilter === "PRODUCED"
                     ? "bg-emerald-700 text-white shadow-sm"
@@ -443,7 +457,7 @@ export default function DailyProductHistoryPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTypeFilter("RESELL")}
+                onClick={() => handleTypeFilterSelect("RESELL")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
                   typeFilter === "RESELL"
                     ? "bg-blue-700 text-white shadow-sm"
@@ -474,8 +488,12 @@ export default function DailyProductHistoryPage() {
             {/* Supplier Dropdown */}
             <select
               value={supplierFilter}
-              onChange={(e) => setSupplierFilter(e.target.value)}
-              className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 text-xs px-3 font-semibold text-[#2C1B10] focus:outline-none max-w-[170px]"
+              onChange={(e) => handleSupplierSelect(e.target.value)}
+              className={`bg-[#FAF6F0] border rounded-xl h-9 text-xs px-3 font-semibold focus:outline-none max-w-[170px] ${
+                supplierFilter
+                  ? "border-blue-500 bg-blue-50 text-blue-900 font-bold"
+                  : "border-[#EDE4D5] text-[#2C1B10]"
+              }`}
             >
               <option value="">All Suppliers</option>
               {suppliers.map((s) => (
