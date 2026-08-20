@@ -84,7 +84,7 @@ export default function DailyProductHistoryPage() {
       if (typeFilter) params.append("type", typeFilter);
       if (search.trim()) params.append("search", search.trim());
 
-      const res = await api.get(`/productionBatches/daily-product-history/all?${params.toString()}`);
+      const res = await api.get(`/production-batches/daily-product-history/all?${params.toString()}`);
       setRecords(res.data.records || []);
       setSummary(res.data.summary || {
         totalProducedQuantity: 0,
