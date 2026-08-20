@@ -7,6 +7,7 @@ import { useBranch } from "@/context/BranchContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { 
@@ -15,11 +16,10 @@ import {
   DollarSign, 
   Search, 
   CalendarDays, 
-  Filter, 
   History,
-  TrendingUp,
-  Store,
-  Layers
+  Layers,
+  Plus,
+  Truck
 } from "lucide-react";
 
 interface ProductHistoryRecord {
@@ -47,9 +47,24 @@ interface SummaryData {
   count: number;
 }
 
+interface Supplier {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface ProductItem {
+  id: string;
+  name: string;
+  unitType: string;
+  basePrice: number;
+  buyPrice?: number;
+  category?: { type: string };
+}
+
 export default function DailyProductHistoryPage() {
   const { user } = useAuth();
-  const { selectedBranchId, branches } = useBranch();
+  const { selectedBranchId } = useBranch();
 
   const [records, setRecords] = useState<ProductHistoryRecord[]>([]);
   const [summary, setSummary] = useState<SummaryData>({
@@ -68,6 +83,18 @@ export default function DailyProductHistoryPage() {
     return format(d, "yyyy-MM-dd");
   });
   const [endDate, setEndDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+
+  // Resell Modal States
+  const [isResellModalOpen, setIsResellModalOpen] = useState(false);
+  const [isLoggingResell, setIsLoggingResell] = useState(false);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [resellSupplierId, setResellSupplierId] = useState("");
+  const [resellProductId, setResellProductId] = useState("");
+  const [resellQty, setResellQty] = useState("");
+  const [resellBuyPrice, setResellBuyPrice] = useState("");
+  const [resellSellPrice, setResellSellPrice] = useState("");
+  const [resellIsPaid, setResellIsPaid] = useState(true);
 
   useEffect(() => {
     fetchHistory();
@@ -99,6 +126,70 @@ export default function DailyProductHistoryPage() {
     }
   };
 
+  const openResellModal = async () => {
+    try {
+      const branchId = selectedBranchId || user?.branchId;
+      const branchQuery = branchId ? `?branchId=${branchId}` : "";
+      
+      const [suppRes, prodRes] = await Promise.all([
+        api.get(`/suppliers${branchQuery}`),
+        api.get(`/products${branchQuery}`)
+      ]);
+
+      setSuppliers(suppRes.data || []);
+      setProducts(prodRes.data || []);
+
+      if (suppRes.data?.length > 0) setResellSupplierId(suppRes.data[0].id);
+      if (prodRes.data?.length > 0) {
+        setResellProductId(prodRes.data[0].id);
+        setResellSellPrice(String(prodRes.data[0].basePrice || ""));
+        setResellBuyPrice(String(prodRes.data[0].buyPrice || ""));
+      }
+
+      setResellQty("");
+      setIsResellModalOpen(true);
+    } catch (e: any) {
+      toast.error("Failed to load suppliers or products");
+    }
+  };
+
+  const handleResellProductChange = (prodId: string) => {
+    setResellProductId(prodId);
+    const sel = products.find((p) => p.id === prodId);
+    if (sel) {
+      setResellSellPrice(String(sel.basePrice || ""));
+      setResellBuyPrice(String(sel.buyPrice || ""));
+    }
+  };
+
+  const handleCreateResellDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resellSupplierId || !resellProductId || !resellQty) {
+      toast.error("Please fill in supplier, product, and quantity");
+      return;
+    }
+
+    setIsLoggingResell(true);
+    try {
+      await api.post("/supplier-deliveries", {
+        supplierId: resellSupplierId,
+        productId: resellProductId,
+        quantityReceived: Number(resellQty),
+        unitBuyPrice: Number(resellBuyPrice) || 0,
+        unitSellPrice: Number(resellSellPrice) || 0,
+        isPaid: resellIsPaid,
+      });
+
+      toast.success("Resell product purchase logged successfully!");
+      setIsResellModalOpen(false);
+      fetchHistory();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to log resell delivery");
+    } finally {
+      setIsLoggingResell(false);
+    }
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchHistory();
@@ -119,6 +210,12 @@ export default function DailyProductHistoryPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            onClick={openResellModal}
+            className="bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl shadow-sm text-xs flex items-center gap-1.5"
+          >
+            <ShoppingCart className="w-4 h-4" /> + Log Resell Purchase
+          </Button>
           <Button
             variant="outline"
             onClick={fetchHistory}
@@ -334,6 +431,110 @@ export default function DailyProductHistoryPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Resell Purchase Dialog Modal */}
+      <Dialog open={isResellModalOpen} onOpenChange={setIsResellModalOpen}>
+        <DialogContent className="bg-white border-[#EDE4D5] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#2C1B10] font-extrabold text-lg flex items-center gap-2">
+              <Truck className="w-5 h-5 text-blue-700" />
+              Log Resell Product Purchase
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateResellDelivery} className="space-y-4 py-2">
+            <div>
+              <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Supplier</label>
+              <select
+                value={resellSupplierId}
+                onChange={(e) => setResellSupplierId(e.target.value)}
+                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
+              >
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Resell Product</label>
+              <select
+                value={resellProductId}
+                onChange={(e) => handleResellProductChange(e.target.value)}
+                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
+              >
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.unitType}) - Base Sell: {p.basePrice} ETB
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Quantity Received</label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 50"
+                  value={resellQty}
+                  onChange={(e) => setResellQty(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Unit Buy Price (ETB)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={resellBuyPrice}
+                  onChange={(e) => setResellBuyPrice(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Unit Sell Price (ETB)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={resellSellPrice}
+                  onChange={(e) => setResellSellPrice(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Payment Status</label>
+                <select
+                  value={resellIsPaid ? "true" : "false"}
+                  onChange={(e) => setResellIsPaid(e.target.value === "true")}
+                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
+                >
+                  <option value="true">Paid Cash / Instant</option>
+                  <option value="false">On Credit (Unpaid)</option>
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-3">
+              <Button type="button" variant="outline" onClick={() => setIsResellModalOpen(false)} className="border-[#EDE4D5] rounded-xl text-xs">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoggingResell} className="bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold">
+                {isLoggingResell ? "Logging..." : "Save Resell Purchase"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
