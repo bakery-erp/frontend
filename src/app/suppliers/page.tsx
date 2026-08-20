@@ -70,7 +70,8 @@ export default function SuppliersPage() {
       ]);
       setSuppliers(supRes.data);
       setDeliveries(delRes.data);
-      setProducts(prodRes.data);
+      const resellOnly = (prodRes.data || []).filter((p: any) => p.category?.type === 'RESELL');
+      setProducts(resellOnly.length > 0 ? resellOnly : prodRes.data.filter((p: any) => p.category?.type !== 'PRODUCED'));
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to fetch supplier data');
     } finally {

@@ -137,13 +137,15 @@ export default function DailyProductHistoryPage() {
       ]);
 
       setSuppliers(suppRes.data || []);
-      setProducts(prodRes.data || []);
+      const resellOnly = (prodRes.data || []).filter((p: any) => p.category?.type === 'RESELL');
+      const filteredProdList = resellOnly.length > 0 ? resellOnly : (prodRes.data || []).filter((p: any) => p.category?.type !== 'PRODUCED');
+      setProducts(filteredProdList);
 
       if (suppRes.data?.length > 0) setResellSupplierId(suppRes.data[0].id);
-      if (prodRes.data?.length > 0) {
-        setResellProductId(prodRes.data[0].id);
-        setResellSellPrice(String(prodRes.data[0].basePrice || ""));
-        setResellBuyPrice(String(prodRes.data[0].buyPrice || ""));
+      if (filteredProdList.length > 0) {
+        setResellProductId(filteredProdList[0].id);
+        setResellSellPrice(String(filteredProdList[0].basePrice || ""));
+        setResellBuyPrice(String(filteredProdList[0].buyPrice || ""));
       }
 
       setResellQty("");

@@ -15,6 +15,7 @@ interface Product {
   name: string;
   unitType: string;
   basePrice: number;
+  category?: { type: string };
 }
 
 interface Supplier {
@@ -769,9 +770,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
               >
                 <option value="">Select Product...</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.unitType}) - {p.basePrice} ETB</option>
-                ))}
+                {products
+                  .filter((p) => p.category?.type === 'RESELL' || p.category?.type !== 'PRODUCED')
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.unitType}) - {p.basePrice} ETB</option>
+                  ))}
               </select>
             </div>
 
