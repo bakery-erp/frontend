@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import ConfirmModal from "@/components/ConfirmModal";
 import { api } from "@/lib/axios";
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil, X, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Plus, Trash2, Pencil, X, AlertTriangle, CalendarDays, Wallet } from "lucide-react";
 
 interface Expense {
   id: string;
@@ -21,6 +22,7 @@ interface Expense {
   description: string | null;
   date: string;
   branchId: string;
+  sessionId?: string | null;
   financialCategory?: { id: string; name: string; type: string } | null;
   user?: { id: string; fullName: string } | null;
 }
@@ -31,18 +33,30 @@ interface FinancialCategory {
   type: string;
 }
 
+interface DailySession {
+  id: string;
+  status: string;
+  openedAt?: string;
+  createdAt?: string;
+}
+
 function money(value: number | undefined | null) {
   return `${Number(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`;
 }
 
 export default function ExpensesPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
-  const allowed = user?.role === "OWNER" || user?.role === "ADMIN";
+  
+  const isManagement = user?.role === "OWNER" || user?.role === "ADMIN";
+  const canAccess = isManagement || user?.role === "CASHIER";
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<FinancialCategory[]>([]);
+  const [activeSession, setActiveSession] = useState<DailySession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
 
   // Filter state
   const [filterFrom, setFilterFrom] = useState(new Date().toISOString().slice(0, 10));
@@ -53,18 +67,21 @@ export default function ExpensesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formType, setFormType] = useState<string>("COMPANY");
   const [formAmount, setFormAmount] = useState("");
-  const [formCategory, setFormCategory] = useState("");
+  const [selectedCategoryValue, setSelectedCategoryValue] = useState<string>("");
+  const [customCategoryName, setCustomCategoryName] = useState<string>("");
+  const [formCategory, setFormCategory] = useState<string>("");
+  const [formFinancialCategoryId, setFormFinancialCategoryId] = useState<string>("");
   const [formDescription, setFormDescription] = useState("");
   const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
-  const [formFinancialCategoryId, setFormFinancialCategoryId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (allowed) {
+    if (canAccess) {
       loadExpenses();
       loadCategories();
+      loadActiveSession();
     }
-  }, [selectedBranchId]);
+  }, [selectedBranchId, user?.role, user?.branchId]);
 
   const loadCategories = async () => {
     try {
@@ -72,6 +89,25 @@ export default function ExpensesPage() {
       setCategories(Array.isArray(res.data) ? res.data : []);
     } catch {
       // Non-critical
+    }
+  };
+
+  const loadActiveSession = async () => {
+    setIsLoadingSession(true);
+    try {
+      const branchId = selectedBranchId || user?.branchId;
+      if (!branchId) {
+        setActiveSession(null);
+        return;
+      }
+      const res = await api.get("/daily-sessions", { params: { branchId } });
+      const list = Array.isArray(res.data) ? res.data : (res.data?.sessions || []);
+      const openSess = list.find((s: any) => s.status === "OPEN");
+      setActiveSession(openSess || null);
+    } catch {
+      setActiveSession(null);
+    } finally {
+      setIsLoadingSession(false);
     }
   };
 
@@ -93,57 +129,112 @@ export default function ExpensesPage() {
     setEditingId(null);
     setFormType("COMPANY");
     setFormAmount("");
+    setSelectedCategoryValue("");
+    setCustomCategoryName("");
     setFormCategory("");
+    setFormFinancialCategoryId("");
     setFormDescription("");
     setFormDate(new Date().toISOString().slice(0, 10));
-    setFormFinancialCategoryId("");
     setShowForm(false);
   };
 
   const openCreateForm = () => {
+    if (!activeSession) {
+      toast.error("No active open session found for this branch. Please open a daily session before recording expenses.");
+      return;
+    }
     resetForm();
     setShowForm(true);
   };
 
   const openEditForm = (expense: Expense) => {
     setEditingId(expense.id);
-    setFormType(expense.type);
+    setFormType(isManagement ? expense.type : "COMPANY");
     setFormAmount(String(expense.amount));
-    setFormCategory(expense.category);
+    
+    // Map category to dropdown selection
+    if (expense.financialCategory?.id) {
+      setSelectedCategoryValue(expense.financialCategory.id);
+      setFormFinancialCategoryId(expense.financialCategory.id);
+      setFormCategory(expense.financialCategory.name);
+      setCustomCategoryName("");
+    } else {
+      setSelectedCategoryValue("OTHER");
+      setFormFinancialCategoryId("");
+      setFormCategory(expense.category || "OTHER");
+      setCustomCategoryName(expense.category !== "OTHER" ? expense.category : "");
+    }
+
     setFormDescription(expense.description || "");
     setFormDate(expense.date ? new Date(expense.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
-    setFormFinancialCategoryId(expense.financialCategory?.id || "");
     setShowForm(true);
   };
 
+  const handleCategorySelect = (val: string) => {
+    setSelectedCategoryValue(val);
+    if (val === "OTHER") {
+      setFormFinancialCategoryId("");
+      setFormCategory(customCategoryName.trim() || "OTHER");
+    } else if (val) {
+      const match = categories.find((c) => c.id === val);
+      if (match) {
+        setFormFinancialCategoryId(match.id);
+        setFormCategory(match.name);
+      }
+    } else {
+      setFormFinancialCategoryId("");
+      setFormCategory("");
+    }
+  };
+
+  const handleCustomCategoryChange = (val: string) => {
+    setCustomCategoryName(val);
+    if (selectedCategoryValue === "OTHER") {
+      setFormCategory(val.trim() || "OTHER");
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!formAmount || !formCategory.trim()) {
-      toast.error("Amount and category are required");
+    if (!editingId && !activeSession) {
+      toast.error("No active open daily session found for this branch. Expenses can only be recorded during an active open session.");
       return;
     }
+
+    if (!formAmount || parseFloat(formAmount) <= 0) {
+      toast.error("Valid expense amount is required");
+      return;
+    }
+
+    if (!formCategory.trim()) {
+      toast.error("Please select or specify an expense category");
+      return;
+    }
+
     setIsSaving(true);
     try {
       const payload: any = {
-        type: formType,
+        type: isManagement ? formType : "COMPANY", // Cashier is strictly forced to COMPANY expense
         amount: parseFloat(formAmount),
         category: formCategory.trim(),
         description: formDescription.trim() || null,
         date: formDate,
         financialCategoryId: formFinancialCategoryId || null,
       };
+
       if (!editingId && selectedBranchId) {
         payload.branchId = selectedBranchId;
       }
 
       if (editingId) {
         await api.patch(`/expenses/${editingId}`, payload);
-        toast.success("Expense updated");
+        toast.success("Expense updated successfully");
       } else {
         await api.post("/expenses", payload);
-        toast.success("Expense recorded");
+        toast.success("Expense recorded against current daily session");
       }
       resetForm();
       loadExpenses();
+      loadActiveSession();
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to save expense");
     } finally {
@@ -160,206 +251,380 @@ export default function ExpensesPage() {
       toast.success("Expense deleted");
       loadExpenses();
     } catch (e: any) {
-      toast.error(e?.response?.data?.error || "Failed to delete");
+      toast.error(e?.response?.data?.error || "Failed to delete expense");
     } finally {
       setExpenseToDelete(null);
     }
   };
 
   // Summaries
-  const companyTotal = expenses.filter(e => e.type === "COMPANY").reduce((s, e) => s + Number(e.amount), 0);
-  const ownerTotal = expenses.filter(e => e.type === "OWNER").reduce((s, e) => s + Number(e.amount), 0);
+  const companyTotal = expenses.filter((e) => e.type === "COMPANY").reduce((s, e) => s + Number(e.amount), 0);
+  const ownerTotal = expenses.filter((e) => e.type === "OWNER").reduce((s, e) => s + Number(e.amount), 0);
   const grandTotal = companyTotal + ownerTotal;
 
-  if (!allowed) {
+  if (!canAccess) {
     return (
       <DashboardLayout>
-        <div className="bg-white border rounded-lg p-6">Expenses management is available for owner and admin users only.</div>
+        <div className="bg-white border rounded-xl p-8 text-center text-zinc-600 shadow-sm">
+          Expenses management is available for Owner, Admin, and Cashier users.
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout>
-      <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Expenses & Costs</h1>
-          <p className="text-zinc-500 mt-1">Record, view, and manage company and owner expenses.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
+            Expenses & Company Costs
+          </h1>
+          <p className="text-sm text-[#8C7361] mt-1">
+            {isManagement
+              ? "Record, review, and control daily company costs and owner withdrawals."
+              : "Record daily company expenses taken directly from active session cash."}
+          </p>
         </div>
-        <Button onClick={openCreateForm} className="flex items-center gap-2">
+        <Button
+          onClick={openCreateForm}
+          disabled={!activeSession}
+          className="flex items-center gap-2 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl h-11 px-5 shadow-sm disabled:opacity-50"
+        >
           <Plus className="w-4 h-4" /> Add Expense
         </Button>
       </div>
 
+      {/* Mandatory Active Daily Session Status Banner */}
+      {!isLoadingSession && (
+        activeSession ? (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-xl text-emerald-700">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-emerald-950">Active Session Open</span>
+                  <span className="bg-emerald-200 text-emerald-800 text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full">
+                    Open Now
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  All recorded expenses will be attached to session <span className="font-mono font-bold">#{activeSession.id.slice(-6)}</span>
+                </p>
+              </div>
+            </div>
+            <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/60 px-3 py-1.5 rounded-xl border border-emerald-200/60">
+              Opened: {new Date(activeSession.createdAt || (activeSession as any).openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 rounded-xl text-amber-700">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-amber-950">No Active Daily Session Open</h4>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Expenses cannot be recorded without an active open session. Please open a session first.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => router.push("/daily-sessions")}
+              className="bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-xl text-xs px-4"
+            >
+              <CalendarDays className="w-3.5 h-3.5 mr-1.5" /> Go to Daily Sessions
+            </Button>
+          </div>
+        )
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+        <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white shadow-xs rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-blue-600 tracking-wider">Company Expenses</CardTitle>
+            <CardTitle className="text-xs font-extrabold uppercase text-blue-700 tracking-wider">
+              Company Expenses
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-700">{money(companyTotal)}</div>
+            <div className="text-2xl font-black text-blue-900">{money(companyTotal)}</div>
+            <p className="text-[11px] text-blue-600 mt-1 font-medium">Operating costs from daily session cash</p>
           </CardContent>
         </Card>
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-white">
+
+        {isManagement && (
+          <Card className="border-purple-200 bg-gradient-to-br from-purple-50/80 to-white shadow-xs rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-extrabold uppercase text-purple-700 tracking-wider">
+                Owner Expenses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-black text-purple-900">{money(ownerTotal)}</div>
+              <p className="text-[11px] text-purple-600 mt-1 font-medium">Owner withdrawals & non-operating draws</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className="border-rose-200 bg-gradient-to-br from-rose-50/80 to-white shadow-xs rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-purple-600 tracking-wider">Owner Expenses</CardTitle>
+            <CardTitle className="text-xs font-extrabold uppercase text-rose-700 tracking-wider">
+              Total Expenses
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-700">{money(ownerTotal)}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-rose-200 bg-gradient-to-br from-rose-50 to-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-rose-600 tracking-wider">Total Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-rose-700">{money(grandTotal)}</div>
+            <div className="text-2xl font-black text-rose-900">{money(grandTotal)}</div>
+            <p className="text-[11px] text-rose-600 mt-1 font-medium">Total recorded expenses for date range</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Date Filters */}
-      <Card className="mb-6">
-        <CardContent className="flex flex-wrap items-end gap-4 pt-6">
+      <Card className="mb-6 border-[#EDE4D5] rounded-2xl shadow-xs">
+        <CardContent className="flex flex-wrap items-end gap-4 pt-5 pb-5">
           <div>
-            <label className="text-xs font-medium text-zinc-500 block mb-1">From</label>
-            <Input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="w-44" />
+            <label className="text-xs font-bold text-[#8C7361] block mb-1">From Date</label>
+            <Input
+              type="date"
+              value={filterFrom}
+              onChange={(e) => setFilterFrom(e.target.value)}
+              className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+            />
           </div>
           <div>
-            <label className="text-xs font-medium text-zinc-500 block mb-1">To</label>
-            <Input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="w-44" />
+            <label className="text-xs font-bold text-[#8C7361] block mb-1">To Date</label>
+            <Input
+              type="date"
+              value={filterTo}
+              onChange={(e) => setFilterTo(e.target.value)}
+              className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+            />
           </div>
-          <Button onClick={loadExpenses} variant="outline">Load</Button>
+          <Button
+            onClick={loadExpenses}
+            variant="outline"
+            className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs"
+          >
+            Load Expenses
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Create / Edit Form */}
+      {/* Create / Edit Form Modal/Card */}
       {showForm && (
-        <Card className="mb-6 border-2 border-zinc-300">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">{editingId ? "Edit Expense" : "Record New Expense"}</CardTitle>
-            <Button variant="ghost" size="sm" onClick={resetForm}><X className="w-4 h-4" /></Button>
+        <Card className="mb-6 border-2 border-[#4A2E1B]/30 rounded-2xl shadow-md bg-white">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-zinc-100">
+            <div>
+              <CardTitle className="text-base font-extrabold text-[#2C1B10]">
+                {editingId ? "Edit Expense Record" : "Record New Expense"}
+              </CardTitle>
+              <CardDescription className="text-xs text-zinc-500 mt-0.5">
+                Expense will be logged under active session <span className="font-mono font-bold text-emerald-700">#{activeSession?.id.slice(-6)}</span>
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={resetForm} className="rounded-xl">
+              <X className="w-4 h-4" />
+            </Button>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="pt-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Requirement 1: Expense Type Access Control */}
               <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">Type *</label>
-                <select
-                  value={formType}
-                  onChange={e => setFormType(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-black focus:border-black"
-                >
-                  <option value="COMPANY">Company Expense</option>
-                  <option value="OWNER">Owner Expense</option>
-                </select>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                  Expense Type <span className="text-rose-500">*</span>
+                </label>
+                {isManagement ? (
+                  <select
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
+                  >
+                    <option value="COMPANY">Company Expense (Daily Birr)</option>
+                    <option value="OWNER">Owner Expense</option>
+                  </select>
+                ) : (
+                  <div className="w-full bg-blue-50 border border-blue-200 text-blue-900 font-bold rounded-xl px-3 py-2 text-xs flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                    Company Expense (Daily Birr)
+                  </div>
+                )}
+                {!isManagement && (
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    Cashiers can only record company operating expenses from session birr.
+                  </p>
+                )}
               </div>
+
+              {/* Amount Input */}
               <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">Amount (ETB) *</label>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                  Amount (ETB) <span className="text-rose-500">*</span>
+                </label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
                   placeholder="0.00"
                   value={formAmount}
-                  onChange={e => setFormAmount(e.target.value)}
+                  onChange={(e) => setFormAmount(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
                 />
               </div>
+
+              {/* Requirement 2: Category Dropdown & Others Option */}
               <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">Category *</label>
-                <Input
-                  placeholder="e.g. Utilities, Rent, Transport"
-                  value={formCategory}
-                  onChange={e => setFormCategory(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">Financial Category (optional)</label>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                  Category <span className="text-rose-500">*</span>
+                </label>
                 <select
-                  value={formFinancialCategoryId}
-                  onChange={e => setFormFinancialCategoryId(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-black focus:border-black"
+                  value={selectedCategoryValue}
+                  onChange={(e) => handleCategorySelect(e.target.value)}
+                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
                 >
-                  <option value="">— None —</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                  <option value="">-- Select Category --</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
+                  <option value="OTHER">Others</option>
                 </select>
+
+                {selectedCategoryValue === "OTHER" && (
+                  <div className="mt-2">
+                    <Input
+                      placeholder="Specify custom category name (e.g. Ekub, Cleaning)"
+                      value={customCategoryName}
+                      onChange={(e) => handleCustomCategoryChange(e.target.value)}
+                      className="bg-white border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                    />
+                  </div>
+                )}
               </div>
+
+              {/* Date Input */}
               <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">Date</label>
-                <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">Description (optional)</label>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Expense Date</label>
                 <Input
-                  placeholder="Brief note about the expense"
+                  type="date"
+                  value={formDate}
+                  onChange={(e) => setFormDate(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                />
+              </div>
+
+              {/* Description Input */}
+              <div className="md:col-span-2">
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Description / Reason</label>
+                <Input
+                  placeholder="Additional note (e.g. Lunch for bakery staff, Transport fee for flour)"
                   value={formDescription}
-                  onChange={e => setFormDescription(e.target.value)}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
                 />
               </div>
             </div>
-            <div className="mt-4 flex gap-3">
-              <Button onClick={handleSubmit} disabled={isSaving}>
+
+            <div className="pt-3 flex items-center gap-3">
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs px-5 h-10 shadow-sm"
+              >
                 {isSaving ? "Saving..." : editingId ? "Update Expense" : "Record Expense"}
               </Button>
-              <Button variant="outline" onClick={resetForm}>Cancel</Button>
+              <Button variant="outline" onClick={resetForm} className="border-[#EDE4D5] rounded-xl text-xs font-bold">
+                Cancel
+              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Expenses Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Expense Records</CardTitle>
-          <CardDescription>{expenses.length} record(s) for selected date range</CardDescription>
+      <Card className="border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
+        <CardHeader className="bg-[#FAF6F0]/60 border-b border-[#EDE4D5] py-4">
+          <CardTitle className="text-base font-extrabold text-[#2C1B10]">Expense Records</CardTitle>
+          <CardDescription className="text-xs text-[#8C7361]">
+            Showing {expenses.length} record(s) for selected date range
+          </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
-            <p className="text-center text-zinc-400 py-8">Loading...</p>
+            <p className="text-center text-zinc-400 py-12 text-sm">Loading expense records...</p>
           ) : expenses.length === 0 ? (
-            <p className="text-center text-zinc-400 py-8">No expenses found. Click &quot;Add Expense&quot; to record one.</p>
+            <div className="text-center py-12 text-zinc-500">
+              <p className="font-semibold text-sm">No expenses recorded for this period.</p>
+              <p className="text-xs text-zinc-400 mt-1">Click &quot;Add Expense&quot; to log a new company cost.</p>
+            </div>
           ) : (
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-[#FAF6F0]/40">
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Recorded By</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Date</TableHead>
+                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Type</TableHead>
+                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Category</TableHead>
+                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Description</TableHead>
+                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Session</TableHead>
+                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Recorded By</TableHead>
+                  <TableHead className="text-right font-bold text-[#4A2E1B] text-xs">Amount</TableHead>
+                  {isManagement && <TableHead className="text-right font-bold text-[#4A2E1B] text-xs">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.map(expense => (
-                  <TableRow key={expense.id}>
-                    <TableCell>{expense.date ? new Date(expense.date).toISOString().slice(0, 10) : "-"}</TableCell>
+                {expenses.map((expense) => (
+                  <TableRow key={expense.id} className="hover:bg-[#FAF6F0]/30 transition-colors">
+                    <TableCell className="text-xs font-semibold text-[#2C1B10]">
+                      {expense.date ? new Date(expense.date).toISOString().slice(0, 10) : "-"}
+                    </TableCell>
                     <TableCell>
-                      <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                        expense.type === "OWNER"
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}>
+                      <span
+                        className={`text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full font-extrabold ${
+                          expense.type === "OWNER"
+                            ? "bg-purple-100 text-purple-800 border border-purple-200"
+                            : "bg-blue-100 text-blue-800 border border-blue-200"
+                        }`}
+                      >
                         {expense.type}
                       </span>
                     </TableCell>
-                    <TableCell className="font-medium">{expense.financialCategory?.name || expense.category}</TableCell>
-                    <TableCell className="text-zinc-500 max-w-[200px] truncate">{expense.description || "-"}</TableCell>
-                    <TableCell>{expense.user?.fullName || "-"}</TableCell>
-                    <TableCell className="text-right font-bold text-rose-700">{money(expense.amount)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEditForm(expense)}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-rose-600 hover:text-rose-700" onClick={() => setExpenseToDelete(expense.id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                    <TableCell className="font-bold text-xs text-[#2C1B10]">
+                      {expense.financialCategory?.name || expense.category}
                     </TableCell>
+                    <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate">
+                      {expense.description || "-"}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-emerald-700 font-semibold">
+                      {expense.sessionId ? `#${expense.sessionId.slice(-6)}` : "-"}
+                    </TableCell>
+                    <TableCell className="text-xs font-medium text-[#2C1B10]">
+                      {expense.user?.fullName || "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-extrabold text-sm text-rose-700">
+                      {money(expense.amount)}
+                    </TableCell>
+                    {isManagement && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEditForm(expense)} className="rounded-xl h-8 w-8 p-0">
+                            <Pencil className="w-3.5 h-3.5 text-zinc-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl h-8 w-8 p-0 text-rose-600 hover:text-rose-700"
+                            onClick={() => setExpenseToDelete(expense.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -368,7 +633,7 @@ export default function ExpensesPage() {
         </CardContent>
       </Card>
 
-      {/* Delete Expense Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={!!expenseToDelete}
         onClose={() => setExpenseToDelete(null)}
