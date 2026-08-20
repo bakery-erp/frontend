@@ -193,7 +193,7 @@ export default function PayrollPage() {
   const fetchLoans = async () => {
     try {
       setIsLoadingLoans(true);
-      const params: any = { type: "EMPLOYEE" };
+      const params: any = { type: "STAFF" };
       if (selectedBranchId) params.branchId = selectedBranchId;
       const { data } = await api.get("/loans", { params });
       setLoans(data);
