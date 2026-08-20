@@ -408,65 +408,90 @@ export default function SuppliersPage() {
                   </Button>
                 </div>
 
-                {deliveryItems.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-center bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
-                    <div className="col-span-12 sm:col-span-5">
-                      <select
-                        value={item.productId}
-                        onChange={(e) => updateDeliveryItemRow(index, 'productId', e.target.value)}
-                        className="w-full bg-white border border-zinc-300 rounded-lg h-9 text-xs px-2 font-medium"
-                      >
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.unitType})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-span-4 sm:col-span-2">
-                      <Input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantityReceived}
-                        onChange={(e) => updateDeliveryItemRow(index, 'quantityReceived', e.target.value)}
-                        className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-center"
-                      />
-                    </div>
-
-                    <div className="col-span-4 sm:col-span-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="Buy Price"
-                        value={item.unitBuyPrice}
-                        onChange={(e) => updateDeliveryItemRow(index, 'unitBuyPrice', e.target.value)}
-                        className="bg-white border-zinc-300 h-9 text-xs font-mono"
-                      />
-                    </div>
-
-                    <div className="col-span-3 sm:col-span-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="Sell Price"
-                        value={item.unitSellPrice}
-                        onChange={(e) => updateDeliveryItemRow(index, 'unitSellPrice', e.target.value)}
-                        className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-[#E87A18]"
-                      />
-                    </div>
-
-                    <div className="col-span-1 flex items-center justify-center">
-                      <button
-                        type="button"
-                        onClick={() => removeDeliveryItemRow(index)}
-                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                {deliveryItems.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-zinc-400 border border-dashed rounded-xl">
+                    No items added. Click "+ Add Product" to begin.
                   </div>
-                ))}
+                ) : (
+                  <>
+                    {/* Column Headers */}
+                    <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-1.5 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
+                      <div className="col-span-5">Product Name</div>
+                      <div className="col-span-2 text-center">Qty Received</div>
+                      <div className="col-span-2">Unit Buy Price (ETB)</div>
+                      <div className="col-span-2">Unit Sell Price (ETB)</div>
+                      <div className="col-span-1 text-center">Remove</div>
+                    </div>
+
+                    {deliveryItems.map((item, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-2 items-center bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
+                        <div className="col-span-12 sm:col-span-5">
+                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Product Name</label>
+                          <select
+                            value={item.productId}
+                            onChange={(e) => updateDeliveryItemRow(index, 'productId', e.target.value)}
+                            className="w-full bg-white border border-zinc-300 rounded-lg h-9 text-xs px-2 font-medium"
+                          >
+                            {products.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} ({p.unitType})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="col-span-4 sm:col-span-2">
+                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Qty Received</label>
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            title="Quantity Received"
+                            value={item.quantityReceived}
+                            onChange={(e) => updateDeliveryItemRow(index, 'quantityReceived', e.target.value)}
+                            className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-center"
+                          />
+                        </div>
+
+                        <div className="col-span-4 sm:col-span-2">
+                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Unit Buy Price (ETB)</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Buy Price"
+                            title="Unit Buy Price (ETB)"
+                            value={item.unitBuyPrice}
+                            onChange={(e) => updateDeliveryItemRow(index, 'unitBuyPrice', e.target.value)}
+                            className="bg-white border-zinc-300 h-9 text-xs font-mono"
+                          />
+                        </div>
+
+                        <div className="col-span-3 sm:col-span-2">
+                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Unit Sell Price (ETB)</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Sell Price"
+                            title="Unit Sell Price (ETB)"
+                            value={item.unitSellPrice}
+                            onChange={(e) => updateDeliveryItemRow(index, 'unitSellPrice', e.target.value)}
+                            className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-[#E87A18]"
+                          />
+                        </div>
+
+                        <div className="col-span-1 flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => removeDeliveryItemRow(index)}
+                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Remove item"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
 
               <DialogFooter className="pt-3 border-t border-[#EDE4D5]">

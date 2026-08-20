@@ -552,81 +552,95 @@ export default function DailyProductHistoryPage() {
                   No products added yet. Click "+ Add Product" to start.
                 </div>
               ) : (
-                resellItems.map((item, index) => {
-                  const lineTotal = (Number(item.quantityReceived) || 0) * (Number(item.unitSellPrice) || 0);
-                  return (
-                    <div key={index} className="grid grid-cols-12 gap-2 items-center bg-zinc-50/80 p-2.5 rounded-xl border border-zinc-200">
-                      {/* Product Selector */}
-                      <div className="col-span-12 sm:col-span-4">
-                        <label className="text-[10px] font-bold text-zinc-500 block mb-0.5 sm:hidden">Product</label>
-                        <select
-                          value={item.productId}
-                          onChange={(e) => updateItemRow(index, "productId", e.target.value)}
-                          className="w-full bg-white border border-zinc-300 rounded-lg h-9 text-xs px-2 font-medium"
-                        >
-                          {products.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} ({p.unitType})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                <>
+                  {/* Column Headers */}
+                  <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-1.5 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
+                    <div className="col-span-4">Product Name</div>
+                    <div className="col-span-2 text-center">Qty (Pcs)</div>
+                    <div className="col-span-2">Unit Buy Price (ETB)</div>
+                    <div className="col-span-2">Unit Sell Price (ETB)</div>
+                    <div className="col-span-2 text-right pr-2">Subtotal</div>
+                  </div>
 
-                      {/* Quantity */}
-                      <div className="col-span-4 sm:col-span-2">
-                        <label className="text-[10px] font-bold text-zinc-500 block mb-0.5 sm:hidden">Qty Pcs</label>
-                        <Input
-                          type="number"
-                          placeholder="Qty"
-                          value={item.quantityReceived}
-                          onChange={(e) => updateItemRow(index, "quantityReceived", e.target.value)}
-                          className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-center"
-                        />
-                      </div>
+                  {resellItems.map((item, index) => {
+                    const lineTotal = (Number(item.quantityReceived) || 0) * (Number(item.unitSellPrice) || 0);
+                    return (
+                      <div key={index} className="grid grid-cols-12 gap-2 items-center bg-zinc-50/80 p-2.5 rounded-xl border border-zinc-200">
+                        {/* Product Selector */}
+                        <div className="col-span-12 sm:col-span-4">
+                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Product Name</label>
+                          <select
+                            value={item.productId}
+                            onChange={(e) => updateItemRow(index, "productId", e.target.value)}
+                            className="w-full bg-white border border-zinc-300 rounded-lg h-9 text-xs px-2 font-medium"
+                          >
+                            {products.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} ({p.unitType})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                      {/* Buy Price */}
-                      <div className="col-span-4 sm:col-span-2">
-                        <label className="text-[10px] font-bold text-zinc-500 block mb-0.5 sm:hidden">Buy ETB</label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="Buy Price"
-                          value={item.unitBuyPrice}
-                          onChange={(e) => updateItemRow(index, "unitBuyPrice", e.target.value)}
-                          className="bg-white border-zinc-300 h-9 text-xs font-mono"
-                        />
-                      </div>
+                        {/* Quantity */}
+                        <div className="col-span-4 sm:col-span-2">
+                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Qty Received</label>
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            title="Quantity Received"
+                            value={item.quantityReceived}
+                            onChange={(e) => updateItemRow(index, "quantityReceived", e.target.value)}
+                            className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-center"
+                          />
+                        </div>
 
-                      {/* Sell Price */}
-                      <div className="col-span-3 sm:col-span-2">
-                        <label className="text-[10px] font-bold text-zinc-500 block mb-0.5 sm:hidden">Sell ETB</label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="Sell Price"
-                          value={item.unitSellPrice}
-                          onChange={(e) => updateItemRow(index, "unitSellPrice", e.target.value)}
-                          className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-blue-800"
-                        />
-                      </div>
+                        {/* Buy Price */}
+                        <div className="col-span-4 sm:col-span-2">
+                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Unit Buy Price (ETB)</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Buy Price"
+                            title="Unit Buy Price (ETB)"
+                            value={item.unitBuyPrice}
+                            onChange={(e) => updateItemRow(index, "unitBuyPrice", e.target.value)}
+                            className="bg-white border-zinc-300 h-9 text-xs font-mono"
+                          />
+                        </div>
 
-                      {/* Actions & Subtotal */}
-                      <div className="col-span-1 sm:col-span-2 flex items-center justify-between gap-1 pl-1">
-                        <span className="text-[11px] font-mono font-extrabold text-amber-700 hidden sm:inline">
-                          {lineTotal.toFixed(0)} ETB
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeItemRow(index)}
-                          className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Remove item"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {/* Sell Price */}
+                        <div className="col-span-3 sm:col-span-2">
+                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Unit Sell Price (ETB)</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Sell Price"
+                            title="Unit Sell Price (ETB)"
+                            value={item.unitSellPrice}
+                            onChange={(e) => updateItemRow(index, "unitSellPrice", e.target.value)}
+                            className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-blue-800"
+                          />
+                        </div>
+
+                        {/* Actions & Subtotal */}
+                        <div className="col-span-1 sm:col-span-2 flex items-center justify-between gap-1 pl-1">
+                          <span className="text-[11px] font-mono font-extrabold text-amber-700 hidden sm:inline">
+                            {lineTotal.toFixed(0)} ETB
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeItemRow(index)}
+                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Remove item"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </>
               )}
             </div>
 
