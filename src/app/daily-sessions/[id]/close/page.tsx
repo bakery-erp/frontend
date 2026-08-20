@@ -7,13 +7,20 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw } from "lucide-react";
 
 interface Product {
   id: string;
   name: string;
   unitType: string;
   basePrice: number;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+  type: string;
 }
 
 interface LeftoverItem {
@@ -31,11 +38,32 @@ interface ExpenseItem {
   description: string;
 }
 
+interface ProductionSummaryItem {
+  productId: string;
+  productName: string;
+  unitType: string;
+  totalProduced: number;
+}
+
+interface SupplierDeliveryItem {
+  id: string;
+  supplierId: string;
+  supplier: { id: string; name: string };
+  productId: string;
+  product: { id: string; name: string };
+  quantityReceived: number;
+  unitBuyPrice: number;
+  unitSellPrice: number;
+  isPaid: boolean;
+  createdAt: string;
+}
+
 interface DailySessionDetail {
   id: string;
   branchId: string;
   branch?: { id: string; name: string };
   date: string;
+  label?: string | null;
   status: "OPEN" | "PAUSED" | "CLOSE_PENDING" | "CLOSED";
   openingCashFloat?: number | null;
   cashLeftoverAmount?: number | null;
@@ -46,6 +74,8 @@ interface DailySessionDetail {
   sales?: any[];
   expenses?: any[];
   leftoverRecords?: LeftoverItem[];
+  productionSummary?: ProductionSummaryItem[];
+  supplierDeliveries?: SupplierDeliveryItem[];
 }
 
 const EXPENSE_CATEGORIES = [
@@ -66,16 +96,28 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
   const [session, setSession] = useState<DailySessionDetail | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
+  const [sessionLabel, setSessionLabel] = useState<string>("");
   const [actualCash, setActualCash] = useState<string>("");
   const [actualCbe, setActualCbe] = useState<string>("");
   const [actualTelebirr, setActualTelebirr] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [leftovers, setLeftovers] = useState<Record<string, { quantityRemaining: number; damagedQuantity: number; damageReason: string }>>({});
   const [expenseList, setExpenseList] = useState<ExpenseItem[]>([]);
+
+  // Resells Log Modal State
+  const [isResellModalOpen, setIsResellModalOpen] = useState(false);
+  const [resellSupplierId, setResellSupplierId] = useState("");
+  const [resellProductId, setResellProductId] = useState("");
+  const [resellQty, setResellQty] = useState("1");
+  const [resellBuyPrice, setResellBuyPrice] = useState("");
+  const [resellSellPrice, setResellSellPrice] = useState("");
+  const [resellIsPaid, setResellIsPaid] = useState(true);
+  const [isLoggingResell, setIsLoggingResell] = useState(false);
 
   useEffect(() => {
     fetchSessionAndProducts();
@@ -92,6 +134,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       setSession(s);
       setProducts(resProd.data);
 
+      setSessionLabel(s.label || `Session - ${new Date(s.date).toISOString().split("T")[0]}`);
       setActualCash(s.actualCashAmount != null ? String(s.actualCashAmount) : "");
       setActualCbe(s.actualCbeAmount != null ? String(s.actualCbeAmount) : "");
       setActualTelebirr(s.actualTelebirrAmount != null ? String(s.actualTelebirrAmount) : "");
@@ -117,6 +160,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         description: e.description || "",
       }));
       setExpenseList(initialExpenses);
+
+      // Fetch suppliers for resell modal
+      if (s.branchId) {
+        const suppRes = await api.get(`/suppliers?branchId=${s.branchId}`);
+        setSuppliers(suppRes.data);
+      }
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to load session closing details");
     } finally {
@@ -153,6 +202,38 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     }));
   };
 
+  const handleLogResellDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resellSupplierId || !resellProductId || !resellQty || !resellBuyPrice) {
+      toast.error("Supplier, product, quantity, and buy price are required");
+      return;
+    }
+    setIsLoggingResell(true);
+    try {
+      await api.post("/supplier-deliveries", {
+        supplierId: resellSupplierId,
+        productId: resellProductId,
+        quantityReceived: Number(resellQty),
+        unitBuyPrice: Number(resellBuyPrice),
+        unitSellPrice: resellSellPrice ? Number(resellSellPrice) : undefined,
+        isPaid: resellIsPaid,
+        sessionId: resolvedParams.id,
+      });
+      toast.success("Resell delivery logged for this session!");
+      setIsResellModalOpen(false);
+      setResellSupplierId("");
+      setResellProductId("");
+      setResellQty("1");
+      setResellBuyPrice("");
+      setResellSellPrice("");
+      fetchSessionAndProducts();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to log resell delivery");
+    } finally {
+      setIsLoggingResell(false);
+    }
+  };
+
   const buildPayload = () => {
     const formattedLeftovers = Object.entries(leftovers).map(([productId, val]) => ({
       productId,
@@ -162,6 +243,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     }));
 
     return {
+      label: sessionLabel.trim() || null,
       actualCashAmount: actualCash !== "" ? Number(actualCash) : null,
       actualCbeAmount: actualCbe !== "" ? Number(actualCbe) : null,
       actualTelebirrAmount: actualTelebirr !== "" ? Number(actualTelebirr) : null,
@@ -231,7 +313,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-20 text-[#8C7361] font-semibold">Loading session close details...</div>
+        <div className="text-center py-20 text-[#8C7361] font-semibold">Loading session details...</div>
       </DashboardLayout>
     );
   }
@@ -244,6 +326,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     );
   }
 
+  const productionSummary = session.productionSummary || [];
+  const supplierDeliveries = session.supplierDeliveries || [];
+
   return (
     <DashboardLayout>
       {/* Top Header */}
@@ -253,11 +338,18 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-extrabold text-[#2C1B10]">
-              Close Session: {new Date(session.date).toISOString().split("T")[0]}
-            </h1>
-            <p className="text-xs text-[#8C7361] mt-0.5">
-              Branch: <strong className="text-[#2C1B10]">{session.branch?.name || "Main Branch"}</strong>
+            <div className="flex items-center gap-2">
+              <Tag className="w-4 h-4 text-[#E87A18]" />
+              <Input
+                type="text"
+                placeholder="Session Name / Label (e.g. Morning Shift)"
+                value={sessionLabel}
+                onChange={(e) => setSessionLabel(e.target.value)}
+                className="font-extrabold text-lg text-[#2C1B10] bg-transparent border-b border-[#EDE4D5] rounded-none focus:border-[#E87A18] focus:ring-0 p-0 h-auto w-72"
+              />
+            </div>
+            <p className="text-xs text-[#8C7361] mt-1">
+              Date: <strong className="text-[#2C1B10]">{new Date(session.date).toISOString().split("T")[0]}</strong> | Branch: <strong className="text-[#2C1B10]">{session.branch?.name || "Main Branch"}</strong>
             </p>
           </div>
         </div>
@@ -291,7 +383,45 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       )}
 
       <div className="space-y-6">
-        {/* Section 1: Payment Channel Breakdown (Cash, CBE, Telebirr) */}
+        {/* Section 1: Daily Production Breakdown Per Product */}
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <PackageCheck className="w-5 h-5 text-emerald-600" /> Daily Production Summary (This Session)
+              </h2>
+              <p className="text-xs text-[#8C7361] mt-0.5">
+                Total quantities produced during this session across all bakery production batches.
+              </p>
+            </div>
+            <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
+              {productionSummary.reduce((acc, p) => acc + p.totalProduced, 0)} Total Pcs Produced
+            </span>
+          </div>
+
+          {productionSummary.length === 0 ? (
+            <div className="text-center py-6 border border-dashed border-[#EDE4D5] rounded-xl text-xs text-[#8C7361]">
+              No production batches recorded for this session date yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {productionSummary.map((item) => (
+                <div key={item.productId} className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] flex items-center justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-[#2C1B10]">{item.productName}</h4>
+                    <p className="text-xs text-[#8C7361]">Unit: {item.unitType}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-extrabold font-mono text-emerald-700">{item.totalProduced}</span>
+                    <span className="text-[10px] text-zinc-500 block">Pcs</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: Payment Channel Breakdown (Cash, CBE, Telebirr) */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-extrabold text-[#2C1B10] mb-1 flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-[#E87A18]" /> Payment Methods & Cash Reconciliation
@@ -350,7 +480,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {/* Section 2: Session Expenses & Loans List */}
+        {/* Section 3: Session Expenses & Loans List */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -431,7 +561,63 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {/* Section 3: Leftover Product Counts (Adari) & Damage */}
+        {/* Section 4: Resells & Supplier Purchases (Session-Based) */}
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-indigo-600" /> Resell Products & Supplier Deliveries
+              </h2>
+              <p className="text-xs text-[#8C7361] mt-0.5">
+                External products purchased for resell (drinks, snacks, milk, water) during this session.
+              </p>
+            </div>
+            <Button onClick={() => setIsResellModalOpen(true)} size="sm" className="bg-indigo-700 text-white hover:bg-indigo-800 text-xs font-bold rounded-xl">
+              <Plus className="w-4 h-4 mr-1" /> Log Resell Delivery
+            </Button>
+          </div>
+
+          {supplierDeliveries.length === 0 ? (
+            <div className="text-center py-6 border border-dashed border-[#EDE4D5] rounded-xl text-xs text-[#8C7361]">
+              No resell deliveries logged during this session. Click "Log Resell Delivery" to record supplier purchases.
+            </div>
+          ) : (
+            <div className="overflow-x-auto border border-[#EDE4D5] rounded-xl">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+                  <tr>
+                    <th className="p-3 font-extrabold text-[#2C1B10]">Supplier</th>
+                    <th className="p-3 font-extrabold text-[#2C1B10]">Resell Product</th>
+                    <th className="p-3 font-extrabold text-[#2C1B10]">Qty Received</th>
+                    <th className="p-3 font-extrabold text-[#2C1B10]">Buy Price</th>
+                    <th className="p-3 font-extrabold text-[#2C1B10]">Sell Price</th>
+                    <th className="p-3 font-extrabold text-[#2C1B10]">Payment Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F4ECE1]">
+                  {supplierDeliveries.map((del) => (
+                    <tr key={del.id}>
+                      <td className="p-3 font-bold text-[#2C1B10]">{del.supplier?.name || "Supplier"}</td>
+                      <td className="p-3 font-semibold text-zinc-900">{del.product?.name || "Product"}</td>
+                      <td className="p-3 font-mono font-bold text-amber-700">{del.quantityReceived} Pcs</td>
+                      <td className="p-3 font-mono">{Number(del.unitBuyPrice).toFixed(2)} ETB</td>
+                      <td className="p-3 font-mono">{Number(del.unitSellPrice).toFixed(2)} ETB</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          del.isPaid ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {del.isPaid ? "Paid" : "Credit"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Section 5: Leftover Product Counts (Adari) & Damage */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-extrabold text-[#2C1B10] mb-1">Product Leftovers (Adari) & Losses</h2>
           <p className="text-xs text-[#8C7361] mb-4">
@@ -489,7 +675,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {/* Section 4: Notes & Submission Controls */}
+        {/* Section 6: Notes & Submission Controls */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm space-y-4">
           <div>
             <label className="text-xs font-bold text-[#2C1B10] block mb-1">Session Closing Notes / Remarks</label>
@@ -544,6 +730,115 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
+
+      {/* Log Resell Delivery Modal */}
+      <Dialog open={isResellModalOpen} onOpenChange={setIsResellModalOpen}>
+        <DialogContent className="sm:max-w-md bg-white border-[#EDE4D5] rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-indigo-600" /> Log Resell Product Delivery
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleLogResellDelivery} className="space-y-4 py-2">
+            <div>
+              <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Supplier</label>
+              <select
+                required
+                value={resellSupplierId}
+                onChange={(e) => setResellSupplierId(e.target.value)}
+                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
+              >
+                <option value="">Select Supplier...</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.type})</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Resell Product</label>
+              <select
+                required
+                value={resellProductId}
+                onChange={(e) => {
+                  setResellProductId(e.target.value);
+                  const p = products.find((pr) => pr.id === e.target.value);
+                  if (p) setResellSellPrice(String(p.basePrice));
+                }}
+                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
+              >
+                <option value="">Select Product...</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.unitType}) - {p.basePrice} ETB</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Quantity Received</label>
+                <Input
+                  type="number"
+                  min="1"
+                  required
+                  value={resellQty}
+                  onChange={(e) => setResellQty(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Unit Buy Price (ETB)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                  value={resellBuyPrice}
+                  onChange={(e) => setResellBuyPrice(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Unit Sell Price (ETB)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={resellSellPrice}
+                  onChange={(e) => setResellSellPrice(e.target.value)}
+                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Payment Status</label>
+                <select
+                  value={resellIsPaid ? "true" : "false"}
+                  onChange={(e) => setResellIsPaid(e.target.value === "true")}
+                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
+                >
+                  <option value="true">Paid Cash / Instant</option>
+                  <option value="false">On Credit (Unpaid)</option>
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-3">
+              <Button type="button" variant="outline" onClick={() => setIsResellModalOpen(false)} className="border-[#EDE4D5] rounded-xl text-xs">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoggingResell} className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold">
+                {isLoggingResell ? "Logging..." : "Save Resell Delivery"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

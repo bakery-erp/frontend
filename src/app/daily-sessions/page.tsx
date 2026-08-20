@@ -16,6 +16,7 @@ interface DailySession {
   id: string;
   branchId: string;
   date: string;
+  label?: string | null;
   status: 'OPEN' | 'PAUSED' | 'CLOSE_PENDING' | 'CLOSED';
   cashLeftoverAmount?: number | null;
   createdAt: string;
@@ -220,6 +221,7 @@ export default function DailySessionsPage() {
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
+              <TableHead>Session Name</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Branch</TableHead>
               <TableHead>Status</TableHead>
@@ -230,16 +232,19 @@ export default function DailySessionsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-6 text-zinc-400">Loading daily sessions...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-6 text-zinc-400">Loading daily sessions...</TableCell></TableRow>
             ) : sessions.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-6 text-zinc-400">No sessions recorded yet for active scope.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-6 text-zinc-400">No sessions recorded yet for active scope.</TableCell></TableRow>
             ) : sessions.map((sess) => {
               const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
               const formattedDate = new Date(sess.date).toISOString().slice(0, 10);
               return (
                 <TableRow key={sess.id}>
-                  <TableCell className="font-semibold text-zinc-900 flex items-center">
-                    <CalendarDays className="w-4 h-4 mr-2 text-zinc-400" />
+                  <TableCell className="font-bold text-[#4A2E1B]">
+                    {sess.label || `Session - ${formattedDate}`}
+                  </TableCell>
+                  <TableCell className="font-semibold text-zinc-700">
+                    <CalendarDays className="w-4 h-4 mr-2 text-zinc-400 inline" />
                     {formattedDate}
                   </TableCell>
                   <TableCell>{branchName}</TableCell>

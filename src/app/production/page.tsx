@@ -23,8 +23,8 @@ interface ProductionBatch {
   status: "PENDING_APPROVAL" | "STARTED" | "COMPLETED" | "REJECTED";
   createdAt: string;
   user: { id: string; fullName: string };
-  items: { id: string; quantityProduced: number; product: { name: string; unitType: string } }[];
-  materialUsages: { id: string; quantityUsed: number; stockItem: { name: string; unitType: string } }[];
+  items: { id: string; productId?: string; quantityProduced: number; product: { id?: string; name: string; unitType: string } }[];
+  materialUsages: { id: string; stockItemId?: string; quantityUsed: number; stockItem: { id?: string; name: string; unitType: string } }[];
 }
 
 export default function ProductionPage() {
