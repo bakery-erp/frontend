@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
-  LogOut, LayoutDashboard, Store, Users, MapPin, Package, Settings,
+  LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
   CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck
 } from 'lucide-react';
@@ -106,7 +106,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Navigation List */}
-      <nav className="flex-1 px-4 py-5 overflow-y-auto space-y-1">
+      <nav className="flex-1 px-3.5 py-5 overflow-y-auto space-y-1 sidebar-scrollbar">
         <div className="text-[11px] font-bold text-[#CBB29F] uppercase tracking-widest mb-3 px-3">Menu Navigation</div>
         <ul className="space-y-1.5">
           {menuItems.map((item, i) => {
