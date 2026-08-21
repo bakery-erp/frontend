@@ -104,7 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="text-[11px] font-bold text-[#CBB29F] uppercase tracking-widest mb-3 px-3">Menu Navigation</div>
         <ul className="space-y-1.5">
           {menuItems.map((item, i) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
             return (
               <li key={i}>
                 <Link
