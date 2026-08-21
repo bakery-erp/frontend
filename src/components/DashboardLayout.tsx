@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
-  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X
+  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -48,11 +48,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = role === 'ADMIN';
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
+    ...(isOwner || isAdmin ? [{ icon: LayoutDashboard, label: 'Dashboard', href: '/' }] : []),
+    { icon: UserCheck, label: 'My Profile & Salary', href: '/my-profile' },
     ...(isOwner ? [{ icon: MapPin, label: 'Branches', href: '/branches' }] : []),
     ...((isOwner || isAdmin) ? [{ icon: Users, label: 'Users & Staff', href: '/users' }] : []),
     ...((isOwner || isAdmin || role === 'BAKER' || role === 'SAMBUSA_WORKER') ? [
-      { icon: ChefHat, label: 'Production Batches', href: '/production' }
+      { icon: ChefHat, label: 'Production Batches', href: '/production' },
+      { icon: History, label: 'Daily Product History', href: '/production/history' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: CalendarDays, label: 'Daily Sessions', href: '/daily-sessions' }
@@ -64,16 +66,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { icon: Package, label: 'Products', href: '/products' },
       { icon: ArrowRightLeft, label: 'Product Conversions', href: '/product-conversions' }
     ] : []),
-    { icon: Boxes, label: 'Stock & Inventory', href: '/stock' },
+    ...((isOwner || isAdmin || role === 'BAKER' || role === 'SAMBUSA_WORKER') ? [
+      { icon: Boxes, label: 'Stock & Inventory', href: '/stock' }
+    ] : []),
     ...((isOwner || isAdmin) ? [
       { icon: ArrowRightLeft, label: 'Stock Movements', href: '/stock-movements' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: Truck, label: 'Suppliers & Purchases', href: '/suppliers' }
     ] : []),
+    ...((isOwner || isAdmin || role === 'CASHIER') ? [
+      { icon: DollarSign, label: 'Expenses & Costs', href: '/expenses' }
+    ] : []),
     ...((isOwner || isAdmin) ? [
       { icon: Banknote, label: 'Payroll & Loans', href: '/payroll' },
-      { icon: DollarSign, label: 'Expenses & Costs', href: '/expenses' },
       { icon: BarChart3, label: 'Financial Reports', href: '/reports' }
     ] : []),
   ];
