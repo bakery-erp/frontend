@@ -590,46 +590,42 @@ export default function ExpensesPage() {
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
-            <p className="text-center text-zinc-400 py-12 text-sm">Loading expense records...</p>
+            <p className="text-center text-[#8C7361] py-8 font-medium">Loading expense records...</p>
           ) : expenses.length === 0 ? (
-            <div className="text-center py-12 text-zinc-500">
-              <p className="font-semibold text-sm">No expenses recorded for this period.</p>
-              <p className="text-xs text-zinc-400 mt-1">Click &quot;Add Expense&quot; to log a new company cost.</p>
+            <div className="text-center py-10 text-[#8C7361]">
+              <p className="font-bold text-sm text-[#2C1B10]">No expenses recorded for this period.</p>
+              <p className="text-xs text-[#8C7361] mt-1">Click &quot;Add Expense&quot; to log a new company cost.</p>
             </div>
           ) : (
             <Table>
-              <TableHeader className="bg-[#FAF6F0]/40">
+              <TableHeader>
                 <TableRow>
-                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Date</TableHead>
-                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Type</TableHead>
-                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Category</TableHead>
-                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Description</TableHead>
-                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Session</TableHead>
-                  <TableHead className="font-bold text-[#4A2E1B] text-xs">Recorded By</TableHead>
-                  <TableHead className="text-right font-bold text-[#4A2E1B] text-xs">Amount</TableHead>
-                  {isManagement && <TableHead className="text-right font-bold text-[#4A2E1B] text-xs">Actions</TableHead>}
+                  <TableHead>Date</TableHead>
+                  <TableHead>Expense Type</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Description / Purpose</TableHead>
+                  <TableHead>Session</TableHead>
+                  <TableHead>Recorded By</TableHead>
+                  <TableHead className="text-right">Expense Amount</TableHead>
+                  {isManagement && <TableHead className="text-right pr-6">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {expenses.map((expense) => (
-                  <TableRow key={expense.id} className="hover:bg-[#FAF6F0]/30 transition-colors">
-                    <TableCell className="text-xs font-semibold text-[#2C1B10]">
-                      {expense.date ? new Date(expense.date).toISOString().slice(0, 10) : "-"}
+                  <TableRow key={expense.id}>
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">
+                      {expense.date ? new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={`text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full font-extrabold ${
-                          expense.type === "OWNER"
-                            ? "bg-purple-100 text-purple-800 border border-purple-200"
-                            : "bg-blue-100 text-blue-800 border border-blue-200"
-                        }`}
-                      >
-                        {expense.type}
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
+                        expense.type === "OWNER"
+                          ? "bg-purple-100 text-purple-800 border-purple-200"
+                          : "bg-blue-100 text-blue-800 border-blue-200"
+                      }`}>
+                        {expense.type === "OWNER" ? "👤 OWNER" : "🏢 COMPANY"}
                       </span>
                     </TableCell>
-                    <TableCell className="font-bold text-xs text-[#2C1B10]">
-                      {expense.financialCategory?.name || expense.category}
-                    </TableCell>
+                    <TableCell className="font-bold text-[#2C1B10]">{expense.financialCategory?.name || expense.category}</TableCell>
                     <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate">
                       {expense.description || "-"}
                     </TableCell>

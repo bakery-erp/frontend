@@ -349,47 +349,48 @@ export default function StockItemDetailPage() {
           </div>
         </div>
 
-        <div className="border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+        <div className="border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
           <Table>
-            <TableHeader className="bg-[#FAF6F0]">
+            <TableHeader>
               <TableRow>
-                <TableHead className="font-bold text-[#2C1B10]">Date & Time</TableHead>
-                <TableHead className="font-bold text-[#2C1B10]">Action Type</TableHead>
-                <TableHead className="font-bold text-[#2C1B10]">Quantity Delta</TableHead>
-                <TableHead className="font-bold text-[#2C1B10]">Performed By</TableHead>
-                <TableHead className="font-bold text-[#2C1B10]">Reason / Audit Trail Note</TableHead>
+                <TableHead>Date & Time</TableHead>
+                <TableHead>Movement Type</TableHead>
+                <TableHead>Quantity Delta</TableHead>
+                <TableHead>Performed By</TableHead>
+                <TableHead className="pr-6">Audit Trail Note / Reason</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredMovements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-zinc-400">
+                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">
                     No movement records matching filter &apos;{filterType}&apos;.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredMovements.map((m) => (
-                  <TableRow key={m.id} className="hover:bg-[#FAF6F0]/40 transition-colors">
-                    <TableCell className="font-medium text-xs text-zinc-600 whitespace-nowrap">
-                      {format(new Date(m.createdAt), "MMM d, yyyy h:mm a")}
+                  <TableRow key={m.id}>
+                    <TableCell className="font-semibold text-xs text-[#8C7361] whitespace-nowrap">
+                      {format(new Date(m.createdAt), "MMM d, yyyy · h:mm a")}
                     </TableCell>
                     <TableCell>
                       {getMovementBadge(m.type)}
                     </TableCell>
                     <TableCell className="font-bold text-sm">
-                      <span className={m.type === "IN" ? "text-emerald-700" : "text-red-600"}>
-                        {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)} {stockItem.unitType}
-                      </span>
+                      <span className={m.type === "IN" ? "text-emerald-700" : "text-rose-700"}>
+                        {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)}
+                      </span>{" "}
+                      <span className="text-xs text-[#8C7361] font-normal">{stockItem.unitType}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5 text-zinc-400" />
-                        <span className="font-semibold text-xs text-zinc-800">{m.user?.fullName || "System"}</span>
-                        <span className="text-[10px] text-zinc-400 font-bold">({m.user?.role || "SYSTEM"})</span>
+                        <UserCheck className="w-3.5 h-3.5 text-[#8C7361]" />
+                        <span className="font-bold text-xs text-[#2C1B10]">{m.user?.fullName || "System"}</span>
+                        <span className="text-[10px] text-[#8C7361] font-bold">({m.user?.role || "SYSTEM"})</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs text-zinc-700">
-                      {m.reason || "-"}
+                    <TableCell className="text-xs text-[#8C7361] font-medium pr-6">
+                      {m.reason || "—"}
                     </TableCell>
                   </TableRow>
                 ))

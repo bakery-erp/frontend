@@ -269,41 +269,45 @@ export default function SuppliersPage() {
         </div>
 
         <Table>
-          <TableHeader className="bg-zinc-50">
+          <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead>Delivery Date</TableHead>
               <TableHead>Supplier</TableHead>
-              <TableHead>Stock Item / Material</TableHead>
+              <TableHead>Stock Material / Item</TableHead>
               <TableHead>Qty Received</TableHead>
               <TableHead>Unit Cost</TableHead>
               <TableHead>Total Cost</TableHead>
-              <TableHead>Payment Status</TableHead>
+              <TableHead className="text-right pr-6">Payment Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-6 text-zinc-400">Loading delivery logs...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">Loading delivery logs...</TableCell></TableRow>
             ) : deliveries.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-6 text-zinc-400">No delivery receipts recorded.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">No delivery receipts recorded.</TableCell></TableRow>
             ) : deliveries.map((d) => {
               const totalCost = Number(d.unitBuyPrice) * d.quantityReceived;
               return (
                 <TableRow key={d.id}>
-                  <TableCell className="font-medium text-zinc-900">{new Date(d.createdAt).toISOString().slice(0, 10)}</TableCell>
-                  <TableCell>{d.supplier?.name || 'Supplier'}</TableCell>
-                  <TableCell>{d.stockItem?.name || d.product?.name || 'Raw Material'}</TableCell>
-                  <TableCell className="font-semibold">{d.quantityReceived} {d.stockItem?.unitType || ''}</TableCell>
-                  <TableCell>{Number(d.unitBuyPrice).toFixed(2)} ETB</TableCell>
-                  <TableCell className="font-bold text-zinc-900">{totalCost.toFixed(2)} ETB</TableCell>
-                  <TableCell>
+                  <TableCell className="text-xs font-semibold text-[#8C7361]">
+                    {new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </TableCell>
+                  <TableCell className="font-bold text-[#2C1B10]">{d.supplier?.name || 'Supplier'}</TableCell>
+                  <TableCell className="font-semibold text-[#4A2E1B]">{d.stockItem?.name || d.product?.name || 'Raw Material'}</TableCell>
+                  <TableCell className="font-bold text-[#2C1B10]">
+                    {d.quantityReceived} <span className="text-xs text-[#8C7361] font-normal">{d.stockItem?.unitType || ''}</span>
+                  </TableCell>
+                  <TableCell className="text-xs font-semibold text-[#8C7361]">{Number(d.unitBuyPrice).toFixed(2)} ETB</TableCell>
+                  <TableCell className="font-extrabold text-[#2C1B10]">{totalCost.toFixed(2)} ETB</TableCell>
+                  <TableCell className="text-right pr-6">
                     <Button 
                       size="sm" 
                       variant="ghost" 
                       onClick={() => togglePaymentStatus(d.id, d.isPaid)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      className={`px-3 py-1 rounded-full text-xs font-extrabold shadow-xs transition-all ${
                         d.isPaid 
-                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
-                          : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300' 
+                          : 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
                       }`}
                     >
                       {d.isPaid ? '✓ PAID' : '⚠ UNPAID'}

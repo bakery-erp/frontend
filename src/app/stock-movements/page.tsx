@@ -150,42 +150,45 @@ export default function StockMovementsPage() {
         </div>
       </div>
 
-      <div className="bg-white border rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Item</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Reason</TableHead>
-              <TableHead>Recorded By</TableHead>
+              <TableHead>Date & Time</TableHead>
+              <TableHead>Stock Material Item</TableHead>
+              <TableHead>Movement Type</TableHead>
+              <TableHead>Quantity Delta</TableHead>
+              <TableHead>Reason / Notes</TableHead>
+              <TableHead className="pr-6">Recorded By</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-zinc-400">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361]">Loading stock movements...</TableCell></TableRow>
             ) : movements.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-zinc-400">No movements recorded yet.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361]">No movements recorded yet.</TableCell></TableRow>
             ) : movements.map(mov => (
               <TableRow key={mov.id}>
-                <TableCell className="text-zinc-600">
-                  {format(new Date(mov.createdAt), "MMM d, yyyy HH:mm")}
+                <TableCell className="text-xs font-semibold text-[#8C7361]">
+                  {format(new Date(mov.createdAt), "MMM d, yyyy · HH:mm")}
                 </TableCell>
-                <TableCell className="font-medium">{mov.stockItem?.name}</TableCell>
+                <TableCell className="font-bold text-[#2C1B10]">{mov.stockItem?.name}</TableCell>
                 <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${getMovementColor(mov.type)}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getMovementColor(mov.type)}`}>
                     {mov.type.replace('_', ' ')}
                   </span>
                 </TableCell>
-                <TableCell className="font-semibold">
-                  {mov.type === "OUT" || mov.type === "PRODUCTION_USAGE" ? "-" : "+"}
-                  {Number(mov.quantity).toFixed(2)} <span className="text-xs text-zinc-400 font-normal">{mov.stockItem?.unitType}</span>
+                <TableCell className="font-bold text-sm">
+                  <span className={mov.type === "OUT" || mov.type === "PRODUCTION_USAGE" ? "text-rose-600" : "text-emerald-700"}>
+                    {mov.type === "OUT" || mov.type === "PRODUCTION_USAGE" ? "-" : "+"}
+                    {Number(mov.quantity).toFixed(2)}
+                  </span>{" "}
+                  <span className="text-xs text-[#8C7361] font-semibold">{mov.stockItem?.unitType}</span>
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate text-zinc-600" title={mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "-"}>
-                  {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "-"}
+                <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "—"}>
+                  {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "—"}
                 </TableCell>
-                <TableCell>{mov.user?.fullName}</TableCell>
+                <TableCell className="text-xs font-bold text-[#2C1B10] pr-6">{mov.user?.fullName || "System"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

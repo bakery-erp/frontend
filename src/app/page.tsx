@@ -213,28 +213,28 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
                 {salesDetailRows.length === 0 ? (
-                  <p className="text-sm text-[#8C7361] py-6 text-center">No product sales logged in current session</p>
+                  <p className="text-sm text-[#8C7361] py-6 text-center font-medium">No product sales logged in current session</p>
                 ) : (
                   <Table>
-                    <TableHeader className="bg-emerald-50/30">
-                      <TableRow className="border-b border-emerald-100">
-                        <TableHead className="text-emerald-900 font-bold">Product Item</TableHead>
-                        <TableHead className="text-right text-emerald-900 font-bold">Qty Sold</TableHead>
-                        <TableHead className="text-right text-emerald-900 font-bold">Subtotal</TableHead>
+                    <TableHeader className="bg-emerald-100/50">
+                      <TableRow className="border-b border-emerald-200">
+                        <TableHead className="text-emerald-950 font-extrabold">Product Item</TableHead>
+                        <TableHead className="text-right text-emerald-950 font-extrabold">Qty Sold</TableHead>
+                        <TableHead className="text-right text-emerald-950 font-extrabold pr-6">Subtotal</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {salesDetailRows.map((row, i) => (
-                        <TableRow key={i} className="border-b border-emerald-50 hover:bg-emerald-50/30">
-                          <TableCell className="font-semibold text-[#2C1B10]">{row.product}</TableCell>
-                          <TableCell className="text-right font-medium text-[#4A2E1B]">{row.qty}</TableCell>
-                          <TableCell className="text-right text-emerald-700 font-bold">{money(row.subtotal)}</TableCell>
+                        <TableRow key={i} className="border-b border-emerald-100/50 hover:bg-emerald-50/40">
+                          <TableCell className="font-bold text-[#2C1B10]">{row.product}</TableCell>
+                          <TableCell className="text-right font-bold text-[#4A2E1B]">{row.qty}</TableCell>
+                          <TableCell className="text-right text-emerald-800 font-extrabold pr-6">{money(row.subtotal)}</TableCell>
                         </TableRow>
                       ))}
-                      <TableRow className="bg-emerald-100/50 font-bold text-emerald-950">
-                        <TableCell>Total Collected</TableCell>
-                        <TableCell className="text-right">{salesDetailRows.reduce((s, r) => s + r.qty, 0)} items</TableCell>
-                        <TableCell className="text-right text-emerald-800">{money(todayGain)}</TableCell>
+                      <TableRow className="bg-emerald-100/60 font-extrabold text-emerald-950">
+                        <TableCell className="font-extrabold">Total Collected</TableCell>
+                        <TableCell className="text-right font-extrabold">{salesDetailRows.reduce((s, r) => s + r.qty, 0)} items</TableCell>
+                        <TableCell className="text-right text-emerald-900 font-black pr-6">{money(todayGain)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -313,28 +313,28 @@ export default function Dashboard() {
 
                 {/* Expense line items */}
                 {expenses.length > 0 && (
-                  <div>
-                    <p className="text-[11px] font-extrabold text-rose-800 uppercase tracking-wider mb-2">Logged Operational Expenses</p>
+                  <div className="rounded-2xl border border-rose-100 overflow-hidden">
+                    <p className="text-[11px] font-extrabold text-rose-800 uppercase tracking-wider p-2.5 bg-rose-50/40 border-b border-rose-100">Logged Operational Expenses</p>
                     <Table>
-                      <TableHeader className="bg-rose-50/30">
+                      <TableHeader className="bg-rose-50/60">
                         <TableRow>
-                          <TableHead className="text-rose-900 font-bold">Category</TableHead>
-                          <TableHead className="text-rose-900 font-bold">Description</TableHead>
-                          <TableHead className="text-rose-900 font-bold">Type</TableHead>
-                          <TableHead className="text-right text-rose-900 font-bold">Amount</TableHead>
+                          <TableHead className="text-rose-950 font-bold">Category</TableHead>
+                          <TableHead className="text-rose-950 font-bold">Description</TableHead>
+                          <TableHead className="text-rose-950 font-bold">Type</TableHead>
+                          <TableHead className="text-right text-rose-950 font-bold pr-6">Amount</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {expenses.map((exp: any, i: number) => (
-                          <TableRow key={exp.id || i} className="border-b border-rose-50">
-                            <TableCell className="font-semibold text-[#2C1B10]">{exp.financialCategory?.name || exp.category || '-'}</TableCell>
-                            <TableCell className="text-[#8C7361]">{exp.description || '-'}</TableCell>
+                          <TableRow key={exp.id || i} className="border-b border-rose-50 hover:bg-rose-50/20">
+                            <TableCell className="font-bold text-[#2C1B10]">{exp.financialCategory?.name || exp.category || '—'}</TableCell>
+                            <TableCell className="text-xs text-[#8C7361]">{exp.description || '—'}</TableCell>
                             <TableCell>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${exp.type === 'OWNER' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${exp.type === 'OWNER' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'}`}>
                                 {exp.type}
                               </span>
                             </TableCell>
-                            <TableCell className="text-right font-bold text-rose-700">{money(exp.amount)}</TableCell>
+                            <TableCell className="text-right font-extrabold text-rose-700 pr-6">{money(exp.amount)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -344,22 +344,22 @@ export default function Dashboard() {
 
                 {/* Supplier delivery items */}
                 {deliveries.length > 0 && (
-                  <div>
-                    <p className="text-[11px] font-extrabold text-amber-800 uppercase tracking-wider mb-2">Supplier Deliveries Received</p>
+                  <div className="rounded-2xl border border-amber-100 overflow-hidden">
+                    <p className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wider p-2.5 bg-amber-50/40 border-b border-amber-100">Supplier Deliveries Received</p>
                     <Table>
-                      <TableHeader className="bg-amber-50/30">
+                      <TableHeader className="bg-amber-50/60">
                         <TableRow>
-                          <TableHead className="text-amber-900 font-bold">Supplier</TableHead>
-                          <TableHead className="text-amber-900 font-bold">Product Item</TableHead>
-                          <TableHead className="text-right text-amber-900 font-bold">Total Cost</TableHead>
+                          <TableHead className="text-amber-950 font-bold">Supplier</TableHead>
+                          <TableHead className="text-amber-950 font-bold">Product / Material</TableHead>
+                          <TableHead className="text-right text-amber-950 font-bold pr-6">Total Cost</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {deliveries.map((d: any, i: number) => (
-                          <TableRow key={d.id || i} className="border-b border-amber-50">
-                            <TableCell className="font-semibold text-[#2C1B10]">{d.supplier?.name || '-'}</TableCell>
-                            <TableCell className="text-[#8C7361]">{d.product?.name || d.stockItem?.name || '-'}</TableCell>
-                            <TableCell className="text-right font-bold text-amber-800">{money((d.unitBuyPrice || 0) * (d.quantityReceived || 0))}</TableCell>
+                          <TableRow key={d.id || i} className="border-b border-amber-50 hover:bg-amber-50/20">
+                            <TableCell className="font-bold text-[#2C1B10]">{d.supplier?.name || '—'}</TableCell>
+                            <TableCell className="text-xs font-semibold text-[#8C7361]">{d.product?.name || d.stockItem?.name || '—'}</TableCell>
+                            <TableCell className="text-right font-extrabold text-amber-900 pr-6">{money((d.unitBuyPrice || 0) * (d.quantityReceived || 0))}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

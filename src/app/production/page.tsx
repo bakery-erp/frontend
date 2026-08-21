@@ -261,48 +261,48 @@ export default function ProductionPage() {
         </button>
       </div>
 
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#FAF6F0]">
-              <TableHead className="font-bold text-[#2C1B10]">Date & Shift</TableHead>
-              <TableHead className="font-bold text-[#2C1B10]">Products Baked</TableHead>
-              <TableHead className="font-bold text-[#2C1B10]">Materials Used</TableHead>
-              <TableHead className="font-bold text-[#2C1B10]">Status</TableHead>
-              <TableHead className="font-bold text-[#2C1B10]">Logged By</TableHead>
-              <TableHead className="font-bold text-[#2C1B10] text-right pr-6">Actions</TableHead>
+            <TableRow>
+              <TableHead>Date & Shift</TableHead>
+              <TableHead>Products Baked & Quantity</TableHead>
+              <TableHead>Raw Materials Consumed</TableHead>
+              <TableHead>Batch Status</TableHead>
+              <TableHead>Logged By</TableHead>
+              <TableHead className="text-right pr-6">Batch Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-zinc-400">Loading production logs...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">Loading production logs...</TableCell></TableRow>
             ) : filteredBatches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-zinc-400">
-                  {filterTab === "PENDING" ? "No pending batch approvals." : "No production batches found."}
+                <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
+                  {filterTab === "PENDING" ? "No pending batch approvals found." : "No production batches recorded."}
                 </TableCell>
               </TableRow>
             ) : filteredBatches.map(batch => (
-              <TableRow key={batch.id} className="hover:bg-[#FAF6F0]/40 transition-colors">
+              <TableRow key={batch.id}>
                 <TableCell>
-                  <div className="font-semibold text-[#2C1B10]">{format(new Date(batch.date), "MMM d, yyyy")}</div>
-                  <div className="text-xs text-zinc-500 mt-0.5">{batch.shift} Shift</div>
+                  <div className="font-bold text-[#2C1B10]">{format(new Date(batch.date), "MMM d, yyyy")}</div>
+                  <div className="text-xs font-semibold text-[#8C7361] mt-0.5">{batch.shift} Shift</div>
                 </TableCell>
                 <TableCell>
                   <ul className="text-sm space-y-1">
                     {batch.items.map(item => (
-                      <li key={item.id} className="font-medium text-[#2C1B10]">
-                        {item.product.name}: <span className="font-bold text-amber-700">{item.quantityProduced} {item.product.unitType}</span>
+                      <li key={item.id} className="font-semibold text-[#2C1B10]">
+                        {item.product.name}: <span className="font-bold text-[#E87A18]">{item.quantityProduced} {item.product.unitType}</span>
                       </li>
                     ))}
                   </ul>
                 </TableCell>
                 <TableCell>
-                  <ul className="text-sm space-y-1 text-zinc-600">
-                    {batch.materialUsages.length === 0 ? <span className="text-zinc-400 italic text-xs">None logged</span> : null}
+                  <ul className="text-sm space-y-1 text-[#8C7361]">
+                    {batch.materialUsages.length === 0 ? <span className="text-zinc-400 italic text-xs">No materials deducted</span> : null}
                     {batch.materialUsages.map(mat => (
                       <li key={mat.id}>
-                        {mat.stockItem.name}: <span className="font-semibold text-red-600">-{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}</span>
+                        {mat.stockItem.name}: <span className="font-bold text-rose-700">-{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}</span>
                       </li>
                     ))}
                   </ul>
@@ -311,16 +311,16 @@ export default function ProductionPage() {
                   {getStatusBadge(batch.status)}
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm font-medium text-[#2C1B10]">{batch.user.fullName}</span>
+                  <span className="text-xs font-bold text-[#2C1B10]">{batch.user.fullName}</span>
                 </TableCell>
-                <TableCell className="text-right pr-4">
+                <TableCell className="text-right pr-6">
                   <div className="flex items-center justify-end gap-2">
                     {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => openEditModal(batch)}
-                        className="border-zinc-300 text-zinc-700 hover:bg-zinc-100 font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                        className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                       >
                         Edit
                       </Button>
