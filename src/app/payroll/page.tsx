@@ -643,16 +643,16 @@ export default function PayrollPage() {
 
       {/* HISTORY TAB */}
       {activeTab === "HISTORY" && (
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-zinc-50/50">
-                <TableHead>Term</TableHead>
+              <TableRow>
+                <TableHead>Payroll Term</TableHead>
                 <TableHead>Employee</TableHead>
                 <TableHead>Base / Prorated</TableHead>
-                <TableHead className="text-red-500">Deductions</TableHead>
-                <TableHead className="text-emerald-600">Final Payout</TableHead>
-                <TableHead>Execution Date</TableHead>
+                <TableHead className="text-rose-700">Deductions</TableHead>
+                <TableHead className="text-emerald-700">Final Net Payout</TableHead>
+                <TableHead className="text-right pr-6">Payment Timestamp</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -660,50 +660,50 @@ export default function PayrollPage() {
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    className="text-center py-8 text-zinc-400"
+                    className="text-center py-8 text-[#8C7361] font-medium"
                   >
                     Loading payroll history...
                   </TableCell>
                 </TableRow>
               ) : history.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    No records yet.
+                  <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
+                    No payroll execution records found.
                   </TableCell>
                 </TableRow>
               ) : (
                 history.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-extrabold text-[#2C1B10]">
                       {ETH_MONTHS[r.month - 1]} {r.year}
                     </TableCell>
                     <TableCell>
-                      {r.user?.fullName}{" "}
-                      <span className="text-zinc-400 text-xs">
+                      <span className="font-bold text-[#2C1B10]">{r.user?.fullName}</span>{" "}
+                      <span className="text-xs text-[#8C7361] font-semibold">
                         ({r.user?.role})
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="font-semibold text-[#2C1B10]">
                       {r.baseSalary} ETB{" "}
                       {r.bonus > 0 && (
                         <Badge
                           variant="secondary"
-                          className="ml-1 shrink-0 text-[10px]"
+                          className="ml-1 shrink-0 text-[10px] font-bold bg-emerald-100 text-emerald-800 border-emerald-200"
                         >
-                          +{r.bonus}
+                          +{r.bonus} ETB
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-red-500">
+                    <TableCell className="text-rose-700 font-bold">
                       -{Number(r.loanDeductions) + Number(r.penaltyDeductions)}{" "}
                       ETB
                     </TableCell>
-                    <TableCell className="font-bold text-emerald-600">
+                    <TableCell className="font-extrabold text-emerald-700 text-sm">
                       {r.finalAmount} ETB
                     </TableCell>
-                    <TableCell className="text-zinc-500 text-sm">
+                    <TableCell className="text-xs font-semibold text-[#8C7361] text-right pr-6">
                       {r.paymentDate
-                        ? format(new Date(r.paymentDate), "MMM dd, yyyy HH:mm")
+                        ? format(new Date(r.paymentDate), "MMM dd, yyyy · HH:mm")
                         : "N/A"}
                     </TableCell>
                   </TableRow>
@@ -716,58 +716,61 @@ export default function PayrollPage() {
 
       {/* LOANS TAB */}
       {activeTab === "LOANS" && (
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b flex justify-between items-center bg-zinc-50/50">
-            <h2 className="font-semibold">Active Employee Loans</h2>
-            <Button onClick={() => setIsLoanOpen(true)} size="sm">
-              <Plus className="w-4 h-4 mr-2" /> Dispatch Loan
+        <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
+          <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
+            <div>
+              <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Active Employee Loans</h2>
+              <p className="text-xs text-[#8C7361] mt-0.5">Disbursed salary advances and current remaining balances</p>
+            </div>
+            <Button onClick={() => setIsLoanOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
+              <Plus className="w-4 h-4 mr-1.5" /> Dispatch Loan
             </Button>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Issued</TableHead>
+                <TableHead>Date Issued</TableHead>
                 <TableHead>Employee</TableHead>
                 <TableHead>Original Amount</TableHead>
                 <TableHead>Remaining Balance</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="text-right pr-6">Loan Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoadingLoans ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-zinc-400">
-                    Loading loans...
+                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
+                    Loading employee loans...
                   </TableCell>
                 </TableRow>
               ) : loans.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
-                    No employee loans attached.
+                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">
+                    No employee loans currently recorded.
                   </TableCell>
                 </TableRow>
               ) : (
                 loans.map((l) => (
                   <TableRow key={l.id}>
-                    <TableCell className="text-zinc-500 text-sm">
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">
                       {format(new Date(l.createdAt), "MMM dd, yyyy")}
                     </TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-bold text-[#2C1B10]">
                       {l.user?.fullName}
                     </TableCell>
-                    <TableCell>{l.totalAmount} ETB</TableCell>
-                    <TableCell className="font-bold">
+                    <TableCell className="font-semibold text-[#8C7361]">{l.totalAmount} ETB</TableCell>
+                    <TableCell className="font-extrabold text-[#2C1B10]">
                       {l.remainingBalance} ETB
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right pr-6">
                       <Badge
-                        className={
+                        className={`font-bold text-xs ${
                           l.status === "PAID"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-orange-100 text-orange-800"
-                        }
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                            : "bg-amber-100 text-amber-900 border-amber-300"
+                        }`}
                       >
-                        {l.status}
+                        {l.status === "PAID" ? "✓ FULLY PAID" : "⏳ OPEN BALANCE"}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -780,11 +783,14 @@ export default function PayrollPage() {
 
       {/* PENALTIES TAB */}
       {activeTab === "PENALTIES" && (
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b flex justify-between items-center bg-zinc-50/50">
-            <h2 className="font-semibold">Workforce Penalties</h2>
-            <Button onClick={() => setIsPenaltyOpen(true)} size="sm">
-              <Plus className="w-4 h-4 mr-2" /> Log Penalty
+        <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
+          <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
+            <div>
+              <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Workforce Penalties</h2>
+              <p className="text-xs text-[#8C7361] mt-0.5">Recorded policy infractions and penalty deductions</p>
+            </div>
+            <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
+              <Plus className="w-4 h-4 mr-1.5" /> Log Penalty
             </Button>
           </div>
           <Table>
@@ -792,46 +798,46 @@ export default function PayrollPage() {
               <TableRow>
                 <TableHead>Date Filed</TableHead>
                 <TableHead>Employee</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead className="text-red-500">Fine</TableHead>
-                <TableHead>Settlement</TableHead>
+                <TableHead>Violation Reason</TableHead>
+                <TableHead className="text-rose-700">Penalty Fine</TableHead>
+                <TableHead className="text-right pr-6">Deduction Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoadingPenalties ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-zinc-400">
-                    Loading penalties...
+                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
+                    Loading workforce penalties...
                   </TableCell>
                 </TableRow>
               ) : penalties.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
-                    No active penalties found.
+                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">
+                    No active penalties logged.
                   </TableCell>
                 </TableRow>
               ) : (
                 penalties.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="text-zinc-500 text-sm">
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">
                       {format(new Date(p.date), "MMM dd, yyyy")}
                     </TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-bold text-[#2C1B10]">
                       {p.user?.fullName}
                     </TableCell>
-                    <TableCell className="text-zinc-600">{p.reason}</TableCell>
-                    <TableCell className="font-bold text-red-500">
+                    <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate" title={p.reason}>{p.reason}</TableCell>
+                    <TableCell className="font-extrabold text-rose-700">
                       -{p.amount} ETB
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right pr-6">
                       <Badge
-                        className={
+                        className={`font-bold text-xs ${
                           p.isDeducted
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-red-100 text-red-800"
-                        }
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                            : "bg-rose-100 text-rose-800 border-rose-300"
+                        }`}
                       >
-                        {p.isDeducted ? "Extracted" : "Pending Return"}
+                        {p.isDeducted ? "✓ DEDUCTED" : "⚠ PENDING DEDUCTION"}
                       </Badge>
                     </TableCell>
                   </TableRow>

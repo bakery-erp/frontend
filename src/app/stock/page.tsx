@@ -199,27 +199,27 @@ export default function StockPage() {
         </div>
       )}
 
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#FAF6F0]">
-              <TableHead className="font-bold text-[#2C1B10]">Item Name</TableHead>
-              <TableHead className="font-bold text-[#2C1B10]">Unit Type</TableHead>
-              <TableHead className="font-bold text-[#2C1B10]">Current Available Qty</TableHead>
-              <TableHead className="font-bold text-[#2C1B10]">Min Stock Alert Level</TableHead>
-              <TableHead className="font-bold text-[#2C1B10] text-right pr-6">Actions & Detail History</TableHead>
+            <TableRow>
+              <TableHead>Stock Material Item</TableHead>
+              <TableHead>Unit Type</TableHead>
+              <TableHead>Available On-Hand Qty</TableHead>
+              <TableHead>Min Alert Level</TableHead>
+              <TableHead className="text-right pr-6">Detail History & Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-zinc-400">Loading stock inventory...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">Loading stock inventory...</TableCell></TableRow>
             ) : items.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-zinc-400">No stock items found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">No stock items found.</TableCell></TableRow>
             ) : items.map(item => {
               const isLowStock = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
               return (
-                <TableRow key={item.id} className="hover:bg-[#FAF6F0]/40 transition-colors">
-                  <TableCell className="font-semibold text-[#2C1B10]">
+                <TableRow key={item.id}>
+                  <TableCell className="font-bold text-[#2C1B10]">
                     <div className="flex items-center gap-2">
                       <Link 
                         href={`/stock/${item.id}`} 
@@ -228,26 +228,26 @@ export default function StockPage() {
                         {item.name}
                       </Link>
                       {isLowStock && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
                           <AlertCircle className="w-3 h-3" /> Low Stock
                         </span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell><span className="px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-700 text-xs font-medium">{item.unitType}</span></TableCell>
+                  <TableCell><span className="px-2.5 py-1 rounded-md bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-xs font-bold">{item.unitType}</span></TableCell>
                   <TableCell>
-                    <span className={`font-bold text-base ${isLowStock ? 'text-red-600' : 'text-emerald-700'}`}>
+                    <span className={`font-extrabold text-base ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
                       {Number(item.currentQuantity).toFixed(2)}
                     </span>
                   </TableCell>
-                  <TableCell>{item.minStockLevel != null ? Number(item.minStockLevel).toFixed(2) : "-"}</TableCell>
-                  <TableCell className="text-right pr-4">
+                  <TableCell className="font-semibold text-[#8C7361]">{item.minStockLevel != null ? Number(item.minStockLevel).toFixed(2) : "—"}</TableCell>
+                  <TableCell className="text-right pr-6">
                     <div className="flex items-center justify-end gap-1.5">
                       <Link href={`/stock/${item.id}`}>
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="h-8 px-2.5 text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50 flex items-center gap-1 font-semibold"
+                          className="h-8 px-2.5 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] hover:text-[#E87A18] flex items-center gap-1 font-bold"
                         >
                           <History className="w-3.5 h-3.5" />
                           View History

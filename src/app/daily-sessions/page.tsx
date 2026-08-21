@@ -218,50 +218,56 @@ export default function DailySessionsPage() {
 
       <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
         <Table>
-          <TableHeader className="bg-zinc-50">
+          <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Branch</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Cash Float</TableHead>
-              <TableHead>Sales Logged</TableHead>
-              <TableHead className="w-[240px]">Actions</TableHead>
+              <TableHead>Session Date</TableHead>
+              <TableHead>Branch Location</TableHead>
+              <TableHead>Session Status</TableHead>
+              <TableHead>Cash Leftover</TableHead>
+              <TableHead>Sales Volume</TableHead>
+              <TableHead className="w-[240px] text-right pr-6">Management Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-6 text-zinc-400">Loading daily sessions...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361]">Loading daily sessions...</TableCell></TableRow>
             ) : sessions.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-6 text-zinc-400">No sessions recorded yet for active scope.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361]">No sessions recorded yet for active scope.</TableCell></TableRow>
             ) : sessions.map((sess) => {
               const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
-              const formattedDate = new Date(sess.date).toISOString().slice(0, 10);
+              const formattedDate = new Date(sess.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
               return (
                 <TableRow key={sess.id}>
-                  <TableCell className="font-semibold text-zinc-900 flex items-center">
-                    <CalendarDays className="w-4 h-4 mr-2 text-zinc-400" />
-                    {formattedDate}
+                  <TableCell className="font-bold text-[#2C1B10]">
+                    <div className="flex items-center">
+                      <CalendarDays className="w-4 h-4 mr-2 text-[#8C7361]" />
+                      {formattedDate}
+                    </div>
                   </TableCell>
-                  <TableCell>{branchName}</TableCell>
+                  <TableCell className="font-bold text-[#4A2E1B]">{branchName}</TableCell>
                   <TableCell>
                     {sess.status === 'OPEN' && (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span> OPEN
+                      <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1.5 shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span> OPEN FOR SALES
                       </span>
                     )}
                     {sess.status === 'PAUSED' && (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center gap-1.5">
+                      <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1.5 shadow-xs">
                         <PauseCircle className="w-3.5 h-3.5 text-amber-600" /> PAUSED
                       </span>
                     )}
                     {sess.status === 'CLOSED' && (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
-                        CLOSED
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
+                        CLOSED & FINALIZED
                       </span>
                     )}
                   </TableCell>
-                  <TableCell>{sess.cashLeftoverAmount != null ? `${Number(sess.cashLeftoverAmount).toFixed(2)} ETB` : '-'}</TableCell>
-                  <TableCell>{sess._count?.sales || 0} sales transactions</TableCell>
+                  <TableCell className="font-extrabold text-[#2C1B10]">
+                    {sess.cashLeftoverAmount != null ? `${Number(sess.cashLeftoverAmount).toFixed(2)} ETB` : '—'}
+                  </TableCell>
+                  <TableCell className="font-semibold text-[#8C7361]">
+                    <span className="font-bold text-[#2C1B10]">{sess._count?.sales || 0}</span> sales
+                  </TableCell>
                   <TableCell>
                     {canManageSessions ? (
                       <div className="flex items-center gap-2">

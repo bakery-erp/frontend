@@ -317,20 +317,20 @@ export default function ProductsPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
           <Table>
-            <TableHeader className="bg-zinc-50">
+            <TableHeader>
               <TableRow>
-                <TableHead className="w-16">Item</TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead className="w-16">Preview</TableHead>
+                <TableHead>Product Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>House Stock (Available)</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>Sell Price</TableHead>
-                <TableHead>Produced</TableHead>
-                <TableHead>Sold</TableHead>
-                <TableHead>Status</TableHead>
-                {isAdminOrOwner && <TableHead className="w-[80px]">Action</TableHead>}
+                <TableHead>Unit Type</TableHead>
+                <TableHead>Selling Price</TableHead>
+                <TableHead className="text-center">Produced</TableHead>
+                <TableHead className="text-center">Sold</TableHead>
+                <TableHead>Catalog Status</TableHead>
+                {isAdminOrOwner && <TableHead className="text-right pr-6">Action</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -340,31 +340,36 @@ export default function ProductsPage() {
                 return (
                   <TableRow key={prod.id}>
                     <TableCell>
-                      <img src={imgUrl} alt={prod.name} className="w-10 h-10 rounded-lg object-cover border border-zinc-200" />
+                      <img src={imgUrl} alt={prod.name} className="w-11 h-11 rounded-xl object-cover border border-[#EDE4D5] shadow-xs" />
                     </TableCell>
-                    <TableCell className="font-bold text-zinc-900">
-                      {prod.name} {prod.flavor && <span className="text-xs font-normal text-zinc-500">({prod.flavor})</span>}
+                    <TableCell className="font-bold text-[#2C1B10]">
+                      <div>{prod.name}</div>
+                      {prod.flavor && <span className="text-xs font-normal text-[#8C7361]">({prod.flavor})</span>}
                     </TableCell>
-                    <TableCell>{prod.category ? formatCategoryLabel(prod.category) : "Unknown"}</TableCell>
                     <TableCell>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold ${
-                        stockQty > 20 ? 'bg-emerald-100 text-emerald-800' : stockQty > 0 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                        {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold border ${
+                        stockQty > 20 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : stockQty > 0 ? 'bg-amber-100 text-amber-900 border-amber-200' : 'bg-rose-100 text-rose-800 border-rose-200'
                       }`}>
                         {stockQty} {prod.unitType}
                       </span>
                     </TableCell>
-                    <TableCell>{prod.unitType}</TableCell>
-                    <TableCell className="font-semibold text-zinc-900">{Number(prod.basePrice).toFixed(2)} ETB</TableCell>
-                    <TableCell>{prod.totalProduced || 0}</TableCell>
-                    <TableCell>{prod.totalSold || 0}</TableCell>
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">{prod.unitType}</TableCell>
+                    <TableCell className="font-extrabold text-[#E87A18] text-sm">{Number(prod.basePrice).toFixed(2)} ETB</TableCell>
+                    <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalProduced || 0}</TableCell>
+                    <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalSold || 0}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${prod.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                        {prod.isActive ? 'Active' : 'Inactive'}
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${prod.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
+                        {prod.isActive ? '✓ Active' : 'Inactive'}
                       </span>
                     </TableCell>
                     {isAdminOrOwner && (
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(prod)}>Edit</Button>
+                      <TableCell className="text-right pr-6">
+                        <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEditDialog(prod)}>Edit</Button>
                       </TableCell>
                     )}
                   </TableRow>

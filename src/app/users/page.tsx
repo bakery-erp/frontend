@@ -322,19 +322,19 @@ export default function UsersPage() {
         {activeTab === "users" ? (
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow>
                 <TableHead>Personnel</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Branch</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Staff Role</TableHead>
+                <TableHead>Assigned Branch</TableHead>
+                <TableHead>Account Status</TableHead>
+                <TableHead className="text-right pr-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
-                    No users found.
+                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
+                    No users found matching your search.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -342,41 +342,46 @@ export default function UsersPage() {
                   <TableRow key={u.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500">
-                          <UserIcon className="w-4 h-4" />
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                          {u.fullName?.charAt(0) || "U"}
                         </div>
                         <div>
-                          <p className="font-medium text-zinc-900">{u.fullName}</p>
-                          <p className="text-xs text-zinc-500">{u.phone}</p>
+                          <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
+                          <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-semibold">
+                      <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
                         {u.role.replace("_", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       {u.branch ? (
-                        <div className="flex items-center text-zinc-600 text-sm">
-                          <Building2 className="w-3 h-3 mr-1" />
+                        <div className="flex items-center text-[#2C1B10] font-semibold text-xs">
+                          <Building2 className="w-3.5 h-3.5 mr-1 text-[#8C7361]" />
                           {u.branch.name}
                         </div>
                       ) : (
-                        <span className="text-zinc-400 text-sm">Unassigned</span>
+                        <span className="text-zinc-400 text-xs italic">Unassigned (Global)</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Switch
-                        checked={u.isActive}
-                        onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
-                        disabled={user?.role !== "OWNER" && user?.role !== "ADMIN"}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={u.isActive}
+                          onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
+                          disabled={user?.role !== "OWNER" && user?.role !== "ADMIN"}
+                        />
+                        <span className={`text-xs font-bold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                          {u.isActive ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => openView(u)}>
-                          <Eye className="w-4 h-4 text-zinc-500" />
+                    <TableCell className="text-right pr-6">
+                      <div className="flex justify-end gap-1.5">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openView(u)}>
+                          <Eye className="w-4 h-4" />
                         </Button>
                         {(user?.role === "OWNER" || user?.role === "ADMIN") && (
                           <>
@@ -384,12 +389,13 @@ export default function UsersPage() {
                               variant="ghost"
                               size="sm"
                               title="Reset Password"
+                              className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                               onClick={() => openResetPassword(u)}
                             >
-                              <Key className="w-4 h-4 text-amber-600" />
+                              <Key className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => openEdit(u)}>
-                              <Edit2 className="w-4 h-4 text-blue-600" />
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEdit(u)}>
+                              <Edit2 className="w-4 h-4" />
                             </Button>
                           </>
                         )}
@@ -403,18 +409,18 @@ export default function UsersPage() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow>
                 <TableHead>Employee</TableHead>
                 <TableHead>Phone Number</TableHead>
                 <TableHead>Requested Date</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right pr-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {resetRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
+                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
                     No password reset requests found.
                   </TableCell>
                 </TableRow>
@@ -423,43 +429,43 @@ export default function UsersPage() {
                   <TableRow key={r.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
                           <Key className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="font-medium text-zinc-900">{r.user?.fullName || "Employee"}</p>
-                          <p className="text-xs text-zinc-500">{r.user?.branch?.name || "Global / Unassigned"}</p>
+                          <p className="font-bold text-[#2C1B10]">{r.user?.fullName || "Employee"}</p>
+                          <p className="text-xs text-[#8C7361]">{r.user?.branch?.name || "Global / Unassigned"}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{r.phone}</TableCell>
-                    <TableCell className="text-xs text-zinc-500">
+                    <TableCell className="font-mono text-xs font-semibold text-[#2C1B10]">{r.phone}</TableCell>
+                    <TableCell className="text-xs font-medium text-[#8C7361]">
                       {format(new Date(r.requestedAt), "PPpp")}
                     </TableCell>
                     <TableCell>
                       {r.status === "PENDING" && (
-                        <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-semibold text-[10px]">
-                          PENDING REQUEST
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-bold text-xs">
+                          ⏳ Pending Action
                         </Badge>
                       )}
                       {r.status === "RESOLVED" && (
-                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold text-[10px]">
-                          RESOLVED
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold text-xs">
+                          ✓ Reset Completed
                         </Badge>
                       )}
                       {r.status === "REJECTED" && (
-                        <Badge className="bg-zinc-100 text-zinc-600 border-zinc-300 font-semibold text-[10px]">
-                          REJECTED
+                        <Badge className="bg-rose-100 text-rose-800 border-rose-200 font-bold text-xs">
+                          ✕ Rejected
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-6">
                       {r.status === "PENDING" && (
                         <div className="flex justify-end gap-2">
                           <Button
                             size="sm"
                             onClick={() => openResetPassword(r.user, r.id)}
-                            className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold h-8 rounded-lg"
+                            className="bg-[#E87A18] hover:bg-[#d46d13] text-white text-xs font-bold h-8 rounded-lg shadow-xs"
                           >
                             <Key className="w-3.5 h-3.5 mr-1" />
                             Generate Password
@@ -468,7 +474,7 @@ export default function UsersPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleRejectRequest(r.id)}
-                            className="text-xs h-8 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-xs font-bold h-8 rounded-lg text-rose-600 border-rose-200 hover:bg-rose-50"
                           >
                             Reject
                           </Button>

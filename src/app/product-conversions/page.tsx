@@ -204,44 +204,44 @@ export default function ProductConversionsPage() {
             <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-[#FAF6F0]">
-                            <TableHead className="font-bold text-[#2C1B10]">Date & Time</TableHead>
-                            <TableHead className="font-bold text-[#2C1B10]">Source (From)</TableHead>
-                            <TableHead className="font-bold text-[#2C1B10]">Target (To)</TableHead>
-                            <TableHead className="font-bold text-[#2C1B10]">Conversion Ratio</TableHead>
-                            <TableHead className="font-bold text-[#2C1B10]">Logged By</TableHead>
-                            <TableHead className="font-bold text-[#2C1B10] text-right pr-6">Actions</TableHead>
+                        <TableRow>
+                            <TableHead>Conversion Date & Time</TableHead>
+                            <TableHead>Source Item (Consumed)</TableHead>
+                            <TableHead>Target Item (Produced)</TableHead>
+                            <TableHead>Conversion Ratio</TableHead>
+                            <TableHead>Logged By</TableHead>
+                            <TableHead className="text-right pr-6">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8 text-zinc-400">
+                                <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
                                     Loading product conversion history...
                                 </TableCell>
                             </TableRow>
                         ) : conversions.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8 text-zinc-400">
+                                <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
                                     No product conversions logged yet.
                                 </TableCell>
                             </TableRow>
                         ) : (
                             conversions.map((c) => (
-                                <TableRow key={c.id} className="hover:bg-[#FAF6F0]/40 transition-colors">
+                                <TableRow key={c.id}>
                                     <TableCell>
-                                        <div className="font-semibold text-[#2C1B10]">
+                                        <div className="font-bold text-[#2C1B10]">
                                             {format(new Date(c.createdAt), "MMM d, yyyy")}
                                         </div>
-                                        <div className="text-xs text-zinc-500 mt-0.5">
+                                        <div className="text-xs text-[#8C7361] font-semibold mt-0.5">
                                             {format(new Date(c.createdAt), "hh:mm a")}
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="font-bold text-red-700">
+                                        <div className="font-bold text-rose-700">
                                             -{c.fromQuantity} {c.fromProduct?.unitType || "unit"}
                                         </div>
-                                        <div className="text-xs text-zinc-600 font-medium">
+                                        <div className="text-xs text-[#8C7361] font-semibold">
                                             {c.fromProduct?.name || "Original Item"}
                                         </div>
                                     </TableCell>
@@ -249,27 +249,27 @@ export default function ProductConversionsPage() {
                                         <div className="font-bold text-emerald-700">
                                             +{c.toQuantity} {c.toProduct?.unitType || "unit"}
                                         </div>
-                                        <div className="text-xs text-zinc-600 font-medium">
+                                        <div className="text-xs text-[#8C7361] font-semibold">
                                             {c.toProduct?.name || "Converted Item"}
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
                                             {c.fromQuantity} {c.fromProduct?.unitType || "unit"} ➔ {c.toQuantity} {c.toProduct?.unitType || "unit"}
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        <span className="text-sm font-medium text-[#2C1B10]">
+                                        <span className="text-xs font-bold text-[#2C1B10]">
                                             {c.user?.fullName || "Staff"}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="text-right pr-4">
-                                        <div className="flex items-center justify-end gap-2">
+                                    <TableCell className="text-right pr-6">
+                                        <div className="flex items-center justify-end gap-1.5">
                                             <Button
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={() => handleOpenEdit(c)}
-                                                className="border-zinc-300 text-zinc-700 hover:bg-zinc-100 font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                                                className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                                             >
                                                 <Edit className="w-3.5 h-3.5" /> Edit
                                             </Button>
@@ -277,7 +277,7 @@ export default function ProductConversionsPage() {
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() => handleDelete(c.id)}
-                                                className="text-red-600 hover:bg-red-50 font-bold text-xs h-8 px-2 rounded-lg"
+                                                className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </Button>

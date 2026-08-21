@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
-import { Plus, Search, MapPin, MoreVertical, Edit2 } from "lucide-react";
+import { Plus, Search, MapPin, MoreVertical, Edit2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -225,7 +225,7 @@ export default function BranchesPage() {
         </div>
 
         {/* Data Table */}
-        <div className="border rounded-md bg-white">
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
               <TableRow>
@@ -233,49 +233,60 @@ export default function BranchesPage() {
                 <TableHead>Address</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Added On</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right pr-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-gray-500">
+                  <TableCell colSpan={5} className="h-24 text-center text-[#8C7361]">
                     Loading branches...
                   </TableCell>
                 </TableRow>
               ) : filteredBranches.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-gray-500">
+                  <TableCell colSpan={5} className="h-24 text-center text-[#8C7361]">
                     No branches found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredBranches.map((branch) => (
                   <TableRow key={branch.id}>
-                    <TableCell className="font-medium">{branch.name}</TableCell>
-                    <TableCell className="text-gray-500">
+                    <TableCell className="font-bold text-[#2C1B10]">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-[#8C7361]" />
+                        <span>{branch.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[#8C7361]">
                       {branch.address ? (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
+                        <span className="flex items-center gap-1.5 text-xs">
+                          <MapPin className="w-3.5 h-3.5 text-[#8C7361]" />
                           {branch.address}
                         </span>
                       ) : (
-                        <span className="text-gray-400 italic">No address provided</span>
+                        <span className="text-zinc-400 italic text-xs">No address provided</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={branch.isActive ? "default" : "secondary"} className={branch.isActive ? "bg-green-100 text-green-800 hover:bg-green-100 border-green-200" : ""}>
-                        {branch.isActive ? "Active" : "Inactive"}
+                      <Badge
+                        variant={branch.isActive ? "default" : "secondary"}
+                        className={branch.isActive
+                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 font-bold text-xs"
+                          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-100 border border-zinc-200 font-bold text-xs"
+                        }
+                      >
+                        {branch.isActive ? "✓ Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-500">
-                      {new Date(branch.createdAt).toLocaleDateString()}
+                    <TableCell className="text-xs font-medium text-[#8C7361]">
+                      {new Date(branch.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-6">
                       {isOwner ? (
                         <div className="flex justify-end items-center gap-4">
                           <div className="flex items-center gap-2">
-                            <label className="text-xs text-gray-500" htmlFor={`switch-${branch.id}`}>
+                            <label className="text-xs font-semibold text-[#8C7361]" htmlFor={`switch-${branch.id}`}>
                               {toggleLoading === branch.id ? "Updating..." : branch.isActive ? "Disable" : "Enable"}
                             </label>
                             <Switch
@@ -289,13 +300,13 @@ export default function BranchesPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleOpenDialog(branch)}
-                            className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                            className="h-8 w-8 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-400 font-medium">Read-Only</span>
+                        <span className="text-xs text-zinc-400 font-medium">Read-Only</span>
                       )}
                     </TableCell>
                   </TableRow>

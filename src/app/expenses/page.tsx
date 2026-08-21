@@ -317,45 +317,47 @@ export default function ExpensesPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {isLoading ? (
-            <p className="text-center text-zinc-400 py-8">Loading...</p>
+            <p className="text-center text-[#8C7361] py-8 font-medium">Loading expense records...</p>
           ) : expenses.length === 0 ? (
-            <p className="text-center text-zinc-400 py-8">No expenses found. Click &quot;Add Expense&quot; to record one.</p>
+            <p className="text-center text-[#8C7361] py-8 font-medium">No expenses found for this period. Click &quot;Add Expense&quot; to record one.</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Expense Type</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Description / Purpose</TableHead>
                   <TableHead>Recorded By</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right">Expense Amount</TableHead>
+                  <TableHead className="text-right pr-6">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {expenses.map(expense => (
                   <TableRow key={expense.id}>
-                    <TableCell>{expense.date ? new Date(expense.date).toISOString().slice(0, 10) : "-"}</TableCell>
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">
+                      {expense.date ? new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
+                    </TableCell>
                     <TableCell>
-                      <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
                         expense.type === "OWNER"
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-blue-100 text-blue-700"
+                          ? "bg-purple-100 text-purple-800 border-purple-200"
+                          : "bg-blue-100 text-blue-800 border-blue-200"
                       }`}>
-                        {expense.type}
+                        {expense.type === "OWNER" ? "👤 OWNER" : "🏢 COMPANY"}
                       </span>
                     </TableCell>
-                    <TableCell className="font-medium">{expense.financialCategory?.name || expense.category}</TableCell>
-                    <TableCell className="text-zinc-500 max-w-[200px] truncate">{expense.description || "-"}</TableCell>
-                    <TableCell>{expense.user?.fullName || "-"}</TableCell>
-                    <TableCell className="text-right font-bold text-rose-700">{money(expense.amount)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEditForm(expense)}>
+                    <TableCell className="font-bold text-[#2C1B10]">{expense.financialCategory?.name || expense.category}</TableCell>
+                    <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate" title={expense.description || "—"}>{expense.description || "—"}</TableCell>
+                    <TableCell className="text-xs font-bold text-[#2C1B10]">{expense.user?.fullName || "—"}</TableCell>
+                    <TableCell className="text-right font-extrabold text-rose-700 text-sm">{money(expense.amount)}</TableCell>
+                    <TableCell className="text-right pr-6">
+                      <div className="flex justify-end gap-1.5">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEditForm(expense)}>
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-rose-600 hover:text-rose-700" onClick={() => setExpenseToDelete(expense.id)}>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => setExpenseToDelete(expense.id)}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>

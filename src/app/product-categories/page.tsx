@@ -229,47 +229,47 @@ export default function ProductCategoriesPage() {
         </Dialog>
       )}
 
-      <div className="bg-white border rounded-lg overflow-hidden mb-8">
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs mb-8">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Category Name</TableHead>
               <TableHead>Parent Category</TableHead>
-              <TableHead>Level</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Products</TableHead>
-              <TableHead>Subcategories</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
+              <TableHead>Hierarchy Level</TableHead>
+              <TableHead>Product Type</TableHead>
+              <TableHead className="text-center">Products Count</TableHead>
+              <TableHead className="text-center">Subcategories</TableHead>
+              <TableHead className="text-right pr-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-zinc-400">Loading categories...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">Loading categories...</TableCell></TableRow>
             ) : visibleCategories.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-zinc-400">No product categories found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">No product categories found.</TableCell></TableRow>
             ) : visibleCategories.map(cat => (
               <TableRow key={cat.id}>
-                <TableCell className="font-medium">
-                  <span className={cat.parentId ? "pl-4 border-l-2 border-zinc-200" : ""}>{cat.name}</span>
+                <TableCell className="font-bold text-[#2C1B10]">
+                  <span className={cat.parentId ? "pl-5 border-l-2 border-[#E87A18]/40 inline-block" : ""}>{cat.name}</span>
+                </TableCell>
+                <TableCell className="text-xs font-semibold text-[#8C7361]">
+                  {getCategoryNameById(cat.parentId) || cat.parent?.name || "—"}
                 </TableCell>
                 <TableCell>
-                  {getCategoryNameById(cat.parentId) || cat.parent?.name || "-"}
-                </TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs ${cat.parentId ? 'bg-zinc-100 text-zinc-700' : 'bg-sky-100 text-sky-800'}`}>
-                    {cat.parentId ? 'Subcategory' : 'Category'}
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${cat.parentId ? 'bg-zinc-100 text-zinc-700 border border-zinc-200' : 'bg-amber-100 text-amber-900 border border-amber-200'}`}>
+                    {cat.parentId ? '↳ Subcategory' : '📁 Root Category'}
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs ${cat.type === 'PRODUCED' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${cat.type === 'PRODUCED' ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-purple-100 text-purple-800 border border-purple-200'}`}>
                     {cat.type}
                   </span>
                 </TableCell>
-                <TableCell>{cat._count?.products || 0}</TableCell>
-                <TableCell>{getChildCount(cat.id)}</TableCell>
-                <TableCell className="space-x-2">
-                  {canManage && <Button variant="ghost" size="sm" onClick={() => setEditingCategory(cat)}>Edit</Button>}
-                  {canManage && <Button variant="ghost" size="sm" onClick={() => setCategoryToDelete(cat)}>Delete</Button>}
+                <TableCell className="text-center font-bold text-[#2C1B10]">{cat._count?.products || 0}</TableCell>
+                <TableCell className="text-center font-bold text-[#8C7361]">{getChildCount(cat.id)}</TableCell>
+                <TableCell className="text-right pr-6 space-x-1">
+                  {canManage && <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => setEditingCategory(cat)}>Edit</Button>}
+                  {canManage && <Button variant="ghost" size="sm" className="font-bold text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => setCategoryToDelete(cat)}>Delete</Button>}
                 </TableCell>
               </TableRow>
             ))}
@@ -277,32 +277,32 @@ export default function ProductCategoriesPage() {
         </Table>
       </div>
 
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b bg-zinc-50 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Subcategories</h2>
-          <span className="text-sm text-zinc-500">{subcategories.length} total</span>
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
+        <div className="px-5 py-3.5 border-b border-[#EDE4D5] bg-[#FAF6F0] flex items-center justify-between">
+          <h2 className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Subcategories Overview</h2>
+          <span className="text-xs font-bold text-[#8C7361] bg-white px-2.5 py-1 rounded-full border border-[#EDE4D5]">{subcategories.length} total</span>
         </div>
         {subcategories.length === 0 ? (
-          <div className="px-4 py-8 text-center text-zinc-400">No subcategories found</div>
+          <div className="px-4 py-8 text-center text-[#8C7361] font-medium">No subcategories found</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Parent</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead>Subcategory Name</TableHead>
+                <TableHead>Parent Category</TableHead>
+                <TableHead className="text-center">Assigned Products</TableHead>
+                <TableHead className="text-right pr-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {subcategories.map((cat) => (
                 <TableRow key={cat.id}>
-                  <TableCell className="font-medium pl-8">{cat.name}</TableCell>
-                  <TableCell>{getCategoryNameById(cat.parentId) || cat.parent?.name || "-"}</TableCell>
-                  <TableCell>{cat._count?.products || 0}</TableCell>
-                  <TableCell className="space-x-2">
-                    {canManage && <Button variant="ghost" size="sm" onClick={() => setEditingCategory(cat)}>Edit</Button>}
-                    {canManage && <Button variant="ghost" size="sm" onClick={() => setCategoryToDelete(cat)}>Delete</Button>}
+                  <TableCell className="font-bold text-[#2C1B10] pl-6">↳ {cat.name}</TableCell>
+                  <TableCell className="text-xs font-semibold text-[#8C7361]">{getCategoryNameById(cat.parentId) || cat.parent?.name || "—"}</TableCell>
+                  <TableCell className="text-center font-bold text-[#2C1B10]">{cat._count?.products || 0}</TableCell>
+                  <TableCell className="text-right pr-6 space-x-1">
+                    {canManage && <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => setEditingCategory(cat)}>Edit</Button>}
+                    {canManage && <Button variant="ghost" size="sm" className="font-bold text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => setCategoryToDelete(cat)}>Delete</Button>}
                   </TableCell>
                 </TableRow>
               ))}

@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 
@@ -445,35 +445,40 @@ export default function ReportsPage() {
             <Card><CardHeader><CardTitle className="text-sm">Supplier Cost</CardTitle></CardHeader><CardContent>{money(totals.supplierDeliveryCost)}</CardContent></Card>
           </div>
 
-          <Card className="mb-6">
-            <CardHeader><CardTitle>Daily Breakdown</CardTitle></CardHeader>
-            <CardContent className="overflow-x-auto">
+          <Card className="mb-6 rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+            <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+              <CardTitle className="text-base font-extrabold text-[#2C1B10]">Daily Financial Breakdown</CardTitle>
+              <CardDescription className="text-xs text-[#8C7361]">Comprehensive day-by-day statement of revenues, costs, and net income</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
-                    <TableHead>Opening Leftovers</TableHead>
-                    <TableHead>Sales</TableHead>
-                    <TableHead>Cash Leftover</TableHead>
-                    <TableHead>Expenses</TableHead>
-                    <TableHead>Loans</TableHead>
-                    <TableHead>Supplier Cost</TableHead>
-                    <TableHead>Net Income</TableHead>
+                    <TableHead className="text-center">Opening Leftovers</TableHead>
+                    <TableHead className="text-right">Total Sales</TableHead>
+                    <TableHead className="text-right">Cash Leftover</TableHead>
+                    <TableHead className="text-right text-rose-700">Total Expenses</TableHead>
+                    <TableHead className="text-right">Loans Out</TableHead>
+                    <TableHead className="text-right">Supplier Cost</TableHead>
+                    <TableHead className="text-right pr-6">Net Daily Income</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(report.dailyBreakdown || []).length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center text-zinc-400">No entries in this range</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">No financial entries in this date range.</TableCell></TableRow>
                   ) : (report.dailyBreakdown || []).map((row) => (
                     <TableRow key={row.date}>
-                      <TableCell>{row.date}</TableCell>
-                      <TableCell>{row.openingLeftoverQuantity}</TableCell>
-                      <TableCell>{money(row.salesTotal)}</TableCell>
-                      <TableCell>{money(row.cashLeftoverTotal)}</TableCell>
-                      <TableCell>{money(row.companyExpenseTotal + row.ownerExpenseTotal + row.payrollTotal)}</TableCell>
-                      <TableCell>{money(row.loanTotal)}</TableCell>
-                      <TableCell>{money(row.supplierDeliveryCost)}</TableCell>
-                      <TableCell>{money(row.netIncome)}</TableCell>
+                      <TableCell className="font-bold text-[#2C1B10]">{row.date}</TableCell>
+                      <TableCell className="text-center font-semibold text-[#8C7361]">{row.openingLeftoverQuantity}</TableCell>
+                      <TableCell className="text-right font-bold text-emerald-700">{money(row.salesTotal)}</TableCell>
+                      <TableCell className="text-right font-semibold text-[#4A2E1B]">{money(row.cashLeftoverTotal)}</TableCell>
+                      <TableCell className="text-right font-bold text-rose-700">{money(row.companyExpenseTotal + row.ownerExpenseTotal + row.payrollTotal)}</TableCell>
+                      <TableCell className="text-right font-semibold text-[#8C7361]">{money(row.loanTotal)}</TableCell>
+                      <TableCell className="text-right font-semibold text-[#8C7361]">{money(row.supplierDeliveryCost)}</TableCell>
+                      <TableCell className={`text-right font-extrabold pr-6 ${Number(row.netIncome) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {money(row.netIncome)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -481,27 +486,30 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <Card className="mb-6">
-            <CardHeader><CardTitle>Sales Details</CardTitle></CardHeader>
-            <CardContent className="overflow-x-auto">
+          <Card className="mb-6 rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+            <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+              <CardTitle className="text-base font-extrabold text-[#2C1B10]">Itemized Sales Details</CardTitle>
+              <CardDescription className="text-xs text-[#8C7361]">Breakdown of every item sold across all sessions in this period</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Subtotal</TableHead>
+                    <TableHead>Product Name & Variant</TableHead>
+                    <TableHead className="text-center">Quantity Sold</TableHead>
+                    <TableHead className="text-right pr-6">Line Subtotal</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {salesRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={4} className="text-center text-zinc-400">No sales rows</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center py-8 text-[#8C7361] font-medium">No sales recorded for this date range.</TableCell></TableRow>
                   ) : salesRows.map((row, index) => (
                     <TableRow key={`${row.date}-${index}`}>
-                      <TableCell>{row.date}</TableCell>
-                      <TableCell>{row.label}</TableCell>
-                      <TableCell>{row.quantity}</TableCell>
-                      <TableCell>{money(row.total)}</TableCell>
+                      <TableCell className="font-semibold text-xs text-[#8C7361]">{row.date}</TableCell>
+                      <TableCell className="font-bold text-[#2C1B10]">{row.label}</TableCell>
+                      <TableCell className="text-center font-bold text-[#2C1B10]">{row.quantity}</TableCell>
+                      <TableCell className="text-right font-extrabold text-emerald-700 pr-6">{money(row.total)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -509,25 +517,28 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <Card className="mb-6">
-            <CardHeader><CardTitle>Opening Leftovers Carried Forward</CardTitle></CardHeader>
-            <CardContent className="overflow-x-auto">
+          <Card className="mb-6 rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+            <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+              <CardTitle className="text-base font-extrabold text-[#2C1B10]">Opening Leftovers Carried Forward</CardTitle>
+              <CardDescription className="text-xs text-[#8C7361]">Initial unsold batch inventory brought forward at session start</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Qty</TableHead>
+                    <TableHead>Session Date</TableHead>
+                    <TableHead>Product Name</TableHead>
+                    <TableHead className="text-right pr-6">Leftover Quantity Carried</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {openingLeftoverRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-zinc-400">No opening leftovers in this range</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={3} className="text-center py-8 text-[#8C7361] font-medium">No opening leftovers recorded in this range.</TableCell></TableRow>
                   ) : openingLeftoverRows.map((entry) => (
                     <TableRow key={entry.key}>
-                      <TableCell>{entry.sessionDate}</TableCell>
-                      <TableCell>{entry.productName}</TableCell>
-                      <TableCell>{entry.quantity}</TableCell>
+                      <TableCell className="font-semibold text-xs text-[#8C7361]">{entry.sessionDate}</TableCell>
+                      <TableCell className="font-bold text-[#2C1B10]">{entry.productName}</TableCell>
+                      <TableCell className="text-right font-bold text-[#4A2E1B] pr-6">{entry.quantity}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -535,28 +546,30 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 xl:grid-cols-2 mb-6">
-            <Card>
-              <CardHeader><CardTitle>Expenses</CardTitle></CardHeader>
-              <CardContent className="overflow-x-auto">
+          <div className="grid gap-6 xl:grid-cols-2 mb-6">
+            <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+              <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Expenses Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Category</TableHead>
-                      <TableHead>Reason</TableHead>
-                      <TableHead>Amount</TableHead>
+                      <TableHead>Reason / Notes</TableHead>
+                      <TableHead className="text-right pr-6">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(report.expenses || []).length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="text-center text-zinc-400">No expenses</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-[#8C7361] font-medium">No expenses in this period.</TableCell></TableRow>
                     ) : (report.expenses || []).map((expense) => (
                       <TableRow key={expense.id}>
-                        <TableCell>{expense.date ? new Date(expense.date).toISOString().slice(0, 10) : '-'}</TableCell>
-                        <TableCell>{expense.financialCategory?.name || expense.category}</TableCell>
-                        <TableCell>{expense.description || expense.category}</TableCell>
-                        <TableCell>{money(expense.amount)}</TableCell>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">{expense.date ? new Date(expense.date).toISOString().slice(0, 10) : '—'}</TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">{expense.financialCategory?.name || expense.category}</TableCell>
+                        <TableCell className="text-xs text-[#8C7361] max-w-[180px] truncate">{expense.description || expense.category || '—'}</TableCell>
+                        <TableCell className="text-right font-bold text-rose-700 pr-6">{money(expense.amount)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -564,27 +577,29 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader><CardTitle>Loans</CardTitle></CardHeader>
-              <CardContent className="overflow-x-auto">
+            <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+              <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Loans Activity</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
+                      <TableHead>Loan Type</TableHead>
                       <TableHead>Borrower</TableHead>
-                      <TableHead>Amount</TableHead>
+                      <TableHead className="text-right pr-6">Principal Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(report.loans || []).length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="text-center text-zinc-400">No loans</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-[#8C7361] font-medium">No loans issued in this period.</TableCell></TableRow>
                     ) : (report.loans || []).map((loan) => (
                       <TableRow key={loan.id}>
-                        <TableCell>{loan.date ? new Date(loan.date).toISOString().slice(0, 10) : '-'}</TableCell>
-                        <TableCell>{loan.type}</TableCell>
-                        <TableCell>{loan.user?.fullName || loan.entityId || '-'}</TableCell>
-                        <TableCell>{money(loan.totalAmount)}</TableCell>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">{loan.date ? new Date(loan.date).toISOString().slice(0, 10) : '—'}</TableCell>
+                        <TableCell><span className="text-xs font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">{loan.type}</span></TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">{loan.user?.fullName || loan.entityId || '—'}</TableCell>
+                        <TableCell className="text-right font-bold text-[#2C1B10] pr-6">{money(loan.totalAmount)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -593,26 +608,28 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-2 mb-6">
-            <Card>
-              <CardHeader><CardTitle>Production Batches</CardTitle></CardHeader>
-              <CardContent className="overflow-x-auto">
+          <div className="grid gap-6 xl:grid-cols-2 mb-6">
+            <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+              <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Production Batches</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>By</TableHead>
-                      <TableHead>Products</TableHead>
+                      <TableHead>Baker</TableHead>
+                      <TableHead className="pr-6">Products Baked</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(report.productionBatches || []).length === 0 ? (
-                      <TableRow><TableCell colSpan={3} className="text-center text-zinc-400">No production batches</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={3} className="text-center py-6 text-[#8C7361] font-medium">No production batches in this period.</TableCell></TableRow>
                     ) : (report.productionBatches || []).map((batch) => (
                       <TableRow key={batch.id}>
-                        <TableCell>{batch.date ? new Date(batch.date).toISOString().slice(0, 10) : '-'}</TableCell>
-                        <TableCell>{batch.user?.fullName || '-'}</TableCell>
-                        <TableCell>{(batch.items || []).map((item) => `${item.product?.name || 'Product'}${item.product?.flavor ? ` (${item.product.flavor})` : ''} x${item.quantityProduced}`).join(', ')}</TableCell>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">{batch.date ? new Date(batch.date).toISOString().slice(0, 10) : '—'}</TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">{batch.user?.fullName || '—'}</TableCell>
+                        <TableCell className="text-xs text-[#4A2E1B] font-medium pr-6">{(batch.items || []).map((item) => `${item.product?.name || 'Product'}${item.product?.flavor ? ` (${item.product.flavor})` : ''} x${item.quantityProduced}`).join(', ')}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -620,27 +637,29 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader><CardTitle>Supplier Deliveries</CardTitle></CardHeader>
-              <CardContent className="overflow-x-auto">
+            <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+              <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Supplier Deliveries</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Supplier</TableHead>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Cost</TableHead>
+                      <TableHead>Material / Item</TableHead>
+                      <TableHead className="text-right pr-6">Net Cost</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(report.supplierDeliveries || []).length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="text-center text-zinc-400">No supplier deliveries</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-[#8C7361] font-medium">No supplier deliveries in this period.</TableCell></TableRow>
                     ) : (report.supplierDeliveries || []).map((delivery) => (
                       <TableRow key={delivery.id}>
-                        <TableCell>{delivery.createdAt ? new Date(delivery.createdAt).toISOString().slice(0, 10) : '-'}</TableCell>
-                        <TableCell>{delivery.supplier?.name || '-'}</TableCell>
-                        <TableCell>{delivery.product?.name || '-'}</TableCell>
-                        <TableCell>{money((delivery.unitBuyPrice || 0) * ((delivery.quantityReceived || 0) - (delivery.returnedQuantity || 0)))}</TableCell>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">{delivery.createdAt ? new Date(delivery.createdAt).toISOString().slice(0, 10) : '—'}</TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">{delivery.supplier?.name || '—'}</TableCell>
+                        <TableCell className="font-semibold text-[#4A2E1B] text-xs">{delivery.product?.name || '—'}</TableCell>
+                        <TableCell className="text-right font-extrabold text-[#2C1B10] pr-6">{money((delivery.unitBuyPrice || 0) * ((delivery.quantityReceived || 0) - (delivery.returnedQuantity || 0)))}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
