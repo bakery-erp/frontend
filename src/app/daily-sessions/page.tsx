@@ -16,7 +16,8 @@ interface DailySession {
   id: string;
   branchId: string;
   date: string;
-  status: 'OPEN' | 'PAUSED' | 'CLOSED';
+  label?: string | null;
+  status: 'OPEN' | 'PAUSED' | 'CLOSE_PENDING' | 'CLOSED';
   cashLeftoverAmount?: number | null;
   createdAt: string;
   _count?: {
@@ -220,6 +221,7 @@ export default function DailySessionsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Session Name</TableHead>
               <TableHead>Session Date</TableHead>
               <TableHead>Branch Location</TableHead>
               <TableHead>Session Status</TableHead>
@@ -230,15 +232,18 @@ export default function DailySessionsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361]">Loading daily sessions...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">Loading daily sessions...</TableCell></TableRow>
             ) : sessions.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361]">No sessions recorded yet for active scope.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">No sessions recorded yet for active scope.</TableCell></TableRow>
             ) : sessions.map((sess) => {
               const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
               const formattedDate = new Date(sess.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
               return (
                 <TableRow key={sess.id}>
                   <TableCell className="font-bold text-[#2C1B10]">
+                    {sess.label || `Session - ${formattedDate}`}
+                  </TableCell>
+                  <TableCell className="font-semibold text-xs text-[#8C7361]">
                     <div className="flex items-center">
                       <CalendarDays className="w-4 h-4 mr-2 text-[#8C7361]" />
                       {formattedDate}
@@ -256,6 +261,11 @@ export default function DailySessionsPage() {
                         <PauseCircle className="w-3.5 h-3.5 text-amber-600" /> PAUSED
                       </span>
                     )}
+                    {sess.status === 'CLOSE_PENDING' && (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-900 border border-purple-300 inline-flex items-center gap-1.5 animate-pulse">
+                        <AlertTriangle className="w-3.5 h-3.5 text-purple-700" /> PENDING APPROVAL
+                      </span>
+                    )}
                     {sess.status === 'CLOSED' && (
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
                         CLOSED & FINALIZED
@@ -269,37 +279,42 @@ export default function DailySessionsPage() {
                     <span className="font-bold text-[#2C1B10]">{sess._count?.sales || 0}</span> sales
                   </TableCell>
                   <TableCell>
-                    {canManageSessions ? (
-                      <div className="flex items-center gap-2">
-                        {sess.status === 'OPEN' && (
-                          <>
+                    <div className="flex items-center gap-2">
+                      {sess.status === 'OPEN' && (
+                        <>
+                          {canManageSessions && (
                             <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-50 font-bold rounded-xl text-xs" onClick={() => handlePauseSession(sess)}>
                               <PauseCircle className="w-3.5 h-3.5 mr-1" /> Pause
                             </Button>
-                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs" onClick={() => openFinalizeModal(sess)}>
-                              <Lock className="w-3.5 h-3.5 mr-1" /> Finalize & Close
-                            </Button>
-                          </>
-                        )}
-                        {sess.status === 'PAUSED' && (
-                          <>
+                          )}
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs" onClick={() => window.location.href = `/daily-sessions/${sess.id}/close`}>
+                            <Lock className="w-3.5 h-3.5 mr-1" /> Close Session
+                          </Button>
+                        </>
+                      )}
+                      {sess.status === 'PAUSED' && (
+                        <>
+                          {canManageSessions && (
                             <Button size="sm" variant="outline" className="border-blue-300 text-blue-800 hover:bg-blue-50 font-bold rounded-xl text-xs" onClick={() => handleReopenSession(sess)}>
                               <PlayCircle className="w-3.5 h-3.5 mr-1" /> Resume
                             </Button>
-                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs" onClick={() => openFinalizeModal(sess)}>
-                              <Lock className="w-3.5 h-3.5 mr-1" /> Finalize & Close
-                            </Button>
-                          </>
-                        )}
-                        {sess.status === 'CLOSED' && (
-                          <Button size="sm" variant="outline" className="border-indigo-300 text-indigo-800 hover:bg-indigo-50 font-bold rounded-xl text-xs" onClick={() => handleReopenSession(sess)}>
-                            <Edit3 className="w-3.5 h-3.5 mr-1" /> Reopen to Edit
+                          )}
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs" onClick={() => window.location.href = `/daily-sessions/${sess.id}/close`}>
+                            <Lock className="w-3.5 h-3.5 mr-1" /> Close Session
                           </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-zinc-400 font-medium">View Only</span>
-                    )}
+                        </>
+                      )}
+                      {sess.status === 'CLOSE_PENDING' && (
+                        <Button size="sm" className="bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs" onClick={() => window.location.href = `/daily-sessions/${sess.id}/close`}>
+                          <Edit3 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? 'Review & Approve' : 'View Close Report'}
+                        </Button>
+                      )}
+                      {sess.status === 'CLOSED' && (
+                        <Button size="sm" variant="outline" className="border-zinc-300 text-zinc-700 hover:bg-zinc-50 font-bold rounded-xl text-xs" onClick={() => window.location.href = `/daily-sessions/${sess.id}/close`}>
+                          <Edit3 className="w-3.5 h-3.5 mr-1" /> View / Edit Session
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );

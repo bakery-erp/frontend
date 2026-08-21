@@ -202,14 +202,13 @@ export default function MobileCashierStation() {
 
       {/* Sticky Bottom Action Button */}
       {activeSession && (
-        <div className="p-4 bg-zinc-900/90 backdrop-blur-md border-t border-zinc-800">
-          <Button
-            onClick={handleFinalizeSession}
-            disabled={isSubmitting}
-            className="w-full h-14 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-extrabold text-base rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center"
+        <div className="p-4 bg-zinc-900/90 backdrop-blur-md border-t border-zinc-800 space-y-2">
+          <Link
+            href={`/daily-sessions/${activeSession.id}/close`}
+            className="w-full h-14 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-extrabold text-base rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
           >
-            {isSubmitting ? 'Calculating & Closing...' : 'Close Session & Compute Sales'}
-          </Button>
+            <Lock className="w-5 h-5" /> Open Full Close Form & Submit for Approval
+          </Link>
         </div>
       )}
     </div>

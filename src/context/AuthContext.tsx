@@ -8,7 +8,7 @@ export interface AuthUser {
   id: string;
   fullName: string;
   phone: string;
-  role: 'OWNER' | 'ADMIN' | 'BAKER' | 'CASHIER' | 'SAMBUSA_WORKER';
+  role: 'OWNER' | 'ADMIN' | 'BAKER' | 'CASHIER' | 'SAMBUSA_WORKER' | 'EMPLOYEE';
   branchId: string | null;
   branch?: {
     id: string;
@@ -70,7 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (data: LoginResponse) => {
     localStorage.setItem('token', data.token);
     setUser(data.user);
-    if (data.user.role === 'CASHIER') {
+    if (data.user.role === 'EMPLOYEE') {
+      router.push('/my-profile');
+    } else if (data.user.role === 'CASHIER') {
       router.push('/daily-sessions');
     } else if (data.user.role === 'BAKER' || data.user.role === 'SAMBUSA_WORKER') {
       router.push('/production');
