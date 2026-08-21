@@ -32,6 +32,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (data: LoginResponse) => void;
   logout: () => void;
+  updateUser: (updated: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +41,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  const updateUser = (updated: Partial<AuthUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...updated } : prev));
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -95,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

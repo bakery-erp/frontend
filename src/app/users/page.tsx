@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { getImageUrl } from "@/lib/utils";
 import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -342,9 +343,17 @@ export default function UsersPage() {
                   <TableRow key={u.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                          {u.fullName?.charAt(0) || "U"}
-                        </div>
+                        {u.filesUrl ? (
+                          <img
+                            src={getImageUrl(u.filesUrl)!}
+                            alt={u.fullName}
+                            className="w-9 h-9 rounded-xl object-cover border border-[#E87A18]/30 shadow-xs"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                            {u.fullName?.charAt(0) || "U"}
+                          </div>
+                        )}
                         <div>
                           <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
                           <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
@@ -615,9 +624,17 @@ export default function UsersPage() {
           {viewingUser && (
             <div className="space-y-4 py-4">
               <div className="flex items-center space-x-4 pb-4 border-b">
-                <div className="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 shrink-0">
-                  <UserIcon className="w-8 h-8" />
-                </div>
+                {viewingUser.filesUrl ? (
+                  <img
+                    src={getImageUrl(viewingUser.filesUrl)!}
+                    alt={viewingUser.fullName}
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-[#E87A18] shadow-sm shrink-0"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-500 shrink-0">
+                    <UserIcon className="w-8 h-8" />
+                  </div>
+                )}
                 <div>
                   <h3 className="text-xl font-bold tracking-tight text-zinc-900">{viewingUser.fullName}</h3>
                   <div className="flex items-center gap-2 mt-1">

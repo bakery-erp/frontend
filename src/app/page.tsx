@@ -6,9 +6,10 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useBranch } from '@/context/BranchContext';
 import { api } from '@/lib/axios';
-import { Users, TrendingUp, AlertTriangle, Boxes, CheckCircle2, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, Wallet } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Boxes, CheckCircle2, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, Wallet, DollarSign, Receipt, Package, Search, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface DashboardTotals {
@@ -44,6 +45,7 @@ export default function Dashboard() {
   const [totals, setTotals] = useState<DashboardTotals | null>(null);
   const [stockSummary, setStockSummary] = useState<StockSummary | null>(null);
   const [staffCount, setStaffCount] = useState<number>(0);
+  const [productValuation, setProductValuation] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Detail data from the report
@@ -52,6 +54,10 @@ export default function Dashboard() {
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [payrollRecords, setPayrollRecords] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
+
+  // Filter state for unified ledger
+  const [ledgerFilter, setLedgerFilter] = useState<'ALL' | 'REVENUE' | 'EXPENSE'>('ALL');
+  const [ledgerSearch, setLedgerSearch] = useState<string>('');
 
   // Expand/collapse states for the two big cards
   const [showGainDetail, setShowGainDetail] = useState(false);
@@ -84,10 +90,11 @@ export default function Dashboard() {
         params.branchId = selectedBranchId;
       }
 
-      const [reportRes, stockRes, usersRes] = await Promise.all([
+      const [reportRes, stockRes, usersRes, prodRes] = await Promise.all([
         api.get('/reports/range', { params }).catch(() => ({ data: {} })),
         api.get('/stock-movements/summary', { params: selectedBranchId ? { branchId: selectedBranchId } : {} }).catch(() => ({ data: {} })),
         api.get('/users', { params: selectedBranchId ? { branchId: selectedBranchId } : {} }).catch(() => ({ data: [] })),
+        api.get('/products', { params: selectedBranchId ? { branchId: selectedBranchId } : {} }).catch(() => ({ data: [] })),
       ]);
 
       const data = reportRes.data || {};
@@ -113,6 +120,15 @@ export default function Dashboard() {
       setLoans(data.loans || []);
       setStockSummary(stockRes.data || null);
       setStaffCount(Array.isArray(usersRes.data) ? usersRes.data.length : 0);
+
+      // Calculate Product Inventory Money Valuation
+      const prods = Array.isArray(prodRes.data) ? prodRes.data : [];
+      const totalVal = prods.reduce((sum: number, p: any) => {
+        const qty = Number(p.currentHouseStock || 0);
+        const price = Number(p.buyPrice || p.basePrice || 0);
+        return sum + (qty * price);
+      }, 0);
+      setProductValuation(totalVal);
     } catch (e) {
       console.error('Failed to fetch dashboard data:', e);
     } finally {
@@ -138,6 +154,114 @@ export default function Dashboard() {
       }
     }
   }
+
+  // Unified Transactions Ledger (Everything list)
+  const unifiedTransactions: Array<{
+    id: string;
+    date: string;
+    title: string;
+    category: string;
+    type: 'REVENUE' | 'EXPENSE';
+    amount: number;
+    status: string;
+  }> = [];
+
+  // POS Sales
+  sessions.forEach((s) => {
+    (s.sales || []).forEach((sale: any) => {
+      unifiedTransactions.push({
+        id: sale.id,
+        date: s.date || sale.createdAt,
+        title: `POS Product Sale (Session #${s.id.slice(-4)})`,
+        category: 'Counter POS Revenue',
+        type: 'REVENUE',
+        amount: Number(sale.totalAmount || 0),
+        status: 'COMPLETED',
+      });
+    });
+  });
+
+  // Expenses
+  expenses.forEach((e) => {
+    unifiedTransactions.push({
+      id: e.id,
+      date: e.date,
+      title: e.description || `${e.type} Operating Expense`,
+      category: e.financialCategory?.name || e.category || 'Operating Expense',
+      type: 'EXPENSE',
+      amount: Number(e.amount || 0),
+      status: 'PAID',
+    });
+  });
+
+  // Supplier Deliveries
+  deliveries.forEach((d) => {
+    const cost = Number(d.unitBuyPrice || 0) * Number(d.quantityReceived || 0);
+    unifiedTransactions.push({
+      id: d.id,
+      date: d.createdAt,
+      title: `Supplier Purchase (${d.supplier?.name || 'Supplier'})`,
+      category: d.product?.name || 'Raw Ingredients / Stock',
+      type: 'EXPENSE',
+      amount: cost,
+      status: 'RECEIVED',
+    });
+  });
+
+  // Customer Credits / Loans
+  loans.forEach((l) => {
+    if (l.type === 'CUSTOMER_CREDIT') {
+      unifiedTransactions.push({
+        id: l.id,
+        date: l.date || l.createdAt,
+        title: `Customer Credit Sale (${l.entityId || 'Client'})`,
+        category: 'Product Credit Receivable',
+        type: 'REVENUE',
+        amount: Number(l.totalAmount || 0),
+        status: l.status === 'PAID' ? 'PAID' : 'OUTSTANDING',
+      });
+    } else {
+      unifiedTransactions.push({
+        id: l.id,
+        date: l.date || l.createdAt,
+        title: `Employee Loan / Advance (${l.user?.fullName || l.entityId || 'Staff'})`,
+        category: 'Staff Salary Advance',
+        type: 'EXPENSE',
+        amount: Number(l.totalAmount || 0),
+        status: l.status,
+      });
+    }
+  });
+
+  // Payroll Disbursements
+  payrollRecords.forEach((pr) => {
+    unifiedTransactions.push({
+      id: pr.id,
+      date: pr.paymentDate || new Date().toISOString(),
+      title: `Payroll Disbursement (${pr.user?.fullName || 'Employee'})`,
+      category: 'Staff Salary Payroll',
+      type: 'EXPENSE',
+      amount: Number(pr.finalAmount || 0),
+      status: 'PAID',
+    });
+  });
+
+  // Sort unified transactions descending by date
+  unifiedTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const filteredTransactions = unifiedTransactions.filter((tx) => {
+    if (ledgerFilter === 'REVENUE' && tx.type !== 'REVENUE') return false;
+    if (ledgerFilter === 'EXPENSE' && tx.type !== 'EXPENSE') return false;
+    if (ledgerSearch) {
+      const q = ledgerSearch.toLowerCase();
+      return (
+        tx.title.toLowerCase().includes(q) ||
+        tx.category.toLowerCase().includes(q) ||
+        tx.status.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   return (
     <DashboardLayout>
@@ -232,13 +356,34 @@ export default function Dashboard() {
                         </TableRow>
                       ))}
                       <TableRow className="bg-emerald-100/60 font-extrabold text-emerald-950">
-                        <TableCell className="font-extrabold">Total Collected</TableCell>
+                        <TableCell className="font-extrabold">Total Realized Sales</TableCell>
                         <TableCell className="text-right font-extrabold">{salesDetailRows.reduce((s, r) => s + r.qty, 0)} items</TableCell>
                         <TableCell className="text-right text-emerald-900 font-black pr-6">{money(todayGain)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
                 )}
+
+                {/* Product Inventory Money Valuation Summary */}
+                <div className="p-4 bg-amber-50/60 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="font-bold text-amber-950 block">📦 Unsold House Product Stock Value:</span>
+                    <span className="text-amber-800 text-[11px]">Valuation of products available on hand ready for sale</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-black text-amber-950 font-mono">{money(productValuation)}</span>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-emerald-900 text-white flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="font-black text-white uppercase tracking-wider block">💎 Combined Total Gain (Sales + Stock Value):</span>
+                    <span className="text-emerald-200 text-[11px]">Realized cash revenue plus on-hand ready product assets</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-base font-black text-emerald-300 font-mono">{money(todayGain + productValuation)}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -376,76 +521,94 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Secondary KPI Grid Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* ── Secondary KPI Grid Cards (With Product Money Valuation) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {/* Card 1: Net Profit */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Net Profit Today</CardTitle>
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5" />
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl sm:text-3xl font-extrabold tracking-tight font-heading ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+            <div className={`text-xl sm:text-2xl font-extrabold tracking-tight font-heading ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
               {isLoading ? '...' : money(todayNet)}
             </div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1 flex items-center">
-              Revenue minus operational costs
+            <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
+              Sales minus operational costs
             </p>
           </CardContent>
         </Card>
 
-        {/* Card 2: Loans Today */}
+        {/* Card 2: Product Inventory Asset Value */}
+        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1 bg-amber-50/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-xs font-bold uppercase text-amber-900 tracking-wider">Product Stock Value</CardTitle>
+            <div className="w-8 h-8 rounded-xl bg-[#E87A18]/10 text-[#E87A18] flex items-center justify-center">
+              <Package className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight font-heading font-mono">
+              {isLoading ? '...' : money(productValuation)}
+            </div>
+            <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
+              Money value of ready house products
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 3: Loans Today */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Staff Loans Issued</CardTitle>
-            <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center">
-              <Wallet className="h-5 w-5" />
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center">
+              <Wallet className="h-4 w-4" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
+            <div className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight font-heading font-mono">
               {isLoading ? '...' : money(totals?.loanTotal)}
             </div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              {loans.length} salary advance/loan record(s)
+            <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
+              {loans.length} salary loan record(s)
             </p>
           </CardContent>
         </Card>
 
-        {/* Card 3: Stock Health */}
+        {/* Card 4: Stock Health */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Raw Material Health</CardTitle>
-            <div className="w-9 h-9 rounded-2xl bg-teal-500/10 text-teal-700 flex items-center justify-center">
-              <Boxes className="h-5 w-5" />
+            <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-700 flex items-center justify-center">
+              <Boxes className="h-4 w-4" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
+            <div className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
               {isLoading ? '...' : `${stockSummary?.healthy || 0} / ${stockSummary?.totalItems || 0}`}
             </div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              {stockSummary?.lowStock ? `${stockSummary.lowStock} items at low threshold` : 'All inventory levels healthy'}
+            <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
+              {stockSummary?.lowStock ? `${stockSummary.lowStock} items low` : 'All stock healthy'}
             </p>
           </CardContent>
         </Card>
 
-        {/* Card 4: Team & Locations */}
+        {/* Card 5: Team & Locations */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Active Staff & Branches</CardTitle>
-            <div className="w-9 h-9 rounded-2xl bg-purple-500/10 text-purple-700 flex items-center justify-center">
-              <Users className="h-5 w-5" />
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Staff & Branches</CardTitle>
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-700 flex items-center justify-center">
+              <Users className="h-4 w-4" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
-              {isLoading ? '...' : `${branches.length} Branches, ${staffCount} Staff`}
+            <div className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
+              {isLoading ? '...' : `${branches.length} Br, ${staffCount} Staff`}
             </div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              Active personnel in platform
+            <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
+              Active platform users
             </p>
           </CardContent>
         </Card>
@@ -462,27 +625,27 @@ export default function Dashboard() {
             <div className="space-y-3.5">
               <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
                 <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Total Sales Revenue</span>
-                <span className="text-xs sm:text-sm font-extrabold text-emerald-600">+{money(totals?.salesTotal)}</span>
+                <span className="text-xs sm:text-sm font-extrabold text-emerald-600 font-mono">+{money(totals?.salesTotal)}</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
                 <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Raw Material / Resell Costs</span>
-                <span className="text-xs sm:text-sm font-extrabold text-rose-600">-{money(totals?.supplierDeliveryCost)}</span>
+                <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(totals?.supplierDeliveryCost)}</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
                 <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Company Operational Expenses</span>
-                <span className="text-xs sm:text-sm font-extrabold text-rose-600">-{money(totals?.companyExpenseTotal)}</span>
+                <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(totals?.companyExpenseTotal)}</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
                 <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Owner Expense Withdrawals</span>
-                <span className="text-xs sm:text-sm font-extrabold text-purple-600">-{money(totals?.ownerExpenseTotal)}</span>
+                <span className="text-xs sm:text-sm font-extrabold text-purple-600 font-mono">-{money(totals?.ownerExpenseTotal)}</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
                 <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Payroll Disbursed</span>
-                <span className="text-xs sm:text-sm font-extrabold text-rose-600">-{money(totals?.payrollTotal)}</span>
+                <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(totals?.payrollTotal)}</span>
               </div>
               <div className="flex justify-between items-center p-4 bg-[#F4ECE1] rounded-2xl mt-4">
                 <span className="text-sm font-extrabold text-[#2C1B10]">Calculated Net Profit</span>
-                <span className={`text-base sm:text-lg font-extrabold ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                <span className={`text-base sm:text-lg font-extrabold font-mono ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                   {money(todayNet)}
                 </span>
               </div>
@@ -492,10 +655,18 @@ export default function Dashboard() {
 
         <Card className="border-[#EDE4D5] bg-white shadow-sm rounded-3xl overflow-hidden">
           <CardHeader className="border-b border-[#EDE4D5] bg-[#FFFDF8]">
-            <CardTitle className="text-base font-extrabold text-[#2C1B10]">Inventory Status</CardTitle>
-            <CardDescription className="text-xs text-[#8C7361]">Stock levels & threshold monitoring</CardDescription>
+            <CardTitle className="text-base font-extrabold text-[#2C1B10]">Inventory Status & Value</CardTitle>
+            <CardDescription className="text-xs text-[#8C7361]">Stock levels & asset valuation</CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
+            <div className="flex items-center p-4 rounded-2xl bg-[#E87A18]/10 border border-[#E87A18]/20">
+              <Package className="w-6 h-6 text-[#E87A18] mr-3 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-[#8C7361]">Ready Product Asset Value</p>
+                <p className="text-lg font-extrabold text-[#2C1B10] font-mono">{money(productValuation)}</p>
+              </div>
+            </div>
+
             <div className="flex items-center p-4 rounded-2xl bg-emerald-50 text-emerald-900 border border-emerald-200">
               <CheckCircle2 className="w-6 h-6 text-emerald-600 mr-3 flex-shrink-0" />
               <div>
@@ -503,6 +674,7 @@ export default function Dashboard() {
                 <p className="text-xs text-emerald-700 font-medium">{stockSummary?.healthy || 0} items at normal levels</p>
               </div>
             </div>
+
             {stockSummary && stockSummary.lowStock > 0 ? (
               <div className="flex items-center p-4 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200">
                 <AlertTriangle className="w-6 h-6 text-amber-600 mr-3 flex-shrink-0" />
@@ -519,6 +691,114 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── EVERYTHING LIST: UNIFIED FINANCIAL TRANSACTIONS LEDGER ── */}
+      <Card className="border-[#EDE4D5] bg-white shadow-sm rounded-3xl overflow-hidden mb-8">
+        <CardHeader className="border-b border-[#EDE4D5] bg-[#FFFDF8] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-[#E87A18]" />
+              Unified Financial Transactions Ledger (Everything List)
+            </CardTitle>
+            <CardDescription className="text-xs text-[#8C7361]">
+              Live list of all sales, customer credit sales, operating expenses, supplier deliveries, and payroll transactions.
+            </CardDescription>
+          </div>
+
+          {/* Controls: Filter Switcher & Search */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="bg-[#F4ECE1] p-1 rounded-xl flex items-center border border-[#EDE4D5]">
+              <button
+                onClick={() => setLedgerFilter('ALL')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  ledgerFilter === 'ALL' ? 'bg-[#4A2E1B] text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
+                }`}
+              >
+                All ({unifiedTransactions.length})
+              </button>
+              <button
+                onClick={() => setLedgerFilter('REVENUE')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  ledgerFilter === 'REVENUE' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
+                }`}
+              >
+                Revenues
+              </button>
+              <button
+                onClick={() => setLedgerFilter('EXPENSE')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  ledgerFilter === 'EXPENSE' ? 'bg-rose-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
+                }`}
+              >
+                Expenses
+              </button>
+            </div>
+
+            <Input
+              type="text"
+              placeholder="Search ledger..."
+              value={ledgerSearch}
+              onChange={(e) => setLedgerSearch(e.target.value)}
+              className="w-48 bg-white border-[#EDE4D5] rounded-xl text-xs h-9"
+            />
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0 overflow-x-auto">
+          {filteredTransactions.length === 0 ? (
+            <div className="text-center py-10 text-[#8C7361] text-xs font-medium">
+              No financial transactions found matching your criteria.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="bg-[#FAF6F0]">
+                <TableRow>
+                  <TableHead className="w-32">Date / Time</TableHead>
+                  <TableHead>Transaction Title</TableHead>
+                  <TableHead>Financial Category</TableHead>
+                  <TableHead className="text-center">Type</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-right pr-6">Amount (ETB)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map((tx) => (
+                  <TableRow key={tx.id} className="hover:bg-[#FAF6F0]/60">
+                    <TableCell className="text-xs font-mono font-semibold text-[#8C7361]">
+                      {tx.date ? new Date(tx.date).toLocaleDateString() : '—'}
+                    </TableCell>
+                    <TableCell className="font-bold text-[#2C1B10]">
+                      {tx.title}
+                    </TableCell>
+                    <TableCell>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                        {tx.category}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                        tx.type === 'REVENUE' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                      }`}>
+                        {tx.type}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700">
+                        {tx.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className={`text-right font-extrabold pr-6 font-mono ${
+                      tx.type === 'REVENUE' ? 'text-emerald-700' : 'text-rose-700'
+                    }`}>
+                      {tx.type === 'REVENUE' ? '+' : '-'}{money(tx.amount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </DashboardLayout>
   );
 }

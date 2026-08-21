@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
+import { getImageUrl } from '@/lib/utils';
 import {
   User,
   Building2,
@@ -14,14 +15,18 @@ import {
   AlertTriangle,
   Receipt,
   CheckCircle2,
-  ShieldAlert,
-  FileText,
   Phone,
-  Briefcase
+  Lock,
+  Camera,
+  Check,
+  X,
+  ShieldCheck,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -57,7 +62,8 @@ interface DashboardData {
     id: string;
     totalAmount: number;
     remainingBalance: number;
-    status: 'OPEN' | 'PAID';
+    status: 'PENDING_APPROVAL' | 'OPEN' | 'PAID' | 'REJECTED';
+    type: string;
     date: string;
     createdAt: string;
     payments?: Array<{
@@ -70,6 +76,7 @@ interface DashboardData {
     id: string;
     amount: number;
     reason: string;
+    status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
     date: string;
     isDeducted: boolean;
     createdAt: string;
@@ -86,10 +93,18 @@ const MONTH_NAMES = [
 ];
 
 export default function MyProfilePage() {
-  const { user: authUser } = useAuth();
+  const { user: authUser, updateUser } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties'>('payroll');
+  const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties' | 'pending' | 'settings'>('payroll');
+
+  // Settings State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPass, setIsChangingPass] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     fetchMyDashboard();
@@ -105,6 +120,97 @@ export default function MyProfilePage() {
       toast.error(err.response?.data?.error || 'Failed to load your profile details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword) {
+      toast.error('Please enter current and new password');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    setIsChangingPass(true);
+    try {
+      await api.post('/users/me/change-password', { currentPassword, newPassword });
+      toast.success('Password changed successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to change password');
+    } finally {
+      setIsChangingPass(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      toast.error('Please select an image file first');
+      return;
+    }
+    setIsUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const res = await api.post('/users/me/profile-picture', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success('Profile picture updated successfully!');
+      setSelectedFile(null);
+      if (res.data?.filesUrl && updateUser) {
+        updateUser({ filesUrl: res.data.filesUrl });
+      }
+      fetchMyDashboard();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to upload profile picture');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleApproveLoan = async (id: string) => {
+    try {
+      await api.post(`/loans/${id}/approve`);
+      toast.success('Loan approved!');
+      fetchMyDashboard();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to approve loan');
+    }
+  };
+
+  const handleRejectLoan = async (id: string) => {
+    try {
+      await api.post(`/loans/${id}/reject`);
+      toast.success('Loan rejected');
+      fetchMyDashboard();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to reject loan');
+    }
+  };
+
+  const handleApprovePenalty = async (id: string) => {
+    try {
+      await api.post(`/penalties/${id}/approve`);
+      toast.success('Penalty acknowledged and approved');
+      fetchMyDashboard();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to approve penalty');
+    }
+  };
+
+  const handleRejectPenalty = async (id: string) => {
+    try {
+      await api.post(`/penalties/${id}/reject`);
+      toast.success('Penalty rejected');
+      fetchMyDashboard();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to reject penalty');
     }
   };
 
@@ -126,10 +232,17 @@ export default function MyProfilePage() {
   const loans = data?.loans || [];
   const penalties = data?.penalties || [];
 
-  // Totals calculations
-  const totalLoanBalance = loans.reduce((acc, l) => acc + Number(l.remainingBalance || 0), 0);
-  const totalPenaltyAmount = penalties.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-  const pendingPenalties = penalties.filter(p => !p.isDeducted).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  const pendingLoans = loans.filter((l) => l.status === 'PENDING_APPROVAL');
+  const pendingPenalties = penalties.filter((p) => p.status === 'PENDING_APPROVAL');
+  const pendingCount = pendingLoans.length + pendingPenalties.length;
+
+  // Totals calculations (only open/approved loans & penalties)
+  const totalLoanBalance = loans
+    .filter((l) => l.status === 'OPEN')
+    .reduce((acc, l) => acc + Number(l.remainingBalance || 0), 0);
+  const totalPenaltyAmount = penalties
+    .filter((p) => p.status !== 'REJECTED')
+    .reduce((acc, p) => acc + Number(p.amount || 0), 0);
   const totalPayrollPaid = payrolls.reduce((acc, pr) => acc + Number(pr.finalAmount || 0), 0);
 
   return (
@@ -143,9 +256,17 @@ export default function MyProfilePage() {
 
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div className="flex items-center space-x-5">
-              <div className="w-20 h-20 rounded-2xl bg-[#E87A18] text-white flex items-center justify-center font-extrabold text-3xl shadow-lg border-2 border-white/20">
-                {u?.fullName ? u.fullName.charAt(0).toUpperCase() : 'E'}
-              </div>
+              {u?.filesUrl ? (
+                <img
+                  src={getImageUrl(u.filesUrl)!}
+                  alt={u.fullName}
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-white/40 shadow-lg"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-2xl bg-[#E87A18] text-white flex items-center justify-center font-extrabold text-3xl shadow-lg border-2 border-white/20">
+                  {u?.fullName ? u.fullName.charAt(0).toUpperCase() : 'E'}
+                </div>
+              )}
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Badge className="bg-[#E87A18] text-white text-xs px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
@@ -189,8 +310,7 @@ export default function MyProfilePage() {
 
       {/* ── Key Metrics Summary Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Base Monthly Salary */}
-        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
+        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Base Monthly Salary</CardTitle>
             <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center">
@@ -198,17 +318,12 @@ export default function MyProfilePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
-              {money(u?.salary)}
-            </div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              Agreed monthly base rate
-            </p>
+            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(u?.salary)}</div>
+            <p className="text-xs text-[#8C7361] font-semibold mt-1">Agreed monthly base rate</p>
           </CardContent>
         </Card>
 
-        {/* Loan Balance */}
-        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
+        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Active Loan Balance</CardTitle>
             <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center">
@@ -216,285 +331,393 @@ export default function MyProfilePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
-              {money(totalLoanBalance)}
-            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(totalLoanBalance)}</div>
             <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              {loans.filter(l => l.status === 'OPEN').length} active salary advance(s)
+              {loans.filter((l) => l.status === 'OPEN').length} active loan(s)
             </p>
           </CardContent>
         </Card>
 
-        {/* Penalties & Deductions */}
-        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
+        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Total Penalties Logged</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Total Penalties</CardTitle>
             <div className="w-9 h-9 rounded-2xl bg-rose-500/10 text-rose-700 flex items-center justify-center">
               <AlertTriangle className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight font-heading">
-              {money(totalPenaltyAmount)}
-            </div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              {pendingPenalties > 0 ? `${money(pendingPenalties)} pending deduction` : 'All penalties deducted'}
-            </p>
+            <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{money(totalPenaltyAmount)}</div>
+            <p className="text-xs text-[#8C7361] font-semibold mt-1">{penalties.length} logged record(s)</p>
           </CardContent>
         </Card>
 
-        {/* Payroll Received */}
-        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
+        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Total Salary Received</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Pending Approvals</CardTitle>
             <div className="w-9 h-9 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
-              <Receipt className="h-5 w-5" />
+              <ShieldCheck className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
-              {money(totalPayrollPaid)}
-            </div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              Across {payrolls.length} payslip cycle(s)
-            </p>
+            <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">{pendingCount}</div>
+            <p className="text-xs text-[#8C7361] font-semibold mt-1">Requires your approval</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* ── Main Records Tabs ── */}
+      {/* ── Main Navigation Tabs ── */}
       <div className="bg-white rounded-3xl border border-[#EDE4D5] shadow-sm overflow-hidden mb-8">
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-[#EDE4D5] bg-[#FFFDF8] px-6 pt-3 gap-6">
+        <div className="flex border-b border-[#EDE4D5] bg-[#FFFDF8] px-6 pt-3 gap-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('payroll')}
-            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'payroll'
-                ? 'border-[#E87A18] text-[#E87A18]'
-                : 'border-transparent text-[#8C7361] hover:text-[#2C1B10]'
+            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'payroll' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
             }`}
           >
-            <Receipt className="w-4 h-4" />
-            Salary & Payslips ({payrolls.length})
+            <Receipt className="w-4 h-4" /> Payslips ({payrolls.length})
           </button>
+
           <button
             onClick={() => setActiveTab('loans')}
-            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'loans'
-                ? 'border-[#E87A18] text-[#E87A18]'
-                : 'border-transparent text-[#8C7361] hover:text-[#2C1B10]'
+            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'loans' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
             }`}
           >
-            <Wallet className="w-4 h-4" />
-            My Loans & Advances ({loans.length})
+            <Wallet className="w-4 h-4" /> My Loans ({loans.length})
           </button>
+
           <button
             onClick={() => setActiveTab('penalties')}
-            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'penalties'
-                ? 'border-[#E87A18] text-[#E87A18]'
-                : 'border-transparent text-[#8C7361] hover:text-[#2C1B10]'
+            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'penalties' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
             }`}
           >
-            <AlertTriangle className="w-4 h-4" />
-            My Penalties & Deductions ({penalties.length})
+            <AlertTriangle className="w-4 h-4" /> My Penalties ({penalties.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap relative ${
+              activeTab === 'pending' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" /> Pending Approvals
+            {pendingCount > 0 && (
+              <span className="bg-amber-600 text-white px-2 py-0.5 text-[10px] rounded-full font-bold">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'settings' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
+            }`}
+          >
+            <Lock className="w-4 h-4" /> Profile & Security Settings
           </button>
         </div>
 
         <div className="p-6">
-          {/* TAB 1: PAYROLL / SALARY HISTORY */}
+          {/* TAB 1: PAYROLL */}
           {activeTab === 'payroll' && (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h3 className="text-base font-extrabold text-[#2C1B10]">Payroll & Monthly Salary Payslips</h3>
-                  <p className="text-xs text-[#8C7361]">History of processed monthly salaries, bonuses, and deductions.</p>
-                </div>
-              </div>
-
+              <h3 className="text-base font-extrabold text-[#2C1B10] mb-4">Salary Payslips & History</h3>
               {payrolls.length === 0 ? (
                 <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
-                  <Receipt className="w-10 h-10 text-[#8C7361] mx-auto mb-2 opacity-50" />
                   <p className="text-sm font-bold text-[#4A2E1B]">No Payroll Records Found</p>
-                  <p className="text-xs text-[#8C7361] mt-1">Your monthly salary processing records will appear here once disbursed by management.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-[#FFFDF8]">
-                      <TableRow className="border-b border-[#EDE4D5]">
-                        <TableHead className="font-extrabold text-[#2C1B10]">Period (Month/Year)</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#2C1B10]">Base Salary</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#2C1B10]">Bonus (+)</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#2C1B10]">Loan Deduction (-)</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#2C1B10]">Penalty Deduction (-)</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#2C1B10]">Final Amount Paid</TableHead>
-                        <TableHead className="text-center font-extrabold text-[#2C1B10]">Payment Date</TableHead>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Period</TableHead>
+                      <TableHead className="text-right">Base Salary</TableHead>
+                      <TableHead className="text-right">Bonus (+)</TableHead>
+                      <TableHead className="text-right">Loan Deduction (-)</TableHead>
+                      <TableHead className="text-right">Penalty Deduction (-)</TableHead>
+                      <TableHead className="text-right">Final Amount Paid</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payrolls.map((pr) => (
+                      <TableRow key={pr.id}>
+                        <TableCell className="font-bold">{MONTH_NAMES[(pr.month || 1) - 1]} {pr.year}</TableCell>
+                        <TableCell className="text-right">{money(pr.baseSalary)}</TableCell>
+                        <TableCell className="text-right text-emerald-600">{Number(pr.bonus) > 0 ? `+${money(pr.bonus)}` : '-'}</TableCell>
+                        <TableCell className="text-right text-rose-600">{Number(pr.loanDeductions) > 0 ? `-${money(pr.loanDeductions)}` : '-'}</TableCell>
+                        <TableCell className="text-right text-rose-600">{Number(pr.penaltyDeductions) > 0 ? `-${money(pr.penaltyDeductions)}` : '-'}</TableCell>
+                        <TableCell className="text-right font-extrabold text-emerald-700">{money(pr.finalAmount)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">PAID</Badge>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {payrolls.map((pr) => (
-                        <TableRow key={pr.id} className="border-b border-[#EDE4D5] hover:bg-[#FAF7EE]/50">
-                          <TableCell className="font-bold text-[#2C1B10]">
-                            {MONTH_NAMES[(pr.month || 1) - 1]} {pr.year}
-                          </TableCell>
-                          <TableCell className="text-right font-medium text-[#4A2E1B]">{money(pr.baseSalary)}</TableCell>
-                          <TableCell className="text-right font-semibold text-emerald-600">
-                            {Number(pr.bonus) > 0 ? `+${money(pr.bonus)}` : '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-rose-600">
-                            {Number(pr.loanDeductions) > 0 ? `-${money(pr.loanDeductions)}` : '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-rose-600">
-                            {Number(pr.penaltyDeductions) > 0 ? `-${money(pr.penaltyDeductions)}` : '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-extrabold text-emerald-700 text-base">
-                            {money(pr.finalAmount)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {pr.paymentDate ? (
-                              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">
-                                PAID ({format(new Date(pr.paymentDate), 'MMM d, yyyy')})
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-amber-800 border-amber-300 bg-amber-50 font-bold text-[10px]">
-                                PROCESSED
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </div>
           )}
 
-          {/* TAB 2: LOANS & ADVANCES */}
+          {/* TAB 2: LOANS */}
           {activeTab === 'loans' && (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h3 className="text-base font-extrabold text-[#2C1B10]">My Salary Advances & Loans</h3>
-                  <p className="text-xs text-[#8C7361]">Tracking of active loans, repayment installments, and remaining balances.</p>
-                </div>
-              </div>
-
+              <h3 className="text-base font-extrabold text-[#2C1B10] mb-4">My Loans & Advances</h3>
               {loans.length === 0 ? (
                 <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
-                  <Wallet className="w-10 h-10 text-[#8C7361] mx-auto mb-2 opacity-50" />
-                  <p className="text-sm font-bold text-[#4A2E1B]">No Salary Loans Logged</p>
-                  <p className="text-xs text-[#8C7361] mt-1">You have no recorded salary advance or loan records on file.</p>
+                  <p className="text-sm font-bold text-[#4A2E1B]">No Loans Logged</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-[#FFFDF8]">
-                      <TableRow className="border-b border-[#EDE4D5]">
-                        <TableHead className="font-extrabold text-[#2C1B10]">Borrowed Date</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#2C1B10]">Original Loan Amount</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#2C1B10]">Remaining Balance</TableHead>
-                        <TableHead className="text-center font-extrabold text-[#2C1B10]">Status</TableHead>
-                        <TableHead className="font-extrabold text-[#2C1B10]">Payment Repayments</TableHead>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Original Amount</TableHead>
+                      <TableHead className="text-right">Remaining Balance</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loans.map((l) => (
+                      <TableRow key={l.id}>
+                        <TableCell className="font-bold">{format(new Date(l.createdAt), 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="text-right">{money(l.totalAmount)}</TableCell>
+                        <TableCell className="text-right font-extrabold text-indigo-700">{money(l.remainingBalance)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={`font-bold text-[10px] ${
+                            l.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' :
+                            l.status === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-800' :
+                            l.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-indigo-100 text-indigo-800'
+                          }`}>
+                            {l.status}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loans.map((l) => (
-                        <TableRow key={l.id} className="border-b border-[#EDE4D5] hover:bg-[#FAF7EE]/50">
-                          <TableCell className="font-bold text-[#2C1B10]">
-                            {l.date ? format(new Date(l.date), 'MMM d, yyyy') : format(new Date(l.createdAt), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell className="text-right font-bold text-[#2C1B10]">{money(l.totalAmount)}</TableCell>
-                          <TableCell className="text-right font-extrabold text-indigo-700">
-                            {money(l.remainingBalance)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {l.status === 'PAID' || Number(l.remainingBalance) === 0 ? (
-                              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">
-                                FULLY REPAID
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-indigo-100 text-indigo-800 border-indigo-300 font-bold text-[10px]">
-                                OPEN ({money(l.remainingBalance)} left)
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {l.payments && l.payments.length > 0 ? (
-                              <div className="text-xs space-y-1">
-                                {l.payments.map((p, idx) => (
-                                  <div key={p.id || idx} className="flex justify-between items-center bg-[#FAF7EE] px-2 py-1 rounded text-[11px]">
-                                    <span className="text-[#8C7361]">{format(new Date(p.createdAt), 'MMM d, yyyy')}</span>
-                                    <span className="font-bold text-emerald-700">-{money(p.amount)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-[#8C7361] italic">No repayments recorded yet</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </div>
           )}
 
-          {/* TAB 3: PENALTIES & DEDUCTIONS */}
+          {/* TAB 3: PENALTIES */}
           {activeTab === 'penalties' && (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h3 className="text-base font-extrabold text-[#2C1B10]">My Penalties & Fine Records</h3>
-                  <p className="text-xs text-[#8C7361]">Detailed list of administrative fines and payroll deduction statuses.</p>
-                </div>
-              </div>
-
+              <h3 className="text-base font-extrabold text-[#2C1B10] mb-4">My Penalties & Fine Records</h3>
               {penalties.length === 0 ? (
                 <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
-                  <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
                   <p className="text-sm font-bold text-[#4A2E1B]">Clean Record — No Penalties!</p>
-                  <p className="text-xs text-[#8C7361] mt-1">You have zero penalty or fine records registered.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-[#FFFDF8]">
-                      <TableRow className="border-b border-[#EDE4D5]">
-                        <TableHead className="font-extrabold text-[#2C1B10]">Date Logged</TableHead>
-                        <TableHead className="font-extrabold text-[#2C1B10]">Reason / Incident</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#2C1B10]">Penalty Amount</TableHead>
-                        <TableHead className="text-center font-extrabold text-[#2C1B10]">Deduction Status</TableHead>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date Logged</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-center">Approval Status</TableHead>
+                      <TableHead className="text-center">Deduction Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {penalties.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-bold">{format(new Date(p.createdAt), 'MMM d, yyyy')}</TableCell>
+                        <TableCell>{p.reason}</TableCell>
+                        <TableCell className="text-right font-bold text-rose-700">{money(p.amount)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={`font-bold text-[10px] ${
+                            p.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                            p.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {p.status || 'PENDING'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={`font-bold text-[10px] ${p.isDeducted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {p.isDeducted ? 'DEDUCTED' : 'PENDING SALARY'}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {penalties.map((p) => (
-                        <TableRow key={p.id} className="border-b border-[#EDE4D5] hover:bg-[#FAF7EE]/50">
-                          <TableCell className="font-bold text-[#2C1B10]">
-                            {p.date ? format(new Date(p.date), 'MMM d, yyyy') : format(new Date(p.createdAt), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell className="font-medium text-[#4A2E1B]">{p.reason}</TableCell>
-                          <TableCell className="text-right font-extrabold text-rose-700">{money(p.amount)}</TableCell>
-                          <TableCell className="text-center">
-                            {p.isDeducted ? (
-                              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">
-                                DEDUCTED FROM SALARY
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-rose-100 text-rose-800 border-rose-300 font-bold text-[10px]">
-                                PENDING NEXT SALARY
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
+            </div>
+          )}
+
+          {/* TAB 4: PENDING APPROVALS */}
+          {activeTab === 'pending' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-base font-extrabold text-[#2C1B10] mb-2 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-amber-600" />
+                  Pending Loans & Penalties Requiring Your Action
+                </h3>
+                <p className="text-xs text-[#8C7361] mb-4">
+                  Loans or penalties issued by management remain in pending status until you approve or reject them.
+                </p>
+
+                {pendingCount === 0 ? (
+                  <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
+                    <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-[#4A2E1B]">No Pending Approvals</p>
+                    <p className="text-xs text-[#8C7361] mt-1">You have reviewed all assigned loans and penalties.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Pending Loans */}
+                    {pendingLoans.length > 0 && (
+                      <div className="border border-amber-200 rounded-2xl p-4 bg-amber-50/50">
+                        <h4 className="text-sm font-bold text-amber-900 mb-3">Pending Salary Advances / Loans</h4>
+                        <div className="space-y-2">
+                          {pendingLoans.map((l) => (
+                            <div key={l.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3.5 rounded-xl border border-amber-200 gap-3">
+                              <div>
+                                <div className="font-extrabold text-[#2C1B10]">{money(l.totalAmount)}</div>
+                                <div className="text-xs text-[#8C7361]">Issued: {format(new Date(l.createdAt), 'MMM d, yyyy')}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApproveLoan(l.id)}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1"
+                                >
+                                  <Check className="w-4 h-4" /> Accept & Approve Loan
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRejectLoan(l.id)}
+                                  className="border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center gap-1"
+                                >
+                                  <X className="w-4 h-4" /> Reject
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pending Penalties */}
+                    {pendingPenalties.length > 0 && (
+                      <div className="border border-rose-200 rounded-2xl p-4 bg-rose-50/50">
+                        <h4 className="text-sm font-bold text-rose-900 mb-3">Pending Penalties / Fines</h4>
+                        <div className="space-y-2">
+                          {pendingPenalties.map((p) => (
+                            <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3.5 rounded-xl border border-rose-200 gap-3">
+                              <div>
+                                <div className="font-extrabold text-rose-700">{money(p.amount)}</div>
+                                <div className="text-xs font-semibold text-[#2C1B10]">Reason: {p.reason}</div>
+                                <div className="text-[11px] text-[#8C7361]">Logged: {format(new Date(p.createdAt), 'MMM d, yyyy')}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprovePenalty(p.id)}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1"
+                                >
+                                  <Check className="w-4 h-4" /> Acknowledge & Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRejectPenalty(p.id)}
+                                  className="border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center gap-1"
+                                >
+                                  <X className="w-4 h-4" /> Reject Fine
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: PROFILE & SECURITY SETTINGS */}
+          {activeTab === 'settings' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Profile Picture Upload */}
+              <div className="bg-[#FAF7EE] border border-[#EDE4D5] rounded-2xl p-5">
+                <h4 className="text-sm font-extrabold text-[#2C1B10] mb-2 flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-[#E87A18]" /> Profile Avatar Picture
+                </h4>
+                <p className="text-xs text-[#8C7361] mb-4">Upload a new photo for your profile avatar across the ERP system.</p>
+
+                <form onSubmit={handleAvatarUpload} className="space-y-4">
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      className="w-full text-xs text-[#2C1B10] file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#E87A18] file:text-white hover:file:bg-[#d46d13]"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={isUploadingAvatar || !selectedFile}
+                    className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs"
+                  >
+                    {isUploadingAvatar ? 'Uploading...' : 'Save Avatar Picture'}
+                  </Button>
+                </form>
+              </div>
+
+              {/* Password Change Form */}
+              <div className="bg-[#FAF7EE] border border-[#EDE4D5] rounded-2xl p-5">
+                <h4 className="text-sm font-extrabold text-[#2C1B10] mb-2 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-[#E87A18]" /> Change Account Password
+                </h4>
+                <p className="text-xs text-[#8C7361] mb-4">Update your secure login password.</p>
+
+                <form onSubmit={handlePasswordChange} className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">Current Password</label>
+                    <Input
+                      type="password"
+                      required
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="bg-white border-zinc-200 rounded-xl h-9 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">New Password</label>
+                    <Input
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="bg-white border-zinc-200 rounded-xl h-9 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">Confirm New Password</label>
+                    <Input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="bg-white border-zinc-200 rounded-xl h-9 text-xs"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={isChangingPass}
+                    className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs mt-2"
+                  >
+                    {isChangingPass ? 'Updating...' : 'Update Password'}
+                  </Button>
+                </form>
+              </div>
             </div>
           )}
         </div>

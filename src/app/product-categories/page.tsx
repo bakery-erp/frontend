@@ -206,13 +206,13 @@ export default function ProductCategoriesPage() {
                     className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm"
                   >
                     <option value="">Select a parent category</option>
-                    {parentOptions.map((category) => (
+                    {rootCategories.map((category) => (
                       <option key={category.id} value={category.id}>
-                        {category.name} ({category.type}) {category.parentId ? '- Subcategory' : '- Category'}
+                        {category.name} ({category.type})
                       </option>
                     ))}
                   </select>
-                  {parentOptions.length === 0 && (
+                  {rootCategories.length === 0 && (
                     <p className="mt-2 text-xs text-zinc-500">Create a top-level category first, then add subcategories under it.</p>
                   )}
                 </div>

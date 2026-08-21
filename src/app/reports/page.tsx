@@ -156,7 +156,7 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<ReportResponse | null>(null);
 
-  const allowed = user?.role === "OWNER" || user?.role === "ADMIN";
+  const allowed = user?.role === "OWNER";
 
   useEffect(() => {
     if (selectedBranchId !== undefined) {
@@ -269,18 +269,41 @@ export default function ReportsPage() {
   if (!allowed) {
     return (
       <DashboardLayout>
-        <div className="bg-white border rounded-lg p-6">Reports are available for owner and admin users only.</div>
+        <div className="max-w-2xl mx-auto my-12 p-8 bg-white border border-rose-200 rounded-3xl text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl font-bold">
+            🔒
+          </div>
+          <h2 className="text-xl font-extrabold text-[#2C1B10]">Owner Financial Access Restricted</h2>
+          <p className="text-xs sm:text-sm text-[#8C7361]">
+            Financial analysis, detailed P&amp;L reports, and revenue/expense audits are strictly reserved for the <strong>Business Owner</strong> account.
+          </p>
+        </div>
       </DashboardLayout>
     );
   }
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <DashboardLayout>
-      <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 print:hidden">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Financial Reports</h1>
-          <p className="text-zinc-500 mt-1">View income, expenses, loans, leftovers, and production details by date range or period.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight flex items-center gap-2">
+            📊 Owner Financial & Performance Reports
+          </h1>
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
+            Detailed revenue, operational expense, raw material cost, and profit analysis.
+          </p>
         </div>
+
+        <Button
+          onClick={handlePrint}
+          className="bg-[#2C1B10] hover:bg-[#4A2E1B] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-2"
+        >
+          🖨️ Print Detailed Analysis
+        </Button>
       </div>
 
       <Card className="mb-6">

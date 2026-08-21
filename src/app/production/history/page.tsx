@@ -357,12 +357,6 @@ export default function DailyProductHistoryPage() {
 
         <div className="flex items-center gap-2">
           <Button
-            onClick={openResellModal}
-            className="bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl shadow-sm text-xs flex items-center gap-1.5"
-          >
-            <ShoppingCart className="w-4 h-4" /> + Log Resell Purchase
-          </Button>
-          <Button
             variant="outline"
             onClick={fetchHistory}
             className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs"

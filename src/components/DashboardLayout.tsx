@@ -6,10 +6,11 @@ import { useBranch } from '@/context/BranchContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { getImageUrl } from '@/lib/utils';
 import {
   LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
-  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck
+  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck, CreditCard
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -57,7 +58,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { icon: History, label: 'Daily Product History', href: '/production/history' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
-      { icon: CalendarDays, label: 'Daily Sessions', href: '/daily-sessions' }
+      { icon: CalendarDays, label: 'Daily Sessions', href: '/daily-sessions' },
+      { icon: CreditCard, label: 'Customer Credit Sales', href: '/customer-credits' }
     ] : []),
     ...((isOwner || isAdmin) ? [
       { icon: Layers, label: 'Product Categories', href: '/product-categories' }
@@ -222,9 +224,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </span>
 
             {/* Profile Avatar Pill */}
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] text-white flex items-center justify-center font-extrabold text-sm shadow-md border border-white/20">
-              {user?.fullName?.charAt(0) || 'B'}
-            </div>
+            <Link href="/my-profile" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+              {user?.filesUrl ? (
+                <img
+                  src={getImageUrl(user.filesUrl)!}
+                  alt={user.fullName || 'User'}
+                  className="w-9 h-9 rounded-xl object-cover border border-[#E87A18]/30 shadow-md"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] text-white flex items-center justify-center font-extrabold text-sm shadow-md border border-white/20">
+                  {user?.fullName?.charAt(0) || 'B'}
+                </div>
+              )}
+            </Link>
           </div>
         </header>
 

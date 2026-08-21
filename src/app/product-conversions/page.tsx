@@ -106,6 +106,13 @@ export default function ProductConversionsPage() {
             return;
         }
 
+        const selectedProduct = products.find((p: any) => p.id === fromProductId);
+        const availStock = (selectedProduct as any)?.currentStock ?? (selectedProduct as any)?.quantityRemaining;
+        if (availStock !== undefined && Number(fromQuantity) > Number(availStock)) {
+            toast.error(`Source quantity (${fromQuantity}) cannot exceed current available shop stock (${availStock}).`);
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await api.post("/product-conversions", {

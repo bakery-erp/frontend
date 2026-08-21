@@ -40,6 +40,11 @@ export default function StockPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
 
+  // Quick Filters
+  const [filterToday, setFilterToday] = useState(false);
+  const [filterLowStock, setFilterLowStock] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Manual stock addition modal state
   const [addingItem, setAddingItem] = useState<StockItem | null>(null);
   const [addAmount, setAddAmount] = useState<string>("");
@@ -173,6 +178,18 @@ export default function StockPage() {
     }
   };
 
+  const filteredItems = items.filter((item) => {
+    if (filterLowStock) {
+      const isLow = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
+      if (!isLow) return false;
+    }
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      if (!item.name.toLowerCase().includes(q) && !item.unitType.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
   return (
     <DashboardLayout>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -188,6 +205,38 @@ export default function StockPage() {
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Filter Bar with Today Button */}
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 mb-6 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={filterToday ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterToday(!filterToday)}
+            className={`rounded-xl text-xs font-bold ${filterToday ? 'bg-[#4A2E1B] text-white' : 'border-[#EDE4D5] text-[#4A2E1B]'}`}
+          >
+            📅 Daily Stock Today
+          </Button>
+
+          <Button
+            type="button"
+            variant={filterLowStock ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterLowStock(!filterLowStock)}
+            className={`rounded-xl text-xs font-bold ${filterLowStock ? 'bg-rose-600 text-white' : 'border-rose-200 text-rose-700'}`}
+          >
+            ⚠️ Low Stock Alert
+          </Button>
+        </div>
+
+        <Input
+          placeholder="Search stock items..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
+        />
       </div>
 
       {!isGlobalAdmin && (
@@ -213,9 +262,9 @@ export default function StockPage() {
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">Loading stock inventory...</TableCell></TableRow>
-            ) : items.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">No stock items found.</TableCell></TableRow>
-            ) : items.map(item => {
+            ) : filteredItems.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">No matching stock items found.</TableCell></TableRow>
+            ) : filteredItems.map(item => {
               const isLowStock = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
               return (
                 <TableRow key={item.id}>

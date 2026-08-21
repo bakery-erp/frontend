@@ -35,7 +35,7 @@ export default function ProductionPage() {
   const [batches, setBatches] = useState<ProductionBatch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [filterTab, setFilterTab] = useState<"ALL" | "PENDING">("ALL");
+  const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "PENDING">("ALL");
 
   const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -212,8 +212,15 @@ export default function ProductionPage() {
     }
   };
 
+  const todayYmd = new Date().toISOString().slice(0, 10);
   const pendingCount = batches.filter(b => b.status === "PENDING_APPROVAL").length;
-  const filteredBatches = filterTab === "PENDING" ? batches.filter(b => b.status === "PENDING_APPROVAL") : batches;
+  const todayCount = batches.filter(b => (b.date || b.createdAt || '').startsWith(todayYmd)).length;
+
+  const filteredBatches = batches.filter(b => {
+    if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
+    if (filterTab === "TODAY") return (b.date || b.createdAt || '').startsWith(todayYmd);
+    return true;
+  });
 
   return (
     <DashboardLayout>
@@ -233,7 +240,7 @@ export default function ProductionPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 mb-4 border-b border-zinc-200 pb-2">
+      <div className="flex items-center gap-2 mb-4 border-b border-zinc-200 pb-2 overflow-x-auto">
         <button
           onClick={() => setFilterTab("ALL")}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${filterTab === "ALL"
@@ -242,6 +249,15 @@ export default function ProductionPage() {
             }`}
         >
           All Batches ({batches.length})
+        </button>
+        <button
+          onClick={() => setFilterTab("TODAY")}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${filterTab === "TODAY"
+              ? "bg-emerald-700 text-white shadow-sm"
+              : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+            }`}
+        >
+          📅 Today ({todayCount})
         </button>
         <button
           onClick={() => setFilterTab("PENDING")}

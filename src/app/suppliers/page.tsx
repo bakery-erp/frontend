@@ -339,9 +339,12 @@ export default function SuppliersPage() {
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Supplier Type</label>
                 <select name="type" required className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs">
-                  <option value="GENERAL">GENERAL</option>
-                  <option value="MILK">MILK</option>
-                  <option value="INJERA">INJERA</option>
+                  <option value="GENERAL">GENERAL SUPPLIER</option>
+                  {products.map((p: any) => (
+                    <option key={p.id} value={p.name}>
+                      {p.name} ({p.unitType || 'unit'})
+                    </option>
+                  ))}
                 </select>
               </div>
               <DialogFooter>

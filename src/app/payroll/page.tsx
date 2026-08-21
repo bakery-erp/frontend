@@ -543,9 +543,10 @@ export default function PayrollPage() {
                       const selectedUserInfo = users.find((u) => u.id === selectedUser);
                       const regDate = selectedUserInfo?.createdAt ? new Date(selectedUserInfo.createdAt) : new Date();
                       const ethRegDate = EthDateTime.fromEuropeanDate(regDate);
-                      const minYear = ethRegDate.year;
-                      const maxYear = EthDateTime.fromEuropeanDate(new Date()).year;
-                      return Array.from({ length: Math.max(1, maxYear - minYear + 1) }, (_, i) => minYear + i).map((y) => (
+                      const currentEthYear = EthDateTime.fromEuropeanDate(new Date()).year;
+                      const minYear = Math.min(ethRegDate.year, currentEthYear);
+                      const maxYear = currentEthYear + 20;
+                      return Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i).map((y) => (
                         <option key={y} value={y}>
                           {y}
                         </option>
