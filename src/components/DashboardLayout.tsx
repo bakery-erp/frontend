@@ -86,6 +86,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ] : []),
   ];
 
+  // Find the most specific active route match
+  const matchingItems = menuItems.filter(
+    (item) => pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
+  );
+  const activeHref = [...matchingItems].sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo Section */}
@@ -112,7 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="text-[11px] font-bold text-[#CBB29F] uppercase tracking-widest mb-3 px-3">Menu Navigation</div>
         <ul className="space-y-1.5">
           {menuItems.map((item, i) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
+            const isActive = item.href === activeHref;
             return (
               <li key={i}>
                 <Link
