@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { EthDateTime } from "ethiopian-calendar-date-converter";
+import { formatEthDate } from "@/lib/ethiopianDate";
 
 const ETH_MONTHS = [
   "Meskerem",
@@ -111,6 +112,7 @@ interface CalcResult {
   suggestedFinalAmount: number;
   undeductedPenalties: Penalty[];
   openLoans: Loan[];
+  isAlreadyPaid?: boolean;
 }
 
 export default function PayrollPage() {
@@ -403,7 +405,7 @@ export default function PayrollPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Payroll & Staff Loans
+            Payroll
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
             Manage personnel salaries, multi-month loans, attendance penalties, and payout distribution
@@ -475,13 +477,21 @@ export default function PayrollPage() {
                       const ethRegDate = EthDateTime.fromEuropeanDate(regDate);
                       const minYear = ethRegDate.year;
                       const minMonth = ethRegDate.month;
+
+                      const currentEth = EthDateTime.fromEuropeanDate(new Date());
+                      const maxFutureMonthLimit = currentEth.year === selectedYear ? currentEth.month + 2 : 13;
+
                       const isPaid = history.some(
                         (r) => r.userId === selectedUser && r.year === selectedYear && r.month === m,
                       );
-                      const isDisabled = selectedYear < minYear || (selectedYear === minYear && m < minMonth) || isPaid;
+                      const isDisabled =
+                        selectedYear < minYear ||
+                        (selectedYear === minYear && m < minMonth) ||
+                        (selectedYear === currentEth.year && m > maxFutureMonthLimit) ||
+                        isPaid;
                       return (
                         <option key={m} value={m} disabled={isDisabled}>
-                          {ETH_MONTHS[m - 1]}
+                          {ETH_MONTHS[m - 1]} {isPaid ? "✓ (Paid)" : ""}
                         </option>
                       );
                     })}
@@ -541,240 +551,259 @@ export default function PayrollPage() {
                 <p>Select an employee and term to preview draft</p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
-                <div className="bg-[#2C1B10] text-white p-4 flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold text-lg">Payroll Drafting Phase</h3>
-                    <p className="text-zinc-300 text-xs mt-0.5">
-                      Adjust monthly long-term loan deductions, bonuses, and base salary.
-                    </p>
-                  </div>
-                </div>
+              (() => {
+                const isTermPaid = calcData.isAlreadyPaid || history.some(
+                  (r) => r.userId === selectedUser && r.year === selectedYear && r.month === selectedMonth
+                );
 
-                <div className="p-6 space-y-6">
-                  {/* Base Salary & Bonus */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold uppercase text-zinc-500 tracking-wide">
-                      Base Earnings & Adjustments
-                    </h4>
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="text-sm font-medium">Original Agreement Salary</span>
-                      <span className="font-semibold text-zinc-800">{calcData.baseSalary.toFixed(2)} ETB</span>
-                    </div>
-
-                    <div className="flex justify-between items-center py-2 border-b">
+                return (
+                  <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+                    <div className="bg-[#2C1B10] text-white p-4 flex justify-between items-center">
                       <div>
-                        <span className="text-sm font-medium block">Editable Base Salary (For this run)</span>
-                        <span className="text-xs text-zinc-500">Defaults to calculated prorated amount</span>
-                      </div>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="w-36 text-right font-bold"
-                        value={customBaseSalary}
-                        onChange={(e) => setCustomBaseSalary(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="flex justify-between items-center py-2 border-b">
-                      <span className="font-medium text-sm">Add Additional Bonus (ETB)</span>
-                      <Input
-                        type="number"
-                        className="w-36 text-right font-bold text-emerald-700"
-                        value={bonus}
-                        onChange={(e) => setBonus(Number(e.target.value) || 0)}
-                        min={0}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Active Monthly Loans Breakdown */}
-                  <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-3">
-                    <div className="flex justify-between items-center border-b border-amber-200/80 pb-2">
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center">
-                          <DollarSign className="w-4 h-4 mr-1 text-amber-700" /> Active Employee Loans ({calcData.openLoans.length})
-                        </h4>
-                        <p className="text-xs text-amber-800 mt-0.5">
-                          Multi-month long-term loans & salary advances
+                        <h3 className="font-semibold text-lg">Payroll Drafting Phase</h3>
+                        <p className="text-zinc-300 text-xs mt-0.5">
+                          Adjust monthly long-term loan deductions, bonuses, and base salary.
                         </p>
                       </div>
-                      <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300">
-                        Total Balance: {calcData.loanDeductions.toFixed(2)} ETB
-                      </span>
                     </div>
 
-                    {calcData.openLoans.length === 0 ? (
-                      <p className="text-xs text-zinc-500 italic">No active loans for this employee.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {calcData.openLoans.map((loan) => (
-                          <div key={loan.id} className="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border border-amber-200">
-                            <div>
-                              <span className="font-semibold text-zinc-800">
-                                {loan.type === "STAFF_LOAN"
-                                  ? "Staff Loan (Multi-Month Installment)"
-                                  : loan.type === "SALARY_ADVANCE"
-                                  ? "Salary Advance"
-                                  : "Employee Loan"}
-                              </span>
-                              <span className="text-zinc-500 block text-[11px] mt-0.5">
-                                Unpaid Balance: <strong className="text-amber-800">{loan.remainingBalance} ETB</strong> (Original: {loan.totalAmount} ETB)
-                              </span>
-                            </div>
-                            <Badge className={loan.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"}>
-                              {loan.type === "STAFF_LOAN" ? "Long-Term Monthly Loan" : "Salary Advance"}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <div className="p-6 space-y-6">
+                      {isTermPaid && (
+                        <div className="bg-amber-100 border border-amber-300 rounded-xl p-3.5 px-4 text-amber-900 font-bold text-xs flex items-center justify-between shadow-xs">
+                          <span>⚠️ Payroll for this employee for {ETH_MONTHS[selectedMonth - 1]} {selectedYear} has ALREADY been processed.</span>
+                          <Badge className="bg-amber-700 text-white font-extrabold text-[10px]">PAID</Badge>
+                        </div>
+                      )}
 
-                    <div className="pt-2 flex justify-between items-center border-t border-amber-200/80">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="deductLoansCheck"
-                          disabled={!calcData.openLoans || calcData.openLoans.length === 0}
-                          checked={deductLoans && calcData.openLoans && calcData.openLoans.length > 0}
-                          onChange={(e) => setDeductLoans(e.target.checked)}
-                          className="mr-2 w-4 h-4 accent-amber-800 rounded border-amber-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                        />
-                        <label
-                          htmlFor="deductLoansCheck"
-                          className={`text-sm font-semibold cursor-pointer ${
-                            calcData.openLoans && calcData.openLoans.length > 0
-                              ? "text-amber-950"
-                              : "text-zinc-400 cursor-not-allowed"
-                          }`}
-                        >
-                          Monthly Loan Deduction for This Run (ETB)
-                        </label>
-                      </div>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        disabled={!deductLoans || !calcData.openLoans || calcData.openLoans.length === 0}
-                        placeholder="0.00"
-                        className="w-36 text-right font-bold text-amber-900 bg-white border-amber-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-                        value={calcData.openLoans && calcData.openLoans.length > 0 ? customLoanDeduction : "0"}
-                        onChange={(e) => setCustomLoanDeduction(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Active Penalties Section */}
-                  <div className="bg-rose-50/60 p-4 rounded-xl border border-rose-200 space-y-3">
-                    <div className="flex justify-between items-center border-b border-rose-200/80 pb-2">
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-rose-950 flex items-center">
-                          <FileWarning className="w-4 h-4 mr-1 text-rose-700" /> Pending Penalties ({calcData.undeductedPenalties.length})
+                      {/* Base Salary & Bonus */}
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-bold uppercase text-zinc-500 tracking-wide">
+                          Base Earnings & Adjustments
                         </h4>
-                        <p className="text-xs text-rose-800 mt-0.5">
-                          Fines for broken rules or attendance infractions
-                        </p>
-                      </div>
-                      <span className="text-xs font-bold text-rose-900 bg-rose-100 px-2.5 py-1 rounded-full border border-rose-300">
-                        Total Fines: {calcData.penaltyDeductions.toFixed(2)} ETB
-                      </span>
-                    </div>
+                        <div className="flex justify-between items-center py-2 border-b">
+                          <span className="text-sm font-medium">Original Agreement Salary</span>
+                          <span className="font-semibold text-zinc-800">{calcData.baseSalary.toFixed(2)} ETB</span>
+                        </div>
 
-                    {calcData.undeductedPenalties.length === 0 ? (
-                      <p className="text-xs text-zinc-500 italic">No pending penalties.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {calcData.undeductedPenalties.map((p) => (
-                          <div key={p.id} className="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border border-rose-200">
-                            <div>
-                              <span className="font-semibold text-zinc-800">{p.reason}</span>
-                              <span className="text-rose-700 font-bold block text-[11px] mt-0.5">
-                                Fine: -{p.amount} ETB
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-zinc-500">
-                              {p.date ? format(new Date(p.date), "MMM dd, yyyy") : ""}
-                            </span>
+                        <div className="flex justify-between items-center py-2 border-b">
+                          <div>
+                            <span className="text-sm font-medium block">Editable Base Salary (For this run)</span>
+                            <span className="text-xs text-zinc-500">Defaults to calculated prorated amount</span>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <Input
+                            type="number"
+                            step="0.01"
+                            className="w-36 text-right font-bold"
+                            value={customBaseSalary}
+                            onChange={(e) => setCustomBaseSalary(e.target.value)}
+                          />
+                        </div>
 
-                    <div className="pt-2 flex justify-between items-center border-t border-rose-200/80">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="deductPenaltiesCheck"
-                          disabled={!calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
-                          checked={deductPenalties && calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0}
-                          onChange={(e) => setDeductPenalties(e.target.checked)}
-                          className="mr-2 w-4 h-4 accent-rose-800 rounded border-rose-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                        />
-                        <label
-                          htmlFor="deductPenaltiesCheck"
-                          className={`text-sm font-semibold cursor-pointer ${
-                            calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0
-                              ? "text-rose-950"
-                              : "text-zinc-400 cursor-not-allowed"
-                          }`}
-                        >
-                          Deduct Penalty Fines for This Run (ETB)
-                        </label>
+                        <div className="flex justify-between items-center py-2 border-b">
+                          <span className="font-medium text-sm">Add Additional Bonus (ETB)</span>
+                          <Input
+                            type="number"
+                            className="w-36 text-right font-bold text-emerald-700"
+                            value={bonus}
+                            onChange={(e) => setBonus(Number(e.target.value) || 0)}
+                            min={0}
+                          />
+                        </div>
                       </div>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        disabled={!deductPenalties || !calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
-                        placeholder="0.00"
-                        className="w-36 text-right font-bold text-rose-900 bg-white border-rose-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
-                        value={calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0 ? customPenaltyDeduction : "0"}
-                        onChange={(e) => setCustomPenaltyDeduction(e.target.value)}
-                      />
+
+                      {/* Active Monthly Loans Breakdown */}
+                      <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-3">
+                        <div className="flex justify-between items-center border-b border-amber-200/80 pb-2">
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center">
+                              <DollarSign className="w-4 h-4 mr-1 text-amber-700" /> Active Employee Loans ({calcData.openLoans.length})
+                            </h4>
+                            <p className="text-xs text-amber-800 mt-0.5">
+                              Multi-month long-term loans & salary advances
+                            </p>
+                          </div>
+                          <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300">
+                            Total Balance: {calcData.loanDeductions.toFixed(2)} ETB
+                          </span>
+                        </div>
+
+                        {calcData.openLoans.length === 0 ? (
+                          <p className="text-xs text-zinc-500 italic">No active loans for this employee.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {calcData.openLoans.map((loan) => (
+                              <div key={loan.id} className="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border border-amber-200">
+                                <div>
+                                  <span className="font-semibold text-zinc-800">
+                                    {loan.type === "STAFF_LOAN"
+                                      ? "Staff Loan (Multi-Month Installment)"
+                                      : loan.type === "SALARY_ADVANCE"
+                                      ? "Salary Advance"
+                                      : "Employee Loan"}
+                                  </span>
+                                  <span className="text-zinc-500 block text-[11px] mt-0.5">
+                                    Unpaid Balance: <strong className="text-amber-800">{loan.remainingBalance} ETB</strong> (Original: {loan.totalAmount} ETB)
+                                  </span>
+                                </div>
+                                <Badge className={loan.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"}>
+                                  {loan.type === "STAFF_LOAN" ? "Long-Term Monthly Loan" : "Salary Advance"}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="pt-2 flex justify-between items-center border-t border-amber-200/80">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="deductLoansCheck"
+                              disabled={!calcData.openLoans || calcData.openLoans.length === 0}
+                              checked={deductLoans && calcData.openLoans && calcData.openLoans.length > 0}
+                              onChange={(e) => setDeductLoans(e.target.checked)}
+                              className="mr-2 w-4 h-4 accent-amber-800 rounded border-amber-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            />
+                            <label
+                              htmlFor="deductLoansCheck"
+                              className={`text-sm font-semibold cursor-pointer ${
+                                calcData.openLoans && calcData.openLoans.length > 0
+                                  ? "text-amber-950"
+                                  : "text-zinc-400 cursor-not-allowed"
+                              }`}
+                            >
+                              Monthly Loan Deduction for This Run (ETB)
+                            </label>
+                          </div>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            disabled={!deductLoans || !calcData.openLoans || calcData.openLoans.length === 0}
+                            placeholder="0.00"
+                            className="w-36 text-right font-bold text-amber-900 bg-white border-amber-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                            value={calcData.openLoans && calcData.openLoans.length > 0 ? customLoanDeduction : "0"}
+                            onChange={(e) => setCustomLoanDeduction(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Active Penalties Section */}
+                      <div className="bg-rose-50/60 p-4 rounded-xl border border-rose-200 space-y-3">
+                        <div className="flex justify-between items-center border-b border-rose-200/80 pb-2">
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-950 flex items-center">
+                              <FileWarning className="w-4 h-4 mr-1 text-rose-700" /> Pending Penalties ({calcData.undeductedPenalties.length})
+                            </h4>
+                            <p className="text-xs text-rose-800 mt-0.5">
+                              Fines for broken rules or attendance infractions
+                            </p>
+                          </div>
+                          <span className="text-xs font-bold text-rose-900 bg-rose-100 px-2.5 py-1 rounded-full border border-rose-300">
+                            Total Fines: {calcData.penaltyDeductions.toFixed(2)} ETB
+                          </span>
+                        </div>
+
+                        {calcData.undeductedPenalties.length === 0 ? (
+                          <p className="text-xs text-zinc-500 italic">No pending penalties.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {calcData.undeductedPenalties.map((p) => (
+                              <div key={p.id} className="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border border-rose-200">
+                                <div>
+                                  <span className="font-semibold text-zinc-800">{p.reason}</span>
+                                  <span className="text-rose-700 font-bold block text-[11px] mt-0.5">
+                                    Fine: -{p.amount} ETB
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-zinc-500">
+                                  {p.date ? formatEthDate(p.date) : ""}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="pt-2 flex justify-between items-center border-t border-rose-200/80">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="deductPenaltiesCheck"
+                              disabled={!calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
+                              checked={deductPenalties && calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0}
+                              onChange={(e) => setDeductPenalties(e.target.checked)}
+                              className="mr-2 w-4 h-4 accent-rose-800 rounded border-rose-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            />
+                            <label
+                              htmlFor="deductPenaltiesCheck"
+                              className={`text-sm font-semibold cursor-pointer ${
+                                calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0
+                                  ? "text-rose-950"
+                                  : "text-zinc-400 cursor-not-allowed"
+                              }`}
+                            >
+                              Deduct Penalty Fines for This Run (ETB)
+                            </label>
+                          </div>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            disabled={!deductPenalties || !calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
+                            placeholder="0.00"
+                            className="w-36 text-right font-bold text-rose-900 bg-white border-rose-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                            value={calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0 ? customPenaltyDeduction : "0"}
+                            onChange={(e) => setCustomPenaltyDeduction(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Totals & Manual Final Net Payout Override */}
+                      <div className="bg-[#FAF7EE] p-4 rounded-xl border border-[#EDE4D5] space-y-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-sm font-bold text-[#2C1B10] block">Calculated Net Payout</span>
+                            <span className="text-xs text-[#8C7361]">Base + Bonus - Monthly Loan - Penalty</span>
+                          </div>
+                          <span className="text-lg font-extrabold text-[#4A2E1B]">
+                            {calculatedNetPayout.toFixed(2)} ETB
+                          </span>
+                        </div>
+
+                        <div className="pt-2 border-t border-[#EDE4D5] flex justify-between items-center">
+                          <div>
+                            <label className="text-sm font-bold text-emerald-950 block">Final Net Payout (Override)</label>
+                            <span className="text-xs text-emerald-800 font-medium">Leave empty to use calculated net payout</span>
+                          </div>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Auto"
+                            className="w-40 text-right font-extrabold text-emerald-700 bg-white border-emerald-300 text-base"
+                            value={customFinalAmount}
+                            onChange={(e) => setCustomFinalAmount(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Submit Action */}
+                      <Button
+                        className="w-full bg-[#4A2E1B] text-white hover:bg-[#382314] h-11 text-base font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={handleProcessPayroll}
+                        disabled={isProcessing || isTermPaid}
+                      >
+                        {isTermPaid
+                          ? `Already Paid for ${ETH_MONTHS[selectedMonth - 1]} ${selectedYear}`
+                          : isProcessing
+                          ? "Processing & Deducting..."
+                          : "Confirm & Save Payroll Run"}
+                      </Button>
+                      <p className="text-xs text-center text-zinc-400">
+                        Saving will record the payslip and automatically subtract the monthly loan deduction from open loan balances.
+                      </p>
                     </div>
                   </div>
-
-                  {/* Totals & Manual Final Net Payout Override */}
-                  <div className="bg-[#FAF7EE] p-4 rounded-xl border border-[#EDE4D5] space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="text-sm font-bold text-[#2C1B10] block">Calculated Net Payout</span>
-                        <span className="text-xs text-[#8C7361]">Base + Bonus - Monthly Loan - Penalty</span>
-                      </div>
-                      <span className="text-lg font-extrabold text-[#4A2E1B]">
-                        {calculatedNetPayout.toFixed(2)} ETB
-                      </span>
-                    </div>
-
-                    <div className="pt-2 border-t border-[#EDE4D5] flex justify-between items-center">
-                      <div>
-                        <label className="text-sm font-bold text-emerald-950 block">Final Net Payout (Override)</label>
-                        <span className="text-xs text-emerald-800 font-medium">Leave empty to use calculated net payout</span>
-                      </div>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="Auto"
-                        className="w-40 text-right font-extrabold text-emerald-700 bg-white border-emerald-300 text-base"
-                        value={customFinalAmount}
-                        onChange={(e) => setCustomFinalAmount(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Submit Action */}
-                  <Button
-                    className="w-full bg-[#4A2E1B] text-white hover:bg-[#382314] h-11 text-base font-bold rounded-xl"
-                    onClick={handleProcessPayroll}
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? "Processing & Deducting..." : "Confirm & Save Payroll Run"}
-                  </Button>
-                  <p className="text-xs text-center text-zinc-400">
-                    Saving will record the payslip and automatically subtract the monthly loan deduction from open loan balances.
-                  </p>
-                </div>
-              </div>
+                );
+              })()
             )}
           </div>
         </div>

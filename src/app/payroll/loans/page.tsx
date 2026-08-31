@@ -151,7 +151,7 @@ export default function PayrollLoansPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Employee Loans & Advances
+            Loans & Advances
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
             Track multi-month staff loans, salary advances, and employee approval status
@@ -163,7 +163,7 @@ export default function PayrollLoansPage() {
       <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
         <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
           <div>
-            <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Active Employee Loans</h2>
+            <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Loans</h2>
             <p className="text-xs text-[#8C7361] mt-0.5">Track and edit staff micro-loans, advances, and employee approval status</p>
           </div>
           <Button onClick={() => setIsLoanOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">

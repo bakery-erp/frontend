@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { icon: DollarSign, label: 'Expenses & Costs', href: '/expenses' }
     ] : []),
     ...((isOwner || isAdmin) ? [
-      { icon: Banknote, label: 'Payroll & Loans', href: '/payroll' },
+      { icon: Banknote, label: 'Payroll', href: '/payroll' },
       { icon: BarChart3, label: 'Financial Reports', href: '/reports' }
     ] : []),
   ];

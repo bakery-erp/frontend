@@ -147,7 +147,7 @@ export default function PayrollPenaltiesPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Workforce Penalties & Fines
+            Penalties & Fines
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
             Log infraction fines, salary deductions, and employee approval responses
@@ -159,7 +159,7 @@ export default function PayrollPenaltiesPage() {
       <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
         <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
           <div>
-            <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Workforce Penalties</h2>
+            <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Penalties</h2>
             <p className="text-xs text-[#8C7361] mt-0.5">View and edit administrative infraction fines and employee response status</p>
           </div>
           <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">

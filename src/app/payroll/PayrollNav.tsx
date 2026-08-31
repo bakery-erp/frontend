@@ -9,10 +9,10 @@ export function PayrollNav() {
   const pathname = usePathname();
 
   const tabs = [
-    { label: "Calculator / Run", href: "/payroll", icon: Wallet },
-    { label: "Execution History", href: "/payroll/history", icon: FileText },
-    { label: "Employee Loans", href: "/payroll/loans", icon: DollarSign },
-    { label: "Workforce Penalties", href: "/payroll/penalties", icon: FileWarning },
+    { label: "Payroll", href: "/payroll", icon: Wallet },
+    { label: "History", href: "/payroll/history", icon: FileText },
+    { label: "Loans", href: "/payroll/loans", icon: DollarSign },
+    { label: "Penalties", href: "/payroll/penalties", icon: FileWarning },
   ];
 
   return (

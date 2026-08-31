@@ -259,6 +259,20 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     };
   };
 
+  const handleSaveEdits = async () => {
+    setIsSubmitting(true);
+    try {
+      const payload = buildPayload();
+      await api.patch(`/daily-sessions/${resolvedParams.id}`, payload);
+      toast.success("Session edits saved successfully!");
+      fetchSessionAndProducts();
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to save session edits");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmitClose = async () => {
     setIsSubmitting(true);
     try {
@@ -695,6 +709,15 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             </Button>
 
             <div className="flex items-center space-x-3">
+              {/* Save Edits without changing status */}
+              <Button
+                onClick={handleSaveEdits}
+                disabled={isSubmitting}
+                className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold text-xs sm:text-sm rounded-xl px-5 shadow-sm"
+              >
+                <Save className="w-4 h-4 mr-1.5" /> Save Session Edits
+              </Button>
+
               {/* Cashier Submit Request */}
               {session.status !== "CLOSED" && (
                 <Button
@@ -702,7 +725,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   disabled={isSubmitting}
                   className="bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm rounded-xl px-5 shadow-sm"
                 >
-                  <Save className="w-4 h-4 mr-1.5" /> Submit for Admin Approval
+                  Submit for Admin Approval
                 </Button>
               )}
 

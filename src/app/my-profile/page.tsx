@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import { formatEthDate, getEthMonthName } from '@/lib/ethiopianDate';
 import { toast } from 'sonner';
 
 interface DashboardData {
@@ -314,7 +315,7 @@ export default function MyProfilePage() {
                 <span className="text-[10px] uppercase font-bold text-amber-200/80 block">Start Date</span>
                 <span className="text-sm font-extrabold flex items-center">
                   <Calendar className="w-3 h-3 mr-1 text-amber-300" />
-                  {u?.startDate ? format(new Date(u.startDate), 'MMM d, yyyy') : 'N/A'}
+                  {u?.startDate ? formatEthDate(u.startDate) : 'N/A'}
                 </span>
               </div>
             </div>
@@ -458,7 +459,7 @@ export default function MyProfilePage() {
                   <TableBody>
                     {payrolls.map((pr) => (
                       <TableRow key={pr.id}>
-                        <TableCell className="font-bold">{MONTH_NAMES[(pr.month || 1) - 1]} {pr.year}</TableCell>
+                        <TableCell className="font-bold">{getEthMonthName(pr.month)} {pr.year}</TableCell>
                         <TableCell className="text-right">{money(pr.baseSalary)}</TableCell>
                         <TableCell className="text-right text-emerald-600">{Number(pr.bonus) > 0 ? `+${money(pr.bonus)}` : '-'}</TableCell>
                         <TableCell className="text-right text-rose-600">{Number(pr.loanDeductions) > 0 ? `-${money(pr.loanDeductions)}` : '-'}</TableCell>
@@ -496,7 +497,7 @@ export default function MyProfilePage() {
                   <TableBody>
                     {loans.map((l) => (
                       <TableRow key={l.id}>
-                        <TableCell className="font-bold">{format(new Date(l.createdAt), 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="font-bold">{formatEthDate(l.createdAt)}</TableCell>
                         <TableCell className="text-right">{money(l.totalAmount)}</TableCell>
                         <TableCell className="text-right font-extrabold text-indigo-700">{money(l.remainingBalance)}</TableCell>
                         <TableCell className="text-center">
@@ -538,7 +539,7 @@ export default function MyProfilePage() {
                   <TableBody>
                     {penalties.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-bold">{format(new Date(p.createdAt), 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="font-bold">{formatEthDate(p.createdAt)}</TableCell>
                         <TableCell>{p.reason}</TableCell>
                         <TableCell className="text-right font-bold text-rose-700">{money(p.amount)}</TableCell>
                         <TableCell className="text-center">
@@ -591,7 +592,7 @@ export default function MyProfilePage() {
                             <div key={l.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3.5 rounded-xl border border-amber-200 gap-3">
                               <div>
                                 <div className="font-extrabold text-[#2C1B10]">{money(l.totalAmount)}</div>
-                                <div className="text-xs text-[#8C7361]">Issued: {format(new Date(l.createdAt), 'MMM d, yyyy')}</div>
+                                <div className="text-xs text-[#8C7361]">Issued: {formatEthDate(l.createdAt)}</div>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Button
@@ -626,7 +627,7 @@ export default function MyProfilePage() {
                               <div>
                                 <div className="font-extrabold text-rose-700">{money(p.amount)}</div>
                                 <div className="text-xs font-semibold text-[#2C1B10]">Reason: {p.reason}</div>
-                                <div className="text-[11px] text-[#8C7361]">Logged: {format(new Date(p.createdAt), 'MMM d, yyyy')}</div>
+                                <div className="text-[11px] text-[#8C7361]">Logged: {formatEthDate(p.createdAt)}</div>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Button
