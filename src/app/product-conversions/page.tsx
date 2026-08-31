@@ -11,13 +11,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
-import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw } from "lucide-react";
+import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw, AlertTriangle, Lock } from "lucide-react";
 
 interface Product {
     id: string;
     name: string;
     unitType: string;
     flavor?: string;
+}
+
+interface ActiveSession {
+    id: string;
+    status: "OPEN" | "PAUSED" | "CLOSE_PENDING" | "CLOSED";
 }
 
 interface ProductConversion {
@@ -36,6 +41,7 @@ export default function ProductConversionsPage() {
     const { user } = useAuth();
     const { selectedBranchId } = useBranch();
 
+    const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
     const [conversions, setConversions] = useState<ProductConversion[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -55,12 +61,17 @@ export default function ProductConversionsPage() {
         setIsLoading(true);
         try {
             const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
-            const [resConversions, resProducts] = await Promise.all([
+            const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
+
+            const [resConversions, resProducts, resSess] = await Promise.all([
                 api.get(`/product-conversions${branchQuery}`),
                 api.get(`/products${branchQuery}`),
+                api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null })),
             ]);
+
             setConversions(resConversions.data);
             setProducts(resProducts.data);
+            setActiveSession(resSess.data);
         } catch (e: any) {
             toast.error(e.response?.data?.error || "Error loading product conversions");
             console.error(e);
@@ -72,6 +83,15 @@ export default function ProductConversionsPage() {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    const isSessionOpen = activeSession?.status === "OPEN";
+    const sessionStatusLabel = !activeSession
+        ? "CLOSED"
+        : activeSession.status === "PAUSED"
+        ? "PAUSED"
+        : activeSession.status === "CLOSE_PENDING"
+        ? "CLOSING"
+        : "OPEN";
 
     const resetForm = () => {
         setFromProductId("");
@@ -200,12 +220,22 @@ export default function ProductConversionsPage() {
                     </Button>
                     <Button
                         onClick={handleOpenAdd}
-                        className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
+                        disabled={!isSessionOpen}
+                        className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
                     >
                         <Plus className="w-4 h-4" /> New Conversion
                     </Button>
                 </div>
             </div>
+
+            {!isSessionOpen && (
+                <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
+                    <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                    <span>
+                        Daily business session is currently <strong>{sessionStatusLabel}</strong>. Creating product conversions is disabled until the session is reopened.
+                    </span>
+                </div>
+            )}
 
             {/* History Table */}
             <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
@@ -382,8 +412,8 @@ export default function ProductConversionsPage() {
                                 <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
-                                    {isSubmitting ? "Saving..." : "Save Conversion"}
+                                <Button type="submit" disabled={isSubmitting || !isSessionOpen} className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 text-white font-bold rounded-xl">
+                                    {isSubmitting ? "Saving..." : !isSessionOpen ? `Disabled (${sessionStatusLabel})` : "Save Conversion"}
                                 </Button>
                             </DialogFooter>
                         </form>

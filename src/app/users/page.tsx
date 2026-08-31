@@ -114,7 +114,7 @@ export default function UsersPage() {
       const [usersRes, branchesRes, rolesRes] = await Promise.all([
         api.get<User[]>("/users", { params: selectedBranchId ? { branchId: selectedBranchId } : {} }),
         api.get<Branch[]>("/branches"),
-        api.get<string[]>("/users/roles").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] }))
+        api.get<string[]>("/users/roles").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] }))
       ]);
       setUsers(usersRes.data);
       setBranches(branchesRes.data);

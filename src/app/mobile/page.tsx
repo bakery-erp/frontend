@@ -27,7 +27,7 @@ export default function MobileWorkspaceSelector() {
   // Auto-route based on staff role
   const handleAutoRoute = () => {
     if (user.role === 'CASHIER') router.push('/mobile/cashier');
-    else if (user.role === 'BAKER') router.push('/mobile/baker');
+    else if (user.role === 'BAKER' || user.role === 'CAKE_WORKER') router.push('/mobile/baker');
     else if (user.role === 'SAMBUSA_WORKER') router.push('/mobile/sambusa');
     else router.push('/mobile/cashier');
   };

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
-import { ArrowLeft, Flame, Plus, Minus, Check } from 'lucide-react';
+import { ArrowLeft, Flame, Plus, Minus, Check, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -15,8 +15,14 @@ interface Product {
   unitType: string;
 }
 
+interface ActiveSession {
+  id: string;
+  status: 'OPEN' | 'PAUSED' | 'CLOSE_PENDING' | 'CLOSED';
+}
+
 export default function MobileSambusaStation() {
   const { user } = useAuth();
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [producedCounts, setProducedCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -29,10 +35,17 @@ export default function MobileSambusaStation() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const { data } = await api.get('/products?isActive=true');
-      setProducts(data);
+      const branchParam = user?.branchId ? { branchId: user.branchId } : {};
+      const [prodRes, sessRes] = await Promise.all([
+        api.get('/products?isActive=true'),
+        api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
+      ]);
+
+      setProducts(prodRes.data);
+      setActiveSession(sessRes.data);
+
       const initial: Record<string, number> = {};
-      data.forEach((p: Product) => {
+      prodRes.data.forEach((p: Product) => {
         initial[p.id] = 0;
       });
       setProducedCounts(initial);
@@ -43,7 +56,17 @@ export default function MobileSambusaStation() {
     }
   };
 
+  const isSessionOpen = activeSession?.status === 'OPEN';
+  const sessionStatusLabel = !activeSession
+    ? 'CLOSED'
+    : activeSession.status === 'PAUSED'
+    ? 'PAUSED'
+    : activeSession.status === 'CLOSE_PENDING'
+    ? 'CLOSING'
+    : 'OPEN';
+
   const updateCount = (productId: string, delta: number) => {
+    if (!isSessionOpen) return;
     setProducedCounts((prev) => {
       const current = prev[productId] || 0;
       const updated = Math.max(0, current + delta);
@@ -52,6 +75,11 @@ export default function MobileSambusaStation() {
   };
 
   const handleSubmitSambusaShift = async () => {
+    if (!isSessionOpen) {
+      toast.error(`Cannot log production: Daily session is ${sessionStatusLabel}`);
+      return;
+    }
+
     setIsSubmitting(true);
     const itemsPayload = Object.entries(producedCounts)
       .filter(([_, qty]) => qty > 0)
@@ -97,10 +125,33 @@ export default function MobileSambusaStation() {
             <p className="text-[11px] text-zinc-400">{user?.branch?.name || 'Shift Production'}</p>
           </div>
         </div>
+
+        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${
+          isSessionOpen
+            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 animate-pulse'
+            : activeSession?.status === 'PAUSED'
+            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+            : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+        }`}>
+          Session {sessionStatusLabel}
+        </span>
       </div>
 
       {/* Main Counter Body */}
       <div className="p-4 flex-1 space-y-4 overflow-y-auto">
+        {!isSessionOpen && (
+          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center space-x-3 text-rose-300 text-xs font-semibold">
+            {activeSession?.status === 'PAUSED' ? (
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            ) : (
+              <Lock className="w-5 h-5 text-rose-400 shrink-0" />
+            )}
+            <span>
+              Daily session is <strong>{sessionStatusLabel}</strong>. Production logging is disabled until the session is opened by Admin.
+            </span>
+          </div>
+        )}
+
         <p className="text-xs font-bold uppercase tracking-wider text-rose-400 px-1">
           Tap + / - to Log Sambusa Shift Output
         </p>
@@ -118,8 +169,9 @@ export default function MobileSambusaStation() {
                 <div className="flex items-center space-x-3 bg-zinc-950 border border-zinc-800 p-2 rounded-xl">
                   <button
                     type="button"
+                    disabled={!isSessionOpen}
                     onClick={() => updateCount(p.id, -5)}
-                    className="w-10 h-10 bg-zinc-900 text-zinc-300 rounded-lg font-bold"
+                    className="w-10 h-10 bg-zinc-900 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-bold"
                   >
                     -5
                   </button>
@@ -128,8 +180,9 @@ export default function MobileSambusaStation() {
                   </span>
                   <button
                     type="button"
+                    disabled={!isSessionOpen}
                     onClick={() => updateCount(p.id, 5)}
-                    className="w-10 h-10 bg-rose-500 text-white rounded-lg font-bold shadow-md shadow-rose-500/20"
+                    className="w-10 h-10 bg-rose-500 text-white disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-bold shadow-md shadow-rose-500/20"
                   >
                     +5
                   </button>
@@ -144,10 +197,14 @@ export default function MobileSambusaStation() {
       <div className="p-4 bg-zinc-900/90 backdrop-blur-md border-t border-zinc-800">
         <Button
           onClick={handleSubmitSambusaShift}
-          disabled={isSubmitting}
-          className="w-full h-14 bg-rose-500 hover:bg-rose-400 text-white font-extrabold text-base rounded-xl shadow-lg shadow-rose-500/20"
+          disabled={isSubmitting || !isSessionOpen}
+          className="w-full h-14 bg-rose-500 hover:bg-rose-400 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-extrabold text-base rounded-xl shadow-lg shadow-rose-500/20"
         >
-          {isSubmitting ? 'Logging...' : 'Log Sambusa Shift Production'}
+          {isSubmitting
+            ? 'Logging...'
+            : !isSessionOpen
+            ? `Logging Disabled (Session ${sessionStatusLabel})`
+            : 'Log Sambusa Shift Production'}
         </Button>
       </div>
     </div>

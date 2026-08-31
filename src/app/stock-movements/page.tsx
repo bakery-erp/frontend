@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
-import { format } from "date-fns";
+import { formatEthDate } from "@/lib/ethiopianDate";
 
 interface Branch {
   id: string;
@@ -47,12 +47,23 @@ export default function StockMovementsPage() {
   const { selectedBranchId } = useBranch();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
+  useEffect(() => {
+    if (user && !isGlobalAdmin) {
+      toast.error("Access Restricted: Stock movements are only available to Admin and Owner roles.");
+      window.location.href = "/my-profile";
+    }
+  }, [user, isGlobalAdmin]);
+
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (user && !isGlobalAdmin) {
+    return null;
+  }
 
   // New Movement Form State
   const [movementType, setMovementType] = useState<"IN" | "OUT" | "ADJUSTMENT">("IN");
@@ -170,7 +181,7 @@ export default function StockMovementsPage() {
             ) : movements.map(mov => (
               <TableRow key={mov.id}>
                 <TableCell className="text-xs font-semibold text-[#8C7361]">
-                  {format(new Date(mov.createdAt), "MMM d, yyyy · HH:mm")}
+                  {formatEthDate(mov.createdAt, true)}
                 </TableCell>
                 <TableCell className="font-bold text-[#2C1B10]">{mov.stockItem?.name}</TableCell>
                 <TableCell>

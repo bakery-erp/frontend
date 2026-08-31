@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -105,6 +106,7 @@ export default function MyProfilePage() {
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   useEffect(() => {
     fetchMyDashboard();
@@ -163,6 +165,7 @@ export default function MyProfilePage() {
       });
       toast.success('Profile picture updated successfully!');
       setSelectedFile(null);
+      setIsAvatarModalOpen(false);
       if (res.data?.filesUrl && updateUser) {
         updateUser({ filesUrl: res.data.filesUrl });
       }
@@ -256,17 +259,28 @@ export default function MyProfilePage() {
 
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div className="flex items-center space-x-5">
-              {u?.filesUrl ? (
-                <img
-                  src={getImageUrl(u.filesUrl)!}
-                  alt={u.fullName}
-                  className="w-20 h-20 rounded-2xl object-cover border-2 border-white/40 shadow-lg"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-2xl bg-[#E87A18] text-white flex items-center justify-center font-extrabold text-3xl shadow-lg border-2 border-white/20">
-                  {u?.fullName ? u.fullName.charAt(0).toUpperCase() : 'E'}
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(true)}
+                className="relative group cursor-pointer rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
+                title="Click to update profile picture"
+              >
+                {u?.filesUrl ? (
+                  <img
+                    src={getImageUrl(u.filesUrl)!}
+                    alt={u.fullName}
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-white/40 shadow-lg group-hover:scale-105 transition-transform"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-[#E87A18] text-white flex items-center justify-center font-extrabold text-3xl shadow-lg border-2 border-white/20 group-hover:scale-105 transition-transform">
+                    {u?.fullName ? u.fullName.charAt(0).toUpperCase() : 'E'}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold">
+                  <Camera className="w-5 h-5 mb-0.5" />
+                  <span>Change</span>
                 </div>
-              )}
+              </button>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Badge className="bg-[#E87A18] text-white text-xs px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
@@ -642,43 +656,17 @@ export default function MyProfilePage() {
             </div>
           )}
 
-          {/* TAB 5: PROFILE & SECURITY SETTINGS */}
+          {/* TAB 5: SECURITY SETTINGS */}
           {activeTab === 'settings' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Profile Picture Upload */}
-              <div className="bg-[#FAF7EE] border border-[#EDE4D5] rounded-2xl p-5">
-                <h4 className="text-sm font-extrabold text-[#2C1B10] mb-2 flex items-center gap-2">
-                  <Camera className="w-4 h-4 text-[#E87A18]" /> Profile Avatar Picture
-                </h4>
-                <p className="text-xs text-[#8C7361] mb-4">Upload a new photo for your profile avatar across the ERP system.</p>
-
-                <form onSubmit={handleAvatarUpload} className="space-y-4">
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      className="w-full text-xs text-[#2C1B10] file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#E87A18] file:text-white hover:file:bg-[#d46d13]"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={isUploadingAvatar || !selectedFile}
-                    className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs"
-                  >
-                    {isUploadingAvatar ? 'Uploading...' : 'Save Avatar Picture'}
-                  </Button>
-                </form>
-              </div>
-
+            <div className="max-w-xl">
               {/* Password Change Form */}
-              <div className="bg-[#FAF7EE] border border-[#EDE4D5] rounded-2xl p-5">
-                <h4 className="text-sm font-extrabold text-[#2C1B10] mb-2 flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-[#E87A18]" /> Change Account Password
+              <div className="bg-[#FAF7EE] border border-[#EDE4D5] rounded-2xl p-6 shadow-xs">
+                <h4 className="text-base font-extrabold text-[#2C1B10] mb-1 flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-[#E87A18]" /> Change Account Password
                 </h4>
-                <p className="text-xs text-[#8C7361] mb-4">Update your secure login password.</p>
+                <p className="text-xs text-[#8C7361] mb-5">Update your account login password.</p>
 
-                <form onSubmit={handlePasswordChange} className="space-y-3">
+                <form onSubmit={handlePasswordChange} className="space-y-4">
                   <div>
                     <label className="text-xs font-bold text-[#2C1B10] mb-1 block">Current Password</label>
                     <Input
@@ -686,7 +674,7 @@ export default function MyProfilePage() {
                       required
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-9 text-xs"
+                      className="bg-white border-zinc-200 rounded-xl h-10 text-sm"
                     />
                   </div>
                   <div>
@@ -696,7 +684,7 @@ export default function MyProfilePage() {
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-9 text-xs"
+                      className="bg-white border-zinc-200 rounded-xl h-10 text-sm"
                     />
                   </div>
                   <div>
@@ -706,13 +694,13 @@ export default function MyProfilePage() {
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-9 text-xs"
+                      className="bg-white border-zinc-200 rounded-xl h-10 text-sm"
                     />
                   </div>
                   <Button
                     type="submit"
                     disabled={isChangingPass}
-                    className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs mt-2"
+                    className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs h-10 px-5 mt-2"
                   >
                     {isChangingPass ? 'Updating...' : 'Update Password'}
                   </Button>
@@ -722,6 +710,50 @@ export default function MyProfilePage() {
           )}
         </div>
       </div>
+
+      {/* ── PROFILE PICTURE POPUP DIALOG ── */}
+      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6 bg-white border-[#EDE4D5]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+              <Camera className="w-5 h-5 text-[#E87A18]" /> Change Profile Picture
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleAvatarUpload} className="space-y-5 py-2">
+            <p className="text-xs text-[#8C7361]">
+              Select a new image from your device to update your ERP avatar.
+            </p>
+
+            <div className="flex flex-col items-center justify-center p-4 bg-[#FAF7EE] border border-dashed border-[#EDE4D5] rounded-2xl">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                className="w-full text-xs text-[#2C1B10] file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#E87A18] file:text-white hover:file:bg-[#d46d13]"
+              />
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="rounded-xl border-[#EDE4D5] text-xs font-bold text-[#4A2E1B]"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isUploadingAvatar || !selectedFile}
+                className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs"
+              >
+                {isUploadingAvatar ? 'Uploading...' : 'Save Avatar Picture'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

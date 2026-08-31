@@ -73,7 +73,7 @@ export default function Dashboard() {
         router.push('/daily-sessions');
         return;
       }
-      if (user.role === 'BAKER' || user.role === 'SAMBUSA_WORKER') {
+      if (user.role === 'BAKER' || user.role === 'CAKE_WORKER' || user.role === 'SAMBUSA_WORKER') {
         router.push('/production');
         return;
       }

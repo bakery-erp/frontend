@@ -34,11 +34,22 @@ export default function StockPage() {
   const { selectedBranchId, branches } = useBranch();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
+  useEffect(() => {
+    if (user && !isGlobalAdmin) {
+      toast.error("Access Restricted: Stock inventory is only available to Admin and Owner roles.");
+      window.location.href = "/my-profile";
+    }
+  }, [user, isGlobalAdmin]);
+
   const [items, setItems] = useState<StockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+
+  if (user && !isGlobalAdmin) {
+    return null;
+  }
 
   // Quick Filters
   const [filterToday, setFilterToday] = useState(false);

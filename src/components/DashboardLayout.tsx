@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { icon: UserCheck, label: 'My Profile & Salary', href: '/my-profile' },
     ...(isOwner ? [{ icon: MapPin, label: 'Branches', href: '/branches' }] : []),
     ...((isOwner || isAdmin) ? [{ icon: Users, label: 'Users & Staff', href: '/users' }] : []),
-    ...((isOwner || isAdmin || role === 'BAKER' || role === 'SAMBUSA_WORKER') ? [
+    ...((isOwner || isAdmin || role === 'BAKER' || role === 'CAKE_WORKER' || role === 'SAMBUSA_WORKER') ? [
       { icon: ChefHat, label: 'Production Batches', href: '/production' },
       { icon: History, label: 'Daily Product History', href: '/production/history' }
     ] : []),
@@ -64,11 +64,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...((isOwner || isAdmin) ? [
       { icon: Layers, label: 'Product Categories', href: '/product-categories' }
     ] : []),
-    ...((isOwner || isAdmin || role === 'CASHIER' || role === 'BAKER') ? [
+    ...((isOwner || isAdmin || role === 'CASHIER' || role === 'BAKER' || role === 'CAKE_WORKER') ? [
       { icon: Package, label: 'Products', href: '/products' },
       { icon: ArrowRightLeft, label: 'Product Conversions', href: '/product-conversions' }
     ] : []),
-    ...((isOwner || isAdmin || role === 'BAKER' || role === 'SAMBUSA_WORKER') ? [
+    ...((isOwner || isAdmin) ? [
       { icon: Boxes, label: 'Stock & Inventory', href: '/stock' }
     ] : []),
     ...((isOwner || isAdmin) ? [
@@ -214,16 +214,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center space-x-3 md:space-x-4">
-            {/* Search Pill */}
-            <div className="relative hidden lg:block">
-              <Search className="w-4 h-4 text-[#8C7361] absolute left-3.5 top-2.5" />
-              <input
-                type="text"
-                placeholder="Quick search..."
-                className="bg-[#F4ECE1] text-[#2C1B10] placeholder-[#A48F7F] text-xs rounded-full pl-9 pr-4 py-2 w-48 font-medium focus:outline-none focus:ring-2 focus:ring-[#E87A18]/40 border border-transparent transition-all focus:bg-white"
-              />
-            </div>
-
             {/* Role Badge */}
             <span className="hidden sm:inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-[#E87A18]/10 text-[#E87A18] border border-[#E87A18]/20 uppercase tracking-wider">
               {user?.role}

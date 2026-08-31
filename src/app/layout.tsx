@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { BranchProvider } from "@/context/BranchContext";
+import QueryProvider from "@/providers/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -20,12 +21,14 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-sans antialiased bg-zinc-50 text-zinc-900">
         <ErrorBoundary>
-          <AuthProvider>
-            <BranchProvider>
-              {children}
-              <Toaster />
-            </BranchProvider>
-          </AuthProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <BranchProvider>
+                {children}
+                <Toaster />
+              </BranchProvider>
+            </AuthProvider>
+          </QueryProvider>
         </ErrorBoundary>
       </body>
     </html>

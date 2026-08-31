@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
+import { formatEthDate } from "@/lib/ethiopianDate";
 import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History } from "lucide-react";
 
 interface Branch { id: string; name: string; }
 interface Product { id: string; name: string; unitType: string; category?: { type: string } }
 interface StockItem { id: string; name: string; unitType: string; currentQuantity: number; }
+interface ActiveSession { id: string; status: "OPEN" | "PAUSED" | "CLOSE_PENDING" | "CLOSED" }
 
 interface ProductionBatch {
   id: string;
@@ -32,6 +34,7 @@ export default function ProductionPage() {
   const { selectedBranchId, branches } = useBranch();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [batches, setBatches] = useState<ProductionBatch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
@@ -52,16 +55,19 @@ export default function ProductionPage() {
     setIsLoading(true);
     try {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
+      const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
 
-      const [resBatches, resProd, resStock] = await Promise.all([
+      const [resBatches, resProd, resStock, resSess] = await Promise.all([
         api.get(`/production-batches${branchQuery}`),
         api.get(`/products${branchQuery}`),
-        api.get(`/stock-items${branchQuery}`)
+        api.get(`/stock-items${branchQuery}`),
+        api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null }))
       ]);
 
       setBatches(resBatches.data);
       setProducts(resProd.data.filter((p: Product) => p.category?.type === "PRODUCED" || !p.category));
       setStockItems(resStock.data);
+      setActiveSession(resSess.data);
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Error fetching data");
       console.error(e);
@@ -73,6 +79,15 @@ export default function ProductionPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const isSessionOpen = activeSession?.status === "OPEN";
+  const sessionStatusLabel = !activeSession
+    ? "CLOSED"
+    : activeSession.status === "PAUSED"
+    ? "PAUSED"
+    : activeSession.status === "CLOSE_PENDING"
+    ? "CLOSING"
+    : "OPEN";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -230,14 +245,29 @@ export default function ProductionPage() {
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Manage daily & nightly baking schedules, material usage, and approval requests</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => window.location.href = '/production/history'} variant="outline" className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm flex items-center gap-1.5">
-            <History className="w-4 h-4 text-[#E87A18]" /> View Product History Table
-          </Button>
-          <Button onClick={() => setIsAddOpen(true)} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5">
+          {isGlobalAdmin && (
+            <Button onClick={() => window.location.href = '/production/history'} variant="outline" className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm flex items-center gap-1.5">
+              <History className="w-4 h-4 text-[#E87A18]" /> View Product History Table
+            </Button>
+          )}
+          <Button
+            onClick={() => setIsAddOpen(true)}
+            disabled={!isSessionOpen}
+            className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
+          >
             <Plus className="w-4 h-4" /> Log Production Batch
           </Button>
         </div>
       </div>
+
+      {!isSessionOpen && (
+        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+          <span>
+            Daily business session is currently <strong>{sessionStatusLabel}</strong>. Logging new production batches is disabled until the session is reopened.
+          </span>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 mb-4 border-b border-zinc-200 pb-2 overflow-x-auto">
@@ -301,7 +331,7 @@ export default function ProductionPage() {
             ) : filteredBatches.map(batch => (
               <TableRow key={batch.id}>
                 <TableCell>
-                  <div className="font-bold text-[#2C1B10]">{format(new Date(batch.date), "MMM d, yyyy")}</div>
+                  <div className="font-bold text-[#2C1B10]">{formatEthDate(batch.date)}</div>
                   <div className="text-xs font-semibold text-[#8C7361] mt-0.5">{batch.shift} Shift</div>
                 </TableCell>
                 <TableCell>
@@ -500,8 +530,8 @@ export default function ProductionPage() {
 
               <DialogFooter className="gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
-                  {isSubmitting ? "Submitting..." : (isGlobalAdmin ? "Submit & Approve" : "Submit for Approval")}
+                <Button type="submit" disabled={isSubmitting || !isSessionOpen} className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 text-white font-bold rounded-xl">
+                  {isSubmitting ? "Submitting..." : !isSessionOpen ? `Disabled (${sessionStatusLabel})` : (isGlobalAdmin ? "Submit & Approve" : "Submit for Approval")}
                 </Button>
               </DialogFooter>
             </form>

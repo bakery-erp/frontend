@@ -3,6 +3,7 @@
 import { EthDatePicker } from "@/components/EthDatePicker";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { PayrollNav } from "./PayrollNav";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
@@ -408,40 +409,7 @@ export default function PayrollPage() {
             Manage personnel salaries, multi-month loans, attendance penalties, and payout distribution
           </p>
         </div>
-        <div className="flex flex-wrap bg-white p-1.5 rounded-2xl border border-[#EDE4D5] shadow-xs gap-1 w-full lg:w-auto">
-          <Button
-            variant={activeTab === "RUN" ? "default" : "ghost"}
-            onClick={() => setActiveTab("RUN")}
-            className={
-              activeTab === "RUN"
-                ? "bg-[#4A2E1B] text-white font-bold rounded-xl"
-                : "text-[#4A2E1B] font-semibold hover:bg-[#F4ECE1] rounded-xl"
-            }
-          >
-            <Wallet className="w-4 h-4 mr-2" /> Calculator
-          </Button>
-          <Button
-            variant={activeTab === "HISTORY" ? "default" : "ghost"}
-            onClick={() => setActiveTab("HISTORY")}
-            className={activeTab === "HISTORY" ? "bg-black text-white" : ""}
-          >
-            <FileText className="w-4 h-4 mr-2" /> History
-          </Button>
-          <Button
-            variant={activeTab === "LOANS" ? "default" : "ghost"}
-            onClick={() => setActiveTab("LOANS")}
-            className={activeTab === "LOANS" ? "bg-black text-white" : ""}
-          >
-            <DollarSign className="w-4 h-4 mr-2" /> Loans
-          </Button>
-          <Button
-            variant={activeTab === "PENALTIES" ? "default" : "ghost"}
-            onClick={() => setActiveTab("PENALTIES")}
-            className={activeTab === "PENALTIES" ? "bg-black text-white" : ""}
-          >
-            <FileWarning className="w-4 h-4 mr-2" /> Penalties
-          </Button>
-        </div>
+        <PayrollNav />
       </div>
 
       {/* CALCULATOR / DRAFT TAB */}

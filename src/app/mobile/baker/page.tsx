@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
-import { ArrowLeft, ChefHat, Plus, Minus, ArrowRightLeft, PackageCheck, AlertCircle, Check } from 'lucide-react';
+import { ArrowLeft, ChefHat, Plus, Minus, ArrowRightLeft, PackageCheck, AlertCircle, Check, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -22,8 +22,14 @@ interface StockItem {
   currentQuantity: number;
 }
 
+interface ActiveSession {
+  id: string;
+  status: 'OPEN' | 'PAUSED' | 'CLOSE_PENDING' | 'CLOSED';
+}
+
 export default function MobileBakerStation() {
   const { user } = useAuth();
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [activeTab, setActiveTab] = useState<'BATCH' | 'CONVERT' | 'DELIVERY'>('BATCH');
   const [products, setProducts] = useState<Product[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
@@ -48,12 +54,17 @@ export default function MobileBakerStation() {
   const fetchBakerData = async () => {
     setIsLoading(true);
     try {
-      const [prodRes, stockRes] = await Promise.all([
+      const branchParam = user?.branchId ? { branchId: user.branchId } : {};
+      const [prodRes, stockRes, sessRes] = await Promise.all([
         api.get('/products?isActive=true'),
         api.get('/stock-items'),
+        api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);
+
       setProducts(prodRes.data);
       setStockItems(stockRes.data);
+      setActiveSession(sessRes.data);
+
       if (prodRes.data.length > 0) {
         setSelectedProductId(prodRes.data[0].id);
         setSourceProductId(prodRes.data[0].id);
@@ -73,6 +84,15 @@ export default function MobileBakerStation() {
       setIsLoading(false);
     }
   };
+
+  const isSessionOpen = activeSession?.status === 'OPEN';
+  const sessionStatusLabel = !activeSession
+    ? 'CLOSED'
+    : activeSession.status === 'PAUSED'
+    ? 'PAUSED'
+    : activeSession.status === 'CLOSE_PENDING'
+    ? 'CLOSING'
+    : 'OPEN';
 
   const updateMaterialQty = (stockItemId: string, delta: number) => {
     setMaterialsUsed((prev) => {
@@ -154,6 +174,16 @@ export default function MobileBakerStation() {
             <p className="text-[11px] text-zinc-400">{user?.branch?.name || 'Main Branch'}</p>
           </div>
         </div>
+
+        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${
+          isSessionOpen
+            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 animate-pulse'
+            : activeSession?.status === 'PAUSED'
+            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+            : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+        }`}>
+          Session {sessionStatusLabel}
+        </span>
       </div>
 
       {/* Tab Navigation */}
@@ -182,6 +212,19 @@ export default function MobileBakerStation() {
 
       {/* Content Body */}
       <div className="p-4 flex-1 space-y-6 overflow-y-auto">
+        {!isSessionOpen && (
+          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center space-x-3 text-amber-300 text-xs font-semibold">
+            {activeSession?.status === 'PAUSED' ? (
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            ) : (
+              <Lock className="w-5 h-5 text-rose-400 shrink-0" />
+            )}
+            <span>
+              Daily session is <strong>{sessionStatusLabel}</strong>. Production batch logging & conversion are disabled until session is opened.
+            </span>
+          </div>
+        )}
+
         {activeTab === 'BATCH' && (
           <form onSubmit={handleCreateBatch} className="space-y-6">
             {/* Select Target Output Product */}
@@ -191,9 +234,10 @@ export default function MobileBakerStation() {
               </label>
 
               <select
+                disabled={!isSessionOpen}
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(e.target.value)}
-                className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm font-semibold text-white focus:outline-none focus:border-amber-500"
+                className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm font-semibold text-white focus:outline-none focus:border-amber-500 disabled:opacity-50"
               >
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -207,21 +251,24 @@ export default function MobileBakerStation() {
                 <div className="flex items-center space-x-3 bg-zinc-950 border border-zinc-800 p-2 rounded-xl">
                   <button
                     type="button"
+                    disabled={!isSessionOpen}
                     onClick={() => setProducedQty(Math.max(1, producedQty - 10))}
-                    className="w-10 h-10 bg-zinc-900 text-zinc-300 rounded-lg font-bold"
+                    className="w-10 h-10 bg-zinc-900 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-bold"
                   >
                     -10
                   </button>
                   <input
                     type="number"
+                    disabled={!isSessionOpen}
                     value={producedQty}
                     onChange={(e) => setProducedQty(Number(e.target.value))}
-                    className="flex-1 bg-transparent text-center text-xl font-mono font-bold text-amber-400 focus:outline-none"
+                    className="flex-1 bg-transparent text-center text-xl font-mono font-bold text-amber-400 focus:outline-none disabled:opacity-50"
                   />
                   <button
                     type="button"
+                    disabled={!isSessionOpen}
                     onClick={() => setProducedQty(producedQty + 10)}
-                    className="w-10 h-10 bg-amber-500 text-zinc-950 rounded-lg font-bold"
+                    className="w-10 h-10 bg-amber-500 text-zinc-950 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-bold"
                   >
                     +10
                   </button>
@@ -248,8 +295,9 @@ export default function MobileBakerStation() {
                       <div className="flex items-center space-x-2 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl">
                         <button
                           type="button"
+                          disabled={!isSessionOpen}
                           onClick={() => updateMaterialQty(st.id, -1)}
-                          className="w-9 h-9 bg-zinc-900 text-zinc-300 rounded-lg font-bold"
+                          className="w-9 h-9 bg-zinc-900 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-bold"
                         >
                           -1
                         </button>
@@ -258,8 +306,9 @@ export default function MobileBakerStation() {
                         </span>
                         <button
                           type="button"
+                          disabled={!isSessionOpen}
                           onClick={() => updateMaterialQty(st.id, 1)}
-                          className="w-9 h-9 bg-amber-500 text-zinc-950 rounded-lg font-bold"
+                          className="w-9 h-9 bg-amber-500 text-zinc-950 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-bold"
                         >
                           +1
                         </button>
@@ -272,10 +321,14 @@ export default function MobileBakerStation() {
 
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full h-14 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-extrabold text-base rounded-xl shadow-lg shadow-amber-500/20"
+              disabled={isSubmitting || !isSessionOpen}
+              className="w-full h-14 bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-zinc-950 font-extrabold text-base rounded-xl shadow-lg shadow-amber-500/20"
             >
-              {isSubmitting ? 'Creating Batch...' : 'Submit Batch & Deduct Stock'}
+              {isSubmitting
+                ? 'Creating Batch...'
+                : !isSessionOpen
+                ? `Batch Creation Disabled (${sessionStatusLabel})`
+                : 'Submit Batch & Deduct Stock'}
             </Button>
           </form>
         )}
@@ -290,9 +343,10 @@ export default function MobileBakerStation() {
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">Source Product (Original)</label>
                 <select
+                  disabled={!isSessionOpen}
                   value={sourceProductId}
                   onChange={(e) => setSourceProductId(e.target.value)}
-                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm text-white"
+                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm text-white disabled:opacity-50"
                 >
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -300,10 +354,11 @@ export default function MobileBakerStation() {
                 </select>
                 <input
                   type="number"
+                  disabled={!isSessionOpen}
                   placeholder="Source Quantity"
                   value={sourceQty}
                   onChange={(e) => setSourceQty(Number(e.target.value))}
-                  className="w-full h-12 mt-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm text-white font-mono font-bold"
+                  className="w-full h-12 mt-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm text-white font-mono font-bold disabled:opacity-50"
                 />
               </div>
 
@@ -312,9 +367,10 @@ export default function MobileBakerStation() {
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">Target Product (Converted)</label>
                 <select
+                  disabled={!isSessionOpen}
                   value={targetProductId}
                   onChange={(e) => setTargetProductId(e.target.value)}
-                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm text-white"
+                  className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm text-white disabled:opacity-50"
                 >
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -322,20 +378,25 @@ export default function MobileBakerStation() {
                 </select>
                 <input
                   type="number"
+                  disabled={!isSessionOpen}
                   placeholder="Target Quantity"
                   value={targetQty}
                   onChange={(e) => setTargetQty(Number(e.target.value))}
-                  className="w-full h-12 mt-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm text-white font-mono font-bold"
+                  className="w-full h-12 mt-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm text-white font-mono font-bold disabled:opacity-50"
                 />
               </div>
             </div>
 
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full h-14 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-extrabold text-base rounded-xl"
+              disabled={isSubmitting || !isSessionOpen}
+              className="w-full h-14 bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-zinc-950 font-extrabold text-base rounded-xl"
             >
-              {isSubmitting ? 'Converting...' : 'Confirm Conversion'}
+              {isSubmitting
+                ? 'Converting...'
+                : !isSessionOpen
+                ? `Conversion Disabled (${sessionStatusLabel})`
+                : 'Confirm Conversion'}
             </Button>
           </form>
         )}
