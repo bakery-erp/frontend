@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3 } from "lucide-react";
 
 interface Product {
   id: string;
@@ -100,6 +100,16 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const modeParam = new URLSearchParams(window.location.search).get("mode");
+      if (modeParam === "view") {
+        setIsViewOnly(true);
+      }
+    }
+  }, []);
 
   // Form State
   const [sessionLabel, setSessionLabel] = useState<string>("");
@@ -359,8 +369,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 type="text"
                 placeholder="Session Name / Label (e.g. Morning Shift)"
                 value={sessionLabel}
+                disabled={isViewOnly}
                 onChange={(e) => setSessionLabel(e.target.value)}
-                className="font-extrabold text-lg text-[#2C1B10] bg-transparent border-b border-[#EDE4D5] rounded-none focus:border-[#E87A18] focus:ring-0 p-0 h-auto w-72"
+                className="font-extrabold text-lg text-[#2C1B10] bg-transparent border-b border-[#EDE4D5] rounded-none focus:border-[#E87A18] focus:ring-0 p-0 h-auto w-72 disabled:opacity-90"
               />
             </div>
             <p className="text-xs text-[#8C7361] mt-1">
@@ -369,7 +380,26 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5]">
+            <Button
+              size="sm"
+              variant={isViewOnly ? "default" : "ghost"}
+              onClick={() => setIsViewOnly(true)}
+              className={isViewOnly ? "bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-xs" : "text-[#8C7361] text-xs hover:bg-[#F4ECE1]"}
+            >
+              <Eye className="w-3.5 h-3.5 mr-1" /> View Mode
+            </Button>
+            <Button
+              size="sm"
+              variant={!isViewOnly ? "default" : "ghost"}
+              onClick={() => setIsViewOnly(false)}
+              className={!isViewOnly ? "bg-[#4A2E1B] text-white font-bold text-xs rounded-lg shadow-xs" : "text-[#8C7361] text-xs hover:bg-[#F4ECE1]"}
+            >
+              <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit Mode
+            </Button>
+          </div>
+
           <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wide border ${
             session.status === "CLOSED"
               ? "bg-zinc-100 text-zinc-800 border-zinc-300"
@@ -455,8 +485,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 step="0.01"
                 placeholder="0.00 ETB"
                 value={actualCash}
+                disabled={isViewOnly}
                 onChange={(e) => setActualCash(e.target.value)}
-                className="bg-white border-[#EDE4D5] font-mono font-bold text-base"
+                className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
               />
             </div>
 
@@ -469,8 +500,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 step="0.01"
                 placeholder="0.00 ETB"
                 value={actualCbe}
+                disabled={isViewOnly}
                 onChange={(e) => setActualCbe(e.target.value)}
-                className="bg-white border-[#EDE4D5] font-mono font-bold text-base"
+                className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
               />
             </div>
 
@@ -483,8 +515,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 step="0.01"
                 placeholder="0.00 ETB"
                 value={actualTelebirr}
+                disabled={isViewOnly}
                 onChange={(e) => setActualTelebirr(e.target.value)}
-                className="bg-white border-[#EDE4D5] font-mono font-bold text-base"
+                className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
               />
             </div>
           </div>
@@ -504,7 +537,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 List all expenses paid during this shift (including staff loans, transport, raw material purchases, etc.)
               </p>
             </div>
-            <Button onClick={handleAddExpenseRow} size="sm" className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs font-bold rounded-xl">
+            <Button onClick={handleAddExpenseRow} disabled={isViewOnly} size="sm" className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs font-bold rounded-xl disabled:opacity-50">
               <Plus className="w-4 h-4 mr-1" /> Add Expense Item
             </Button>
           </div>
@@ -521,8 +554,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Expense Type</label>
                     <select
                       value={exp.category}
+                      disabled={isViewOnly}
                       onChange={(e) => handleExpenseChange(idx, "category", e.target.value)}
-                      className="w-full bg-white border border-[#EDE4D5] rounded-lg h-9 text-xs px-2 font-medium"
+                      className="w-full bg-white border border-[#EDE4D5] rounded-lg h-9 text-xs px-2 font-medium disabled:opacity-80"
                     >
                       {EXPENSE_CATEGORIES.map((cat) => (
                         <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -537,8 +571,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       step="0.01"
                       placeholder="0.00"
                       value={exp.amount || ""}
+                      disabled={isViewOnly}
                       onChange={(e) => handleExpenseChange(idx, "amount", e.target.value)}
-                      className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold"
+                      className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold disabled:opacity-80"
                     />
                   </div>
 
@@ -548,8 +583,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       type="text"
                       placeholder="e.g. Employee advance to Abebe / Flour purchase"
                       value={exp.description || ""}
+                      disabled={isViewOnly}
                       onChange={(e) => handleExpenseChange(idx, "description", e.target.value)}
-                      className="bg-white border-[#EDE4D5] h-9 text-xs"
+                      className="bg-white border-[#EDE4D5] h-9 text-xs disabled:opacity-80"
                     />
                   </div>
 
@@ -558,8 +594,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       type="button"
                       variant="ghost"
                       size="sm"
+                      disabled={isViewOnly}
                       onClick={() => handleRemoveExpenseRow(idx)}
-                      className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 rounded-lg"
+                      className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 rounded-lg disabled:opacity-40"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -660,8 +697,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                           type="number"
                           min="0"
                           value={val.quantityRemaining}
+                          disabled={isViewOnly}
                           onChange={(e) => handleLeftoverChange(p.id, "quantityRemaining", e.target.value)}
-                          className="h-8 text-xs bg-white border-[#EDE4D5]"
+                          className="h-8 text-xs bg-white border-[#EDE4D5] disabled:opacity-80"
                         />
                       </td>
                       <td className="p-3">
@@ -669,8 +707,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                           type="number"
                           min="0"
                           value={val.damagedQuantity}
+                          disabled={isViewOnly}
                           onChange={(e) => handleLeftoverChange(p.id, "damagedQuantity", e.target.value)}
-                          className="h-8 text-xs bg-white border-[#EDE4D5]"
+                          className="h-8 text-xs bg-white border-[#EDE4D5] disabled:opacity-80"
                         />
                       </td>
                       <td className="p-3">
@@ -678,8 +717,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                           type="text"
                           placeholder="Reason if damaged..."
                           value={val.damageReason}
+                          disabled={isViewOnly}
                           onChange={(e) => handleLeftoverChange(p.id, "damageReason", e.target.value)}
-                          className="h-8 text-xs bg-white border-[#EDE4D5]"
+                          className="h-8 text-xs bg-white border-[#EDE4D5] disabled:opacity-80"
                         />
                       </td>
                     </tr>
@@ -698,8 +738,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               rows={3}
               placeholder="Add any remarks regarding sales, stock differences, or staff notes..."
               value={notes}
+              disabled={isViewOnly}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-3 text-xs"
+              className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-3 text-xs disabled:opacity-80"
             />
           </div>
 
@@ -712,8 +753,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               {/* Save Edits without changing status */}
               <Button
                 onClick={handleSaveEdits}
-                disabled={isSubmitting}
-                className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold text-xs sm:text-sm rounded-xl px-5 shadow-sm"
+                disabled={isSubmitting || isViewOnly}
+                className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold text-xs sm:text-sm rounded-xl px-5 shadow-sm disabled:opacity-50"
               >
                 <Save className="w-4 h-4 mr-1.5" /> Save Session Edits
               </Button>
