@@ -204,6 +204,8 @@ export default function MobileBakerStation() {
     return acc + b.items.reduce((iAcc, item) => iAcc + item.quantityProduced, 0);
   }, 0);
 
+  const isGlobalAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col justify-between pb-6 font-sans">
       {/* Top Mobile Header */}
@@ -237,32 +239,34 @@ export default function MobileBakerStation() {
 
       {/* Shift Toggle & Tab Selector Bar */}
       <div className="p-4 bg-zinc-900 border-b border-zinc-800 space-y-3">
-        {/* Shift Picker (Day / Night) */}
-        <div className="bg-zinc-950 p-1 rounded-xl border border-zinc-800 flex items-center">
-          <button
-            type="button"
-            onClick={() => setSelectedShift('DAY')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-              selectedShift === 'DAY'
-                ? 'bg-amber-500 text-zinc-950 shadow-md font-extrabold'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Sun className="w-3.5 h-3.5" /> Day Shift (ቀን)
-          </button>
+        {/* Shift Picker (Day / Night) - Visible only for Admin/Owner */}
+        {isGlobalAdmin && (
+          <div className="bg-zinc-950 p-1 rounded-xl border border-zinc-800 flex items-center">
+            <button
+              type="button"
+              onClick={() => setSelectedShift('DAY')}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                selectedShift === 'DAY'
+                  ? 'bg-amber-500 text-zinc-950 shadow-md font-extrabold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5" /> Day Shift (ቀን)
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setSelectedShift('NIGHT')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-              selectedShift === 'NIGHT'
-                ? 'bg-indigo-600 text-white shadow-md font-extrabold'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Moon className="w-3.5 h-3.5" /> Night Shift (ማታ)
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setSelectedShift('NIGHT')}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                selectedShift === 'NIGHT'
+                  ? 'bg-indigo-600 text-white shadow-md font-extrabold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" /> Night Shift (ማታ)
+            </button>
+          </div>
+        )}
 
         {/* Tab Switcher */}
         <div className="flex space-x-2">
@@ -479,7 +483,11 @@ export default function MobileBakerStation() {
                       {b.items.map((it) => (
                         <div key={it.id} className="flex items-center justify-between text-xs font-bold text-white bg-zinc-950 p-2 rounded-xl">
                           <span>{it.product?.name || 'Bread Product'}</span>
-                          <span className="font-mono text-amber-400 font-extrabold">{it.quantityProduced} {it.product?.unitType || 'Pcs'}</span>
+                          {isGlobalAdmin ? (
+                            <span className="font-mono text-amber-400 font-extrabold">{it.quantityProduced} {it.product?.unitType || 'Pcs'}</span>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-emerald-400">✓ Recorded</span>
+                          )}
                         </div>
                       ))}
                     </div>

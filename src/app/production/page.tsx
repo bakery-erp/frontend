@@ -318,33 +318,35 @@ export default function ProductionPage() {
           </button>
         </div>
 
-        {/* Shift Filter Pill Group */}
-        <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5]">
-          <button
-            onClick={() => setShiftFilter("ALL")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              shiftFilter === "ALL" ? "bg-[#4A2E1B] text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
-            }`}
-          >
-            All Shifts
-          </button>
-          <button
-            onClick={() => setShiftFilter("DAY")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              shiftFilter === "DAY" ? "bg-amber-500 text-zinc-950 shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
-            }`}
-          >
-            ☀️ Day Shift
-          </button>
-          <button
-            onClick={() => setShiftFilter("NIGHT")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              shiftFilter === "NIGHT" ? "bg-indigo-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
-            }`}
-          >
-            🌙 Night Shift
-          </button>
-        </div>
+        {/* Shift Filter Pill Group (Only visible for Owner & Admin) */}
+        {isGlobalAdmin && (
+          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5]">
+            <button
+              onClick={() => setShiftFilter("ALL")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                shiftFilter === "ALL" ? "bg-[#4A2E1B] text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+              }`}
+            >
+              All Shifts
+            </button>
+            <button
+              onClick={() => setShiftFilter("DAY")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                shiftFilter === "DAY" ? "bg-amber-500 text-zinc-950 shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+              }`}
+            >
+              ☀️ Day Shift
+            </button>
+            <button
+              onClick={() => setShiftFilter("NIGHT")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                shiftFilter === "NIGHT" ? "bg-indigo-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+              }`}
+            >
+              🌙 Night Shift
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
@@ -352,7 +354,7 @@ export default function ProductionPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Date & Shift</TableHead>
-              <TableHead>Products Baked & Quantity</TableHead>
+              <TableHead>{isGlobalAdmin ? "Products Baked & Quantity" : "Products Baked"}</TableHead>
               <TableHead>Raw Materials Consumed</TableHead>
               <TableHead>Batch Status</TableHead>
               <TableHead>Logged By</TableHead>
@@ -378,7 +380,12 @@ export default function ProductionPage() {
                   <ul className="text-sm space-y-1">
                     {batch.items.map(item => (
                       <li key={item.id} className="font-semibold text-[#2C1B10]">
-                        {item.product.name}: <span className="font-bold text-[#E87A18]">{item.quantityProduced} {item.product.unitType}</span>
+                        {item.product.name}
+                        {isGlobalAdmin && (
+                          <span className="font-bold text-[#E87A18]">
+                            : {item.quantityProduced} {item.product.unitType}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
