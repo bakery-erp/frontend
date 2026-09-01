@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...((isOwner || isAdmin) ? [
       { icon: Layers, label: 'Product Categories', href: '/product-categories' }
     ] : []),
-    ...((isOwner || isAdmin || role === 'CASHIER' || role === 'BAKER' || role === 'CAKE_WORKER') ? [
+    ...((isOwner || isAdmin) ? [
       { icon: Package, label: 'Products', href: '/products' },
       { icon: ArrowRightLeft, label: 'Product Conversions', href: '/product-conversions' }
     ] : []),

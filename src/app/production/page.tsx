@@ -227,6 +227,8 @@ export default function ProductionPage() {
     }
   };
 
+  const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
+
   const todayYmd = new Date().toISOString().slice(0, 10);
   const pendingCount = batches.filter(b => b.status === "PENDING_APPROVAL").length;
   const todayCount = batches.filter(b => (b.date || b.createdAt || '').startsWith(todayYmd)).length;
@@ -234,6 +236,14 @@ export default function ProductionPage() {
   const filteredBatches = batches.filter(b => {
     if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
     if (filterTab === "TODAY") return (b.date || b.createdAt || '').startsWith(todayYmd);
+    return true;
+  }).filter(b => {
+    if (shiftFilter !== "ALL") return b.shift === shiftFilter;
+    return true;
+  }).filter(b => {
+    if (!isGlobalAdmin && user?.role) {
+      return (b.user as any)?.role === user.role || (b as any).userId === user.id;
+    }
     return true;
   });
 
@@ -270,41 +280,71 @@ export default function ProductionPage() {
       )}
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 mb-4 border-b border-zinc-200 pb-2 overflow-x-auto">
-        <button
-          onClick={() => setFilterTab("ALL")}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${filterTab === "ALL"
-              ? "bg-[#2C1B10] text-white shadow-sm"
-              : "text-zinc-600 hover:bg-zinc-100"
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-zinc-200 pb-3">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <button
+            onClick={() => setFilterTab("ALL")}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${filterTab === "ALL"
+                ? "bg-[#2C1B10] text-white shadow-sm"
+                : "text-zinc-600 hover:bg-zinc-100"
+              }`}
+          >
+            All Batches ({batches.length})
+          </button>
+          <button
+            onClick={() => setFilterTab("TODAY")}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${filterTab === "TODAY"
+                ? "bg-emerald-700 text-white shadow-sm"
+                : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+              }`}
+          >
+            📅 Today ({todayCount})
+          </button>
+          <button
+            onClick={() => setFilterTab("PENDING")}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${filterTab === "PENDING"
+                ? "bg-amber-600 text-white shadow-sm"
+                : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+              }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            Pending Approvals
+            {pendingCount > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
+                }`}>
+                {pendingCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Shift Filter Pill Group */}
+        <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5]">
+          <button
+            onClick={() => setShiftFilter("ALL")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              shiftFilter === "ALL" ? "bg-[#4A2E1B] text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
             }`}
-        >
-          All Batches ({batches.length})
-        </button>
-        <button
-          onClick={() => setFilterTab("TODAY")}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${filterTab === "TODAY"
-              ? "bg-emerald-700 text-white shadow-sm"
-              : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+          >
+            All Shifts
+          </button>
+          <button
+            onClick={() => setShiftFilter("DAY")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              shiftFilter === "DAY" ? "bg-amber-500 text-zinc-950 shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
             }`}
-        >
-          📅 Today ({todayCount})
-        </button>
-        <button
-          onClick={() => setFilterTab("PENDING")}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${filterTab === "PENDING"
-              ? "bg-amber-600 text-white shadow-sm"
-              : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+          >
+            ☀️ Day Shift
+          </button>
+          <button
+            onClick={() => setShiftFilter("NIGHT")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              shiftFilter === "NIGHT" ? "bg-indigo-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
             }`}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          Pending Approvals
-          {pendingCount > 0 && (
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
-              }`}>
-              {pendingCount}
-            </span>
-          )}
-        </button>
+          >
+            🌙 Night Shift
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
