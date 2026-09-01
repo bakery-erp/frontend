@@ -58,9 +58,12 @@ export default function ExpensesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
 
+  // Ethiopian local date helper (UTC+3)
+  const getEthTodayStr = () => new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+
   // Filter state
-  const [filterFrom, setFilterFrom] = useState(new Date().toISOString().slice(0, 10));
-  const [filterTo, setFilterTo] = useState(new Date().toISOString().slice(0, 10));
+  const [filterFrom, setFilterFrom] = useState(getEthTodayStr());
+  const [filterTo, setFilterTo] = useState(getEthTodayStr());
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -72,16 +75,16 @@ export default function ExpensesPage() {
   const [formCategory, setFormCategory] = useState<string>("");
   const [formFinancialCategoryId, setFormFinancialCategoryId] = useState<string>("");
   const [formDescription, setFormDescription] = useState("");
-  const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
+  const [formDate, setFormDate] = useState(getEthTodayStr());
   const [isSaving, setIsSaving] = useState(false);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getEthTodayStr();
   const isTodayActive = filterFrom === todayStr && filterTo === todayStr;
 
   const handleToggleToday = () => {
     if (isTodayActive) {
       // Toggle OFF: set range to 30 days ago
-      const d = new Date();
+      const d = new Date(Date.now() + 3 * 3600 * 1000);
       d.setDate(d.getDate() - 30);
       setFilterFrom(d.toISOString().slice(0, 10));
       setFilterTo(todayStr);

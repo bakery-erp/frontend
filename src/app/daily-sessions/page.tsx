@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useBranch } from '@/context/BranchContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
-import { CalendarDays, Plus, Lock, Utensils, RefreshCw, AlertTriangle, PauseCircle, PlayCircle, Edit3, Eye, CheckCircle2 } from 'lucide-react';
+import { CalendarDays, Plus, Lock, Utensils, RefreshCw, AlertTriangle, PauseCircle, PlayCircle, Edit3, Eye, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -42,6 +42,13 @@ export default function DailySessionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   const canManageSessions = user?.role === 'OWNER' || user?.role === 'ADMIN';
+
+  // Compute today's session in Ethiopian timezone (UTC+3)
+  const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+  const todaySession = sessions.find((s) => {
+    const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
+    return sDate === ethTodayYmd;
+  });
 
   // Finalize Session Modal State
   const [activeSession, setActiveSession] = useState<DailySession | null>(null);
@@ -210,9 +217,21 @@ export default function DailySessionsPage() {
             <RefreshCw className="w-4 h-4 mr-2 text-[#E87A18]" /> Convert Product (e.g. Bomboloni ➔ Donut)
           </Button>
           {canManageSessions && (
-            <Button onClick={handleOpenNewSession} className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md">
-              <Plus className="w-4 h-4 mr-2" /> Start Business Session Today
-            </Button>
+            todaySession ? (
+              todaySession.status === 'OPEN' ? (
+                <Button disabled className="bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md opacity-90 cursor-default">
+                  <PlayCircle className="w-4 h-4 mr-2" /> Today&apos;s Session Active
+                </Button>
+              ) : (
+                <Button onClick={() => handleReopenSession(todaySession)} className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md">
+                  <RotateCcw className="w-4 h-4 mr-2" /> Reopen Today&apos;s Session
+                </Button>
+              )
+            ) : (
+              <Button onClick={handleOpenNewSession} className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md">
+                <Plus className="w-4 h-4 mr-2" /> Start New Session Today
+              </Button>
+            )
           )}
         </div>
       </div>

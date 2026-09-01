@@ -43,6 +43,8 @@ interface ProductionSummaryItem {
   productId: string;
   productName: string;
   unitType: string;
+  categoryName?: string;
+  categoryType?: string;
   totalProduced: number;
 }
 
@@ -428,37 +430,63 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       )}
 
       <div className="space-y-6">
-        {/* Section 1: Daily Production Breakdown Per Product */}
+        {/* Section 1: Detailed Daily Production & Resell Breakdown */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
               <h2 className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                <PackageCheck className="w-5 h-5 text-emerald-600" /> Daily Production Summary (This Session)
+                <PackageCheck className="w-5 h-5 text-emerald-600" /> Detailed Session Production & Resell Summary
               </h2>
               <p className="text-xs text-[#8C7361] mt-0.5">
-                Total quantities produced during this session across all bakery production batches.
+                Categorized breakdown of produced items and resale stock logged in this shift.
               </p>
             </div>
-            <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
-              {productionSummary.reduce((acc, p) => acc + p.totalProduced, 0)} Total Pcs Produced
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
+                {productionSummary.reduce((acc, p) => acc + p.totalProduced, 0)} Pcs Produced
+              </span>
+              <span className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-800 rounded-full border border-indigo-200">
+                {supplierDeliveries.reduce((acc, d) => acc + d.quantityReceived, 0)} Resell Pcs Delivered
+              </span>
+            </div>
           </div>
 
-          {productionSummary.length === 0 ? (
+          {productionSummary.length === 0 && supplierDeliveries.length === 0 ? (
             <div className="text-center py-6 border border-dashed border-[#EDE4D5] rounded-xl text-xs text-[#8C7361]">
-              No production batches recorded for this session date yet.
+              No production batches or resell deliveries recorded for this session date yet.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {productionSummary.map((item) => (
-                <div key={item.productId} className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] flex items-center justify-between">
-                  <div>
-                    <h4 className="font-extrabold text-sm text-[#2C1B10]">{item.productName}</h4>
-                    <p className="text-xs text-[#8C7361]">Unit: {item.unitType}</p>
+            <div className="space-y-4">
+              {/* Group items by Category */}
+              {Object.entries(
+                productionSummary.reduce((acc, item) => {
+                  const cat = item.categoryName || "General Bakery";
+                  if (!acc[cat]) acc[cat] = [];
+                  acc[cat].push(item);
+                  return acc;
+                }, {} as Record<string, ProductionSummaryItem[]>)
+              ).map(([catName, catItems]) => (
+                <div key={catName} className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#EDE4D5] pb-2">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#4A2E1B] flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-[#E87A18]" /> Category: {catName}
+                    </span>
+                    <span className="text-[11px] font-bold text-[#8C7361] font-mono">
+                      {catItems.reduce((s, i) => s + i.totalProduced, 0)} Pcs
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-lg font-extrabold font-mono text-emerald-700">{item.totalProduced}</span>
-                    <span className="text-[10px] text-zinc-500 block">Pcs</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    {catItems.map((item) => (
+                      <div key={item.productId} className="bg-white p-3 rounded-lg border border-[#EDE4D5] flex items-center justify-between shadow-2xs">
+                        <div>
+                          <h4 className="font-extrabold text-xs text-[#2C1B10]">{item.productName}</h4>
+                          <span className="text-[10px] font-semibold text-zinc-400 uppercase">{item.unitType}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-base font-extrabold font-mono text-emerald-700">{item.totalProduced}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
