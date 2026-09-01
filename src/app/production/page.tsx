@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -230,22 +230,29 @@ export default function ProductionPage() {
   const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
 
   const todayYmd = new Date().toISOString().slice(0, 10);
-  const pendingCount = batches.filter(b => b.status === "PENDING_APPROVAL").length;
-  const todayCount = batches.filter(b => (b.date || b.createdAt || '').startsWith(todayYmd)).length;
 
-  const filteredBatches = batches.filter(b => {
-    if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
-    if (filterTab === "TODAY") return (b.date || b.createdAt || '').startsWith(todayYmd);
-    return true;
-  }).filter(b => {
-    if (shiftFilter !== "ALL") return b.shift === shiftFilter;
-    return true;
-  }).filter(b => {
-    if (!isGlobalAdmin && user?.role) {
-      return (b.user as any)?.role === user.role || (b as any).userId === user.id;
-    }
-    return true;
-  });
+  const roleBatches = useMemo(() => {
+    return batches.filter((b) => {
+      if (!isGlobalAdmin && user?.role) {
+        return (b.user as any)?.role === user.role || (b as any).userId === user.id;
+      }
+      return true;
+    });
+  }, [batches, isGlobalAdmin, user?.role, user?.id]);
+
+  const pendingCount = roleBatches.filter((b) => b.status === "PENDING_APPROVAL").length;
+  const todayCount = roleBatches.filter((b) => (b.date || b.createdAt || "").startsWith(todayYmd)).length;
+
+  const filteredBatches = roleBatches
+    .filter((b) => {
+      if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
+      if (filterTab === "TODAY") return (b.date || b.createdAt || "").startsWith(todayYmd);
+      return true;
+    })
+    .filter((b) => {
+      if (shiftFilter !== "ALL") return b.shift === shiftFilter;
+      return true;
+    });
 
   return (
     <DashboardLayout>
@@ -289,7 +296,7 @@ export default function ProductionPage() {
                 : "text-zinc-600 hover:bg-zinc-100"
               }`}
           >
-            All Batches ({batches.length})
+            All Batches ({roleBatches.length})
           </button>
           <button
             onClick={() => setFilterTab("TODAY")}

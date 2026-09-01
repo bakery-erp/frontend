@@ -34,6 +34,8 @@ interface ProductHistoryRecord {
   netQuantity?: number;
   subtotal: number;
   sourceName: string;
+  userRole?: string;
+  userId?: string;
   sessionId?: string | null;
   branchName?: string;
   notes?: string;
@@ -57,6 +59,7 @@ interface ProductItem {
 export default function DailyProductHistoryPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const isGlobalAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
 
   const [records, setRecords] = useState<ProductHistoryRecord[]>([]);
   const [summary, setSummary] = useState<SummaryData>({
@@ -141,22 +144,30 @@ export default function DailyProductHistoryPage() {
     }
   };
 
-  // Role-Based Filtering
+  // Strict Role-Based Filtering
   const filteredRoleRecords = useMemo(() => {
     if (!records) return [];
     return records.filter((r) => {
-      const pName = (r.productName || "").toLowerCase();
-      const catType = (r.categoryType || "").toUpperCase();
-
-      if (user?.role === "SAMBUSA_WORKER") {
-        return catType === "SAMBUSA" || pName.includes("sambusa");
+      if (isGlobalAdmin) return true; // ADMIN & OWNER see all
+      if (user?.role) {
+        if (r.userRole) {
+          return r.userRole === user.role;
+        }
+        const pName = (r.productName || "").toLowerCase();
+        const catType = (r.categoryType || "").toUpperCase();
+        if (user.role === "SAMBUSA_WORKER") {
+          return catType === "SAMBUSA" || pName.includes("sambusa");
+        }
+        if (user.role === "CAKE_WORKER") {
+          return catType === "CAKE" || pName.includes("cake") || pName.includes("bomboloni") || pName.includes("donut");
+        }
+        if (user.role === "BAKER") {
+          return catType === "BAKERY" || pName.includes("bread");
+        }
       }
-      if (user?.role === "BAKER" || user?.role === "CAKE_WORKER") {
-        return catType !== "SAMBUSA" && !pName.includes("sambusa");
-      }
-      return true; // ADMIN & OWNER see all
+      return true;
     });
-  }, [records, user?.role]);
+  }, [records, user?.role, isGlobalAdmin]);
 
   const filteredRoleSummary = useMemo(() => {
     const totalQty = filteredRoleRecords.reduce((acc, r) => acc + (r.netQuantity || r.quantity), 0);
@@ -203,9 +214,13 @@ export default function DailyProductHistoryPage() {
         <div className="bg-white border border-emerald-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Total Quantity Produced</p>
-            <h3 className="text-2xl font-extrabold text-emerald-900 font-mono mt-1">
-              {filteredRoleSummary.totalProducedQuantity.toLocaleString()} <span className="text-xs text-emerald-700 font-normal">Pcs</span>
-            </h3>
+            {isGlobalAdmin ? (
+              <h3 className="text-2xl font-extrabold text-emerald-900 font-mono mt-1">
+                {filteredRoleSummary.totalProducedQuantity.toLocaleString()} <span className="text-xs text-emerald-700 font-normal">Pcs</span>
+              </h3>
+            ) : (
+              <h3 className="text-lg font-extrabold text-emerald-900 mt-1">✓ Logged Output</h3>
+            )}
           </div>
           <div className="p-3 bg-emerald-50 rounded-xl">
             <PackageCheck className="w-6 h-6 text-emerald-600" />
@@ -215,9 +230,13 @@ export default function DailyProductHistoryPage() {
         <div className="bg-white border border-amber-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Est. Production Valuation</p>
-            <h3 className="text-2xl font-extrabold text-amber-900 font-mono mt-1">
-              {filteredRoleSummary.totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-amber-700 font-normal">ETB</span>
-            </h3>
+            {isGlobalAdmin ? (
+              <h3 className="text-2xl font-extrabold text-amber-900 font-mono mt-1">
+                {filteredRoleSummary.totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-amber-700 font-normal">ETB</span>
+              </h3>
+            ) : (
+              <h3 className="text-lg font-extrabold text-amber-900 mt-1">🔒 Confidential</h3>
+            )}
           </div>
           <div className="p-3 bg-amber-50 rounded-xl">
             <DollarSign className="w-6 h-6 text-amber-600" />
@@ -312,7 +331,7 @@ export default function DailyProductHistoryPage() {
             <TableRow>
               <TableHead className="font-extrabold text-[#2C1B10]">Date & Time (Eth Calendar)</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Product Name</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Produced Qty</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{isGlobalAdmin ? "Produced Qty" : "Status"}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Unit Base Price</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Total Value</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Source / Station</TableHead>
@@ -344,17 +363,21 @@ export default function DailyProductHistoryPage() {
                   </TableCell>
 
                   <TableCell className="font-mono text-xs">
-                    <div className="font-extrabold text-emerald-800">
-                      {row.quantity.toLocaleString()} Pcs
-                    </div>
+                    {isGlobalAdmin ? (
+                      <div className="font-extrabold text-emerald-800">
+                        {row.quantity.toLocaleString()} Pcs
+                      </div>
+                    ) : (
+                      <div className="font-bold text-emerald-700">✓ Logged</div>
+                    )}
                   </TableCell>
 
                   <TableCell className="font-mono text-xs text-zinc-700">
-                    {row.basePrice.toFixed(2)} ETB
+                    {isGlobalAdmin ? `${row.basePrice.toFixed(2)} ETB` : "🔒 Confidential"}
                   </TableCell>
 
                   <TableCell className="font-mono font-bold text-xs text-[#E87A18]">
-                    {row.subtotal.toFixed(2)} ETB
+                    {isGlobalAdmin ? `${row.subtotal.toFixed(2)} ETB` : "🔒 Confidential"}
                   </TableCell>
 
                   <TableCell className="font-semibold text-xs text-zinc-800">
