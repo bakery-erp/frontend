@@ -30,10 +30,16 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const { data } = await api.post('/auth/login', { phone, password });
+      const { data } = await api.post('/auth/login', { phone: phone.trim(), password });
       login(data);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to login. Please try again.');
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setError('Connection timed out. Unable to reach backend server.');
+      } else if (err.code === 'ERR_NETWORK') {
+        setError('Network error: Unable to connect to the backend server. Please verify backend server is running.');
+      } else {
+        setError(err.response?.data?.error || err.message || 'Failed to login. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

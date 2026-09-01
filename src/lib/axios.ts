@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  timeout: 12000,
 });
 
 api.interceptors.request.use((config) => {
@@ -22,8 +23,8 @@ api.interceptors.response.use(
         localStorage.removeItem('token');
         window.dispatchEvent(new Event('auth-error'));
       }
-    } else if (error.code === 'ERR_NETWORK' && typeof window !== 'undefined') {
-      console.warn('Network offline or backend server unreachable.');
+    } else if ((error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') && typeof window !== 'undefined') {
+      console.warn('Network offline, timeout, or backend server unreachable.');
     }
     return Promise.reject(error);
   }
