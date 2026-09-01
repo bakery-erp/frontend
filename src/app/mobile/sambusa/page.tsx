@@ -90,13 +90,13 @@ export default function MobileSambusaStation() {
       });
       setProducedCounts(initial);
 
-      // Fetch shift history for Sambusa role
+      // Fetch shift history for this user
       if (user?.branchId) {
         const histRes = await api.get('/production-batches', {
           params: {
             branchId: user.branchId,
             shift: selectedShift,
-            role: user.role,
+            userId: isGlobalAdmin ? undefined : user.id,
           },
         });
         setHistoryBatches(histRes.data || []);
@@ -338,15 +338,9 @@ export default function MobileSambusaStation() {
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 block">
                   {selectedShift} SHIFT SAMBUSA SUMMARY ({user?.role})
                 </span>
-                {isGlobalAdmin ? (
-                  <h2 className="text-xl font-extrabold text-white mt-0.5">
-                    {totalShiftProduced.toLocaleString()} <span className="text-xs font-normal text-zinc-400">Total Sambusa Produced</span>
-                  </h2>
-                ) : (
-                  <h2 className="text-base font-extrabold text-emerald-400 mt-0.5 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" /> Output Batches Logged
-                  </h2>
-                )}
+                <h2 className="text-xl font-extrabold text-white mt-0.5">
+                  {totalShiftProduced.toLocaleString()} <span className="text-xs font-normal text-zinc-400">Total Sambusa Produced</span>
+                </h2>
               </div>
               <div className={`p-3 rounded-xl ${selectedShift === 'DAY' ? 'bg-amber-500/10 text-amber-400' : 'bg-indigo-500/10 text-indigo-400'}`}>
                 {selectedShift === 'DAY' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
@@ -395,11 +389,7 @@ export default function MobileSambusaStation() {
                       {b.items.map((it) => (
                         <div key={it.id} className="flex items-center justify-between text-xs font-bold text-white bg-zinc-950 p-2 rounded-xl">
                           <span>{it.product?.name || 'Sambusa'}</span>
-                          {isGlobalAdmin ? (
-                            <span className="font-mono text-rose-400 font-extrabold">{it.quantityProduced} Pcs</span>
-                          ) : (
-                            <span className="text-[11px] font-semibold text-emerald-400">✓ Recorded</span>
-                          )}
+                          <span className="font-mono text-rose-400 font-extrabold">{it.quantityProduced} Pcs</span>
                         </div>
                       ))}
                     </div>

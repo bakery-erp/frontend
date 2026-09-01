@@ -233,12 +233,12 @@ export default function ProductionPage() {
 
   const roleBatches = useMemo(() => {
     return batches.filter((b) => {
-      if (!isGlobalAdmin && user?.role) {
-        return (b.user as any)?.role === user.role || (b as any).userId === user.id;
+      if (!isGlobalAdmin && user?.id) {
+        return (b as any).userId === user.id;
       }
       return true;
     });
-  }, [batches, isGlobalAdmin, user?.role, user?.id]);
+  }, [batches, isGlobalAdmin, user?.id]);
 
   const pendingCount = roleBatches.filter((b) => b.status === "PENDING_APPROVAL").length;
   const todayCount = roleBatches.filter((b) => (b.date || b.createdAt || "").startsWith(todayYmd)).length;
@@ -361,7 +361,7 @@ export default function ProductionPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Date & Shift</TableHead>
-              <TableHead>{isGlobalAdmin ? "Products Baked & Quantity" : "Products Baked"}</TableHead>
+              <TableHead>Products Baked & Quantity</TableHead>
               <TableHead>Raw Materials Consumed</TableHead>
               <TableHead>Batch Status</TableHead>
               <TableHead>Logged By</TableHead>
@@ -388,11 +388,9 @@ export default function ProductionPage() {
                     {batch.items.map(item => (
                       <li key={item.id} className="font-semibold text-[#2C1B10]">
                         {item.product.name}
-                        {isGlobalAdmin && (
-                          <span className="font-bold text-[#E87A18]">
-                            : {item.quantityProduced} {item.product.unitType}
-                          </span>
-                        )}
+                        <span className="font-bold text-[#E87A18]">
+                          : {item.quantityProduced} {item.product.unitType}
+                        </span>
                       </li>
                     ))}
                   </ul>

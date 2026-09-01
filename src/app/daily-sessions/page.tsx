@@ -233,10 +233,6 @@ export default function DailySessionsPage() {
             <CalendarDays className="w-4 h-4 mr-2" />
             {isTodayOnly ? "Today Only (Active)" : "Today Only"}
           </Button>
-
-          <Button variant="outline" onClick={() => setIsConversionOpen(true)} className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm">
-            <RefreshCw className="w-4 h-4 mr-2 text-[#E87A18]" /> Convert Product (e.g. Bomboloni ➔ Donut)
-          </Button>
           {canManageSessions && (
             todaySession ? (
               todaySession.status === 'OPEN' ? (

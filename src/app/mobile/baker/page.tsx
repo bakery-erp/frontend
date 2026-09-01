@@ -122,13 +122,13 @@ export default function MobileBakerStation() {
       });
       setMaterialsUsed(initialMat);
 
-      // Fetch personalized shift history for this role & shift
+      // Fetch personalized shift history for this user & shift
       if (user?.branchId) {
         const histRes = await api.get('/production-batches', {
           params: {
             branchId: user.branchId,
             shift: selectedShift,
-            role: user.role, // Only same role production (BAKER / SAMBUSA_WORKER)
+            userId: isGlobalAdmin ? undefined : user.id,
           },
         });
         setHistoryBatches(histRes.data || []);
@@ -483,11 +483,7 @@ export default function MobileBakerStation() {
                       {b.items.map((it) => (
                         <div key={it.id} className="flex items-center justify-between text-xs font-bold text-white bg-zinc-950 p-2 rounded-xl">
                           <span>{it.product?.name || 'Bread Product'}</span>
-                          {isGlobalAdmin ? (
-                            <span className="font-mono text-amber-400 font-extrabold">{it.quantityProduced} {it.product?.unitType || 'Pcs'}</span>
-                          ) : (
-                            <span className="text-[11px] font-semibold text-emerald-400">✓ Recorded</span>
-                          )}
+                          <span className="font-mono text-amber-400 font-extrabold">{it.quantityProduced} {it.product?.unitType || 'Pcs'}</span>
                         </div>
                       ))}
                     </div>

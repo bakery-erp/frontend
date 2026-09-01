@@ -144,30 +144,20 @@ export default function DailyProductHistoryPage() {
     }
   };
 
-  // Strict Role-Based Filtering
+  // Strict User/Role-Based Filtering: Non-admin users see ONLY what they logged for themselves
   const filteredRoleRecords = useMemo(() => {
     if (!records) return [];
     return records.filter((r) => {
       if (isGlobalAdmin) return true; // ADMIN & OWNER see all
-      if (user?.role) {
-        if (r.userRole) {
-          return r.userRole === user.role;
-        }
-        const pName = (r.productName || "").toLowerCase();
-        const catType = (r.categoryType || "").toUpperCase();
-        if (user.role === "SAMBUSA_WORKER") {
-          return catType === "SAMBUSA" || pName.includes("sambusa");
-        }
-        if (user.role === "CAKE_WORKER") {
-          return catType === "CAKE" || pName.includes("cake") || pName.includes("bomboloni") || pName.includes("donut");
-        }
-        if (user.role === "BAKER") {
-          return catType === "BAKERY" || pName.includes("bread");
-        }
+      if (user?.id && r.userId) {
+        return r.userId === user.id;
+      }
+      if (user?.role && r.userRole) {
+        return r.userRole === user.role;
       }
       return true;
     });
-  }, [records, user?.role, isGlobalAdmin]);
+  }, [records, user?.id, user?.role, isGlobalAdmin]);
 
   const filteredRoleSummary = useMemo(() => {
     const totalQty = filteredRoleRecords.reduce((acc, r) => acc + (r.netQuantity || r.quantity), 0);
@@ -194,7 +184,7 @@ export default function DailyProductHistoryPage() {
             Daily Production History
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-1">
-            Production audit records formatted by role and timestamp.
+            Production audit records formatted by user and timestamp.
           </p>
         </div>
 
@@ -214,13 +204,9 @@ export default function DailyProductHistoryPage() {
         <div className="bg-white border border-emerald-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Total Quantity Produced</p>
-            {isGlobalAdmin ? (
-              <h3 className="text-2xl font-extrabold text-emerald-900 font-mono mt-1">
-                {filteredRoleSummary.totalProducedQuantity.toLocaleString()} <span className="text-xs text-emerald-700 font-normal">Pcs</span>
-              </h3>
-            ) : (
-              <h3 className="text-lg font-extrabold text-emerald-900 mt-1">✓ Logged Output</h3>
-            )}
+            <h3 className="text-2xl font-extrabold text-emerald-900 font-mono mt-1">
+              {filteredRoleSummary.totalProducedQuantity.toLocaleString()} <span className="text-xs text-emerald-700 font-normal">Pcs</span>
+            </h3>
           </div>
           <div className="p-3 bg-emerald-50 rounded-xl">
             <PackageCheck className="w-6 h-6 text-emerald-600" />
@@ -331,7 +317,7 @@ export default function DailyProductHistoryPage() {
             <TableRow>
               <TableHead className="font-extrabold text-[#2C1B10]">Date & Time (Eth Calendar)</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Product Name</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">{isGlobalAdmin ? "Produced Qty" : "Status"}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">Produced Qty</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Unit Base Price</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Total Value</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Source / Station</TableHead>
@@ -363,13 +349,9 @@ export default function DailyProductHistoryPage() {
                   </TableCell>
 
                   <TableCell className="font-mono text-xs">
-                    {isGlobalAdmin ? (
-                      <div className="font-extrabold text-emerald-800">
-                        {row.quantity.toLocaleString()} Pcs
-                      </div>
-                    ) : (
-                      <div className="font-bold text-emerald-700">✓ Logged</div>
-                    )}
+                    <div className="font-extrabold text-emerald-800">
+                      {row.quantity.toLocaleString()} Pcs
+                    </div>
                   </TableCell>
 
                   <TableCell className="font-mono text-xs text-zinc-700">
