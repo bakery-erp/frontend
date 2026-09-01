@@ -147,6 +147,13 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       setSession(s);
       setProducts(resProd.data);
 
+      // Check Midnight Lockout
+      const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+      const sessionYmd = s.date ? new Date(s.date).toISOString().slice(0, 10) : "";
+      if (sessionYmd < ethTodayYmd || s.status === "CLOSED") {
+        setIsViewOnly(true);
+      }
+
       setSessionLabel(s.label || `Session - ${new Date(s.date).toISOString().split("T")[0]}`);
       setActualCash(s.actualCashAmount != null ? String(s.actualCashAmount) : "");
       setActualCbe(s.actualCbeAmount != null ? String(s.actualCbeAmount) : "");
@@ -255,6 +262,18 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       damageReason: val.damageReason,
     }));
 
+    // Validate leftover quantities against available stock limits
+    const availableStockSummary = (session as any)?.availableStockSummary || {};
+    for (const [productId, val] of Object.entries(leftovers)) {
+      const stockInfo = availableStockSummary[productId];
+      if (stockInfo && val.quantityRemaining > stockInfo.maxAvailable) {
+        toast.error(
+          `Cannot save leftover of ${val.quantityRemaining} Pcs for ${stockInfo.productName}. Maximum available in this session is ${stockInfo.maxAvailable} Pcs (Produced/Delivered: ${stockInfo.producedQty + stockInfo.deliveredQty}, Sold: ${stockInfo.soldQty}). Please correct it.`
+        );
+        return null;
+      }
+    }
+
     return {
       label: sessionLabel.trim() || null,
       actualCashAmount: actualCash !== "" ? Number(actualCash) : null,
@@ -272,9 +291,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   };
 
   const handleSaveEdits = async () => {
+    const payload = buildPayload();
+    if (!payload) return;
     setIsSubmitting(true);
     try {
-      const payload = buildPayload();
       await api.patch(`/daily-sessions/${resolvedParams.id}`, payload);
       toast.success("Session edits saved successfully!");
       fetchSessionAndProducts();
@@ -286,6 +306,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   };
 
   const handleSubmitClose = async () => {
+    const payload = buildPayload();
+    if (!payload) return;
     setIsSubmitting(true);
     try {
       const payload = buildPayload();
@@ -701,15 +723,15 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-extrabold text-[#2C1B10] mb-1">Product Leftovers (Adari) & Losses</h2>
           <p className="text-xs text-[#8C7361] mb-4">
-            Enter the remaining unsold product quantities and any damaged items.
+            Enter the remaining unsold product quantities and any damaged items. Unsold leftovers cannot exceed total stock available in this session.
           </p>
 
           <div className="overflow-x-auto border border-[#EDE4D5] rounded-xl">
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
                 <tr>
-                  <th className="p-3 font-extrabold text-[#2C1B10]">Product Name</th>
-                  <th className="p-3 font-extrabold text-[#2C1B10] w-36">Unsold Remaining (Pcs)</th>
+                  <th className="p-3 font-extrabold text-[#2C1B10]">Product Name & Session Stock</th>
+                  <th className="p-3 font-extrabold text-[#2C1B10] w-48">Unsold Remaining (Pcs)</th>
                   <th className="p-3 font-extrabold text-[#2C1B10] w-36">Damaged (Pcs)</th>
                   <th className="p-3 font-extrabold text-[#2C1B10]">Damage Reason</th>
                 </tr>
@@ -717,18 +739,39 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               <tbody className="divide-y divide-[#F4ECE1]">
                 {products.map((p) => {
                   const val = leftovers[p.id] || { quantityRemaining: 0, damagedQuantity: 0, damageReason: "" };
+                  const availableStockSummary = (session as any)?.availableStockSummary || {};
+                  const stockInfo = availableStockSummary[p.id];
+                  const maxAvail = stockInfo ? stockInfo.maxAvailable : 999999;
+                  const isOverMax = val.quantityRemaining > maxAvail;
+
                   return (
-                    <tr key={p.id}>
-                      <td className="p-3 font-bold text-[#2C1B10]">{p.name}</td>
+                    <tr key={p.id} className={isOverMax ? "bg-rose-50/50" : ""}>
+                      <td className="p-3">
+                        <div className="font-extrabold text-xs text-[#2C1B10]">{p.name}</div>
+                        <div className="text-[10px] font-semibold text-[#8C7361] mt-0.5">
+                          Max Available Stock: <strong className="text-amber-800 font-mono font-bold">{stockInfo ? stockInfo.maxAvailable : 0} Pcs</strong>
+                          {stockInfo && (
+                            <span> (Produced/Delivered: {stockInfo.producedQty + stockInfo.deliveredQty}, Sold: {stockInfo.soldQty})</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-3">
                         <Input
                           type="number"
                           min="0"
+                          max={maxAvail}
                           value={val.quantityRemaining}
                           disabled={isViewOnly}
                           onChange={(e) => handleLeftoverChange(p.id, "quantityRemaining", e.target.value)}
-                          className="h-8 text-xs bg-white border-[#EDE4D5] disabled:opacity-80"
+                          className={`h-8 text-xs font-bold font-mono bg-white border-[#EDE4D5] disabled:opacity-80 ${
+                            isOverMax ? "border-rose-500 bg-rose-50 text-rose-900 ring-1 ring-rose-500" : ""
+                          }`}
                         />
+                        {isOverMax && (
+                          <span className="text-[10px] font-extrabold text-rose-600 block mt-1">
+                            ⚠️ Exceeds max available ({maxAvail} Pcs)
+                          </span>
+                        )}
                       </td>
                       <td className="p-3">
                         <Input
