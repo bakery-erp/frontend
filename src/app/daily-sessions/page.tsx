@@ -40,6 +40,7 @@ export default function DailySessionsPage() {
   const [sessions, setSessions] = useState<DailySession[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTodayOnly, setIsTodayOnly] = useState(false);
   
   const canManageSessions = user?.role === 'OWNER' || user?.role === 'ADMIN';
 
@@ -49,6 +50,13 @@ export default function DailySessionsPage() {
     const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
     return sDate === ethTodayYmd;
   });
+
+  const displayedSessions = isTodayOnly
+    ? sessions.filter((s) => {
+        const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
+        return sDate === ethTodayYmd;
+      })
+    : sessions;
 
   // Finalize Session Modal State
   const [activeSession, setActiveSession] = useState<DailySession | null>(null);
@@ -213,6 +221,19 @@ export default function DailySessionsPage() {
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Opening float, product conversions, pause/reopen controls, and end-of-day leftover reconciliation</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant={isTodayOnly ? "default" : "outline"}
+            onClick={() => setIsTodayOnly(!isTodayOnly)}
+            className={
+              isTodayOnly
+                ? "bg-[#E87A18] hover:bg-[#D66B0F] text-white font-bold rounded-xl text-xs sm:text-sm shadow-sm"
+                : "border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm"
+            }
+          >
+            <CalendarDays className="w-4 h-4 mr-2" />
+            {isTodayOnly ? "Today Only (Active)" : "Today Only"}
+          </Button>
+
           <Button variant="outline" onClick={() => setIsConversionOpen(true)} className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm">
             <RefreshCw className="w-4 h-4 mr-2 text-[#E87A18]" /> Convert Product (e.g. Bomboloni ➔ Donut)
           </Button>
@@ -245,16 +266,16 @@ export default function DailySessionsPage() {
               <TableHead>Branch Location</TableHead>
               <TableHead>Session Status</TableHead>
               <TableHead>Cash Leftover</TableHead>
-              <TableHead>Sales Volume</TableHead>
+              <TableHead>Sales Volume (Txns)</TableHead>
               <TableHead className="w-[240px] text-right pr-6">Management Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">Loading daily sessions...</TableCell></TableRow>
-            ) : sessions.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">No sessions recorded yet for active scope.</TableCell></TableRow>
-            ) : sessions.map((sess) => {
+            ) : displayedSessions.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{isTodayOnly ? "No session recorded for today." : "No sessions recorded yet for active scope."}</TableCell></TableRow>
+            ) : displayedSessions.map((sess) => {
               const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
               const formattedDate = new Date(sess.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
               return (
