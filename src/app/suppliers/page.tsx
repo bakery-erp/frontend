@@ -225,9 +225,11 @@ export default function SuppliersPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={() => setIsAddSupplierOpen(true)} variant="outline" className="border-[#EDE4D5] rounded-xl text-xs font-bold">
-            + Add Supplier
-          </Button>
+          {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
+            <Button onClick={() => setIsAddSupplierOpen(true)} variant="outline" className="border-[#EDE4D5] rounded-xl text-xs font-bold">
+              + Add Supplier
+            </Button>
+          )}
           <Button onClick={openLogDeliveryModal} className="bg-[#E87A18] hover:bg-[#D66B0F] text-white rounded-xl text-xs font-bold flex items-center gap-1">
             <Plus className="w-4 h-4" /> Log Delivery Receipt
           </Button>
