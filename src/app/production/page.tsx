@@ -251,11 +251,11 @@ export default function ProductionPage() {
             </Button>
           )}
           <Button
-            onClick={() => setIsAddOpen(true)}
+            onClick={() => window.location.href = '/production/new'}
             disabled={!isSessionOpen}
             className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4" /> Log Production Batch
+            <Plus className="w-4 h-4" /> Log Multi-Category Production Entry
           </Button>
         </div>
       </div>
