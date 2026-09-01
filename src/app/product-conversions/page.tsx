@@ -57,6 +57,8 @@ export default function ProductConversionsPage() {
     const [fromQuantity, setFromQuantity] = useState("1");
     const [toQuantity, setToQuantity] = useState("1");
 
+    const [sessionStockSummary, setSessionStockSummary] = useState<Record<string, { maxAvailable: number; productName: string; unitType: string }>>({});
+
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -72,6 +74,13 @@ export default function ProductConversionsPage() {
             setConversions(resConversions.data);
             setProducts(resProducts.data);
             setActiveSession(resSess.data);
+
+            if (resSess.data?.id) {
+                const sessDetailRes = await api.get(`/daily-sessions/${resSess.data.id}`);
+                if (sessDetailRes.data?.availableStockSummary) {
+                    setSessionStockSummary(sessDetailRes.data.availableStockSummary);
+                }
+            }
         } catch (e: any) {
             toast.error(e.response?.data?.error || "Error loading product conversions");
             console.error(e);
@@ -196,6 +205,10 @@ export default function ProductConversionsPage() {
             toast.error(e.response?.data?.error || "Failed to delete conversion record");
         }
     };
+
+    const selectedStock = fromProductId ? sessionStockSummary[fromProductId] : undefined;
+    const maxAvailableForConversion = selectedStock ? selectedStock.maxAvailable : 0;
+    const isExceedingStock = Boolean(fromProductId && selectedStock && Number(fromQuantity) > maxAvailableForConversion);
 
     return (
         <DashboardLayout>
@@ -355,6 +368,21 @@ export default function ProductConversionsPage() {
                                         </option>
                                     ))}
                                 </select>
+
+                                {fromProductId && selectedStock && (
+                                    <div className="mt-2 flex items-center justify-between text-xs bg-amber-50 border border-amber-200 p-2.5 rounded-xl shadow-xs">
+                                        <span className="text-amber-950 font-semibold">
+                                            🛍️ Shop Available: <strong className="font-extrabold text-amber-900 text-sm">{maxAvailableForConversion} {selectedStock.unitType}</strong>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFromQuantity(String(maxAvailableForConversion))}
+                                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[11px] rounded-lg shadow-xs active:scale-95 transition-all"
+                                        >
+                                            Set Max ({maxAvailableForConversion})
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
@@ -365,10 +393,17 @@ export default function ProductConversionsPage() {
                                     type="number"
                                     required
                                     min="1"
+                                    max={selectedStock ? maxAvailableForConversion : undefined}
                                     value={fromQuantity}
                                     onChange={(e) => setFromQuantity(e.target.value)}
                                     className="rounded-xl border-zinc-200"
                                 />
+                                {isExceedingStock && (
+                                    <div className="mt-1.5 p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                                        <span>Source quantity ({fromQuantity}) exceeds shop stock ({maxAvailableForConversion} {selectedStock?.unitType}).</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="text-center text-xs text-amber-700 font-bold uppercase tracking-wider py-1">
@@ -412,8 +447,12 @@ export default function ProductConversionsPage() {
                                 <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting || !isSessionOpen} className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 text-white font-bold rounded-xl">
-                                    {isSubmitting ? "Saving..." : !isSessionOpen ? `Disabled (${sessionStatusLabel})` : "Save Conversion"}
+                                <Button
+                                    type="submit"
+                                    disabled={isSubmitting || !isSessionOpen || isExceedingStock}
+                                    className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl"
+                                >
+                                    {isSubmitting ? "Saving..." : !isSessionOpen ? `Disabled (${sessionStatusLabel})` : isExceedingStock ? "Exceeds Shop Stock" : "Save Conversion"}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -449,6 +488,21 @@ export default function ProductConversionsPage() {
                                         </option>
                                     ))}
                                 </select>
+
+                                {fromProductId && selectedStock && (
+                                    <div className="mt-2 flex items-center justify-between text-xs bg-amber-50 border border-amber-200 p-2.5 rounded-xl shadow-xs">
+                                        <span className="text-amber-950 font-semibold">
+                                            🛍️ Shop Available: <strong className="font-extrabold text-amber-900 text-sm">{maxAvailableForConversion} {selectedStock.unitType}</strong>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFromQuantity(String(maxAvailableForConversion))}
+                                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[11px] rounded-lg shadow-xs active:scale-95 transition-all"
+                                        >
+                                            Set Max ({maxAvailableForConversion})
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
@@ -459,10 +513,17 @@ export default function ProductConversionsPage() {
                                     type="number"
                                     required
                                     min="1"
+                                    max={selectedStock ? maxAvailableForConversion : undefined}
                                     value={fromQuantity}
                                     onChange={(e) => setFromQuantity(e.target.value)}
                                     className="rounded-xl border-zinc-200"
                                 />
+                                {isExceedingStock && (
+                                    <div className="mt-1.5 p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                                        <span>Source quantity ({fromQuantity}) exceeds shop stock ({maxAvailableForConversion} {selectedStock?.unitType}).</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="text-center text-xs text-amber-700 font-bold uppercase tracking-wider py-1">
@@ -506,8 +567,12 @@ export default function ProductConversionsPage() {
                                 <Button type="button" variant="outline" onClick={() => setEditingConversion(null)} className="rounded-xl">
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
-                                    {isSubmitting ? "Updating..." : "Update Conversion"}
+                                <Button
+                                    type="submit"
+                                    disabled={isSubmitting || isExceedingStock}
+                                    className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl"
+                                >
+                                    {isSubmitting ? "Updating..." : isExceedingStock ? "Exceeds Shop Stock" : "Update Conversion"}
                                 </Button>
                             </DialogFooter>
                         </form>
