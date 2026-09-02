@@ -121,7 +121,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     try {
       const res = await api.get(`/loans/${resolvedParams.id}`);
       setCredit(res.data);
-      setAmountPaid(String(res.data.remainingBalance || ""));
+      setAmountPaid("");
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to load customer credit details");
     } finally {

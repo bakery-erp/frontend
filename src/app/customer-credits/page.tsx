@@ -43,7 +43,7 @@ interface Product {
 
 interface ProductLineItem {
   productId: string;
-  quantity: number;
+  quantity: number | string;
   unitPrice: number;
 }
 
@@ -165,7 +165,7 @@ export default function CustomerCreditsPage() {
     }
     setLineItems((prev) => [
       ...prev,
-      { productId: firstProd.id, quantity: 1, unitPrice: Number(firstProd.basePrice || 0) },
+      { productId: firstProd.id, quantity: "", unitPrice: Number(firstProd.basePrice || 0) },
     ]);
   };
 
@@ -186,7 +186,7 @@ export default function CustomerCreditsPage() {
       } else {
         updated[index] = {
           ...updated[index],
-          [field]: Number(value),
+          [field]: value,
         };
       }
       return updated;
@@ -426,23 +426,28 @@ export default function CustomerCreditsPage() {
                         </TableCell>
 
                         {/* Products / Items Taken Column */}
-                        <TableCell className="max-w-[320px]">
+                        <TableCell className="max-w-[240px]">
                           {parsed.items.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {parsed.items.map((itemStr, idx) => (
+                            <div className="flex flex-wrap gap-1 items-center">
+                              {parsed.items.slice(0, 2).map((itemStr, idx) => (
                                 <span
                                   key={idx}
-                                  className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-normal"
+                                  className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-tight"
                                 >
                                   {itemStr}
                                 </span>
                               ))}
+                              {parsed.items.length > 2 && (
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#4A2E1B] text-white">
+                                  +{parsed.items.length - 2} more
+                                </span>
+                              )}
                             </div>
                           ) : (
                             <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
                           )}
                           {parsed.notes && (
-                            <p className="text-[11px] text-[#8C7361] italic mt-1 font-normal">
+                            <p className="text-[11px] text-[#8C7361] italic mt-0.5 font-normal truncate max-w-[220px]">
                               Note: {parsed.notes}
                             </p>
                           )}
@@ -618,19 +623,15 @@ export default function CustomerCreditsPage() {
                             />
                           </div>
 
-                          <div className="w-24">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={item.unitPrice}
-                              onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
-                              placeholder="Price"
-                              className="text-xs h-9 font-bold text-center font-mono"
-                            />
+                          {/* Read-only Unit Price Badge */}
+                          <div className="w-24 text-right">
+                            <span className="text-[11px] font-bold text-[#8C7361] bg-[#FAF6F0] px-2 py-1.5 rounded-lg border border-[#EDE4D5] block font-mono">
+                              @ {Number(item.unitPrice || 0).toFixed(2)} ETB
+                            </span>
                           </div>
 
                           <div className="text-xs font-extrabold text-[#E87A18] font-mono w-24 text-right pr-1">
-                            {itemSubtotal.toFixed(2)} ETB
+                            = {itemSubtotal.toFixed(2)} ETB
                           </div>
 
                           <Button
