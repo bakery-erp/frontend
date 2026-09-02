@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
-import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye } from "lucide-react";
 
 interface LoanPayment {
   id: string;
@@ -485,6 +485,14 @@ export default function CustomerCreditsPage() {
 
                         <TableCell className="text-right pr-6">
                           <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => router.push(`/customer-credits/${c.id}`)}
+                              className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Details
+                            </Button>
                             {Number(c.remainingBalance) > 0.01 && canManage && (
                               <Button
                                 size="sm"
