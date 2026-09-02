@@ -140,10 +140,18 @@ export default function SuppliersPage() {
     e.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
+    
+    let rawType = String(formData.get('type') || 'GENERAL').toUpperCase();
+    if (!['INJERA', 'MILK', 'GENERAL'].includes(rawType)) {
+      if (rawType.includes('MILK')) rawType = 'MILK';
+      else if (rawType.includes('INJERA')) rawType = 'INJERA';
+      else rawType = 'GENERAL';
+    }
+
     const data = {
       name: formData.get('name'),
       phone: formData.get('phone') || undefined,
-      type: formData.get('type'),
+      type: rawType,
       branchId: selectedBranchId || user?.branchId,
     };
 
@@ -342,11 +350,8 @@ export default function SuppliersPage() {
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Supplier Type</label>
                 <select name="type" required className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs">
                   <option value="GENERAL">GENERAL SUPPLIER</option>
-                  {products.map((p: any) => (
-                    <option key={p.id} value={p.name}>
-                      {p.name} ({p.unitType || 'unit'})
-                    </option>
-                  ))}
+                  <option value="MILK">MILK SUPPLIER</option>
+                  <option value="INJERA">INJERA SUPPLIER</option>
                 </select>
               </div>
               <DialogFooter>
