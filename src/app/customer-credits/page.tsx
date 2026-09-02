@@ -47,6 +47,46 @@ interface ProductLineItem {
   unitPrice: number;
 }
 
+function parseCustomerCreditEntity(raw: string) {
+  if (!raw) return { name: "Client / Cafe", phone: "", items: [], notes: "" };
+
+  let namePart = raw;
+  let productsPart = "";
+  let notesPart = "";
+
+  const prodMatch = raw.match(/\[Products:\s*(.*?)\]/);
+  if (prodMatch) {
+    productsPart = prodMatch[1];
+    namePart = raw.replace(/\[Products:.*?\]/, "").trim();
+  }
+
+  const parts = namePart.split(/\s+-\s+/);
+  if (parts.length > 1) {
+    namePart = parts[0].trim();
+    notesPart = parts.slice(1).join(" - ").trim();
+  }
+
+  namePart = namePart.replace(/^-\s*|\s*-$/g, "").trim();
+
+  let phone = "";
+  const phoneMatch = namePart.match(/\((.*?)\)/);
+  if (phoneMatch) {
+    phone = phoneMatch[1];
+    namePart = namePart.replace(/\(.*?\)/, "").trim();
+  }
+
+  const items = productsPart
+    ? productsPart.split(/,\s*/).map((itemStr) => itemStr.trim()).filter(Boolean)
+    : [];
+
+  return {
+    name: namePart || "Customer / Cafe",
+    phone,
+    items,
+    notes: notesPart,
+  };
+}
+
 export default function CustomerCreditsPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -344,9 +384,10 @@ export default function CustomerCreditsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Issued Date</TableHead>
-                  <TableHead>Customer / Business Name</TableHead>
-                  <TableHead className="text-right">Total Birr Amount</TableHead>
-                  <TableHead className="text-right">Remaining Balance</TableHead>
+                  <TableHead>Customer & Contact</TableHead>
+                  <TableHead>Products / Items Taken</TableHead>
+                  <TableHead className="text-right">Total Birr</TableHead>
+                  <TableHead className="text-right">Remaining</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead>Repayment History</TableHead>
                   <TableHead className="text-right pr-6">Actions</TableHead>
@@ -355,87 +396,125 @@ export default function CustomerCreditsPage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                    <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
                       Loading customer product credit accounts...
                     </TableCell>
                   </TableRow>
                 ) : filteredCredits.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                    <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
                       No customer credit sales found matching filter.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCredits.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-bold text-[#2C1B10]">
-                    {c.date ? format(new Date(c.date), "MMM d, yyyy") : format(new Date(c.createdAt), "MMM d, yyyy")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-bold text-[#2C1B10]">{c.entityId || "Client / Cafe"}</div>
-                  </TableCell>
-                  <TableCell className="text-right font-extrabold text-[#2C1B10] font-mono">
-                    {Number(c.totalAmount).toFixed(2)} ETB
-                  </TableCell>
-                  <TableCell className="text-right font-extrabold text-rose-700 font-mono">
-                    {Number(c.remainingBalance).toFixed(2)} ETB
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {c.status === "PAID" || Number(c.remainingBalance) <= 0.01 ? (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        ✓ SETTLED
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                        UNPAID
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {c.payments && c.payments.length > 0 ? (
-                      <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
-                        {c.payments.map((p) => (
-                          <div key={p.id} className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex justify-between font-mono">
-                            <span className="text-[#8C7361]">{format(new Date(p.date || p.createdAt), "MMM d")}</span>
-                            <span className="font-bold text-emerald-700">-{Number(p.amountPaid).toFixed(2)} ETB</span>
+                  filteredCredits.map((c) => {
+                    const parsed = parseCustomerCreditEntity(c.entityId || "");
+                    return (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">
+                          {c.date ? format(new Date(c.date), "MMM d, yyyy") : format(new Date(c.createdAt), "MMM d, yyyy")}
+                        </TableCell>
+
+                        {/* Customer & Contact Column */}
+                        <TableCell className="max-w-[200px]">
+                          <div className="font-extrabold text-[#2C1B10] text-sm leading-tight">{parsed.name}</div>
+                          {parsed.phone && (
+                            <div className="text-xs text-[#8C7361] font-medium mt-0.5 flex items-center gap-1">
+                              📞 {parsed.phone}
+                            </div>
+                          )}
+                        </TableCell>
+
+                        {/* Products / Items Taken Column */}
+                        <TableCell className="max-w-[320px]">
+                          {parsed.items.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {parsed.items.map((itemStr, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-normal"
+                                >
+                                  {itemStr}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
+                          )}
+                          {parsed.notes && (
+                            <p className="text-[11px] text-[#8C7361] italic mt-1 font-normal">
+                              Note: {parsed.notes}
+                            </p>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="text-right font-extrabold text-[#2C1B10] font-mono text-xs">
+                          {Number(c.totalAmount).toFixed(2)} ETB
+                        </TableCell>
+
+                        <TableCell className="text-right font-extrabold text-rose-700 font-mono text-xs">
+                          {Number(c.remainingBalance).toFixed(2)} ETB
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          {c.status === "PAID" || Number(c.remainingBalance) <= 0.01 ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              ✓ SETTLED
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                              UNPAID
+                            </span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {c.payments && c.payments.length > 0 ? (
+                            <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                              {c.payments.map((p) => (
+                                <div key={p.id} className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex justify-between font-mono">
+                                  <span className="text-[#8C7361]">{format(new Date(p.date || p.createdAt), "MMM d")}</span>
+                                  <span className="font-bold text-emerald-700">-{Number(p.amountPaid).toFixed(2)} ETB</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-[#8C7361] italic">No repayments yet</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {Number(c.remainingBalance) > 0.01 && canManage && (
+                              <Button
+                                size="sm"
+                                onClick={() => { setPayingCredit(c); setAmountPaid(String(c.remainingBalance)); }}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                              >
+                                <DollarSign className="w-3.5 h-3.5" /> Pay
+                              </Button>
+                            )}
+                            {user?.role === "OWNER" || user?.role === "ADMIN" ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDelete(c.id)}
+                                className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            ) : null}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[#8C7361] italic">No repayments yet</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right pr-6">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {Number(c.remainingBalance) > 0.01 && canManage && (
-                        <Button
-                          size="sm"
-                          onClick={() => { setPayingCredit(c); setAmountPaid(String(c.remainingBalance)); }}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
-                        >
-                          <DollarSign className="w-3.5 h-3.5" /> Pay
-                        </Button>
-                      )}
-                      {user?.role === "OWNER" || user?.role === "ADMIN" ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(c.id)}
-                          className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    );
-  })()}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        );
+      })()}
 
       {/* CREATE PRODUCT CREDIT MODAL */}
       {isAddOpen && (
@@ -607,60 +686,69 @@ export default function CustomerCreditsPage() {
       )}
 
       {/* PAY / SETTLEMENT MODAL */}
-      {payingCredit && (
-        <Dialog open={true} onOpenChange={(open) => { if (!open) setPayingCredit(null); }}>
-          <DialogContent className="max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-emerald-600" />
-                Record Credit Settlement / Payment
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handlePay} className="space-y-3.5 mt-2">
-              <div className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5] text-xs space-y-1">
-                <div className="font-bold text-[#2C1B10]">{payingCredit.entityId}</div>
-                <div className="flex justify-between text-[#8C7361] font-mono">
-                  <span>Total Loan: {Number(payingCredit.totalAmount).toFixed(2)} ETB</span>
-                  <span className="font-bold text-rose-700">Remaining: {Number(payingCredit.remainingBalance).toFixed(2)} ETB</span>
+      {payingCredit && (() => {
+        const parsedModal = parseCustomerCreditEntity(payingCredit.entityId || "");
+        return (
+          <Dialog open={true} onOpenChange={(open) => { if (!open) setPayingCredit(null); }}>
+            <DialogContent className="max-w-md rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-600" />
+                  Record Credit Settlement / Payment
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handlePay} className="space-y-3.5 mt-2">
+                <div className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5] text-xs space-y-1">
+                  <div className="font-extrabold text-[#2C1B10] text-sm">{parsedModal.name}</div>
+                  {parsedModal.phone && (
+                    <div className="text-[#8C7361] font-medium text-xs">📞 {parsedModal.phone}</div>
+                  )}
+                  <div className="flex justify-between text-[#8C7361] font-mono pt-1 border-t border-[#EDE4D5] mt-1">
+                    <span>Total Loan: {Number(payingCredit.totalAmount).toFixed(2)} ETB</span>
+                    <span className="font-bold text-rose-700">Remaining: {Number(payingCredit.remainingBalance).toFixed(2)} ETB</span>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Payment Amount (ETB)</label>
-                <Input
-                  type="number"
-                  required
-                  min="0.01"
-                  max={Number(payingCredit.remainingBalance)}
-                  value={amountPaid}
-                  onChange={(e) => setAmountPaid(e.target.value)}
-                  className="rounded-xl border-zinc-200 font-mono font-bold"
-                />
-              </div>
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Payment Amount (ETB)</label>
+                  <Input
+                    type="number"
+                    step="any"
+                    required
+                    min="0.01"
+                    max={Number(payingCredit.remainingBalance)}
+                    value={amountPaid}
+                    onChange={(e) => setAmountPaid(e.target.value)}
+                    placeholder="Enter amount..."
+                    className="rounded-xl border-zinc-200 font-mono font-bold text-base h-11"
+                  />
+                  <p className="text-[11px] text-[#8C7361] mt-1">Enter any integer or decimal amount (e.g. 30 or 40.98)</p>
+                </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Payment Date</label>
-                <Input
-                  type="date"
-                  required
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  className="rounded-xl border-zinc-200"
-                />
-              </div>
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Payment Date</label>
+                  <Input
+                    type="date"
+                    required
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="rounded-xl border-zinc-200"
+                  />
+                </div>
 
-              <DialogFooter className="gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setPayingCredit(null)} className="rounded-xl">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl">
-                  {isSubmitting ? "Processing..." : "Record Settlement"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+                <DialogFooter className="gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setPayingCredit(null)} className="rounded-xl">
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl">
+                    {isSubmitting ? "Processing..." : "Record Settlement"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </DashboardLayout>
   );
 }

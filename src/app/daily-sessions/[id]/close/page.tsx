@@ -147,11 +147,13 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       setSession(s);
       setProducts(resProd.data);
 
-      // Check Midnight Lockout
+      // Check Midnight & Closed Session Lockout for Cashier
       const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
       const sessionYmd = s.date ? new Date(s.date).toISOString().slice(0, 10) : "";
-      if (sessionYmd < ethTodayYmd || s.status === "CLOSED") {
-        setIsViewOnly(true);
+      if (sessionYmd < ethTodayYmd || s.status === "CLOSED" || s.status === "CLOSE_PENDING" || !isAdminOrOwner) {
+        if (s.status === "CLOSED" || s.status === "CLOSE_PENDING" || sessionYmd < ethTodayYmd) {
+          setIsViewOnly(true);
+        }
       }
 
       setSessionLabel(s.label || `Session - ${new Date(s.date).toISOString().split("T")[0]}`);
@@ -417,7 +419,15 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             <Button
               size="sm"
               variant={!isViewOnly ? "default" : "ghost"}
-              onClick={() => setIsViewOnly(false)}
+              onClick={() => {
+                if (session.status === "CLOSED" || session.status === "CLOSE_PENDING") {
+                  if (!isAdminOrOwner) {
+                    toast.error("Cashiers cannot edit closed or pending-close sessions.");
+                    return;
+                  }
+                }
+                setIsViewOnly(false);
+              }}
               className={!isViewOnly ? "bg-[#4A2E1B] text-white font-bold text-xs rounded-lg shadow-xs" : "text-[#8C7361] text-xs hover:bg-[#F4ECE1]"}
             >
               <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit Mode

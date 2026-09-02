@@ -84,15 +84,15 @@ export default function MobileCashierStation() {
     }));
 
     try {
-      await api.post(`/daily-sessions/${activeSession.id}/finalize`, {
+      await api.post(`/daily-sessions/${activeSession.id}/submit-close`, {
         cashLeftoverAmount: cashFloat ? Number(cashFloat) : null,
         leftoverRecords: leftoversPayload,
       });
 
-      toast.success('Session finalized! Sales calculated & closed.');
+      toast.success('Session close request submitted for Admin approval!');
       fetchCashierData();
     } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to finalize session');
+      toast.error(e.response?.data?.error || 'Failed to submit session close');
     } finally {
       setIsSubmitting(false);
     }
