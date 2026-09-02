@@ -81,11 +81,12 @@ export default function MobileSambusaStation() {
         api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);
 
-      setProducts(prodRes.data || []);
+      const producedProducts = (prodRes.data || []).filter((p: Product) => p.category?.type !== 'RESELL');
+      setProducts(producedProducts);
       setActiveSession(sessRes.data);
 
       const initial: Record<string, number> = {};
-      (prodRes.data || []).forEach((p: Product) => {
+      producedProducts.forEach((p: Product) => {
         initial[p.id] = 0;
       });
       setProducedCounts(initial);

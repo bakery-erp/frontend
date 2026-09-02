@@ -107,7 +107,7 @@ export default function MobileBakerStation() {
       const bakeryProducts = (prodRes.data || []).filter(
         (p: Product) => p.category?.type !== 'RESELL'
       );
-      setProducts(bakeryProducts.length > 0 ? bakeryProducts : prodRes.data);
+      setProducts(bakeryProducts);
       setStockItems(stockRes.data || []);
       setActiveSession(sessRes.data);
 

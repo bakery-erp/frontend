@@ -99,13 +99,19 @@ export default function NewProductionPage() {
         api.get("/daily-sessions/active", sessionParams).catch(() => ({ data: null })),
       ]);
 
-      setCategories(resCat.data || []);
-      // Filter products for bakery production (exclude raw materials / resell if non-produced)
-      setProducts(
-        (resProd.data || []).filter(
-          (p: Product) => p.category?.type === "PRODUCED" || !p.category
-        )
-      );
+      const allCats: ProductCategory[] = resCat.data || [];
+      const filteredCats = isGlobalAdmin
+        ? allCats
+        : allCats.filter((c) => c.type !== "RESELL");
+      setCategories(filteredCats);
+
+      const allProds: Product[] = resProd.data || [];
+      const filteredProds = isGlobalAdmin
+        ? allProds
+        : allProds.filter(
+            (p: Product) => (p.category ? p.category.type !== "RESELL" : true)
+          );
+      setProducts(filteredProds);
       setStockItems(resStock.data || []);
       setActiveSession(resSess.data);
     } catch (e: any) {
@@ -217,9 +223,10 @@ export default function NewProductionPage() {
 
     setIsSubmitting(true);
     try {
+      const systemDate = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
       const payload = {
         branchId: selectedBranchId || undefined,
-        date,
+        date: isGlobalAdmin ? date : systemDate,
         shift,
         items: productEntries,
         materialUsages: materialEntries,
@@ -295,15 +302,21 @@ export default function NewProductionPage() {
           <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                Production Date (Ethiopian)
+                Production Date {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
               </label>
               <Input
                 type="date"
                 required
-                value={date}
+                disabled={!isGlobalAdmin}
+                value={isGlobalAdmin ? date : new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)}
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-medium"
+                className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-medium disabled:opacity-75 disabled:cursor-not-allowed text-[#4A2E1B]"
               />
+              {!isGlobalAdmin && (
+                <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">
+                  🔒 Date is automatically set to today system log time.
+                </p>
+              )}
             </div>
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">

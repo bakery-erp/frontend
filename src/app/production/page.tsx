@@ -65,7 +65,10 @@ export default function ProductionPage() {
       ]);
 
       setBatches(resBatches.data);
-      setProducts(resProd.data.filter((p: Product) => p.category?.type === "PRODUCED" || !p.category));
+      const filteredProds = isGlobalAdmin
+        ? resProd.data
+        : (resProd.data || []).filter((p: Product) => (p.category ? p.category.type !== "RESELL" : true));
+      setProducts(filteredProds);
       setStockItems(resStock.data);
       setActiveSession(resSess.data);
     } catch (e: any) {
@@ -97,9 +100,10 @@ export default function ProductionPage() {
     }
 
     setIsSubmitting(true);
+    const systemDate = format(new Date(), "yyyy-MM-dd");
     const data = {
       branchId: selectedBranchId || undefined,
-      date,
+      date: isGlobalAdmin ? date : systemDate,
       shift,
       items: items.map(i => ({ productId: i.productId, quantityProduced: Number(i.quantityProduced) })),
       materialUsages: materials.map(m => ({ stockItemId: m.stockItemId, quantityUsed: Number(m.quantityUsed) })),
@@ -471,8 +475,22 @@ export default function ProductionPage() {
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Production Date</label>
-                  <Input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="rounded-xl border-zinc-200" />
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    Production Date {isGlobalAdmin ? "" : "(System Logged)"}
+                  </label>
+                  <Input
+                    type="date"
+                    required
+                    disabled={!isGlobalAdmin}
+                    value={isGlobalAdmin ? date : format(new Date(), "yyyy-MM-dd")}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="rounded-xl border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-600 disabled:cursor-not-allowed"
+                  />
+                  {!isGlobalAdmin && (
+                    <span className="text-[10px] text-zinc-500 mt-0.5 block font-medium">
+                      🔒 Logged automatically on current date
+                    </span>
+                  )}
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Shift</label>

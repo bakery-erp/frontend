@@ -16,7 +16,8 @@ import {
   Search, 
   CalendarDays, 
   History,
-  Layers
+  Layers,
+  Boxes
 } from "lucide-react";
 
 interface ProductHistoryRecord {
@@ -40,6 +41,7 @@ interface ProductHistoryRecord {
   branchName?: string;
   notes?: string;
   categoryType?: string;
+  shift?: string | null;
 }
 
 interface SummaryData {
@@ -159,6 +161,11 @@ export default function DailyProductHistoryPage() {
     });
   }, [records, user?.id, user?.role, isGlobalAdmin]);
 
+  const uniqueProductsCount = useMemo(() => {
+    const set = new Set(filteredRoleRecords.map((r) => r.productName).filter(Boolean));
+    return set.size;
+  }, [filteredRoleRecords]);
+
   const filteredRoleSummary = useMemo(() => {
     const totalQty = filteredRoleRecords.reduce((acc, r) => acc + (r.netQuantity || r.quantity), 0);
     const totalVal = filteredRoleRecords.reduce((acc, r) => acc + r.subtotal, 0);
@@ -213,21 +220,31 @@ export default function DailyProductHistoryPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-amber-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Est. Production Valuation</p>
-            {isGlobalAdmin ? (
+        {isGlobalAdmin ? (
+          <div className="bg-white border border-amber-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Est. Production Valuation</p>
               <h3 className="text-2xl font-extrabold text-amber-900 font-mono mt-1">
                 {filteredRoleSummary.totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-amber-700 font-normal">ETB</span>
               </h3>
-            ) : (
-              <h3 className="text-lg font-extrabold text-amber-900 mt-1">🔒 Confidential</h3>
-            )}
+            </div>
+            <div className="p-3 bg-amber-50 rounded-xl">
+              <DollarSign className="w-6 h-6 text-amber-600" />
+            </div>
           </div>
-          <div className="p-3 bg-amber-50 rounded-xl">
-            <DollarSign className="w-6 h-6 text-amber-600" />
+        ) : (
+          <div className="bg-white border border-indigo-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-indigo-800 uppercase tracking-wider">Product Varieties Logged</p>
+              <h3 className="text-2xl font-extrabold text-indigo-900 font-mono mt-1">
+                {uniqueProductsCount.toLocaleString()} <span className="text-xs text-indigo-700 font-normal">Types</span>
+              </h3>
+            </div>
+            <div className="p-3 bg-indigo-50 rounded-xl">
+              <Boxes className="w-6 h-6 text-indigo-600" />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="bg-white border border-purple-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
@@ -275,7 +292,7 @@ export default function DailyProductHistoryPage() {
 
             {/* Date Range Inputs */}
             <div className="flex items-center gap-1 bg-[#FAF6F0] px-2.5 py-1.5 rounded-xl border border-[#EDE4D5] h-9">
-              <CalendarDays className="w-3.5 h-3.5 text-[#8C7361]" />
+              <CalendarDays className="w-[#8C7361] h-3.5" />
               <input
                 type="date"
                 value={startDate}
@@ -318,21 +335,27 @@ export default function DailyProductHistoryPage() {
               <TableHead className="font-extrabold text-[#2C1B10]">Date & Time (Eth Calendar)</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Product Name</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Produced Qty</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Unit Base Price</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Total Value</TableHead>
+              {isGlobalAdmin ? (
+                <>
+                  <TableHead className="font-extrabold text-[#2C1B10]">Unit Base Price</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">Total Value</TableHead>
+                </>
+              ) : (
+                <TableHead className="font-extrabold text-[#2C1B10]">Work Shift</TableHead>
+              )}
               <TableHead className="font-extrabold text-[#2C1B10]">Source / Station</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-[#8C7361]">
+                <TableCell colSpan={isGlobalAdmin ? 6 : 5} className="text-center py-10 text-[#8C7361]">
                   Loading daily production history...
                 </TableCell>
               </TableRow>
             ) : filteredRoleRecords.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-[#8C7361]">
+                <TableCell colSpan={isGlobalAdmin ? 6 : 5} className="text-center py-10 text-[#8C7361]">
                   No daily production history records found.
                 </TableCell>
               </TableRow>
@@ -354,13 +377,22 @@ export default function DailyProductHistoryPage() {
                     </div>
                   </TableCell>
 
-                  <TableCell className="font-mono text-xs text-zinc-700">
-                    {isGlobalAdmin ? `${row.basePrice.toFixed(2)} ETB` : "🔒 Confidential"}
-                  </TableCell>
-
-                  <TableCell className="font-mono font-bold text-xs text-[#E87A18]">
-                    {isGlobalAdmin ? `${row.subtotal.toFixed(2)} ETB` : "🔒 Confidential"}
-                  </TableCell>
+                  {isGlobalAdmin ? (
+                    <>
+                      <TableCell className="font-mono text-xs text-zinc-700">
+                        {row.basePrice.toFixed(2)} ETB
+                      </TableCell>
+                      <TableCell className="font-mono font-bold text-xs text-[#E87A18]">
+                        {row.subtotal.toFixed(2)} ETB
+                      </TableCell>
+                    </>
+                  ) : (
+                    <TableCell className="font-semibold text-xs text-amber-900">
+                      <span className="px-2.5 py-1 bg-amber-100/70 border border-amber-200 rounded-lg">
+                        {row.shift || "DAY"} Shift
+                      </span>
+                    </TableCell>
+                  )}
 
                   <TableCell className="font-semibold text-xs text-zinc-800">
                     {row.sourceName}
