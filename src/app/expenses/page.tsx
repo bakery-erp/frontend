@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil, X, AlertTriangle, CalendarDays, Wallet } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Plus, Trash2, Pencil, X, AlertTriangle, CalendarDays, Wallet, Tag, Check, Settings } from "lucide-react";
 
 interface Expense {
   id: string;
@@ -77,6 +78,62 @@ export default function ExpensesPage() {
   const [formDescription, setFormDescription] = useState("");
   const [formDate, setFormDate] = useState(getEthTodayStr());
   const [isSaving, setIsSaving] = useState(false);
+
+  // Category Management Modal State
+  const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingCatName, setEditingCatName] = useState("");
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+
+  const handleCreateCategory = async () => {
+    if (!newCatName.trim()) {
+      toast.error("Expense reason name is required");
+      return;
+    }
+    setIsSavingCategory(true);
+    try {
+      await api.post("/financial-categories", {
+        name: newCatName.trim(),
+        type: "EXPENSE",
+      });
+      toast.success("Expense reason added successfully");
+      setNewCatName("");
+      loadCategories();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to add expense reason");
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
+  const handleUpdateCategory = async (id: string) => {
+    if (!editingCatName.trim()) {
+      toast.error("Expense reason name cannot be empty");
+      return;
+    }
+    try {
+      await api.patch(`/financial-categories/${id}`, {
+        name: editingCatName.trim(),
+      });
+      toast.success("Expense reason updated");
+      setEditingCatId(null);
+      loadCategories();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to update expense reason");
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this expense reason?")) return;
+    try {
+      await api.delete(`/financial-categories/${id}`);
+      toast.success("Expense reason deleted");
+      loadCategories();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to delete expense reason");
+    }
+  };
 
   const todayStr = getEthTodayStr();
   const isTodayActive = filterFrom === todayStr && filterTo === todayStr;
@@ -310,13 +367,24 @@ export default function ExpensesPage() {
               : "Record daily company expenses taken directly from active session cash."}
           </p>
         </div>
-        <Button
-          onClick={openCreateForm}
-          disabled={!activeSession}
-          className="flex items-center gap-2 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl h-11 px-5 shadow-sm disabled:opacity-50"
-        >
-          <Plus className="w-4 h-4" /> Add Expense
-        </Button>
+        <div className="flex items-center gap-2.5">
+          {isManagement && (
+            <Button
+              onClick={() => setIsManageCategoriesOpen(true)}
+              variant="outline"
+              className="flex items-center gap-1.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl h-11 px-4 text-xs sm:text-sm"
+            >
+              <Settings className="w-4 h-4 text-[#E87A18]" /> Manage Expense Reasons
+            </Button>
+          )}
+          <Button
+            onClick={openCreateForm}
+            disabled={!activeSession}
+            className="flex items-center gap-2 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl h-11 px-5 shadow-sm disabled:opacity-50 text-xs sm:text-sm"
+          >
+            <Plus className="w-4 h-4" /> Add Expense
+          </Button>
+        </div>
       </div>
 
       {/* Mandatory Active Daily Session Status Banner */}
@@ -676,6 +744,116 @@ export default function ExpensesPage() {
         confirmText="Delete Expense"
         variant="danger"
       />
+
+      {/* MANAGE PREDEFINED EXPENSE REASONS MODAL (FOR OWNER / ADMIN) */}
+      {isManageCategoriesOpen && (
+        <Dialog open={true} onOpenChange={(open) => { if (!open) setIsManageCategoriesOpen(false); }}>
+          <DialogContent className="max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <Tag className="w-5 h-5 text-[#E87A18]" />
+                Manage Pre-defined Expense Reasons
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-2">
+              <p className="text-xs text-[#8C7361]">
+                Configure standard expense categories/reasons (e.g. Flour Purchase, Electricity, Transport, Worker Lunch, Ekub, Rent). Staff will select from this dropdown when logging expenses.
+              </p>
+
+              {/* Add New Expense Reason Form */}
+              <div className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] space-y-2">
+                <label className="text-xs font-bold text-[#4A2E1B] block uppercase">Add New Expense Reason</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="e.g. Electricity / Utilities"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCreateCategory(); } }}
+                    className="bg-white rounded-xl border-zinc-200 text-xs"
+                  />
+                  <Button
+                    onClick={handleCreateCategory}
+                    disabled={isSavingCategory}
+                    className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold text-xs h-9 px-3 rounded-xl flex-shrink-0"
+                  >
+                    <Plus className="w-4 h-4 mr-1" /> Add Reason
+                  </Button>
+                </div>
+              </div>
+
+              {/* Pre-defined Expense Reasons List */}
+              <div className="space-y-2">
+                <span className="text-xs font-extrabold uppercase text-[#2C1B10] block">Existing Expense Reasons ({categories.length})</span>
+                {categories.length === 0 ? (
+                  <p className="text-xs text-[#8C7361] italic text-center py-4 bg-zinc-50 rounded-xl border border-zinc-200">
+                    No pre-defined reasons configured yet. Add your first reason above!
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {categories.map((cat) => (
+                      <div key={cat.id} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#EDE4D5] text-xs">
+                        {editingCatId === cat.id ? (
+                          <div className="flex items-center gap-2 w-full">
+                            <Input
+                              value={editingCatName}
+                              onChange={(e) => setEditingCatName(e.target.value)}
+                              className="text-xs h-8 rounded-lg"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateCategory(cat.id)}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-8 px-2.5 rounded-lg"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingCatId(null)}
+                              className="h-8 px-2 rounded-lg"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="font-bold text-[#2C1B10]">{cat.name}</span>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name); }}
+                                className="h-7 w-7 p-0 text-zinc-600 hover:bg-zinc-100 rounded-lg"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteCategory(cat.id)}
+                                className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-50 rounded-lg"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button onClick={() => setIsManageCategoriesOpen(false)} className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs">
+                Done
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </DashboardLayout>
   );
 }
