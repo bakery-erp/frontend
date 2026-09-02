@@ -21,7 +21,7 @@ interface Product {
 
 interface ProductLineItem {
   productId: string;
-  quantity: number;
+  quantity: number | string;
   unitPrice: number;
 }
 
@@ -50,7 +50,7 @@ export default function NewCustomerCreditPage() {
       const activeProds = (res.data || []).filter((p: any) => p.isActive !== false);
       setProducts(activeProds);
       if (activeProds.length > 0) {
-        setLineItems([{ productId: activeProds[0].id, quantity: 1, unitPrice: Number(activeProds[0].basePrice || 0) }]);
+        setLineItems([{ productId: activeProds[0].id, quantity: "", unitPrice: Number(activeProds[0].basePrice || 0) }]);
       }
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to load active products");
@@ -79,7 +79,7 @@ export default function NewCustomerCreditPage() {
     }
     setLineItems((prev) => [
       ...prev,
-      { productId: firstProd.id, quantity: 1, unitPrice: Number(firstProd.basePrice || 0) },
+      { productId: firstProd.id, quantity: "", unitPrice: Number(firstProd.basePrice || 0) },
     ]);
   };
 
@@ -100,7 +100,7 @@ export default function NewCustomerCreditPage() {
       } else {
         updated[index] = {
           ...updated[index],
-          [field]: Number(value),
+          [field]: value,
         };
       }
       return updated;
@@ -284,7 +284,7 @@ export default function NewCustomerCreditPage() {
                         </select>
                       </div>
 
-                      <div className="grid grid-cols-3 md:flex md:items-center gap-3">
+                      <div className="grid grid-cols-2 md:flex md:items-center gap-3">
                         {/* Quantity */}
                         <div className="col-span-1 md:w-28">
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
@@ -300,28 +300,23 @@ export default function NewCustomerCreditPage() {
                           />
                         </div>
 
-                        {/* Unit Price */}
-                        <div className="col-span-1 md:w-32">
+                        {/* Read-only Unit Price Badge */}
+                        <div className="col-span-1 md:w-32 flex flex-col justify-center">
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
-                            Unit Price (ETB)
+                            Unit Price
                           </label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={item.unitPrice}
-                            onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
-                            placeholder="Price"
-                            className="text-xs h-10 font-bold text-center font-mono rounded-xl bg-white"
-                          />
+                          <span className="text-xs font-bold text-[#8C7361] bg-[#FAF6F0] px-2.5 py-2 rounded-xl border border-[#EDE4D5] text-center font-mono block">
+                            @ {Number(item.unitPrice || 0).toFixed(2)} ETB
+                          </span>
                         </div>
 
                         {/* Line Subtotal */}
-                        <div className="col-span-1 md:w-32 text-right flex flex-col justify-center">
+                        <div className="col-span-2 md:w-32 text-right flex flex-col justify-center">
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
                             Subtotal
                           </label>
                           <span className="text-xs font-extrabold text-[#E87A18] font-mono">
-                            {itemSubtotal.toFixed(2)} ETB
+                            = {itemSubtotal.toFixed(2)} ETB
                           </span>
                         </div>
                       </div>
