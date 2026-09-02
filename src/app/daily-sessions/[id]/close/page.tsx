@@ -118,6 +118,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [actualCash, setActualCash] = useState<string>("");
   const [actualCbe, setActualCbe] = useState<string>("");
   const [actualTelebirr, setActualTelebirr] = useState<string>("");
+  const [cashLeftover, setCashLeftover] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [leftovers, setLeftovers] = useState<Record<string, { quantityRemaining: number; damagedQuantity: number; damageReason: string }>>({});
   const [expenseList, setExpenseList] = useState<ExpenseItem[]>([]);
@@ -157,15 +158,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       }
 
       setSessionLabel(s.label || `Session - ${new Date(s.date).toISOString().split("T")[0]}`);
-      setActualCash(
-        s.actualCashAmount != null
-          ? String(s.actualCashAmount)
-          : s.cashLeftoverAmount != null
-          ? String(s.cashLeftoverAmount)
-          : ""
-      );
+      setActualCash(s.actualCashAmount != null ? String(s.actualCashAmount) : "");
       setActualCbe(s.actualCbeAmount != null ? String(s.actualCbeAmount) : "");
       setActualTelebirr(s.actualTelebirrAmount != null ? String(s.actualTelebirrAmount) : "");
+      setCashLeftover(s.cashLeftoverAmount != null ? String(s.cashLeftoverAmount) : "");
       setNotes(s.notes || "");
 
       // Populate leftovers map
@@ -287,6 +283,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       actualCashAmount: actualCash !== "" ? Number(actualCash) : null,
       actualCbeAmount: actualCbe !== "" ? Number(actualCbe) : null,
       actualTelebirrAmount: actualTelebirr !== "" ? Number(actualTelebirr) : null,
+      cashLeftoverAmount: cashLeftover !== "" ? Number(cashLeftover) : null,
       notes: notes.trim() || null,
       leftoverRecords: formattedLeftovers,
       expenses: expenseList.map((e) => ({
@@ -532,72 +529,135 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           )}
         </div>
 
-        {/* Section 2: Payment Channel Breakdown (Cash, CBE, Telebirr) */}
+        {/* Section 2: Payment Channel Breakdown (Cash, CBE, Telebirr & Tomorrow Float) */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-extrabold text-[#2C1B10] mb-1 flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-[#E87A18]" /> Payment Methods & Cash Reconciliation
+            <DollarSign className="w-5 h-5 text-[#E87A18]" /> Payment Channels, Income & Cash Reconciliation
           </h2>
           <p className="text-xs text-[#8C7361] mb-5">
-            Break down the actual collected funds into Physical Cash, CBE Transfer, and Telebirr mobile money.
+            Record actual collected revenues (Cash in Hand, CBE Bank, Telebirr) and specify the Leftover Cash reserved for tomorrow's opening float.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5]">
-              <label className="text-xs font-bold text-[#4A2E1B] flex items-center justify-between gap-1.5 mb-2">
-                <span className="flex items-center gap-1.5">
-                  <Banknote className="w-4 h-4 text-emerald-600" /> Physical Cash (Normal Cash)
-                </span>
-                {session?.cashLeftoverAmount != null && (
-                  <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
-                    Cashier Reported Leftover: {Number(session.cashLeftoverAmount).toFixed(2)} ETB
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Physical Cash in Hand */}
+            <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] flex flex-col justify-between">
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] flex items-center justify-between gap-1.5 mb-2">
+                  <span className="flex items-center gap-1.5">
+                    <Banknote className="w-4 h-4 text-emerald-600" /> Cash in Hand Today
                   </span>
-                )}
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="0.00 ETB"
-                value={actualCash}
-                disabled={isViewOnly}
-                onChange={(e) => setActualCash(e.target.value)}
-                className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
-              />
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00 ETB"
+                  value={actualCash}
+                  disabled={isViewOnly}
+                  onChange={(e) => setActualCash(e.target.value)}
+                  className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
+                />
+              </div>
+              <p className="text-[10px] text-[#8C7361] mt-2">Physical paper Birr collected</p>
             </div>
 
-            <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5]">
-              <label className="text-xs font-bold text-[#4A2E1B] flex items-center gap-1.5 mb-2">
-                <CreditCard className="w-4 h-4 text-blue-600" /> CBE Mobile Banking / Transfer
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="0.00 ETB"
-                value={actualCbe}
-                disabled={isViewOnly}
-                onChange={(e) => setActualCbe(e.target.value)}
-                className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
-              />
+            {/* 2. CBE Bank Transfer */}
+            <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] flex flex-col justify-between">
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] flex items-center gap-1.5 mb-2">
+                  <CreditCard className="w-4 h-4 text-blue-600" /> CBE Bank Transfer
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00 ETB"
+                  value={actualCbe}
+                  disabled={isViewOnly}
+                  onChange={(e) => setActualCbe(e.target.value)}
+                  className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
+                />
+              </div>
+              <p className="text-[10px] text-[#8C7361] mt-2">Direct bank transfer income</p>
             </div>
 
-            <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5]">
-              <label className="text-xs font-bold text-[#4A2E1B] flex items-center gap-1.5 mb-2">
-                <Smartphone className="w-4 h-4 text-purple-600" /> Telebirr Mobile Money
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="0.00 ETB"
-                value={actualTelebirr}
-                disabled={isViewOnly}
-                onChange={(e) => setActualTelebirr(e.target.value)}
-                className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
-              />
+            {/* 3. Telebirr Mobile Money */}
+            <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] flex flex-col justify-between">
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] flex items-center gap-1.5 mb-2">
+                  <Smartphone className="w-4 h-4 text-purple-600" /> Telebirr Money
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00 ETB"
+                  value={actualTelebirr}
+                  disabled={isViewOnly}
+                  onChange={(e) => setActualTelebirr(e.target.value)}
+                  className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
+                />
+              </div>
+              <p className="text-[10px] text-[#8C7361] mt-2">Mobile wallet payment income</p>
+            </div>
+
+            {/* 4. Leftover Cash for Tomorrow */}
+            <div className="bg-[#FFFBEB] p-4 rounded-xl border border-[#FDE68A] flex flex-col justify-between">
+              <div>
+                <label className="text-xs font-bold text-[#92400E] flex items-center justify-between gap-1.5 mb-2">
+                  <span className="flex items-center gap-1.5">
+                    <RefreshCw className="w-4 h-4 text-amber-600" /> Tomorrow's Float (Leftover)
+                  </span>
+                  {session?.cashLeftoverAmount != null && (
+                    <span className="text-[9px] font-extrabold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300">
+                      Cashier: {Number(session.cashLeftoverAmount).toFixed(2)}
+                    </span>
+                  )}
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00 ETB"
+                  value={cashLeftover}
+                  disabled={isViewOnly}
+                  onChange={(e) => setCashLeftover(e.target.value)}
+                  className="bg-white border-[#FDE68A] font-mono font-bold text-base text-amber-900 disabled:opacity-80"
+                />
+              </div>
+              <p className="text-[10px] text-amber-700 font-medium mt-2">Cash kept in drawer for tomorrow</p>
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-[#F4ECE1] flex items-center justify-between text-xs text-[#8C7361]">
-            <span>Opening Float: <strong className="text-[#2C1B10]">{session.openingCashFloat ?? 0} ETB</strong></span>
-            <span>Total Accounted Revenue: <strong className="text-[#E87A18] font-mono text-sm">{totalEnteredCash.toFixed(2)} ETB</strong></span>
+          {/* Detailed Financial Summary & Reconciliation Bar */}
+          <div className="mt-5 pt-4 border-t border-[#F4ECE1] grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5]">
+              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total Shift Revenue</span>
+              <span className="text-sm font-extrabold font-mono text-[#2C1B10]">
+                {((Number(actualCash) || 0) + (Number(actualCbe) || 0) + (Number(actualTelebirr) || 0)).toFixed(2)} ETB
+              </span>
+            </div>
+
+            <div className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5]">
+              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Bank Income (CBE + Telebirr)</span>
+              <span className="text-sm font-extrabold font-mono text-blue-700">
+                {((Number(actualCbe) || 0) + (Number(actualTelebirr) || 0)).toFixed(2)} ETB
+              </span>
+            </div>
+
+            <div className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5]">
+              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Cash Expenses Paid</span>
+              <span className="text-sm font-extrabold font-mono text-rose-600">
+                -{totalExpenseSum.toFixed(2)} ETB
+              </span>
+            </div>
+
+            <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+              <span className="text-[10px] uppercase font-bold text-emerald-800 block">Net Cash Handover / Deposit</span>
+              <span className="text-sm font-extrabold font-mono text-emerald-700">
+                {(
+                  (Number(actualCash) || 0) -
+                  totalExpenseSum -
+                  (Number(cashLeftover) || 0)
+                ).toFixed(2)} ETB
+              </span>
+            </div>
           </div>
         </div>
 
