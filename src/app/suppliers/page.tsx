@@ -44,7 +44,7 @@ interface DeliveryLineItem {
 
 export default function SuppliersPage() {
   const { user } = useAuth();
-  const { selectedBranchId } = useBranch();
+  const { selectedBranchId, branches } = useBranch();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [deliveries, setDeliveries] = useState<SupplierDelivery[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -152,7 +152,7 @@ export default function SuppliersPage() {
       name: formData.get('name'),
       phone: formData.get('phone') || undefined,
       type: rawType,
-      branchId: selectedBranchId || user?.branchId,
+      branchId: formData.get('branchId') || selectedBranchId || user?.branchId,
     };
 
     try {
@@ -271,6 +271,50 @@ export default function SuppliersPage() {
         </div>
       </div>
 
+      {/* Registered Suppliers Directory Table */}
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm mb-6">
+        <div className="p-4 bg-[#FAF6F0] border-b border-[#EDE4D5] flex items-center justify-between">
+          <h2 className="font-extrabold text-[#2C1B10] text-sm flex items-center gap-2">
+            <Truck className="w-4 h-4 text-[#E87A18]" /> Registered Suppliers Directory ({suppliers.length})
+          </h2>
+          <span className="text-xs text-[#8C7361]">All active suppliers by branch</span>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Supplier Name</TableHead>
+              <TableHead>Phone Number</TableHead>
+              <TableHead>Category / Type</TableHead>
+              <TableHead>Assigned Branch</TableHead>
+              <TableHead className="text-right pr-6">Deliveries Count</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">Loading suppliers directory...</TableCell></TableRow>
+            ) : suppliers.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">No registered suppliers found. Click "+ Add Supplier" to register one.</TableCell></TableRow>
+            ) : suppliers.map((sup: any) => {
+              const assignedBranch = branches.find((b) => b.id === sup.branchId)?.name || sup.branch?.name || 'Main Branch';
+              return (
+                <TableRow key={sup.id}>
+                  <TableCell className="font-bold text-[#2C1B10]">{sup.name}</TableCell>
+                  <TableCell className="text-xs font-semibold text-[#8C7361]">{sup.phone || 'N/A'}</TableCell>
+                  <TableCell>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                      {sup.type}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs font-bold text-[#4A2E1B]">🏢 {assignedBranch}</TableCell>
+                  <TableCell className="text-right pr-6 font-extrabold text-[#2C1B10]">{sup._count?.deliveries ?? 0}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
       {/* Delivery Logs Table */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm mb-8">
         <div className="p-4 bg-[#FAF6F0] border-b border-[#EDE4D5] flex items-center justify-between">
@@ -338,6 +382,20 @@ export default function SuppliersPage() {
               <DialogTitle className="text-[#2C1B10] font-extrabold">Register New Supplier</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateSupplier} className="space-y-4 py-2">
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Assigned Branch</label>
+                <select
+                  name="branchId"
+                  defaultValue={selectedBranchId || user?.branchId || (branches[0]?.id ?? '')}
+                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs font-medium"
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      🏢 {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Supplier Name</label>
                 <Input name="name" required placeholder="e.g. Flour Factory / Milk Dairy" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
