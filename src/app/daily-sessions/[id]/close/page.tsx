@@ -157,7 +157,13 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       }
 
       setSessionLabel(s.label || `Session - ${new Date(s.date).toISOString().split("T")[0]}`);
-      setActualCash(s.actualCashAmount != null ? String(s.actualCashAmount) : "");
+      setActualCash(
+        s.actualCashAmount != null
+          ? String(s.actualCashAmount)
+          : s.cashLeftoverAmount != null
+          ? String(s.cashLeftoverAmount)
+          : ""
+      );
       setActualCbe(s.actualCbeAmount != null ? String(s.actualCbeAmount) : "");
       setActualTelebirr(s.actualTelebirrAmount != null ? String(s.actualTelebirrAmount) : "");
       setNotes(s.notes || "");
@@ -537,8 +543,15 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5]">
-              <label className="text-xs font-bold text-[#4A2E1B] flex items-center gap-1.5 mb-2">
-                <Banknote className="w-4 h-4 text-emerald-600" /> Physical Cash (Normal Cash)
+              <label className="text-xs font-bold text-[#4A2E1B] flex items-center justify-between gap-1.5 mb-2">
+                <span className="flex items-center gap-1.5">
+                  <Banknote className="w-4 h-4 text-emerald-600" /> Physical Cash (Normal Cash)
+                </span>
+                {session?.cashLeftoverAmount != null && (
+                  <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
+                    Cashier Reported Leftover: {Number(session.cashLeftoverAmount).toFixed(2)} ETB
+                  </span>
+                )}
               </label>
               <Input
                 type="number"

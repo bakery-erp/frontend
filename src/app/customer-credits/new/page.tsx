@@ -22,7 +22,7 @@ interface Product {
 interface ProductLineItem {
   productId: string;
   quantity: number | string;
-  unitPrice: number;
+  unitPrice: number | string;
 }
 
 export default function NewCustomerCreditPage() {
@@ -259,6 +259,15 @@ export default function NewCustomerCreditPage() {
               </div>
             ) : (
               <div className="space-y-3">
+                {/* Desktop Column Header Bar */}
+                <div className="hidden md:flex items-center gap-3 px-3 py-2 bg-[#FAF6F0] rounded-xl border border-[#EDE4D5] text-[11px] font-extrabold uppercase text-[#4A2E1B]">
+                  <div className="flex-1">Product Item</div>
+                  <div className="w-28 text-center">Qty</div>
+                  <div className="w-32 text-center">Unit Price / Amount</div>
+                  <div className="w-32 text-right pr-2">Subtotal</div>
+                  <div className="w-9"></div>
+                </div>
+
                 {lineItems.map((item, idx) => {
                   const itemSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
                   return (
@@ -284,11 +293,11 @@ export default function NewCustomerCreditPage() {
                         </select>
                       </div>
 
-                      <div className="grid grid-cols-2 md:flex md:items-center gap-3">
+                      <div className="grid grid-cols-3 md:flex md:items-center gap-3">
                         {/* Quantity */}
                         <div className="col-span-1 md:w-28">
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
-                            Quantity
+                            Qty
                           </label>
                           <Input
                             type="number"
@@ -300,18 +309,23 @@ export default function NewCustomerCreditPage() {
                           />
                         </div>
 
-                        {/* Read-only Unit Price Badge */}
-                        <div className="col-span-1 md:w-32 flex flex-col justify-center">
+                        {/* Editable Unit Price / Amount Input */}
+                        <div className="col-span-1 md:w-32">
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
-                            Unit Price
+                            Amount / Price
                           </label>
-                          <span className="text-xs font-bold text-[#8C7361] bg-[#FAF6F0] px-2.5 py-2 rounded-xl border border-[#EDE4D5] text-center font-mono block">
-                            @ {Number(item.unitPrice || 0).toFixed(2)} ETB
-                          </span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.unitPrice}
+                            onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
+                            placeholder="Amount"
+                            className="text-xs h-10 font-bold text-center font-mono rounded-xl bg-white"
+                          />
                         </div>
 
                         {/* Line Subtotal */}
-                        <div className="col-span-2 md:w-32 text-right flex flex-col justify-center">
+                        <div className="col-span-1 md:w-32 text-right flex flex-col justify-center">
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
                             Subtotal
                           </label>

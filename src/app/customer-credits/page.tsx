@@ -623,11 +623,16 @@ export default function CustomerCreditsPage() {
                             />
                           </div>
 
-                          {/* Read-only Unit Price Badge */}
-                          <div className="w-24 text-right">
-                            <span className="text-[11px] font-bold text-[#8C7361] bg-[#FAF6F0] px-2 py-1.5 rounded-lg border border-[#EDE4D5] block font-mono">
-                              @ {Number(item.unitPrice || 0).toFixed(2)} ETB
-                            </span>
+                          {/* Editable Unit Price / Amount Input */}
+                          <div className="w-24">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={item.unitPrice}
+                              onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
+                              placeholder="Amount"
+                              className="text-xs h-9 font-bold text-center font-mono"
+                            />
                           </div>
 
                           <div className="text-xs font-extrabold text-[#E87A18] font-mono w-24 text-right pr-1">
