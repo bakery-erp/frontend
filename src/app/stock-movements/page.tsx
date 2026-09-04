@@ -21,6 +21,7 @@ interface StockItem {
   name: string;
   unitType: string;
   currentQuantity: number;
+  unitPrice?: number;
 }
 
 interface StockMovement {
@@ -28,6 +29,8 @@ interface StockMovement {
   stockItemId: string;
   userId: string;
   quantity: number | string;
+  unitPrice?: number;
+  totalValue?: number;
   type: "IN" | "OUT" | "ADJUSTMENT" | "PRODUCTION_USAGE";
   reason?: string;
   createdAt: string;
@@ -35,6 +38,7 @@ interface StockMovement {
     id: string;
     name: string;
     unitType: string;
+    unitPrice?: number;
   };
   user: {
     id: string;
@@ -169,39 +173,51 @@ export default function StockMovementsPage() {
               <TableHead>Stock Material Item</TableHead>
               <TableHead>Movement Type</TableHead>
               <TableHead>Quantity Delta</TableHead>
+              <TableHead>Monetary Delta (ETB)</TableHead>
               <TableHead>Reason / Notes</TableHead>
               <TableHead className="pr-6">Recorded By</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361]">Loading stock movements...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">Loading stock movements...</TableCell></TableRow>
             ) : movements.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361]">No movements recorded yet.</TableCell></TableRow>
-            ) : movements.map(mov => (
-              <TableRow key={mov.id}>
-                <TableCell className="text-xs font-semibold text-[#8C7361]">
-                  {formatEthDate(mov.createdAt, true)}
-                </TableCell>
-                <TableCell className="font-bold text-[#2C1B10]">{mov.stockItem?.name}</TableCell>
-                <TableCell>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getMovementColor(mov.type)}`}>
-                    {mov.type.replace('_', ' ')}
-                  </span>
-                </TableCell>
-                <TableCell className="font-bold text-sm">
-                  <span className={mov.type === "OUT" || mov.type === "PRODUCTION_USAGE" ? "text-rose-600" : "text-emerald-700"}>
-                    {mov.type === "OUT" || mov.type === "PRODUCTION_USAGE" ? "-" : "+"}
-                    {Number(mov.quantity).toFixed(2)}
-                  </span>{" "}
-                  <span className="text-xs text-[#8C7361] font-semibold">{mov.stockItem?.unitType}</span>
-                </TableCell>
-                <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "—"}>
-                  {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "—"}
-                </TableCell>
-                <TableCell className="text-xs font-bold text-[#2C1B10] pr-6">{mov.user?.fullName || "System"}</TableCell>
-              </TableRow>
-            ))}
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">No movements recorded yet.</TableCell></TableRow>
+            ) : movements.map(mov => {
+              const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
+              const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
+              const isNegative = mov.type === "OUT" || mov.type === "PRODUCTION_USAGE";
+
+              return (
+                <TableRow key={mov.id}>
+                  <TableCell className="text-xs font-semibold text-[#8C7361]">
+                    {formatEthDate(mov.createdAt, true)}
+                  </TableCell>
+                  <TableCell className="font-bold text-[#2C1B10]">{mov.stockItem?.name}</TableCell>
+                  <TableCell>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getMovementColor(mov.type)}`}>
+                      {mov.type.replace('_', ' ')}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-bold text-sm">
+                    <span className={isNegative ? "text-rose-600" : "text-emerald-700"}>
+                      {isNegative ? "-" : "+"}
+                      {Number(mov.quantity).toFixed(2)}
+                    </span>{" "}
+                    <span className="text-xs text-[#8C7361] font-semibold">{mov.stockItem?.unitType}</span>
+                  </TableCell>
+                  <TableCell className="font-extrabold text-xs">
+                    <span className={isNegative ? "text-rose-600" : "text-emerald-700"}>
+                      {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                    </span>
+                  </TableCell>
+                  <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "—"}>
+                    {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "—"}
+                  </TableCell>
+                  <TableCell className="text-xs font-bold text-[#2C1B10] pr-6">{mov.user?.fullName || "System"}</TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

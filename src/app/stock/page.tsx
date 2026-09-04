@@ -24,6 +24,7 @@ interface StockItem {
   name: string;
   unitType: "PIECE" | "KG" | "LITER";
   currentQuantity: number;
+  unitPrice?: number;
   minStockLevel?: number;
   branchId: string;
   branch?: Branch;
@@ -96,6 +97,7 @@ export default function StockPage() {
       name: formData.get("name"),
       unitType: formData.get("unitType"),
       currentQuantity: Number(formData.get("currentQuantity")),
+      unitPrice: formData.get("unitPrice") ? Number(formData.get("unitPrice")) : 0,
       minStockLevel: formData.get("minStockLevel") ? Number(formData.get("minStockLevel")) : undefined,
     };
 
@@ -265,18 +267,22 @@ export default function StockPage() {
             <TableRow>
               <TableHead>Stock Material Item</TableHead>
               <TableHead>Unit Type</TableHead>
+              <TableHead>Unit Price (ETB)</TableHead>
               <TableHead>Available On-Hand Qty</TableHead>
+              <TableHead>Total Valuation (ETB)</TableHead>
               <TableHead>Min Alert Level</TableHead>
               <TableHead className="text-right pr-6">Detail History & Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">Loading stock inventory...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">Loading stock inventory...</TableCell></TableRow>
             ) : filteredItems.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">No matching stock items found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">No matching stock items found.</TableCell></TableRow>
             ) : filteredItems.map(item => {
               const isLowStock = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
+              const price = Number(item.unitPrice || 0);
+              const totalVal = Number(item.currentQuantity) * price;
               return (
                 <TableRow key={item.id}>
                   <TableCell className="font-bold text-[#2C1B10]">
@@ -295,10 +301,16 @@ export default function StockPage() {
                     </div>
                   </TableCell>
                   <TableCell><span className="px-2.5 py-1 rounded-md bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-xs font-bold">{item.unitType}</span></TableCell>
+                  <TableCell className="font-bold text-xs text-[#2C1B10]">
+                    {price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
+                  </TableCell>
                   <TableCell>
                     <span className={`font-extrabold text-base ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
                       {Number(item.currentQuantity).toFixed(2)}
                     </span>
+                  </TableCell>
+                  <TableCell className="font-extrabold text-xs text-amber-900">
+                    {totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
                   </TableCell>
                   <TableCell className="font-semibold text-[#8C7361]">{item.minStockLevel != null ? Number(item.minStockLevel).toFixed(2) : "—"}</TableCell>
                   <TableCell className="text-right pr-6">
@@ -409,6 +421,11 @@ export default function StockPage() {
                     <option value="PIECE">Piece</option>
                     <option value="LITER">Liter</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Unit Cost / Price (ETB per unit)</label>
+                  <Input name="unitPrice" type="number" step="0.01" min="0" defaultValue={editingItem?.unitPrice ?? ""} placeholder="0.00" className="rounded-xl border-zinc-200" />
                 </div>
 
                 <div>

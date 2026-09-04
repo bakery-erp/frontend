@@ -37,6 +37,7 @@ interface StockItem {
   name: string;
   unitType: "PIECE" | "KG" | "LITER";
   currentQuantity: number;
+  unitPrice?: number;
   minStockLevel?: number;
   branchId: string;
   branch?: Branch;
@@ -47,6 +48,8 @@ interface StockMovement {
   stockItemId: string;
   userId: string;
   quantity: number | string;
+  unitPrice?: number;
+  totalValue?: number;
   type: "IN" | "OUT" | "ADJUSTMENT" | "PRODUCTION_USAGE";
   reason?: string;
   createdAt: string;
@@ -62,6 +65,9 @@ interface HistoryData {
   movements: StockMovement[];
   totalIn: number;
   totalOut: number;
+  totalValueIn?: number;
+  totalValueOut?: number;
+  currentValuation?: number;
 }
 
 export default function StockItemDetailPage() {
@@ -171,6 +177,7 @@ export default function StockItemDetailPage() {
       name: formData.get("name"),
       unitType: formData.get("unitType"),
       currentQuantity: Number(formData.get("currentQuantity")),
+      unitPrice: formData.get("unitPrice") ? Number(formData.get("unitPrice")) : 0,
       minStockLevel: formData.get("minStockLevel") ? Number(formData.get("minStockLevel")) : undefined,
     };
 
@@ -227,8 +234,10 @@ export default function StockItemDetailPage() {
     );
   }
 
-  const { stockItem, totalIn, totalOut } = data;
+  const { stockItem, totalIn, totalOut, totalValueIn, totalValueOut, currentValuation } = data;
   const isLowStock = stockItem.minStockLevel != null && Number(stockItem.currentQuantity) <= Number(stockItem.minStockLevel);
+  const unitPrice = Number(stockItem.unitPrice || 0);
+  const calculatedValuation = currentValuation ?? (Number(stockItem.currentQuantity) * unitPrice);
 
   return (
     <DashboardLayout>
@@ -252,9 +261,10 @@ export default function StockItemDetailPage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-4 text-xs text-[#8C7361] mt-1.5 font-medium">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-[#8C7361] mt-1.5 font-medium">
               <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> Branch: <strong className="text-[#2C1B10]">{stockItem.branch?.name || "Global"}</strong></span>
               <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5" /> Unit: <strong className="text-[#2C1B10]">{stockItem.unitType}</strong></span>
+              <span className="flex items-center gap-1">💵 Unit Price: <strong className="text-emerald-700 font-bold">{unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</strong></span>
               <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> Min Alert: <strong className="text-[#2C1B10]">{stockItem.minStockLevel != null ? Number(stockItem.minStockLevel).toFixed(2) : "None"}</strong></span>
             </div>
           </div>
@@ -290,30 +300,47 @@ export default function StockItemDetailPage() {
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-8">
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider block">Current Available Stock</span>
+          <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider block">Current Stock Qty</span>
           <span className={`text-2xl font-black mt-1 block ${isLowStock ? 'text-red-600' : 'text-emerald-700'}`}>
             {Number(stockItem.currentQuantity).toFixed(2)} <span className="text-sm font-semibold text-zinc-500">{stockItem.unitType}</span>
           </span>
         </div>
 
-        <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Total Historical Inflow</span>
-          <span className="text-2xl font-black text-emerald-700 mt-1 block">
-            +{Number(totalIn).toFixed(2)} <span className="text-sm font-semibold text-emerald-600">{stockItem.unitType}</span>
+        <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 shadow-xs">
+          <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">Stock Monetary Valuation</span>
+          <span className="text-2xl font-black text-amber-900 mt-1 block">
+            {calculatedValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-bold text-amber-700">ETB</span>
           </span>
+        </div>
+
+        <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 shadow-xs">
+          <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Historical Inflow</span>
+          <span className="text-xl font-black text-emerald-700 mt-1 block">
+            +{Number(totalIn).toFixed(2)} <span className="text-xs font-semibold text-emerald-600">{stockItem.unitType}</span>
+          </span>
+          {totalValueIn != null && (
+            <span className="text-xs font-bold text-emerald-800 block mt-0.5">
+              (+{totalValueIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB)
+            </span>
+          )}
         </div>
 
         <div className="bg-red-50/70 border border-red-200 rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-red-800 uppercase tracking-wider block">Total Historical Outflow</span>
-          <span className="text-2xl font-black text-red-700 mt-1 block">
-            -{Number(totalOut).toFixed(2)} <span className="text-sm font-semibold text-red-600">{stockItem.unitType}</span>
+          <span className="text-xs font-bold text-red-800 uppercase tracking-wider block">Historical Outflow</span>
+          <span className="text-xl font-black text-red-700 mt-1 block">
+            -{Number(totalOut).toFixed(2)} <span className="text-xs font-semibold text-red-600">{stockItem.unitType}</span>
           </span>
+          {totalValueOut != null && (
+            <span className="text-xs font-bold text-red-800 block mt-0.5">
+              (-{totalValueOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB)
+            </span>
+          )}
         </div>
 
         <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider block">Total Audit Movements</span>
+          <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider block">Audit Movements</span>
           <span className="text-2xl font-black text-indigo-700 mt-1 block">
             {data.movements.length} <span className="text-sm font-semibold text-indigo-600">records</span>
           </span>
@@ -356,6 +383,7 @@ export default function StockItemDetailPage() {
                 <TableHead>Date & Time</TableHead>
                 <TableHead>Movement Type</TableHead>
                 <TableHead>Quantity Delta</TableHead>
+                <TableHead>Monetary Delta (ETB)</TableHead>
                 <TableHead>Performed By</TableHead>
                 <TableHead className="pr-6">Audit Trail Note / Reason</TableHead>
               </TableRow>
@@ -363,37 +391,53 @@ export default function StockItemDetailPage() {
             <TableBody>
               {filteredMovements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361] font-medium">
+                  <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
                     No movement records matching filter &apos;{filterType}&apos;.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredMovements.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-semibold text-xs text-[#8C7361] whitespace-nowrap">
-                      {format(new Date(m.createdAt), "MMM d, yyyy · h:mm a")}
-                    </TableCell>
-                    <TableCell>
-                      {getMovementBadge(m.type)}
-                    </TableCell>
-                    <TableCell className="font-bold text-sm">
-                      <span className={m.type === "IN" ? "text-emerald-700" : "text-rose-700"}>
-                        {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)}
-                      </span>{" "}
-                      <span className="text-xs text-[#8C7361] font-normal">{stockItem.unitType}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5 text-[#8C7361]" />
-                        <span className="font-bold text-xs text-[#2C1B10]">{m.user?.fullName || "System"}</span>
-                        <span className="text-[10px] text-[#8C7361] font-bold">({m.user?.role || "SYSTEM"})</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs text-[#8C7361] font-medium pr-6">
-                      {m.reason || "—"}
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredMovements.map((m) => {
+                  const mPrice = Number(m.unitPrice ?? unitPrice);
+                  const mTotalValue = Number(m.totalValue ?? (Number(m.quantity) * mPrice));
+                  const isNegative = m.type === "OUT" || m.type === "PRODUCTION_USAGE";
+
+                  return (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-semibold text-xs text-[#8C7361] whitespace-nowrap">
+                        {format(new Date(m.createdAt), "MMM d, yyyy · h:mm a")}
+                      </TableCell>
+                      <TableCell>
+                        {getMovementBadge(m.type)}
+                      </TableCell>
+                      <TableCell className="font-bold text-sm">
+                        <span className={m.type === "IN" ? "text-emerald-700" : "text-rose-700"}>
+                          {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)}
+                        </span>{" "}
+                        <span className="text-xs text-[#8C7361] font-normal">{stockItem.unitType}</span>
+                      </TableCell>
+                      <TableCell className="font-extrabold text-xs">
+                        <span className={isNegative ? "text-rose-700" : "text-emerald-700"}>
+                          {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        </span>
+                        {mPrice > 0 && (
+                          <div className="text-[10px] text-[#8C7361] font-normal">
+                            @ {mPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{stockItem.unitType}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <UserCheck className="w-3.5 h-3.5 text-[#8C7361]" />
+                          <span className="font-bold text-xs text-[#2C1B10]">{m.user?.fullName || "System"}</span>
+                          <span className="text-[10px] text-[#8C7361] font-bold">({m.user?.role || "SYSTEM"})</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-[#8C7361] font-medium pr-6">
+                        {m.reason || "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -534,6 +578,11 @@ export default function StockItemDetailPage() {
                     <option value="PIECE">Piece</option>
                     <option value="LITER">Liter</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Unit Cost / Price (ETB per unit)</label>
+                  <Input name="unitPrice" type="number" step="0.01" min="0" defaultValue={stockItem.unitPrice ?? ""} placeholder="0.00" className="rounded-xl border-zinc-200" />
                 </div>
 
                 <div>
