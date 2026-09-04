@@ -65,6 +65,7 @@ export default function ExpensesPage() {
   // Filter state
   const [filterFrom, setFilterFrom] = useState(getEthTodayStr());
   const [filterTo, setFilterTo] = useState(getEthTodayStr());
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "COMPANY" | "OWNER">("ALL");
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -156,7 +157,7 @@ export default function ExpensesPage() {
     if (canAccess) {
       loadExpenses();
     }
-  }, [selectedBranchId, filterFrom, filterTo]);
+  }, [selectedBranchId, filterFrom, filterTo, typeFilter]);
 
   useEffect(() => {
     if (canAccess) {
@@ -198,6 +199,7 @@ export default function ExpensesPage() {
     try {
       const params: any = { from: filterFrom, to: filterTo };
       if (selectedBranchId) params.branchId = selectedBranchId;
+      if (typeFilter !== "ALL") params.type = typeFilter;
       const res = await api.get("/expenses", { params });
       setExpenses(Array.isArray(res.data) ? res.data : []);
     } catch (e: any) {
@@ -650,6 +652,44 @@ export default function ExpensesPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Expense View Mode Filter Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-1 bg-[#FAF6F0] p-1.5 rounded-2xl border border-[#EDE4D5]">
+          <button
+            onClick={() => setTypeFilter("ALL")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              typeFilter === "ALL"
+                ? "bg-[#4A2E1B] text-white shadow-xs"
+                : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
+            }`}
+          >
+            All Expenses ({expenses.length})
+          </button>
+          <button
+            onClick={() => setTypeFilter("COMPANY")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              typeFilter === "COMPANY"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-[#8C7361] hover:text-blue-700 hover:bg-white/50"
+            }`}
+          >
+            🏢 Company Operational Expenses
+          </button>
+          {isManagement && (
+            <button
+              onClick={() => setTypeFilter("OWNER")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                typeFilter === "OWNER"
+                  ? "bg-purple-600 text-white shadow-xs"
+                  : "text-[#8C7361] hover:text-purple-700 hover:bg-white/50"
+              }`}
+            >
+              👑 Owner Personal Drawings
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Expenses Table */}
       <Card className="border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">

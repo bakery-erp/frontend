@@ -72,6 +72,9 @@ export default function StockMovementsPage() {
   // New Movement Form State
   const [movementType, setMovementType] = useState<"IN" | "OUT" | "ADJUSTMENT">("IN");
   const [selectedStockItem, setSelectedStockItem] = useState<string>("");
+  const [isLoan, setIsLoan] = useState<boolean>(false);
+  const [paidAmount, setPaidAmount] = useState<string>("");
+  const [supplierName, setSupplierName] = useState<string>("");
 
   const fetchItems = useCallback(async () => {
     try {
@@ -127,12 +130,23 @@ export default function StockMovementsPage() {
       data.quantity = Number(formData.get("quantity"));
     }
 
+    if (movementType === "IN" && isLoan) {
+      data.loanInfo = {
+        isLoan: true,
+        paidAmount: paidAmount !== "" ? Number(paidAmount) : 0,
+        supplierName: supplierName.trim() || undefined,
+      };
+    }
+
     try {
       await api.post("/stock-movements", data);
       toast.success("Stock movement recorded");
       setIsAddOpen(false);
       setMovementType("IN");
       setSelectedStockItem("");
+      setIsLoan(false);
+      setPaidAmount("");
+      setSupplierName("");
       fetchMovements();
       fetchItems(); // Refresh current quantities 
     } catch (error: any) {
@@ -165,7 +179,8 @@ export default function StockMovementsPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
+      {/* Desktop Table View */}
+      <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
         <Table>
           <TableHeader>
             <TableRow>
@@ -222,10 +237,60 @@ export default function StockMovementsPage() {
         </Table>
       </div>
 
+      {/* Mobile Cards View */}
+      <div className="grid grid-cols-1 gap-3 sm:hidden">
+        {isLoading ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">Loading stock movements...</div>
+        ) : movements.length === 0 ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">No movements recorded yet.</div>
+        ) : movements.map(mov => {
+          const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
+          const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
+          const isNegative = mov.type === "OUT" || mov.type === "PRODUCTION_USAGE";
+
+          return (
+            <div key={mov.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-2.5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-extrabold text-[#2C1B10] text-base">{mov.stockItem?.name || "Unknown Item"}</div>
+                  <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</div>
+                </div>
+                <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${getMovementColor(mov.type)}`}>
+                  {mov.type.replace('_', ' ')}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Quantity Delta</span>
+                  <span className={`font-bold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
+                    {isNegative ? "-" : "+"}{Number(mov.quantity).toFixed(2)} {mov.stockItem?.unitType}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Monetary Value</span>
+                  <span className={`font-extrabold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
+                    {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
+                <span>By: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
+                <span className="truncate max-w-[150px]">{mov.reason || "No note"}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {isAddOpen && (
         <Dialog open={true} onOpenChange={(open) => {
           if (!open) {
             setIsAddOpen(false);
+            setIsLoan(false);
+            setPaidAmount("");
+            setSupplierName("");
           }
         }}>
           <DialogContent className="max-w-md">
@@ -283,6 +348,46 @@ export default function StockMovementsPage() {
                   <label className="text-sm font-medium mb-1 block">Reason / Reference (Optional)</label>
                   <Input name="reason" placeholder="e.g. Supplier delivery, Spilled, Recount" />
                 </div>
+
+                {movementType === "IN" && (
+                  <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isLoan} 
+                        onChange={(e) => setIsLoan(e.target.checked)} 
+                        className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-purple-900">Purchased on Credit / Loan?</span>
+                    </label>
+
+                    {isLoan && (
+                      <div className="space-y-3 pt-1">
+                        <div>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Supplier / Vendor Name (Optional)</label>
+                          <Input 
+                            value={supplierName} 
+                            onChange={(e) => setSupplierName(e.target.value)} 
+                            placeholder="e.g. Flour Supplier" 
+                            className="bg-white rounded-xl border-purple-200 text-xs" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Amount Paid Upfront (Down Payment)</label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0" 
+                            value={paidAmount} 
+                            onChange={(e) => setPaidAmount(e.target.value)} 
+                            placeholder="0.00 (leave 0 if full credit)" 
+                            className="bg-white rounded-xl border-purple-200 text-xs" 
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
               </div>
               <DialogFooter>

@@ -26,10 +26,15 @@ type ReportResponse = {
   ownerExpenseTotal?: number;
   loanTotal?: number;
   supplierDeliveryCost?: number;
+  stockLoanPaymentTotal?: number;
   payrollTotal?: number;
+  totalOperatingExpenses?: number;
   totalExpenses?: number;
   totalExpense?: number;
+  grossProfit?: number;
+  operatingNetIncome?: number;
   netIncome?: number;
+  netIncomeAfterOwnerDrawings?: number;
   totals?: {
     openingLeftoverQuantity: number;
     salesTotal: number;
@@ -38,9 +43,15 @@ type ReportResponse = {
     ownerExpenseTotal: number;
     loanTotal: number;
     supplierDeliveryCost: number;
+    stockLoanPaymentTotal?: number;
     payrollTotal: number;
+    totalOperatingExpenses?: number;
     totalExpense: number;
+    totalExpenses: number;
+    grossProfit?: number;
+    operatingNetIncome?: number;
     netIncome: number;
+    netIncomeAfterOwnerDrawings?: number;
   };
   dailyBreakdown: Array<{
     date: string;
@@ -51,8 +62,10 @@ type ReportResponse = {
     ownerExpenseTotal: number;
     loanTotal: number;
     supplierDeliveryCost: number;
+    stockLoanPaymentTotal?: number;
     payrollTotal: number;
-    netIncome: number;
+    operatingNetIncome?: number;
+    netIncome?: number;
   }>;
   sessions: Array<{
     id: string;
@@ -101,6 +114,26 @@ type ReportResponse = {
     financialCategory?: { name: string } | null;
     user?: { fullName: string } | null;
   }>;
+  companyExpenses?: Array<{
+    id: string;
+    date: string;
+    amount: number;
+    category: string;
+    description?: string | null;
+    type: string;
+    financialCategory?: { name: string } | null;
+    user?: { fullName: string } | null;
+  }>;
+  ownerExpenses?: Array<{
+    id: string;
+    date: string;
+    amount: number;
+    category: string;
+    description?: string | null;
+    type: string;
+    financialCategory?: { name: string } | null;
+    user?: { fullName: string } | null;
+  }>;
   loans: Array<{
     id: string;
     date: string;
@@ -121,6 +154,17 @@ type ReportResponse = {
     supplier: { name: string };
     product: { name: string };
   }>;
+  stockPurchasePayments?: Array<{
+    id: string;
+    createdAt: string;
+    amount: number;
+    note?: string | null;
+    user?: { fullName: string } | null;
+    loan?: {
+      supplierName: string;
+      stockMovement?: { stockItem?: { name: string } } | null;
+    } | null;
+  }>;
   payrollRecords: Array<{
     id: string;
     paymentDate?: string | null;
@@ -129,15 +173,8 @@ type ReportResponse = {
   }>;
 };
 
-type BranchOption = {
-  id: string;
-  name: string;
-  address?: string | null;
-  isActive: boolean;
-};
-
 function money(value: number | undefined | null) {
-  return `ETB ${Number(value ?? 0).toFixed(2)}`;
+  return `ETB ${Number(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function ReportsPage() {
@@ -155,6 +192,9 @@ export default function ReportsPage() {
   const [semester, setSemester] = useState(String(new Date().getMonth() < 6 ? 1 : 2));
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<ReportResponse | null>(null);
+
+  // Expense Filter state for the report audit table
+  const [reportExpenseFilter, setReportExpenseFilter] = useState<"ALL" | "COMPANY" | "OWNER">("ALL");
 
   const allowed = user?.role === "OWNER";
 
@@ -244,6 +284,13 @@ export default function ReportsPage() {
     return rows;
   }, [report]);
 
+  const filteredReportExpenses = useMemo(() => {
+    const list = report?.expenses || [];
+    if (reportExpenseFilter === "COMPANY") return list.filter(e => e.type === "COMPANY");
+    if (reportExpenseFilter === "OWNER") return list.filter(e => e.type === "OWNER");
+    return list;
+  }, [report, reportExpenseFilter]);
+
   const totals = report?.totals || {
     openingLeftoverQuantity: 0,
     salesTotal: report?.salesTotal ?? 0,
@@ -252,17 +299,20 @@ export default function ReportsPage() {
     ownerExpenseTotal: report?.ownerExpenseTotal ?? 0,
     loanTotal: report?.loanTotal ?? 0,
     supplierDeliveryCost: report?.supplierDeliveryCost ?? 0,
+    stockLoanPaymentTotal: report?.stockLoanPaymentTotal ?? 0,
     payrollTotal: report?.payrollTotal ?? 0,
     totalExpense: report?.totalExpenses ?? report?.totalExpense ?? 0,
-    netIncome: report?.netIncome ?? 0,
+    operatingNetIncome: report?.operatingNetIncome ?? report?.netIncome ?? 0,
+    netIncome: report?.operatingNetIncome ?? report?.netIncome ?? 0,
+    netIncomeAfterOwnerDrawings: report?.netIncomeAfterOwnerDrawings ?? 0,
   };
 
   const visualTotals = [
-    { label: "Opening Leftovers", value: totals.openingLeftoverQuantity ?? 0, tone: "bg-violet-500", display: (value: number) => String(value) },
-    { label: "Sales", value: totals.salesTotal ?? 0, tone: "bg-emerald-500", display: money },
-    { label: "Net Income", value: totals.netIncome ?? 0, tone: "bg-sky-500", display: money },
-    { label: "Expenses", value: totals.totalExpense ?? 0, tone: "bg-rose-500", display: money },
-    { label: "Loans", value: totals.loanTotal ?? 0, tone: "bg-amber-500", display: money },
+    { label: "Sales Revenue", value: totals.salesTotal ?? 0, tone: "bg-emerald-500", display: money },
+    { label: "Company Operating Costs", value: (totals.companyExpenseTotal ?? 0) + (totals.payrollTotal ?? 0) + (totals.stockLoanPaymentTotal ?? 0), tone: "bg-blue-500", display: money },
+    { label: "Raw Material Costs", value: totals.supplierDeliveryCost ?? 0, tone: "bg-amber-500", display: money },
+    { label: "Operating Net Income", value: totals.operatingNetIncome ?? totals.netIncome ?? 0, tone: "bg-sky-500", display: money },
+    { label: "Owner Drawings", value: totals.ownerExpenseTotal ?? 0, tone: "bg-purple-500", display: money },
   ];
   const maxVisual = Math.max(...visualTotals.map((item) => item.value), 1);
 
@@ -294,7 +344,7 @@ export default function ReportsPage() {
             📊 Owner Financial & Performance Reports
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            Detailed revenue, operational expense, raw material cost, and profit analysis.
+            Detailed revenue, operational expense, raw material cost, supplier credit loans, and owner drawings analysis.
           </p>
         </div>
 
@@ -302,7 +352,7 @@ export default function ReportsPage() {
           onClick={handlePrint}
           className="bg-[#2C1B10] hover:bg-[#4A2E1B] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-2"
         >
-          🖨️ Print Detailed Analysis
+          🖨️ Print Financial Statement
         </Button>
       </div>
 
@@ -457,14 +507,14 @@ export default function ReportsPage() {
         <>
           <Card className="mb-6 border-zinc-200 bg-gradient-to-br from-white to-zinc-50">
             <CardHeader>
-              <CardTitle>Visual Snapshot</CardTitle>
+              <CardTitle>Visual Financial Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {visualTotals.map((item) => (
                 <div key={item.label}>
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span className="font-medium text-zinc-700">{item.label}</span>
-                    <span className="text-zinc-500">{item.display(item.value)}</span>
+                    <span className="text-zinc-500 font-bold">{item.display(item.value)}</span>
                   </div>
                   <div className="h-3 rounded-full bg-zinc-100 overflow-hidden">
                     <div
@@ -477,25 +527,58 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
+          {/* Primary Financial Summary KPI Cards */}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
-            <Card><CardHeader><CardTitle className="text-sm">Opening Leftovers</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{totals.openingLeftoverQuantity}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Sales</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(totals.salesTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Cash Leftover</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(totals.cashLeftoverTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Total Expense</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(totals.totalExpense)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Net Income</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{money(totals.netIncome)}</CardContent></Card>
+            <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-emerald-800 tracking-wider">Total Sales Revenue</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-emerald-950">{money(totals.salesTotal)}</div><p className="text-[11px] text-emerald-700 mt-1 font-medium">Counter sales from daily sessions</p></CardContent>
+            </Card>
+
+            <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-blue-800 tracking-wider">Company Operating Expenses</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-blue-950">{money(totals.companyExpenseTotal)}</div><p className="text-[11px] text-blue-700 mt-1 font-medium">Daily operational business costs</p></CardContent>
+            </Card>
+
+            <Card className="border-amber-200 bg-gradient-to-br from-amber-50/80 to-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-amber-800 tracking-wider">Raw Material Buy Costs</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-amber-950">{money(totals.supplierDeliveryCost)}</div><p className="text-[11px] text-amber-700 mt-1 font-medium">Supplier ingredient purchases</p></CardContent>
+            </Card>
+
+            <Card className="border-sky-200 bg-gradient-to-br from-sky-50/80 to-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-sky-800 tracking-wider">Operating Net Income</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-sky-950">{money(totals.operatingNetIncome ?? totals.netIncome)}</div><p className="text-[11px] text-sky-700 mt-1 font-medium">Sales - (Company Operating Costs + Materials)</p></CardContent>
+            </Card>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
-            <Card><CardHeader><CardTitle className="text-sm">Company Expense</CardTitle></CardHeader><CardContent>{money(totals.companyExpenseTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Owner Expense</CardTitle></CardHeader><CardContent>{money(totals.ownerExpenseTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Loans</CardTitle></CardHeader><CardContent>{money(totals.loanTotal)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Supplier Cost</CardTitle></CardHeader><CardContent>{money(totals.supplierDeliveryCost)}</CardContent></Card>
+            <Card className="border-purple-200 bg-gradient-to-br from-purple-50/80 to-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-purple-800 tracking-wider">Owner Personal Drawings</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-purple-950">{money(totals.ownerExpenseTotal)}</div><p className="text-[11px] text-purple-700 mt-1 font-medium">Owner withdrawals (Range calculation)</p></CardContent>
+            </Card>
+
+            <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/80 to-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-indigo-800 tracking-wider">Net Cash After Owner Drawings</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-indigo-950">{money(totals.netIncomeAfterOwnerDrawings ?? ((totals.operatingNetIncome ?? totals.netIncome ?? 0) - (totals.ownerExpenseTotal ?? 0)))}</div><p className="text-[11px] text-indigo-700 mt-1 font-medium">Net Income after Owner Withdrawals</p></CardContent>
+            </Card>
+
+            <Card className="border-zinc-200 bg-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-zinc-700 tracking-wider">Stock Credit Payments</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-zinc-900">{money(totals.stockLoanPaymentTotal ?? 0)}</div><p className="text-[11px] text-zinc-600 mt-1 font-medium">Supplier credit loan repayments</p></CardContent>
+            </Card>
+
+            <Card className="border-zinc-200 bg-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-zinc-700 tracking-wider">Staff Payroll Paid</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-zinc-900">{money(totals.payrollTotal)}</div><p className="text-[11px] text-zinc-600 mt-1 font-medium">Total payroll payouts to staff</p></CardContent>
+            </Card>
           </div>
 
+          {/* Daily Financial Breakdown Table */}
           <Card className="mb-6 rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
             <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
               <CardTitle className="text-base font-extrabold text-[#2C1B10]">Daily Financial Breakdown</CardTitle>
-              <CardDescription className="text-xs text-[#8C7361]">Comprehensive day-by-day statement of revenues, costs, and net income</CardDescription>
+              <CardDescription className="text-xs text-[#8C7361]">
+                Comprehensive day-by-day statement of operational revenues, company costs, daily operating net income, and separate owner drawings.
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
@@ -503,40 +586,52 @@ export default function ReportsPage() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-center">Opening Leftovers</TableHead>
-                    <TableHead className="text-right">Total Sales</TableHead>
-                    <TableHead className="text-right">Cash Leftover</TableHead>
-                    <TableHead className="text-right text-rose-700">Total Expenses</TableHead>
-                    <TableHead className="text-right">Loans Out</TableHead>
-                    <TableHead className="text-right">Supplier Cost</TableHead>
-                    <TableHead className="text-right pr-6">Net Daily Income</TableHead>
+                    <TableHead className="text-right text-emerald-800">Sales Revenue</TableHead>
+                    <TableHead className="text-right text-blue-800">Company Expenses</TableHead>
+                    <TableHead className="text-right text-amber-800">Material Costs</TableHead>
+                    <TableHead className="text-right text-zinc-700">Payroll & Credit</TableHead>
+                    <TableHead className="text-right font-bold text-sky-900">Daily Operating Net</TableHead>
+                    <TableHead className="text-right pr-6 text-purple-800">Owner Drawings</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(report.dailyBreakdown || []).length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">No financial entries in this date range.</TableCell></TableRow>
-                  ) : (report.dailyBreakdown || []).map((row) => (
-                    <TableRow key={row.date}>
-                      <TableCell className="font-bold text-[#2C1B10]">{row.date}</TableCell>
-                      <TableCell className="text-center font-semibold text-[#8C7361]">{row.openingLeftoverQuantity}</TableCell>
-                      <TableCell className="text-right font-bold text-emerald-700">{money(row.salesTotal)}</TableCell>
-                      <TableCell className="text-right font-semibold text-[#4A2E1B]">{money(row.cashLeftoverTotal)}</TableCell>
-                      <TableCell className="text-right font-bold text-rose-700">{money(row.companyExpenseTotal + row.ownerExpenseTotal + row.payrollTotal)}</TableCell>
-                      <TableCell className="text-right font-semibold text-[#8C7361]">{money(row.loanTotal)}</TableCell>
-                      <TableCell className="text-right font-semibold text-[#8C7361]">{money(row.supplierDeliveryCost)}</TableCell>
-                      <TableCell className={`text-right font-extrabold pr-6 ${Number(row.netIncome) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        {money(row.netIncome)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  ) : (report.dailyBreakdown || []).map((row) => {
+                    const dailyOpNet = row.operatingNetIncome ?? (row.salesTotal - (row.companyExpenseTotal + row.supplierDeliveryCost + row.payrollTotal + (row.stockLoanPaymentTotal || 0)));
+                    return (
+                      <TableRow key={row.date}>
+                        <TableCell className="font-bold text-[#2C1B10]">{row.date}</TableCell>
+                        <TableCell className="text-center font-semibold text-[#8C7361]">{row.openingLeftoverQuantity}</TableCell>
+                        <TableCell className="text-right font-bold text-emerald-700">{money(row.salesTotal)}</TableCell>
+                        <TableCell className="text-right font-bold text-blue-700">{money(row.companyExpenseTotal)}</TableCell>
+                        <TableCell className="text-right font-semibold text-amber-800">{money(row.supplierDeliveryCost)}</TableCell>
+                        <TableCell className="text-right font-semibold text-zinc-700">{money(row.payrollTotal + (row.stockLoanPaymentTotal || 0))}</TableCell>
+                        <TableCell className={`text-right font-extrabold ${dailyOpNet >= 0 ? 'text-emerald-700 bg-emerald-50/50' : 'text-rose-700 bg-rose-50/50'}`}>
+                          {money(dailyOpNet)}
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-purple-700 pr-6">
+                          {row.ownerExpenseTotal > 0 ? (
+                            <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-bold">
+                              {money(row.ownerExpenseTotal)}
+                            </span>
+                          ) : (
+                            "0.00 ETB"
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
 
+          {/* Itemized Sales Table */}
           <Card className="mb-6 rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
             <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
-              <CardTitle className="text-base font-extrabold text-[#2C1B10]">Itemized Sales Details</CardTitle>
-              <CardDescription className="text-xs text-[#8C7361]">Breakdown of every item sold across all sessions in this period</CardDescription>
+              <CardTitle className="text-base font-extrabold text-[#2C1B10]">Itemized Counter Sales Log</CardTitle>
+              <CardDescription className="text-xs text-[#8C7361]">Breakdown of every item sold across all daily sessions in this period</CardDescription>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
@@ -564,28 +659,81 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
+          {/* Itemized Expenses Breakdown with Filter Tabs */}
           <Card className="mb-6 rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
-            <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
-              <CardTitle className="text-base font-extrabold text-[#2C1B10]">Opening Leftovers Carried Forward</CardTitle>
-              <CardDescription className="text-xs text-[#8C7361]">Initial unsold batch inventory brought forward at session start</CardDescription>
+            <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-extrabold text-[#2C1B10]">Itemized Expense Records</CardTitle>
+                <CardDescription className="text-xs text-[#8C7361]">Detailed list of all logged expenses with type classification</CardDescription>
+              </div>
+
+              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#EDE4D5]">
+                <button
+                  onClick={() => setReportExpenseFilter("ALL")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    reportExpenseFilter === "ALL"
+                      ? "bg-[#4A2E1B] text-white shadow-xs"
+                      : "text-[#8C7361] hover:text-[#2C1B10]"
+                  }`}
+                >
+                  All ({report.expenses?.length || 0})
+                </button>
+                <button
+                  onClick={() => setReportExpenseFilter("COMPANY")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    reportExpenseFilter === "COMPANY"
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "text-[#8C7361] hover:text-blue-700"
+                  }`}
+                >
+                  🏢 Company ({report.expenses?.filter(e => e.type === "COMPANY").length || 0})
+                </button>
+                <button
+                  onClick={() => setReportExpenseFilter("OWNER")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    reportExpenseFilter === "OWNER"
+                      ? "bg-purple-600 text-white shadow-xs"
+                      : "text-[#8C7361] hover:text-purple-700"
+                  }`}
+                >
+                  👑 Owner ({report.expenses?.filter(e => e.type === "OWNER").length || 0})
+                </button>
+              </div>
             </CardHeader>
+
             <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Session Date</TableHead>
-                    <TableHead>Product Name</TableHead>
-                    <TableHead className="text-right pr-6">Leftover Quantity Carried</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Category / Reason</TableHead>
+                    <TableHead>Note / Purpose</TableHead>
+                    <TableHead>Logged By</TableHead>
+                    <TableHead className="text-right pr-6">Expense Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {openingLeftoverRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center py-8 text-[#8C7361] font-medium">No opening leftovers recorded in this range.</TableCell></TableRow>
-                  ) : openingLeftoverRows.map((entry) => (
-                    <TableRow key={entry.key}>
-                      <TableCell className="font-semibold text-xs text-[#8C7361]">{entry.sessionDate}</TableCell>
-                      <TableCell className="font-bold text-[#2C1B10]">{entry.productName}</TableCell>
-                      <TableCell className="text-right font-bold text-[#4A2E1B] pr-6">{entry.quantity}</TableCell>
+                  {filteredReportExpenses.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-[#8C7361] font-medium">No expense records matching this filter.</TableCell></TableRow>
+                  ) : filteredReportExpenses.map((expense) => (
+                    <TableRow key={expense.id}>
+                      <TableCell className="text-xs font-semibold text-[#8C7361]">{expense.date ? new Date(expense.date).toISOString().slice(0, 10) : '—'}</TableCell>
+                      <TableCell>
+                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold border ${
+                          expense.type === "OWNER"
+                            ? "bg-purple-100 text-purple-800 border-purple-200"
+                            : "bg-blue-100 text-blue-800 border-blue-200"
+                        }`}>
+                          {expense.type === "OWNER" ? "👤 OWNER" : "🏢 COMPANY"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-bold text-[#2C1B10] text-xs">{expense.financialCategory?.name || expense.category}</TableCell>
+                      <TableCell className="text-xs text-[#8C7361] max-w-[200px] truncate">{expense.description || expense.category || '—'}</TableCell>
+                      <TableCell className="text-xs font-medium text-[#2C1B10]">{expense.user?.fullName || '—'}</TableCell>
+                      <TableCell className={`text-right font-extrabold pr-6 ${expense.type === 'OWNER' ? 'text-purple-700' : 'text-rose-700'}`}>
+                        {money(expense.amount)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -593,30 +741,67 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-6 xl:grid-cols-2 mb-6">
-            <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+          {/* Itemized Stock Credit Loan Repayments */}
+          {(report.stockPurchasePayments || []).length > 0 && (
+            <Card className="mb-6 rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
               <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
-                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Expenses Breakdown</CardTitle>
+                <CardTitle className="text-base font-extrabold text-[#2C1B10]">Stock Credit Loan Repayments</CardTitle>
+                <CardDescription className="text-xs text-[#8C7361]">Repayments made towards supplier credit loans in this date range</CardDescription>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Reason / Notes</TableHead>
-                      <TableHead className="text-right pr-6">Amount</TableHead>
+                      <TableHead>Payment Date</TableHead>
+                      <TableHead>Supplier / Item</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Recorded By</TableHead>
+                      <TableHead className="text-right pr-6">Amount Paid</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(report.expenses || []).length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-[#8C7361] font-medium">No expenses in this period.</TableCell></TableRow>
-                    ) : (report.expenses || []).map((expense) => (
-                      <TableRow key={expense.id}>
-                        <TableCell className="text-xs font-semibold text-[#8C7361]">{expense.date ? new Date(expense.date).toISOString().slice(0, 10) : '—'}</TableCell>
-                        <TableCell className="font-bold text-[#2C1B10] text-xs">{expense.financialCategory?.name || expense.category}</TableCell>
-                        <TableCell className="text-xs text-[#8C7361] max-w-[180px] truncate">{expense.description || expense.category || '—'}</TableCell>
-                        <TableCell className="text-right font-bold text-rose-700 pr-6">{money(expense.amount)}</TableCell>
+                    {(report.stockPurchasePayments || []).map((payment: any) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">
+                          {payment.createdAt ? new Date(payment.createdAt).toISOString().slice(0, 10) : "—"}
+                        </TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">
+                          {payment.loan?.supplierName || payment.loan?.stockMovement?.stockItem?.name || "Supplier Loan"}
+                        </TableCell>
+                        <TableCell className="text-xs text-[#8C7361]">{payment.note || "Repayment"}</TableCell>
+                        <TableCell className="text-xs font-medium text-[#2C1B10]">{payment.user?.fullName || "—"}</TableCell>
+                        <TableCell className="text-right font-extrabold text-[#4A2E1B] pr-6">{money(payment.amount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid gap-6 xl:grid-cols-2 mb-6">
+            {/* Opening Leftovers */}
+            <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
+              <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
+                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Opening Leftovers Carried</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Session Date</TableHead>
+                      <TableHead>Product Name</TableHead>
+                      <TableHead className="text-right pr-6">Leftover Quantity</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {openingLeftoverRows.length === 0 ? (
+                      <TableRow><TableCell colSpan={3} className="text-center py-6 text-[#8C7361] font-medium">No opening leftovers recorded in this range.</TableCell></TableRow>
+                    ) : openingLeftoverRows.map((entry) => (
+                      <TableRow key={entry.key}>
+                        <TableCell className="font-semibold text-xs text-[#8C7361]">{entry.sessionDate}</TableCell>
+                        <TableCell className="font-bold text-[#2C1B10]">{entry.productName}</TableCell>
+                        <TableCell className="text-right font-bold text-[#4A2E1B] pr-6">{entry.quantity}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -624,29 +809,30 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
+            {/* Supplier Raw Material Deliveries */}
             <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
               <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
-                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Loans Activity</CardTitle>
+                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Supplier Material Purchases</CardTitle>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Loan Type</TableHead>
-                      <TableHead>Borrower</TableHead>
-                      <TableHead className="text-right pr-6">Principal Amount</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Material / Item</TableHead>
+                      <TableHead className="text-right pr-6">Net Cost</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(report.loans || []).length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-[#8C7361] font-medium">No loans issued in this period.</TableCell></TableRow>
-                    ) : (report.loans || []).map((loan) => (
-                      <TableRow key={loan.id}>
-                        <TableCell className="text-xs font-semibold text-[#8C7361]">{loan.date ? new Date(loan.date).toISOString().slice(0, 10) : '—'}</TableCell>
-                        <TableCell><span className="text-xs font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">{loan.type}</span></TableCell>
-                        <TableCell className="font-bold text-[#2C1B10] text-xs">{loan.user?.fullName || loan.entityId || '—'}</TableCell>
-                        <TableCell className="text-right font-bold text-[#2C1B10] pr-6">{money(loan.totalAmount)}</TableCell>
+                    {(report.supplierDeliveries || []).length === 0 ? (
+                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-[#8C7361] font-medium">No supplier deliveries in this period.</TableCell></TableRow>
+                    ) : (report.supplierDeliveries || []).map((delivery) => (
+                      <TableRow key={delivery.id}>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">{delivery.createdAt ? new Date(delivery.createdAt).toISOString().slice(0, 10) : '—'}</TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">{delivery.supplier?.name || '—'}</TableCell>
+                        <TableCell className="font-semibold text-[#4A2E1B] text-xs">{delivery.product?.name || '—'}</TableCell>
+                        <TableCell className="text-right font-extrabold text-[#2C1B10] pr-6">{money((delivery.unitBuyPrice || 0) * ((delivery.quantityReceived || 0) - (delivery.returnedQuantity || 0)))}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -656,9 +842,10 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-2 mb-6">
+            {/* Production Batches */}
             <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
               <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
-                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Production Batches</CardTitle>
+                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Production Batches Logged</CardTitle>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
@@ -684,29 +871,28 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
+            {/* Staff Payroll Records */}
             <Card className="rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
               <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
-                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Supplier Deliveries</CardTitle>
+                <CardTitle className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">Staff Payroll Payouts</CardTitle>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Material / Item</TableHead>
-                      <TableHead className="text-right pr-6">Net Cost</TableHead>
+                      <TableHead>Payout Date</TableHead>
+                      <TableHead>Employee Name</TableHead>
+                      <TableHead className="text-right pr-6">Final Amount Paid</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(report.supplierDeliveries || []).length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-[#8C7361] font-medium">No supplier deliveries in this period.</TableCell></TableRow>
-                    ) : (report.supplierDeliveries || []).map((delivery) => (
-                      <TableRow key={delivery.id}>
-                        <TableCell className="text-xs font-semibold text-[#8C7361]">{delivery.createdAt ? new Date(delivery.createdAt).toISOString().slice(0, 10) : '—'}</TableCell>
-                        <TableCell className="font-bold text-[#2C1B10] text-xs">{delivery.supplier?.name || '—'}</TableCell>
-                        <TableCell className="font-semibold text-[#4A2E1B] text-xs">{delivery.product?.name || '—'}</TableCell>
-                        <TableCell className="text-right font-extrabold text-[#2C1B10] pr-6">{money((delivery.unitBuyPrice || 0) * ((delivery.quantityReceived || 0) - (delivery.returnedQuantity || 0)))}</TableCell>
+                    {(report.payrollRecords || []).length === 0 ? (
+                      <TableRow><TableCell colSpan={3} className="text-center py-6 text-[#8C7361] font-medium">No payroll payouts in this period.</TableCell></TableRow>
+                    ) : (report.payrollRecords || []).map((payroll) => (
+                      <TableRow key={payroll.id}>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">{payroll.paymentDate ? new Date(payroll.paymentDate).toISOString().slice(0, 10) : '—'}</TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">{payroll.user?.fullName || '—'}</TableCell>
+                        <TableCell className="text-right font-extrabold text-[#2C1B10] pr-6">{money(payroll.finalAmount)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

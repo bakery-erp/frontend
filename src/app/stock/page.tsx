@@ -62,6 +62,16 @@ export default function StockPage() {
   const [addAmount, setAddAmount] = useState<string>("");
   const [addReason, setAddReason] = useState<string>("");
 
+  // Loan state for Creation
+  const [isCreateLoan, setIsCreateLoan] = useState<boolean>(false);
+  const [createPaidAmount, setCreatePaidAmount] = useState<string>("");
+  const [createSupplierName, setCreateSupplierName] = useState<string>("");
+
+  // Loan state for Restock / Addition
+  const [isAddLoan, setIsAddLoan] = useState<boolean>(false);
+  const [addPaidAmount, setAddPaidAmount] = useState<string>("");
+  const [addSupplierName, setAddSupplierName] = useState<string>("");
+
   // Manual stock reduction modal state
   const [reducingItem, setReducingItem] = useState<StockItem | null>(null);
   const [reduceAmount, setReduceAmount] = useState<string>("");
@@ -99,6 +109,11 @@ export default function StockPage() {
       currentQuantity: Number(formData.get("currentQuantity")),
       unitPrice: formData.get("unitPrice") ? Number(formData.get("unitPrice")) : 0,
       minStockLevel: formData.get("minStockLevel") ? Number(formData.get("minStockLevel")) : undefined,
+      loanInfo: !isEdit && isCreateLoan ? {
+        isLoan: true,
+        paidAmount: createPaidAmount !== "" ? Number(createPaidAmount) : 0,
+        supplierName: createSupplierName.trim() || undefined,
+      } : undefined,
     };
 
     try {
@@ -111,6 +126,9 @@ export default function StockPage() {
       }
       setIsAddOpen(false);
       setEditingItem(null);
+      setIsCreateLoan(false);
+      setCreatePaidAmount("");
+      setCreateSupplierName("");
       fetchData();
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error saving stock item");
@@ -135,11 +153,19 @@ export default function StockPage() {
       await api.post(`/stock-items/${addingItem.id}/add`, {
         quantity: qty,
         reason: addReason.trim() || "Manual Stock Addition",
+        loanInfo: isAddLoan ? {
+          isLoan: true,
+          paidAmount: addPaidAmount !== "" ? Number(addPaidAmount) : 0,
+          supplierName: addSupplierName.trim() || undefined,
+        } : undefined,
       });
       toast.success(`Successfully added ${qty} ${addingItem.unitType} to ${addingItem.name}`);
       setAddingItem(null);
       setAddAmount("");
       setAddReason("");
+      setIsAddLoan(false);
+      setAddPaidAmount("");
+      setAddSupplierName("");
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to add stock level");
@@ -261,7 +287,8 @@ export default function StockPage() {
         </div>
       )}
 
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
+      {/* Desktop Table View */}
+      <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
         <Table>
           <TableHeader>
             <TableRow>
@@ -335,6 +362,9 @@ export default function StockPage() {
                               setAddingItem(item);
                               setAddAmount("");
                               setAddReason("");
+                              setIsAddLoan(false);
+                              setAddPaidAmount("");
+                              setAddSupplierName("");
                             }}
                             className="h-8 px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex items-center gap-1 font-semibold"
                           >
@@ -381,12 +411,106 @@ export default function StockPage() {
         </Table>
       </div>
 
+      {/* Mobile Cards View */}
+      <div className="grid grid-cols-1 gap-3 sm:hidden">
+        {isLoading ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">Loading stock inventory...</div>
+        ) : filteredItems.length === 0 ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">No matching stock items found.</div>
+        ) : filteredItems.map(item => {
+          const isLowStock = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
+          const price = Number(item.unitPrice || 0);
+          const totalVal = Number(item.currentQuantity) * price;
+          return (
+            <div key={item.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <Link href={`/stock/${item.id}`} className="font-extrabold text-[#2C1B10] hover:text-[#E87A18] text-base block">
+                    {item.name}
+                  </Link>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="px-2 py-0.5 rounded-md bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-[11px] font-bold">
+                      {item.unitType}
+                    </span>
+                    {isLowStock && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
+                        <AlertCircle className="w-3 h-3" /> Low Stock
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-lg font-extrabold ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
+                    {Number(item.currentQuantity).toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-[#8C7361] font-bold uppercase">On-Hand Qty</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs">
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Unit Rate</span>
+                  <span className="font-bold text-[#2C1B10]">{price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}</span>
+                </div>
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Total Valuation</span>
+                  <span className="font-bold text-amber-900">{totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-zinc-100">
+                <Link href={`/stock/${item.id}`} className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full h-8 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold flex items-center justify-center gap-1">
+                    <History className="w-3.5 h-3.5" /> History
+                  </Button>
+                </Link>
+
+                {isGlobalAdmin && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setAddingItem(item);
+                        setAddAmount("");
+                        setAddReason("");
+                        setIsAddLoan(false);
+                        setAddPaidAmount("");
+                        setAddSupplierName("");
+                      }}
+                      className="h-8 px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-bold flex items-center gap-1"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" /> Add
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setReducingItem(item);
+                        setReduceAmount("");
+                        setReduceReason("");
+                      }}
+                      className="h-8 px-2.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 font-bold flex items-center gap-1"
+                    >
+                      <MinusCircle className="w-3.5 h-3.5" /> Reduce
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Add / Edit Item Definition Dialog */}
       {(isAddOpen || editingItem) && (
         <Dialog open={true} onOpenChange={(open) => {
           if (!open) {
             setIsAddOpen(false);
             setEditingItem(null);
+            setIsCreateLoan(false);
+            setCreatePaidAmount("");
+            setCreateSupplierName("");
           }
         }}>
           <DialogContent className="max-w-md rounded-2xl">
@@ -437,6 +561,49 @@ export default function StockPage() {
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Minimum Stock Threshold (Alert level)</label>
                   <Input name="minStockLevel" type="number" step="0.001" defaultValue={editingItem?.minStockLevel ?? ""} placeholder="e.g. 10.00" className="rounded-xl border-zinc-200" />
                 </div>
+
+                {!editingItem && (
+                  <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3 mt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isCreateLoan} 
+                        onChange={(e) => setIsCreateLoan(e.target.checked)} 
+                        className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-purple-900">Purchased on Credit / Loan?</span>
+                    </label>
+
+                    {isCreateLoan && (
+                      <div className="space-y-3 pt-1">
+                        <div>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Supplier / Vendor Name (Optional)</label>
+                          <Input 
+                            value={createSupplierName} 
+                            onChange={(e) => setCreateSupplierName(e.target.value)} 
+                            placeholder="e.g. Flour Factory PLC" 
+                            className="bg-white rounded-xl border-purple-200 text-xs" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Amount Paid Upfront (Down Payment)</label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0" 
+                            value={createPaidAmount} 
+                            onChange={(e) => setCreatePaidAmount(e.target.value)} 
+                            placeholder="0.00 (leave 0 if full credit)" 
+                            className="bg-white rounded-xl border-purple-200 text-xs" 
+                          />
+                          <p className="text-[10px] text-purple-700 mt-1 font-medium">
+                            If unpaid or partial, the remaining balance will be tracked as a credit purchase loan.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <DialogFooter className="gap-2">
                 <Button type="button" variant="outline" onClick={() => { setIsAddOpen(false); setEditingItem(null); }} className="rounded-xl">Cancel</Button>
@@ -491,6 +658,47 @@ export default function StockPage() {
                     placeholder="e.g. Local Purchase, Restock, Inventory Audit" 
                     className="rounded-xl border-zinc-200" 
                   />
+                </div>
+
+                <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={isAddLoan} 
+                      onChange={(e) => setIsAddLoan(e.target.checked)} 
+                      className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                    />
+                    <span className="text-xs font-bold text-purple-900">Purchased on Credit / Loan?</span>
+                  </label>
+
+                  {isAddLoan && (
+                    <div className="space-y-3 pt-1">
+                      <div>
+                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Supplier / Vendor Name (Optional)</label>
+                        <Input 
+                          value={addSupplierName} 
+                          onChange={(e) => setAddSupplierName(e.target.value)} 
+                          placeholder="e.g. Grain Market Supplier" 
+                          className="bg-white rounded-xl border-purple-200 text-xs" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Amount Paid Upfront (Down Payment)</label>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          min="0" 
+                          value={addPaidAmount} 
+                          onChange={(e) => setAddPaidAmount(e.target.value)} 
+                          placeholder="0.00 (leave 0 if full credit)" 
+                          className="bg-white rounded-xl border-purple-200 text-xs" 
+                        />
+                        <p className="text-[10px] text-purple-700 mt-1 font-medium">
+                          Total purchase value: {((parseFloat(addAmount) || 0) * Number(addingItem.unitPrice || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <DialogFooter className="gap-2">

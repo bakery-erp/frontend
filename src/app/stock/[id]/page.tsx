@@ -43,6 +43,34 @@ interface StockItem {
   branch?: Branch;
 }
 
+interface StockPurchasePayment {
+  id: string;
+  loanId: string;
+  userId: string;
+  amount: number;
+  note?: string;
+  createdAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+  };
+}
+
+interface StockPurchaseLoan {
+  id: string;
+  stockMovementId: string;
+  stockItemId: string;
+  branchId: string;
+  supplierName?: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingBalance: number;
+  status: "UNPAID" | "PARTIAL" | "PAID";
+  createdAt: string;
+  updatedAt: string;
+  payments?: StockPurchasePayment[];
+}
+
 interface StockMovement {
   id: string;
   stockItemId: string;
@@ -58,6 +86,7 @@ interface StockMovement {
     fullName: string;
     role: string;
   };
+  purchaseLoan?: StockPurchaseLoan;
 }
 
 interface HistoryData {
@@ -87,6 +116,17 @@ export default function StockItemDetailPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addAmount, setAddAmount] = useState<string>("");
   const [addReason, setAddReason] = useState<string>("");
+
+  // Add stock loan state
+  const [isAddLoan, setIsAddLoan] = useState<boolean>(false);
+  const [addPaidAmount, setAddPaidAmount] = useState<string>("");
+  const [addSupplierName, setAddSupplierName] = useState<string>("");
+
+  // Repayment Modal state
+  const [selectedLoan, setSelectedLoan] = useState<StockPurchaseLoan | null>(null);
+  const [payAmount, setPayAmount] = useState<string>("");
+  const [payNote, setPayNote] = useState<string>("");
+  const [isPaying, setIsPaying] = useState<boolean>(false);
 
   const [isReduceOpen, setIsReduceOpen] = useState(false);
   const [reduceAmount, setReduceAmount] = useState<string>("");
@@ -127,16 +167,52 @@ export default function StockItemDetailPage() {
       await api.post(`/stock-items/${itemId}/add`, {
         quantity: qty,
         reason: addReason.trim() || "Manual Stock Addition",
+        loanInfo: isAddLoan ? {
+          isLoan: true,
+          paidAmount: addPaidAmount !== "" ? Number(addPaidAmount) : 0,
+          supplierName: addSupplierName.trim() || undefined,
+        } : undefined,
       });
       toast.success(`Successfully added ${qty} ${data.stockItem.unitType} to ${data.stockItem.name}`);
       setIsAddOpen(false);
       setAddAmount("");
       setAddReason("");
+      setIsAddLoan(false);
+      setAddPaidAmount("");
+      setAddSupplierName("");
       fetchDetail();
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to add stock level");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLoan) return;
+
+    const amt = parseFloat(payAmount);
+    if (isNaN(amt) || amt <= 0) {
+      toast.error("Please enter a valid positive payment amount");
+      return;
+    }
+
+    setIsPaying(true);
+    try {
+      await api.post(`/stock-movements/loans/${selectedLoan.id}/pay`, {
+        amount: amt,
+        note: payNote.trim() || undefined,
+      });
+      toast.success("Loan payment recorded successfully");
+      setSelectedLoan(null);
+      setPayAmount("");
+      setPayNote("");
+      fetchDetail();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to record loan payment");
+    } finally {
+      setIsPaying(false);
     }
   };
 
@@ -376,12 +452,14 @@ export default function StockItemDetailPage() {
           </div>
         </div>
 
-        <div className="border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
+        {/* Desktop Audit Trail Table */}
+        <div className="hidden sm:block border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Date & Time</TableHead>
                 <TableHead>Movement Type</TableHead>
+                <TableHead>Credit / Loan Status</TableHead>
                 <TableHead>Quantity Delta</TableHead>
                 <TableHead>Monetary Delta (ETB)</TableHead>
                 <TableHead>Performed By</TableHead>
@@ -391,7 +469,7 @@ export default function StockItemDetailPage() {
             <TableBody>
               {filteredMovements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
+                  <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
                     No movement records matching filter &apos;{filterType}&apos;.
                   </TableCell>
                 </TableRow>
@@ -400,6 +478,7 @@ export default function StockItemDetailPage() {
                   const mPrice = Number(m.unitPrice ?? unitPrice);
                   const mTotalValue = Number(m.totalValue ?? (Number(m.quantity) * mPrice));
                   const isNegative = m.type === "OUT" || m.type === "PRODUCTION_USAGE";
+                  const loan = m.purchaseLoan;
 
                   return (
                     <TableRow key={m.id}>
@@ -408,6 +487,33 @@ export default function StockItemDetailPage() {
                       </TableCell>
                       <TableCell>
                         {getMovementBadge(m.type)}
+                      </TableCell>
+                      <TableCell>
+                        {loan ? (
+                          <div className="space-y-1">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                              loan.status === 'PAID' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                              loan.status === 'PARTIAL' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                              'bg-rose-100 text-rose-800 border border-rose-200'
+                            }`}>
+                              Credit: {loan.status}
+                            </span>
+                            <div className="text-[10px] text-[#8C7361]">
+                              Due: <strong className="text-[#2C1B10]">{Number(loan.remainingBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</strong>
+                              {loan.supplierName && <div>Supplier: {loan.supplierName}</div>}
+                            </div>
+                            {isGlobalAdmin && (
+                              <button 
+                                onClick={() => setSelectedLoan(loan)}
+                                className="text-[10px] font-bold text-purple-700 hover:text-purple-900 underline block"
+                              >
+                                {loan.remainingBalance > 0 ? "Record Payment" : "Payment History"}
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-zinc-400 font-medium">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="font-bold text-sm">
                         <span className={m.type === "IN" ? "text-emerald-700" : "text-rose-700"}>
@@ -442,11 +548,97 @@ export default function StockItemDetailPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Mobile Audit History Cards */}
+        <div className="grid grid-cols-1 gap-3 sm:hidden">
+          {filteredMovements.length === 0 ? (
+            <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
+              No movement records matching filter &apos;{filterType}&apos;.
+            </div>
+          ) : (
+            filteredMovements.map((m) => {
+              const mPrice = Number(m.unitPrice ?? unitPrice);
+              const mTotalValue = Number(m.totalValue ?? (Number(m.quantity) * mPrice));
+              const isNegative = m.type === "OUT" || m.type === "PRODUCTION_USAGE";
+              const loan = m.purchaseLoan;
+
+              return (
+                <div key={m.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        {getMovementBadge(m.type)}
+                        {loan && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                            loan.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' :
+                            loan.status === 'PARTIAL' ? 'bg-amber-100 text-amber-800' :
+                            'bg-rose-100 text-rose-800'
+                          }`}>
+                            Credit: {loan.status}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#8C7361]">
+                        {format(new Date(m.createdAt), "MMM d, yyyy · h:mm a")}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-base font-extrabold ${m.type === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
+                        {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)} {stockItem.unitType}
+                      </div>
+                      <div className={`text-xs font-bold ${isNegative ? "text-rose-700" : "text-emerald-700"}`}>
+                        {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                      </div>
+                    </div>
+                  </div>
+
+                  {loan && (
+                    <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-xs flex items-center justify-between">
+                      <div>
+                        <div className="text-purple-900 font-bold text-[11px]">
+                          Supplier: {loan.supplierName || "—"}
+                        </div>
+                        <div className="text-[#8C7361] text-[10px]">
+                          Paid: {Number(loan.paidAmount).toFixed(2)} ETB | Remaining: <strong className="text-purple-900">{Number(loan.remainingBalance).toFixed(2)} ETB</strong>
+                        </div>
+                      </div>
+                      {isGlobalAdmin && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setSelectedLoan(loan)}
+                          className="h-7 text-[11px] font-bold text-purple-700 border-purple-300 hover:bg-purple-100"
+                        >
+                          {loan.remainingBalance > 0 ? "Pay Loan" : "History"}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
+                    <div className="flex items-center gap-1">
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>{m.user?.fullName || "System"}</span>
+                    </div>
+                    <span>{m.reason || "No note"}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Manual Stock Addition Modal */}
       {isAddOpen && (
-        <Dialog open={true} onOpenChange={(open) => { if (!open) setIsAddOpen(false); }}>
+        <Dialog open={true} onOpenChange={(open) => { 
+          if (!open) {
+            setIsAddOpen(false);
+            setIsAddLoan(false);
+            setAddPaidAmount("");
+            setAddSupplierName("");
+          } 
+        }}>
           <DialogContent className="max-w-md rounded-2xl border-emerald-200">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
@@ -487,6 +679,47 @@ export default function StockItemDetailPage() {
                     className="rounded-xl border-zinc-200" 
                   />
                 </div>
+
+                <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={isAddLoan} 
+                      onChange={(e) => setIsAddLoan(e.target.checked)} 
+                      className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                    />
+                    <span className="text-xs font-bold text-purple-900">Purchased on Credit / Loan?</span>
+                  </label>
+
+                  {isAddLoan && (
+                    <div className="space-y-3 pt-1">
+                      <div>
+                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Supplier / Vendor Name (Optional)</label>
+                        <Input 
+                          value={addSupplierName} 
+                          onChange={(e) => setAddSupplierName(e.target.value)} 
+                          placeholder="e.g. Grain Market Supplier" 
+                          className="bg-white rounded-xl border-purple-200 text-xs" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Amount Paid Upfront (Down Payment)</label>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          min="0" 
+                          value={addPaidAmount} 
+                          onChange={(e) => setAddPaidAmount(e.target.value)} 
+                          placeholder="0.00 (leave 0 if full credit)" 
+                          className="bg-white rounded-xl border-purple-200 text-xs" 
+                        />
+                        <p className="text-[10px] text-purple-700 mt-1 font-medium">
+                          Total purchase value: {((parseFloat(addAmount) || 0) * unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <DialogFooter className="gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">Cancel</Button>
@@ -495,6 +728,109 @@ export default function StockItemDetailPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Loan Repayment & Audit Dialog */}
+      {selectedLoan && (
+        <Dialog open={true} onOpenChange={(open) => { 
+          if (!open) {
+            setSelectedLoan(null);
+            setPayAmount("");
+            setPayNote("");
+          } 
+        }}>
+          <DialogContent className="max-w-lg rounded-2xl border-purple-200">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-purple-600" />
+                Stock Purchase Loan & Repayment History
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-purple-800 font-semibold uppercase">Supplier</span>
+                  <span className="font-extrabold text-purple-950">{selectedLoan.supplierName || "Unspecified Supplier"}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-purple-800 font-semibold uppercase">Total Loan Amount</span>
+                  <span className="font-extrabold text-purple-950">{Number(selectedLoan.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-purple-800 font-semibold uppercase">Amount Paid So Far</span>
+                  <span className="font-extrabold text-emerald-700">{Number(selectedLoan.paidAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</span>
+                </div>
+                <div className="flex items-center justify-between text-sm pt-2 border-t border-purple-200/60">
+                  <span className="font-bold text-purple-900 uppercase">Remaining Balance</span>
+                  <span className="text-base font-black text-rose-700">{Number(selectedLoan.remainingBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</span>
+                </div>
+              </div>
+
+              {selectedLoan.remainingBalance > 0 && (
+                <form onSubmit={handleRecordPayment} className="space-y-3 p-3.5 bg-white border border-purple-200 rounded-2xl">
+                  <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wider">Record Installment Payment</h4>
+                  
+                  <div>
+                    <label className="text-[11px] font-bold text-[#2C1B10] mb-1 block uppercase">Payment Amount (ETB) *</label>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      max={selectedLoan.remainingBalance}
+                      required 
+                      value={payAmount} 
+                      onChange={(e) => setPayAmount(e.target.value)} 
+                      placeholder={`Max: ${Number(selectedLoan.remainingBalance).toFixed(2)} ETB`} 
+                      className="rounded-xl border-purple-200 text-xs" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-[#2C1B10] mb-1 block uppercase">Payment Note / Receipt (Optional)</label>
+                    <Input 
+                      value={payNote} 
+                      onChange={(e) => setPayNote(e.target.value)} 
+                      placeholder="e.g. Bank Transfer, Cash Installment, Receipt #1029" 
+                      className="rounded-xl border-purple-200 text-xs" 
+                    />
+                  </div>
+
+                  <Button type="submit" disabled={isPaying} className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs h-9">
+                    {isPaying ? "Recording..." : "Record Payment"}
+                  </Button>
+                </form>
+              )}
+
+              {/* Repayment History Audit Trail */}
+              <div>
+                <h4 className="text-xs font-bold text-[#2C1B10] mb-2 uppercase tracking-wider">Payment History Audit</h4>
+                {selectedLoan.payments && selectedLoan.payments.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {selectedLoan.payments.map((p) => (
+                      <div key={p.id} className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-xs flex items-center justify-between">
+                        <div>
+                          <div className="font-bold text-[#2C1B10]">
+                            +{Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          </div>
+                          <div className="text-[10px] text-[#8C7361]">
+                            By {p.user?.fullName || "Staff"} · {format(new Date(p.createdAt), "MMM d, yyyy · h:mm a")}
+                          </div>
+                          {p.note && <div className="text-[10px] text-zinc-600 italic mt-0.5">{p.note}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#8C7361] italic text-center py-3 bg-zinc-50 rounded-xl border border-zinc-200">No repayment installments recorded yet.</p>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setSelectedLoan(null)} className="w-full rounded-xl">Close</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
