@@ -457,7 +457,7 @@ export default function StockItemDetailPage() {
             <form onSubmit={handleAddStock}>
               <div className="grid gap-4 py-3">
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900">
-                  Adding stock to <strong className="font-bold">{stockItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span>.
+                  Adding stock to <strong className="font-bold">{stockItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span> (Rate: <span className="font-bold text-emerald-800">{unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{stockItem.unitType}</span>).
                 </div>
 
                 <div>
@@ -512,7 +512,7 @@ export default function StockItemDetailPage() {
             <form onSubmit={handleReduceStock}>
               <div className="grid gap-4 py-3">
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900">
-                  Reducing stock for <strong className="font-bold">{stockItem.name}</strong>. Currently available: <span className="font-bold text-amber-700">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span>.
+                  Reducing stock for <strong className="font-bold">{stockItem.name}</strong>. Currently available: <span className="font-bold text-amber-700">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span> (Rate: <span className="font-bold text-amber-800">{unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{stockItem.unitType}</span>).
                 </div>
 
                 <div>

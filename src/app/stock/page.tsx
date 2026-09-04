@@ -210,7 +210,7 @@ export default function StockPage() {
           <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">Stock & Inventory</h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Manage raw materials, ingredient stock levels, and item audit history</p>
         </div>
-        {isGlobalAdmin && (
+        {user?.role === "OWNER" && (
           <div className="flex items-center gap-3">
             <Button onClick={() => setIsAddOpen(true)} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5">
               <Plus className="w-4 h-4" />
@@ -462,7 +462,7 @@ export default function StockPage() {
             <form onSubmit={handleAddStock}>
               <div className="grid gap-4 py-3">
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900">
-                  Adding stock to <strong className="font-bold">{addingItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(addingItem.currentQuantity).toFixed(2)} {addingItem.unitType}</span>.
+                  Adding stock to <strong className="font-bold">{addingItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(addingItem.currentQuantity).toFixed(2)} {addingItem.unitType}</span> (Rate: <span className="font-bold text-emerald-800">{Number(addingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{addingItem.unitType}</span>).
                 </div>
 
                 <div>
@@ -517,7 +517,7 @@ export default function StockPage() {
             <form onSubmit={handleReduceStock}>
               <div className="grid gap-4 py-3">
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900">
-                  Reducing stock for <strong className="font-bold">{reducingItem.name}</strong>. Currently available: <span className="font-bold text-amber-700">{Number(reducingItem.currentQuantity).toFixed(2)} {reducingItem.unitType}</span>.
+                  Reducing stock for <strong className="font-bold">{reducingItem.name}</strong>. Currently available: <span className="font-bold text-amber-700">{Number(reducingItem.currentQuantity).toFixed(2)} {reducingItem.unitType}</span> (Rate: <span className="font-bold text-amber-800">{Number(reducingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{reducingItem.unitType}</span>).
                 </div>
 
                 <div>
