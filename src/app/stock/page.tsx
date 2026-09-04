@@ -103,7 +103,7 @@ export default function StockPage() {
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     const data = {
-      branchId: isGlobalAdmin ? formData.get("branchId") : undefined,
+      branchId: (formData.get("branchId") as string) || selectedBranchId || user?.branchId || undefined,
       name: formData.get("name"),
       unitType: formData.get("unitType"),
       currentQuantity: Number(formData.get("currentQuantity")),
