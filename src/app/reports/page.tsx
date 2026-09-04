@@ -21,6 +21,10 @@ type ReportResponse = {
   to?: string;
   date?: string;
   salesTotal?: number;
+  customerCreditSalesTotal?: number;
+  customerCreditPaymentTotal?: number;
+  grossRevenueTotal?: number;
+  totalCashCollected?: number;
   cashLeftoverTotal?: number;
   companyExpenseTotal?: number;
   ownerExpenseTotal?: number;
@@ -34,10 +38,15 @@ type ReportResponse = {
   grossProfit?: number;
   operatingNetIncome?: number;
   netIncome?: number;
+  netCashPositionChange?: number;
   netIncomeAfterOwnerDrawings?: number;
   totals?: {
     openingLeftoverQuantity: number;
     salesTotal: number;
+    customerCreditSalesTotal?: number;
+    customerCreditPaymentTotal?: number;
+    grossRevenueTotal?: number;
+    totalCashCollected?: number;
     cashLeftoverTotal: number;
     companyExpenseTotal: number;
     ownerExpenseTotal: number;
@@ -51,12 +60,17 @@ type ReportResponse = {
     grossProfit?: number;
     operatingNetIncome?: number;
     netIncome: number;
+    netCashPositionChange?: number;
     netIncomeAfterOwnerDrawings?: number;
   };
   dailyBreakdown: Array<{
     date: string;
     openingLeftoverQuantity: number;
     salesTotal: number;
+    customerCreditSalesTotal?: number;
+    customerCreditPaymentTotal?: number;
+    grossRevenueTotal?: number;
+    totalCashCollected?: number;
     cashLeftoverTotal: number;
     companyExpenseTotal: number;
     ownerExpenseTotal: number;
@@ -65,6 +79,7 @@ type ReportResponse = {
     stockLoanPaymentTotal?: number;
     payrollTotal: number;
     operatingNetIncome?: number;
+    netCashPositionChange?: number;
     netIncome?: number;
   }>;
   sessions: Array<{
@@ -143,6 +158,22 @@ type ReportResponse = {
     status: string;
     entityId?: string | null;
     user?: { fullName: string } | null;
+  }>;
+  customerLoans?: Array<{
+    id: string;
+    date: string;
+    type: string;
+    totalAmount: number;
+    remainingBalance: number;
+    status: string;
+    entityId?: string | null;
+    user?: { fullName: string } | null;
+  }>;
+  customerLoanPayments?: Array<{
+    id: string;
+    date: string;
+    amountPaid: number;
+    loan?: { id: string; entityId?: string | null } | null;
   }>;
   supplierDeliveries: Array<{
     id: string;
@@ -294,6 +325,10 @@ export default function ReportsPage() {
   const totals = report?.totals || {
     openingLeftoverQuantity: 0,
     salesTotal: report?.salesTotal ?? 0,
+    customerCreditSalesTotal: report?.customerCreditSalesTotal ?? 0,
+    customerCreditPaymentTotal: report?.customerCreditPaymentTotal ?? 0,
+    grossRevenueTotal: report?.grossRevenueTotal ?? ((report?.salesTotal ?? 0) + (report?.customerCreditSalesTotal ?? 0)),
+    totalCashCollected: report?.totalCashCollected ?? ((report?.salesTotal ?? 0) + (report?.customerCreditPaymentTotal ?? 0)),
     cashLeftoverTotal: report?.cashLeftoverTotal ?? 0,
     companyExpenseTotal: report?.companyExpenseTotal ?? 0,
     ownerExpenseTotal: report?.ownerExpenseTotal ?? 0,
@@ -304,6 +339,7 @@ export default function ReportsPage() {
     totalExpense: report?.totalExpenses ?? report?.totalExpense ?? 0,
     operatingNetIncome: report?.operatingNetIncome ?? report?.netIncome ?? 0,
     netIncome: report?.operatingNetIncome ?? report?.netIncome ?? 0,
+    netCashPositionChange: report?.netCashPositionChange ?? 0,
     netIncomeAfterOwnerDrawings: report?.netIncomeAfterOwnerDrawings ?? 0,
   };
 
@@ -529,36 +565,65 @@ export default function ReportsPage() {
 
           {/* Primary Financial Summary KPI Cards */}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
-            <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white">
-              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-emerald-800 tracking-wider">Total Sales Revenue</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-black text-emerald-950">{money(totals.salesTotal)}</div><p className="text-[11px] text-emerald-700 mt-1 font-medium">Counter sales from daily sessions</p></CardContent>
+            <Card className="border-emerald-300 bg-gradient-to-br from-emerald-50 to-white shadow-xs">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-emerald-800 tracking-wider">Total Gross Revenue</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-emerald-950">{money(totals.grossRevenueTotal ?? (totals.salesTotal + (totals.customerCreditSalesTotal || 0)))}</div>
+                <p className="text-[11px] text-emerald-700 mt-1 font-medium">Counter sales + Credited sold products</p>
+              </CardContent>
             </Card>
 
-            <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white">
-              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-blue-800 tracking-wider">Daily Operating Expenses</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-black text-blue-950">{money(totals.companyExpenseTotal)}</div><p className="text-[11px] text-blue-700 mt-1 font-medium">Daily operational business costs</p></CardContent>
+            <Card className="border-teal-300 bg-gradient-to-br from-teal-50 to-white shadow-xs">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-teal-800 tracking-wider">Cash Realized (In Hand/Bank)</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-teal-950">{money(totals.totalCashCollected ?? (totals.salesTotal + (totals.customerCreditPaymentTotal || 0)))}</div>
+                <p className="text-[11px] text-teal-700 mt-1 font-medium">Counter cash/bank + Debt repayments received</p>
+              </CardContent>
             </Card>
 
-            <Card className="border-amber-200 bg-gradient-to-br from-amber-50/80 to-white">
-              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-amber-800 tracking-wider">Raw Material Buy Costs</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-black text-amber-950">{money(totals.supplierDeliveryCost)}</div><p className="text-[11px] text-amber-700 mt-1 font-medium">Supplier ingredient purchases</p></CardContent>
+            <Card className="border-amber-300 bg-gradient-to-br from-amber-50 to-white shadow-xs">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-amber-800 tracking-wider">Customer Credit Given</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-amber-950">{money(totals.customerCreditSalesTotal ?? 0)}</div>
+                <p className="text-[11px] text-amber-700 mt-1 font-medium">Credited products taken on loan</p>
+              </CardContent>
             </Card>
 
-            <Card className="border-sky-200 bg-gradient-to-br from-sky-50/80 to-white">
-              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-sky-800 tracking-wider">Operating Net Income</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-black text-sky-950">{money(totals.operatingNetIncome ?? totals.netIncome)}</div><p className="text-[11px] text-sky-700 mt-1 font-medium">Sales - (Company Operating Costs + Materials)</p></CardContent>
+            <Card className="border-sky-300 bg-gradient-to-br from-sky-50 to-white shadow-xs">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-sky-800 tracking-wider">Customer Debt Recovered</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-sky-950">{money(totals.customerCreditPaymentTotal ?? 0)}</div>
+                <p className="text-[11px] text-sky-700 mt-1 font-medium">Collected payments for past customer credit</p>
+              </CardContent>
             </Card>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
+            <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-blue-800 tracking-wider">Daily Operating Expenses</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-blue-950">{money(totals.companyExpenseTotal)}</div><p className="text-[11px] text-blue-700 mt-1 font-medium">Daily operational costs from session cash</p></CardContent>
+            </Card>
+
+            <Card className="border-orange-200 bg-gradient-to-br from-orange-50/80 to-white">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-orange-800 tracking-wider">Raw Material Buy Costs</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-orange-950">{money(totals.supplierDeliveryCost)}</div><p className="text-[11px] text-orange-700 mt-1 font-medium">Supplier ingredient purchases</p></CardContent>
+            </Card>
+
+            <Card className="border-emerald-300 bg-emerald-900 text-white shadow-xs">
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-emerald-200 tracking-wider">Operating Net Income</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-white">{money(totals.operatingNetIncome ?? totals.netIncome)}</div><p className="text-[11px] text-emerald-200 mt-1 font-medium">Total Revenue - Total Business Costs</p></CardContent>
+            </Card>
+
             <Card className="border-purple-200 bg-gradient-to-br from-purple-50/80 to-white">
               <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-purple-800 tracking-wider">Owner Personal Drawings</CardTitle></CardHeader>
               <CardContent><div className="text-2xl font-black text-purple-950">{money(totals.ownerExpenseTotal)}</div><p className="text-[11px] text-purple-700 mt-1 font-medium">Owner withdrawals (Range calculation)</p></CardContent>
             </Card>
+          </div>
 
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mb-6">
             <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/80 to-white">
-              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-indigo-800 tracking-wider">Net Cash After Owner Drawings</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-black text-indigo-950">{money(totals.netIncomeAfterOwnerDrawings ?? ((totals.operatingNetIncome ?? totals.netIncome ?? 0) - (totals.ownerExpenseTotal ?? 0)))}</div><p className="text-[11px] text-indigo-700 mt-1 font-medium">Net Income after Owner Withdrawals</p></CardContent>
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-indigo-800 tracking-wider">Net Cash Position Change</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black text-indigo-950">{money(totals.netCashPositionChange ?? 0)}</div><p className="text-[11px] text-indigo-700 mt-1 font-medium">Actual Cash Collected - Total Cash Outflows</p></CardContent>
             </Card>
 
             <Card className="border-zinc-200 bg-white">
@@ -575,9 +640,9 @@ export default function ReportsPage() {
           {/* Daily Financial Breakdown Table */}
           <Card className="mb-6 rounded-2xl border-[#EDE4D5] shadow-xs overflow-hidden">
             <CardHeader className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
-              <CardTitle className="text-base font-extrabold text-[#2C1B10]">Daily Financial Breakdown</CardTitle>
+              <CardTitle className="text-base font-extrabold text-[#2C1B10]">Daily Financial Breakdown & Cash Audit</CardTitle>
               <CardDescription className="text-xs text-[#8C7361]">
-                Comprehensive day-by-day statement of operational revenues, company costs, daily operating net income, and separate owner drawings.
+                Comprehensive day-by-day statement of POS sales, customer credit product sales, cash collected, daily operating expenses, operating net profit, and owner drawings.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
@@ -585,30 +650,42 @@ export default function ReportsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
-                    <TableHead className="text-center">Opening Leftovers</TableHead>
-                    <TableHead className="text-right text-emerald-800">Sales Revenue</TableHead>
+                    <TableHead className="text-right text-emerald-800">Counter Sales</TableHead>
+                    <TableHead className="text-right text-amber-800">Credit Sales</TableHead>
+                    <TableHead className="text-right font-black text-emerald-950">Gross Revenue</TableHead>
+                    <TableHead className="text-right text-sky-800">Debt Collected</TableHead>
+                    <TableHead className="text-right text-teal-800">Cash Realized</TableHead>
                     <TableHead className="text-right text-blue-800">Daily Expenses</TableHead>
-                    <TableHead className="text-right text-amber-800">Material Costs</TableHead>
-                    <TableHead className="text-right text-zinc-700">Payroll & Credit</TableHead>
-                    <TableHead className="text-right font-bold text-sky-900">Daily Operating Net</TableHead>
+                    <TableHead className="text-right text-orange-800">Material Costs</TableHead>
+                    <TableHead className="text-right font-extrabold text-emerald-900 bg-emerald-100/50">Operating Net</TableHead>
+                    <TableHead className="text-right font-extrabold text-indigo-900 bg-indigo-100/50">Net Cash Change</TableHead>
                     <TableHead className="text-right pr-6 text-purple-800">Owner Drawings</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(report.dailyBreakdown || []).length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">No financial entries in this date range.</TableCell></TableRow>
-                  ) : (report.dailyBreakdown || []).map((row) => {
-                    const dailyOpNet = row.operatingNetIncome ?? (row.salesTotal - (row.companyExpenseTotal + row.supplierDeliveryCost + row.payrollTotal + (row.stockLoanPaymentTotal || 0)));
+                    <TableRow><TableCell colSpan={11} className="text-center py-8 text-[#8C7361] font-medium">No financial entries in this date range.</TableCell></TableRow>
+                  ) : (report.dailyBreakdown || []).map((row: any) => {
+                    const grossRev = row.grossRevenueTotal ?? (row.salesTotal + (row.customerCreditSalesTotal || 0));
+                    const debtColl = row.customerCreditPaymentTotal || 0;
+                    const cashRealized = row.totalCashCollected ?? (row.salesTotal + debtColl);
+                    const dailyOpNet = row.operatingNetIncome ?? (grossRev - (row.companyExpenseTotal + row.supplierDeliveryCost + row.payrollTotal + (row.stockLoanPaymentTotal || 0)));
+                    const netCashChange = row.netCashPositionChange ?? (cashRealized - (row.companyExpenseTotal + (row.stockLoanPaymentTotal || 0) + row.payrollTotal + row.ownerExpenseTotal));
                     return (
                       <TableRow key={row.date}>
                         <TableCell className="font-bold text-[#2C1B10]">{row.date}</TableCell>
-                        <TableCell className="text-center font-semibold text-[#8C7361]">{row.openingLeftoverQuantity}</TableCell>
-                        <TableCell className="text-right font-bold text-emerald-700">{money(row.salesTotal)}</TableCell>
+                        <TableCell className="text-right font-semibold text-emerald-700">{money(row.salesTotal)}</TableCell>
+                        <TableCell className="text-right font-semibold text-amber-700">{money(row.customerCreditSalesTotal || 0)}</TableCell>
+                        <TableCell className="text-right font-black text-emerald-950">{money(grossRev)}</TableCell>
+                        <TableCell className="text-right font-semibold text-sky-700">{money(debtColl)}</TableCell>
+                        <TableCell className="text-right font-bold text-teal-800">{money(cashRealized)}</TableCell>
                         <TableCell className="text-right font-bold text-blue-700">{money(row.companyExpenseTotal)}</TableCell>
-                        <TableCell className="text-right font-semibold text-amber-800">{money(row.supplierDeliveryCost)}</TableCell>
-                        <TableCell className="text-right font-semibold text-zinc-700">{money(row.payrollTotal + (row.stockLoanPaymentTotal || 0))}</TableCell>
+                        <TableCell className="text-right font-semibold text-orange-800">{money(row.supplierDeliveryCost)}</TableCell>
                         <TableCell className={`text-right font-extrabold ${dailyOpNet >= 0 ? 'text-emerald-700 bg-emerald-50/50' : 'text-rose-700 bg-rose-50/50'}`}>
                           {money(dailyOpNet)}
+                        </TableCell>
+                        <TableCell className={`text-right font-extrabold ${netCashChange >= 0 ? 'text-indigo-700 bg-indigo-50/50' : 'text-rose-700 bg-rose-50/50'}`}>
+                          {money(netCashChange)}
                         </TableCell>
                         <TableCell className="text-right font-bold text-purple-700 pr-6">
                           {row.ownerExpenseTotal > 0 ? (
@@ -740,6 +817,85 @@ export default function ReportsPage() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Customer Credited Products & Debt Collection Logs */}
+          <div className="grid gap-6 xl:grid-cols-2 mb-6">
+            {/* Customer Credit / Loaned Products Issued */}
+            <Card className="rounded-2xl border-amber-200 shadow-xs overflow-hidden">
+              <CardHeader className="bg-amber-50/70 border-b border-amber-200">
+                <CardTitle className="text-sm font-extrabold text-amber-950 uppercase tracking-wider">Credited Product Sales (Customer Loans)</CardTitle>
+                <CardDescription className="text-xs text-amber-800">Products sold on credit / debt during this period</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Customer Name / Details</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right pr-6">Credit Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(report.customerLoans || []).length === 0 ? (
+                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-[#8C7361] font-medium">No customer credit sales recorded in this date range.</TableCell></TableRow>
+                    ) : (report.customerLoans || []).map((loan: any) => (
+                      <TableRow key={loan.id}>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">
+                          {loan.date ? new Date(loan.date).toISOString().slice(0, 10) : '—'}
+                        </TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">
+                          {loan.entityId || loan.user?.fullName || "Customer Credit"}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            loan.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {loan.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-extrabold text-amber-800 pr-6">{money(loan.totalAmount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Customer Debt Collections */}
+            <Card className="rounded-2xl border-sky-200 shadow-xs overflow-hidden">
+              <CardHeader className="bg-sky-50/70 border-b border-sky-200">
+                <CardTitle className="text-sm font-extrabold text-sky-950 uppercase tracking-wider">Customer Debt Collections (Cash In)</CardTitle>
+                <CardDescription className="text-xs text-sky-800">Cash collected for previous customer credits</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Payment Date</TableHead>
+                      <TableHead>Customer Name / Details</TableHead>
+                      <TableHead className="text-right pr-6">Amount Collected</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(report.customerLoanPayments || []).length === 0 ? (
+                      <TableRow><TableCell colSpan={3} className="text-center py-6 text-[#8C7361] font-medium">No customer debt payments collected in this date range.</TableCell></TableRow>
+                    ) : (report.customerLoanPayments || []).map((cp: any) => (
+                      <TableRow key={cp.id}>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">
+                          {cp.date ? new Date(cp.date).toISOString().slice(0, 10) : '—'}
+                        </TableCell>
+                        <TableCell className="font-bold text-[#2C1B10] text-xs">
+                          {cp.loan?.entityId || "Customer"}
+                        </TableCell>
+                        <TableCell className="text-right font-extrabold text-teal-800 pr-6">{money(cp.amountPaid)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Itemized Stock Credit Loan Repayments */}
           {(report.stockPurchasePayments || []).length > 0 && (
