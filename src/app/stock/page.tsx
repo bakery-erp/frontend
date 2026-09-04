@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
-import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History } from "lucide-react";
+import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, CreditCard } from "lucide-react";
 
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -236,14 +236,20 @@ export default function StockPage() {
           <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">Stock & Inventory</h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Manage raw materials, ingredient stock levels, and item audit history</p>
         </div>
-        {user?.role === "OWNER" && (
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
+          <Link href="/stock-movements">
+            <Button variant="outline" className="rounded-xl border-purple-200 text-purple-900 bg-purple-50 hover:bg-purple-100 font-bold text-xs sm:text-sm flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-purple-600" />
+              Stock Loans & Credit
+            </Button>
+          </Link>
+          {user?.role === "OWNER" && (
             <Button onClick={() => setIsAddOpen(true)} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5">
               <Plus className="w-4 h-4" />
               Create Stock Item
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Filter Bar with Today Button */}
