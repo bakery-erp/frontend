@@ -346,6 +346,8 @@ export default function ExpensesPage() {
   const ownerTotal = expenses.filter((e) => e.type === "OWNER").reduce((s, e) => s + Number(e.amount), 0);
   const grandTotal = companyTotal + ownerTotal;
 
+  const displayExpenses = expenses.filter((e) => typeFilter === "ALL" || e.type === typeFilter);
+
   if (!canAccess) {
     return (
       <DashboardLayout>
@@ -361,12 +363,12 @@ export default function ExpensesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Expenses & Company Costs
+            Expenses & Operational Costs
           </h1>
           <p className="text-sm text-[#8C7361] mt-1">
             {isManagement
-              ? "Record, review, and control daily company costs and owner withdrawals."
-              : "Record daily company expenses taken directly from active session cash."}
+              ? "Record, review, and control daily expenses and owner withdrawals."
+              : "Record daily operational expenses taken directly from active session cash."}
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -442,12 +444,12 @@ export default function ExpensesPage() {
         <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white shadow-xs rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-extrabold uppercase text-blue-700 tracking-wider">
-              Company Expenses
+              Daily Expenses
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-blue-900">{money(companyTotal)}</div>
-            <p className="text-[11px] text-blue-600 mt-1 font-medium">Operating costs from daily session cash</p>
+            <p className="text-[11px] text-blue-600 mt-1 font-medium">Daily operational costs from session cash</p>
           </CardContent>
         </Card>
 
@@ -551,18 +553,18 @@ export default function ExpensesPage() {
                     onChange={(e) => setFormType(e.target.value)}
                     className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
                   >
-                    <option value="COMPANY">Company Expense (Daily Birr)</option>
+                    <option value="COMPANY">Daily Expense (Operating Cash)</option>
                     <option value="OWNER">Owner Expense</option>
                   </select>
                 ) : (
                   <div className="w-full bg-blue-50 border border-blue-200 text-blue-900 font-bold rounded-xl px-3 py-2 text-xs flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                    Company Expense (Daily Birr)
+                    Daily Expense (Operating Cash)
                   </div>
                 )}
                 {!isManagement && (
                   <p className="text-[11px] text-zinc-500 mt-1">
-                    Cashiers can only record company operating expenses from session birr.
+                    Cashiers can only record daily operating expenses from session birr.
                   </p>
                 )}
               </div>
@@ -674,7 +676,7 @@ export default function ExpensesPage() {
                 : "text-[#8C7361] hover:text-blue-700 hover:bg-white/50"
             }`}
           >
-            🏢 Company Operational Expenses
+            💵 Daily Operational Expenses
           </button>
           {isManagement && (
             <button
@@ -696,16 +698,16 @@ export default function ExpensesPage() {
         <CardHeader className="bg-[#FAF6F0]/60 border-b border-[#EDE4D5] py-4">
           <CardTitle className="text-base font-extrabold text-[#2C1B10]">Expense Records</CardTitle>
           <CardDescription className="text-xs text-[#8C7361]">
-            Showing {expenses.length} record(s) for selected date range
+            Showing {displayExpenses.length} record(s) for selected filter
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <p className="text-center text-[#8C7361] py-8 font-medium">Loading expense records...</p>
-          ) : expenses.length === 0 ? (
+          ) : displayExpenses.length === 0 ? (
             <div className="text-center py-10 text-[#8C7361]">
               <p className="font-bold text-sm text-[#2C1B10]">No expenses recorded for this period.</p>
-              <p className="text-xs text-[#8C7361] mt-1">Click &quot;Add Expense&quot; to log a new company cost.</p>
+              <p className="text-xs text-[#8C7361] mt-1">Click &quot;Add Expense&quot; to log a new cost.</p>
             </div>
           ) : (
             <Table>
@@ -722,7 +724,7 @@ export default function ExpensesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.map((expense) => (
+                {displayExpenses.map((expense) => (
                   <TableRow key={expense.id}>
                     <TableCell className="text-xs font-semibold text-[#8C7361]">
                       {expense.date ? new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
@@ -733,7 +735,7 @@ export default function ExpensesPage() {
                           ? "bg-purple-100 text-purple-800 border-purple-200"
                           : "bg-blue-100 text-blue-800 border-blue-200"
                       }`}>
-                        {expense.type === "OWNER" ? "👤 OWNER" : "🏢 COMPANY"}
+                        {expense.type === "OWNER" ? "👤 OWNER" : "💵 DAILY"}
                       </span>
                     </TableCell>
                     <TableCell className="font-bold text-[#2C1B10]">{expense.financialCategory?.name || expense.category}</TableCell>

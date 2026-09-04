@@ -535,7 +535,7 @@ export default function ReportsPage() {
             </Card>
 
             <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white">
-              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-blue-800 tracking-wider">Company Operating Expenses</CardTitle></CardHeader>
+              <CardHeader className="pb-1"><CardTitle className="text-xs uppercase font-extrabold text-blue-800 tracking-wider">Daily Operating Expenses</CardTitle></CardHeader>
               <CardContent><div className="text-2xl font-black text-blue-950">{money(totals.companyExpenseTotal)}</div><p className="text-[11px] text-blue-700 mt-1 font-medium">Daily operational business costs</p></CardContent>
             </Card>
 
@@ -587,7 +587,7 @@ export default function ReportsPage() {
                     <TableHead>Date</TableHead>
                     <TableHead className="text-center">Opening Leftovers</TableHead>
                     <TableHead className="text-right text-emerald-800">Sales Revenue</TableHead>
-                    <TableHead className="text-right text-blue-800">Company Expenses</TableHead>
+                    <TableHead className="text-right text-blue-800">Daily Expenses</TableHead>
                     <TableHead className="text-right text-amber-800">Material Costs</TableHead>
                     <TableHead className="text-right text-zinc-700">Payroll & Credit</TableHead>
                     <TableHead className="text-right font-bold text-sky-900">Daily Operating Net</TableHead>
@@ -686,7 +686,7 @@ export default function ReportsPage() {
                       : "text-[#8C7361] hover:text-blue-700"
                   }`}
                 >
-                  🏢 Company ({report.expenses?.filter(e => e.type === "COMPANY").length || 0})
+                  💵 Daily ({report.expenses?.filter(e => e.type === "COMPANY").length || 0})
                 </button>
                 <button
                   onClick={() => setReportExpenseFilter("OWNER")}
@@ -725,7 +725,7 @@ export default function ReportsPage() {
                             ? "bg-purple-100 text-purple-800 border-purple-200"
                             : "bg-blue-100 text-blue-800 border-blue-200"
                         }`}>
-                          {expense.type === "OWNER" ? "👤 OWNER" : "🏢 COMPANY"}
+                          {expense.type === "OWNER" ? "👤 OWNER" : "💵 DAILY"}
                         </span>
                       </TableCell>
                       <TableCell className="font-bold text-[#2C1B10] text-xs">{expense.financialCategory?.name || expense.category}</TableCell>
