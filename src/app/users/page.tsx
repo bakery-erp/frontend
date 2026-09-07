@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { getImageUrl } from "@/lib/utils";
 import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,7 @@ const SHIFTS = ["DAY", "NIGHT"];
 export default function UsersPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
@@ -266,13 +268,13 @@ export default function UsersPage() {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users & Roles</h1>
-          <p className="text-zinc-500 mt-1">Manage personnel tracking, roles, and branch assignments.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('users.title')}</h1>
+          <p className="text-zinc-500 mt-1">{t('users.subtitle')}</p>
         </div>
         {(user?.role === "OWNER" || user?.role === "ADMIN") && (
           <Button onClick={openCreate} className="bg-black hover:bg-zinc-800 text-white">
             <Plus className="w-4 h-4 mr-2" />
-            Add User
+            {t('users.newUser')}
           </Button>
         )}
       </div>
@@ -312,7 +314,7 @@ export default function UsersPage() {
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <Input
-              placeholder="Search by name or phone..."
+              placeholder={t('common.search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 bg-white"
@@ -324,11 +326,11 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Personnel</TableHead>
-                <TableHead>Staff Role</TableHead>
-                <TableHead>Assigned Branch</TableHead>
-                <TableHead>Account Status</TableHead>
-                <TableHead className="text-right pr-6">Actions</TableHead>
+                <TableHead>{t('users.colFullName')}</TableHead>
+                <TableHead>{t('users.colRole')}</TableHead>
+                <TableHead>{t('users.colBranch')}</TableHead>
+                <TableHead>{t('common.status')}</TableHead>
+                <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -54,6 +55,7 @@ const PRODUCT_PRESET_IMAGES: { label: string; url: string }[] = [
 
 export default function ProductsPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const isAdminOrOwner = user?.role === 'ADMIN' || user?.role === 'OWNER';
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -169,8 +171,8 @@ export default function ProductsPage() {
       {/* Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-[#2C1B10]">Product House Inventory</h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Real-time house stock calculated dynamically from production batches, sales, and conversions</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#2C1B10]">{t('products.title')}</h1>
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('products.subtitle')}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -196,7 +198,7 @@ export default function ProductsPage() {
 
           {isAdminOrOwner && (
             <Button onClick={openAddDialog} className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md">
-              <Plus className="w-4 h-4 mr-1.5" /> Add New Product
+              <Plus className="w-4 h-4 mr-1.5" /> {t('products.newProduct')}
             </Button>
           )}
         </div>
@@ -322,15 +324,15 @@ export default function ProductsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-16">Preview</TableHead>
-                <TableHead>Product Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>House Stock (Available)</TableHead>
-                <TableHead>Unit Type</TableHead>
-                <TableHead>Selling Price</TableHead>
-                <TableHead className="text-center">Produced</TableHead>
-                <TableHead className="text-center">Sold</TableHead>
-                <TableHead>Catalog Status</TableHead>
-                {isAdminOrOwner && <TableHead className="text-right pr-6">Action</TableHead>}
+                <TableHead>{t('products.colName')}</TableHead>
+                <TableHead>{t('products.colCategory')}</TableHead>
+                <TableHead>{t('stock.title')}</TableHead>
+                <TableHead>{t('products.colUnit')}</TableHead>
+                <TableHead>{t('products.colPrice')}</TableHead>
+                <TableHead className="text-center">{t('production.title')}</TableHead>
+                <TableHead className="text-center">{t('dashboard.incomeFromSales')}</TableHead>
+                <TableHead>{t('products.colActive')}</TableHead>
+                {isAdminOrOwner && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -364,12 +366,12 @@ export default function ProductsPage() {
                     <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalSold || 0}</TableCell>
                     <TableCell>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${prod.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
-                        {prod.isActive ? '✓ Active' : 'Inactive'}
+                        {prod.isActive ? `✓ ${t('products.activeLabel')}` : t('products.inactiveLabel')}
                       </span>
                     </TableCell>
                     {isAdminOrOwner && (
                       <TableCell className="text-right pr-6">
-                        <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEditDialog(prod)}>Edit</Button>
+                        <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEditDialog(prod)}>{t('common.edit')}</Button>
                       </TableCell>
                     )}
                   </TableRow>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { ArrowLeft, Plus, CreditCard, ShoppingBag, X, Check, Calculator, AlertTriangle, PackageCheck } from "lucide-react";
 
@@ -39,6 +40,7 @@ export default function NewCustomerCreditPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
 
   const [products, setProducts] = useState<InShopProduct[]>([]);
   const [hasActiveSession, setHasActiveSession] = useState<boolean | null>(null);
@@ -232,15 +234,15 @@ export default function NewCustomerCreditPage() {
               onClick={() => router.push("/customer-credits")}
               className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold"
             >
-              <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              <ArrowLeft className="w-4 h-4 mr-1" /> {t('credits.btnBack')}
             </Button>
             <div>
               <h1 className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight flex items-center gap-2">
                 <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-[#E87A18]" />
-                Log Customer Product Credit Sale
+                {t('credits.newCredit')}
               </h1>
               <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-                Issue bakery products on credit with live in-shop inventory enforcement and automatic Birr calculation.
+                {t('credits.subtitle')}
               </p>
             </div>
           </div>
@@ -252,9 +254,9 @@ export default function NewCustomerCreditPage() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-extrabold text-amber-900">No Active Daily Session Open</h3>
+                <h3 className="text-sm font-extrabold text-amber-900">{t('credits.noSessionBanner')}</h3>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Bakery products cannot be lent on credit without an open daily session. Please start or open a daily session for this branch first so stock and credit sales are properly tracked.
+                  {t('credits.noSessionHelp')}
                 </p>
               </div>
             </div>
@@ -263,7 +265,7 @@ export default function NewCustomerCreditPage() {
               onClick={() => router.push("/daily-sessions")}
               className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shrink-0"
             >
-              Go to Daily Sessions
+              {t('credits.goToSessions')}
             </Button>
           </div>
         )}
@@ -537,7 +539,7 @@ export default function NewCustomerCreditPage() {
               onClick={() => router.push("/customer-credits")}
               className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs sm:text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -545,7 +547,7 @@ export default function NewCustomerCreditPage() {
               className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Check className="w-4 h-4" />
-              {isSubmitting ? "Submitting Credit..." : "Log Product Credit"}
+              {isSubmitting ? t('common.loading') : t('credits.newCredit')}
             </Button>
           </div>
         </form>

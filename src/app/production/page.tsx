@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History } from "lucide-react";
@@ -32,6 +33,7 @@ interface ProductionBatch {
 export default function ProductionPage() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
+  const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
@@ -262,13 +264,13 @@ export default function ProductionPage() {
     <DashboardLayout>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">Production Batches</h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Manage daily & nightly baking schedules, material usage, and approval requests</p>
+          <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('production.title')}</h1>
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('production.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           {isGlobalAdmin && (
             <Button onClick={() => window.location.href = '/production/history'} variant="outline" className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm flex items-center gap-1.5">
-              <History className="w-4 h-4 text-[#E87A18]" /> View Product History Table
+              <History className="w-4 h-4 text-[#E87A18]" /> {t('nav.dailyProductHistory')}
             </Button>
           )}
           <Button
@@ -276,7 +278,7 @@ export default function ProductionPage() {
             disabled={!isSessionOpen}
             className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4" /> Log Multi-Category Production Entry
+            <Plus className="w-4 h-4" /> {t('production.newBatch')}
           </Button>
         </div>
       </div>

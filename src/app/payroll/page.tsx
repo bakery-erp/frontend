@@ -7,6 +7,7 @@ import { PayrollNav } from "./PayrollNav";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   DollarSign,
   FileText,
@@ -118,6 +119,7 @@ interface CalcResult {
 export default function PayrollPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<Tab>("RUN");
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingLoans, setIsLoadingLoans] = useState(true);
@@ -405,10 +407,10 @@ export default function PayrollPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Payroll
+            {t('payroll.title')}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            Manage personnel salaries, multi-month loans, attendance penalties, and payout distribution
+            {t('payroll.subtitle')}
           </p>
         </div>
         <PayrollNav />

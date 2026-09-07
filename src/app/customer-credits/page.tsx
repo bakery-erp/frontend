@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye, AlertTriangle } from "lucide-react";
 
@@ -95,6 +96,7 @@ export default function CustomerCreditsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "CASHIER";
 
   const [credits, setCredits] = useState<CustomerCredit[]>([]);
@@ -345,10 +347,10 @@ export default function CustomerCreditsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight flex items-center gap-2">
             <CreditCard className="w-7 h-7 text-[#E87A18]" />
-            Customer Product Credit Sales & Receivables
+            {t('credits.title')}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            Log bakery products (bread, pastries) issued on credit with automated Birr total calculation and partial repayment settlement.
+            {t('credits.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -358,14 +360,14 @@ export default function CustomerCreditsPage() {
             size="sm"
             className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl"
           >
-            <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+            <RefreshCw className="w-3.5 h-3.5 mr-1" /> {t('common.refresh')}
           </Button>
           {canManage && (
             <Button
               onClick={() => router.push("/customer-credits/new")}
               className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
             >
-              <Plus className="w-4 h-4" /> New Customer Product Credit
+              <Plus className="w-4 h-4" /> {t('credits.newCredit')}
             </Button>
           )}
         </div>
@@ -374,19 +376,19 @@ export default function CustomerCreditsPage() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm">
-          <span className="text-xs font-bold uppercase text-[#8C7361] block">Total Product Credit Issued</span>
+          <span className="text-xs font-bold uppercase text-[#8C7361] block">{t('credits.colTotalAmount')}</span>
           <span className="text-2xl font-extrabold text-[#2C1B10] mt-1 block font-mono">
             {totalCreditGiven.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
         </div>
         <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm bg-emerald-50/30">
-          <span className="text-xs font-bold uppercase text-emerald-800 block">Total Settlement Repaid</span>
+          <span className="text-xs font-bold uppercase text-emerald-800 block">{t('dashboard.creditReceivedLoans')}</span>
           <span className="text-2xl font-extrabold text-emerald-700 mt-1 block font-mono">
             {totalRepaid.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
         </div>
         <div className="bg-white border border-rose-200 rounded-2xl p-4 shadow-sm bg-rose-50/30">
-          <span className="text-xs font-bold uppercase text-rose-800 block">Outstanding Receivable</span>
+          <span className="text-xs font-bold uppercase text-rose-800 block">{t('credits.colRemaining')}</span>
           <span className="text-2xl font-extrabold text-rose-700 mt-1 block font-mono">
             {totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
@@ -405,12 +407,12 @@ export default function CustomerCreditsPage() {
               filterTodayOnly ? "bg-[#4A2E1B] text-white" : "border-[#EDE4D5] text-[#4A2E1B]"
             }`}
           >
-            📅 Daily Credits Today
+            📅 {filterTodayOnly ? t('credits.filterToday') : t('credits.filterAll')}
           </Button>
         </div>
 
         <Input
-          placeholder="Search client or business name..."
+          placeholder={t('credits.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
@@ -437,14 +439,14 @@ export default function CustomerCreditsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Issued Date</TableHead>
-                  <TableHead>Customer & Contact</TableHead>
-                  <TableHead>Products / Items Taken</TableHead>
-                  <TableHead className="text-right">Total Birr</TableHead>
-                  <TableHead className="text-right">Remaining</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead>Repayment History</TableHead>
-                  <TableHead className="text-right pr-6">Actions</TableHead>
+                  <TableHead>{t('common.date')}</TableHead>
+                  <TableHead>{t('credits.colCustomer')}</TableHead>
+                  <TableHead>{t('credits.colProducts')}</TableHead>
+                  <TableHead className="text-right">{t('credits.colTotalAmount')}</TableHead>
+                  <TableHead className="text-right">{t('credits.colRemaining')}</TableHead>
+                  <TableHead className="text-center">{t('credits.colStatus')}</TableHead>
+                  <TableHead>{t('reports.dailyBreakdownTitle')}</TableHead>
+                  <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -518,11 +520,11 @@ export default function CustomerCreditsPage() {
                         <TableCell className="text-center">
                           {c.status === "PAID" || Number(c.remainingBalance) <= 0.01 ? (
                             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              ✓ SETTLED
+                              ✓ {t('credits.statusPaid')}
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                              UNPAID
+                              {t('credits.statusOpen')}
                             </span>
                           )}
                         </TableCell>
@@ -550,7 +552,7 @@ export default function CustomerCreditsPage() {
                               onClick={() => router.push(`/customer-credits/${c.id}`)}
                               className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                             >
-                              <Eye className="w-3.5 h-3.5" /> Details
+                              <Eye className="w-3.5 h-3.5" /> {t('common.details')}
                             </Button>
                             {Number(c.remainingBalance) > 0.01 && canManage && (
                               <Button
@@ -558,7 +560,7 @@ export default function CustomerCreditsPage() {
                                 onClick={() => { setPayingCredit(c); setAmountPaid(String(c.remainingBalance)); }}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                               >
-                                <DollarSign className="w-3.5 h-3.5" /> Pay
+                                <DollarSign className="w-3.5 h-3.5" /> {t('credits.btnPay')}
                               </Button>
                             )}
                             {user?.role === "OWNER" || user?.role === "ADMIN" ? (
@@ -820,7 +822,7 @@ export default function CustomerCreditsPage() {
               <DialogHeader>
                 <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                   <DollarSign className="w-5 h-5 text-emerald-600" />
-                  Record Credit Settlement / Payment
+                  {t('credits.modalPayTitle')}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handlePay} className="space-y-3.5 mt-2">
@@ -830,13 +832,13 @@ export default function CustomerCreditsPage() {
                     <div className="text-[#8C7361] font-medium text-xs">📞 {parsedModal.phone}</div>
                   )}
                   <div className="flex justify-between text-[#8C7361] font-mono pt-1 border-t border-[#EDE4D5] mt-1">
-                    <span>Total Loan: {Number(payingCredit.totalAmount).toFixed(2)} ETB</span>
-                    <span className="font-bold text-rose-700">Remaining: {Number(payingCredit.remainingBalance).toFixed(2)} ETB</span>
+                    <span>{t('credits.colTotalAmount')}: {Number(payingCredit.totalAmount).toFixed(2)} ETB</span>
+                    <span className="font-bold text-rose-700">{t('credits.colRemaining')}: {Number(payingCredit.remainingBalance).toFixed(2)} ETB</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Payment Amount (ETB)</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('credits.amountPaidLabel')}</label>
                   <Input
                     type="number"
                     step="any"
@@ -852,7 +854,7 @@ export default function CustomerCreditsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Payment Date</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('credits.paymentDateLabel')}</label>
                   <Input
                     type="date"
                     required
@@ -864,10 +866,10 @@ export default function CustomerCreditsPage() {
 
                 <DialogFooter className="gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={() => setPayingCredit(null)} className="rounded-xl">
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl">
-                    {isSubmitting ? "Processing..." : "Record Settlement"}
+                    {isSubmitting ? t('common.loading') : t('credits.btnPay')}
                   </Button>
                 </DialogFooter>
               </form>

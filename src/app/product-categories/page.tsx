@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,6 +25,7 @@ interface Category {
 
 export default function ProductCategoriesPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN";
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -129,11 +131,11 @@ export default function ProductCategoriesPage() {
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Product Categories</h1>
+        <h1 className="text-2xl font-bold">{t('categories.title')}</h1>
         {canManage && (
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setIsSubcategoryOpen(true)}>Add Subcategory</Button>
-            <Button onClick={() => setIsCategoryOpen(true)}>Add Category</Button>
+            <Button onClick={() => setIsCategoryOpen(true)}>{t('categories.newCategory')}</Button>
           </div>
         )}
       </div>

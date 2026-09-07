@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useBranch } from '@/context/BranchContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
 import { Truck, Plus, CheckCircle2, DollarSign, PackageCheck, Trash2 } from 'lucide-react';
@@ -45,6 +46,7 @@ interface DeliveryLineItem {
 export default function SuppliersPage() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
+  const { t } = useLanguage();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [deliveries, setDeliveries] = useState<SupplierDelivery[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -225,17 +227,17 @@ export default function SuppliersPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
             <Truck className="w-7 h-7 text-[#E87A18]" />
-            Suppliers & Material Deliveries
+            {t('suppliers.title')}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-1">
-            Manage supplier directory, log raw material/resell deliveries, and track accounts payable.
+            {t('suppliers.subtitle')}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
             <Button onClick={() => setIsAddSupplierOpen(true)} variant="outline" className="border-[#EDE4D5] rounded-xl text-xs font-bold">
-              + Add Supplier
+              + {t('suppliers.newSupplier')}
             </Button>
           )}
           <Button onClick={openLogDeliveryModal} className="bg-[#E87A18] hover:bg-[#D66B0F] text-white rounded-xl text-xs font-bold flex items-center gap-1">
@@ -275,7 +277,7 @@ export default function SuppliersPage() {
       <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm mb-6">
         <div className="p-4 bg-[#FAF6F0] border-b border-[#EDE4D5] flex items-center justify-between">
           <h2 className="font-extrabold text-[#2C1B10] text-sm flex items-center gap-2">
-            <Truck className="w-4 h-4 text-[#E87A18]" /> Registered Suppliers Directory ({suppliers.length})
+            <Truck className="w-4 h-4 text-[#E87A18]" /> {t('suppliers.title')} ({suppliers.length})
           </h2>
           <span className="text-xs text-[#8C7361]">All active suppliers by branch</span>
         </div>
@@ -283,11 +285,11 @@ export default function SuppliersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Supplier Name</TableHead>
-              <TableHead>Phone Number</TableHead>
-              <TableHead>Category / Type</TableHead>
-              <TableHead>Assigned Branch</TableHead>
-              <TableHead className="text-right pr-6">Deliveries Count</TableHead>
+              <TableHead>{t('suppliers.colSupplierName')}</TableHead>
+              <TableHead>{t('suppliers.colPhone')}</TableHead>
+              <TableHead>{t('suppliers.colType')}</TableHead>
+              <TableHead>{t('branches.title')}</TableHead>
+              <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

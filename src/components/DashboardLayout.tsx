@@ -142,9 +142,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </ul>
       </nav>
 
-      {/* Language Selector in Sidebar */}
-      <LanguageSelector variant="sidebar" className="px-3" />
-
       {/* User Info & Logout Button */}
       <div className="p-4 m-3 bg-[#3D2314] rounded-2xl border border-[#5A3A23]">
         <div className="mb-3 px-1">

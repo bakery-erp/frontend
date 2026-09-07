@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, CreditCard } from "lucide-react";
 
 import ConfirmModal from "@/components/ConfirmModal";
@@ -33,6 +34,7 @@ interface StockItem {
 export default function StockPage() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
+  const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
   useEffect(() => {
@@ -233,8 +235,8 @@ export default function StockPage() {
     <DashboardLayout>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">Stock & Inventory</h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Manage raw materials, ingredient stock levels, and item audit history</p>
+          <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('stock.title')}</h1>
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('stock.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/stock-movements">
@@ -246,7 +248,7 @@ export default function StockPage() {
           {user?.role === "OWNER" && (
             <Button onClick={() => setIsAddOpen(true)} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5">
               <Plus className="w-4 h-4" />
-              Create Stock Item
+              {t('stock.newItem')}
             </Button>
           )}
         </div>
@@ -272,12 +274,12 @@ export default function StockPage() {
             onClick={() => setFilterLowStock(!filterLowStock)}
             className={`rounded-xl text-xs font-bold ${filterLowStock ? 'bg-rose-600 text-white' : 'border-rose-200 text-rose-700'}`}
           >
-            ⚠️ Low Stock Alert
+            ⚠️ {t('stock.stockLow')}
           </Button>
         </div>
 
         <Input
-          placeholder="Search stock items..."
+          placeholder={t('common.search')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
@@ -298,13 +300,13 @@ export default function StockPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Stock Material Item</TableHead>
-              <TableHead>Unit Type</TableHead>
-              <TableHead>Unit Price (ETB)</TableHead>
-              <TableHead>Available On-Hand Qty</TableHead>
-              <TableHead>Total Valuation (ETB)</TableHead>
-              <TableHead>Min Alert Level</TableHead>
-              <TableHead className="text-right pr-6">Detail History & Actions</TableHead>
+              <TableHead>{t('stock.colItemName')}</TableHead>
+              <TableHead>{t('products.colUnit')}</TableHead>
+              <TableHead>{t('stock.colUnitPrice')}</TableHead>
+              <TableHead>{t('stock.colCurrentQty')}</TableHead>
+              <TableHead>{t('dashboard.productStockValue')}</TableHead>
+              <TableHead>{t('stock.colMinLevel')}</TableHead>
+              <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

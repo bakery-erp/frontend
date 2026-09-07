@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Plus, Search, MapPin, MoreVertical, Edit2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ interface Branch {
 
 export default function BranchesPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,18 +149,16 @@ export default function BranchesPage() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Branch Management</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">{t('branches.title')}</h1>
             <p className="text-gray-500 mt-1">
-              {isOwner
-                ? "Manage bakery locations, addresses, and operational status."
-                : "View operational details for your assigned branch location."}
+              {t('branches.subtitle')}
             </p>
           </div>
 
           {isOwner && (
             <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              Add Branch
+              {t('branches.newBranch')}
             </Button>
           )}
 
@@ -166,17 +166,15 @@ export default function BranchesPage() {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>{editingBranch ? "Edit Branch" : "Add New Branch"}</DialogTitle>
+                  <DialogTitle>{editingBranch ? t('common.edit') : t('branches.newBranch')}</DialogTitle>
                   <DialogDescription>
-                    {editingBranch
-                      ? "Update the details of the existing branch location."
-                      : "Create a new branch location for your bakery operations."}
+                    {t('branches.subtitle')}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <label htmlFor="name" className="text-sm font-medium">
-                      Branch Name <span className="text-red-500">*</span>
+                      {t('branches.colBranchName')} <span className="text-red-500">*</span>
                     </label>
                     <Input
                       id="name"
@@ -188,7 +186,7 @@ export default function BranchesPage() {
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="address" className="text-sm font-medium">
-                      Address
+                      {t('branches.colAddress')}
                     </label>
                     <Input
                       id="address"
@@ -199,10 +197,10 @@ export default function BranchesPage() {
                   </div>
                   <DialogFooter className="pt-4">
                     <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
                     <Button type="submit" disabled={submitting}>
-                      {submitting ? "Saving..." : editingBranch ? "Save Changes" : "Create Branch"}
+                      {submitting ? t('common.loading') : t('common.save')}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -216,7 +214,7 @@ export default function BranchesPage() {
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
-              placeholder="Search branches by name..."
+              placeholder={t('common.search')}
               className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -229,11 +227,11 @@ export default function BranchesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Branch Name</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Added On</TableHead>
-                <TableHead className="text-right pr-6">Actions</TableHead>
+                <TableHead>{t('branches.colBranchName')}</TableHead>
+                <TableHead>{t('branches.colAddress')}</TableHead>
+                <TableHead>{t('branches.colStatus')}</TableHead>
+                <TableHead>{t('common.date')}</TableHead>
+                <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

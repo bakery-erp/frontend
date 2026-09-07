@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { getImageUrl } from '@/lib/utils';
 import {
   User,
@@ -96,6 +97,7 @@ const MONTH_NAMES = [
 
 export default function MyProfilePage() {
   const { user: authUser, updateUser } = useAuth();
+  const { t } = useLanguage();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties' | 'pending' | 'settings'>('payroll');
@@ -327,7 +329,7 @@ export default function MyProfilePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Base Monthly Salary</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.baseSalary')}</CardTitle>
             <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center">
               <Banknote className="h-5 w-5" />
             </div>
@@ -340,7 +342,7 @@ export default function MyProfilePage() {
 
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Active Loan Balance</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.loanBalance')}</CardTitle>
             <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center">
               <Wallet className="h-5 w-5" />
             </div>
@@ -355,7 +357,7 @@ export default function MyProfilePage() {
 
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Total Penalties</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.penaltiesTotal')}</CardTitle>
             <div className="w-9 h-9 rounded-2xl bg-rose-500/10 text-rose-700 flex items-center justify-center">
               <AlertTriangle className="h-5 w-5" />
             </div>
