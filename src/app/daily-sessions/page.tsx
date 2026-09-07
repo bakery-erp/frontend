@@ -456,15 +456,18 @@ export default function DailySessionsPage() {
 
             <form onSubmit={handleFinalizeSubmit} className="space-y-6 py-2">
               {/* Step 1: Cash Drawer Float */}
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
-                <label className="text-sm font-semibold text-zinc-900 block mb-1">Ending Cash Drawer Float (ETB)</label>
-                <p className="text-xs text-zinc-500 mb-2">Remaining physical cash left in drawer for next day's float</p>
+              <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-1">
+                <label className="text-sm font-extrabold text-amber-950 block">Leftover Cash for Tomorrow (ETB)</label>
+                <p className="text-xs text-amber-800">
+                  Cash retained in the drawer for tomorrow&apos;s starter float (deducted from today&apos;s revenue calculation).
+                </p>
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="e.g. 2000.00"
+                  placeholder="e.g. 500.00"
                   value={cashFloat}
                   onChange={(e) => setCashFloat(e.target.value)}
+                  className="bg-white border-amber-300 font-mono font-bold"
                 />
               </div>
 

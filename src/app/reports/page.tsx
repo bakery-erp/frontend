@@ -20,6 +20,11 @@ type ReportResponse = {
   from?: string;
   to?: string;
   date?: string;
+  yesterdayLeftoverCash?: number;
+  creditReceivedFromLoans?: number;
+  tomorrowLeftoverCash?: number;
+  dailyTotalRevenue?: number;
+  dailyNetIncome?: number;
   salesTotal?: number;
   customerCreditSalesTotal?: number;
   customerCreditPaymentTotal?: number;
@@ -41,6 +46,11 @@ type ReportResponse = {
   netCashPositionChange?: number;
   netIncomeAfterOwnerDrawings?: number;
   totals?: {
+    yesterdayLeftoverCash?: number;
+    creditReceivedFromLoans?: number;
+    tomorrowLeftoverCash?: number;
+    dailyTotalRevenue?: number;
+    dailyNetIncome?: number;
     openingLeftoverQuantity: number;
     salesTotal: number;
     customerCreditSalesTotal?: number;
@@ -65,15 +75,20 @@ type ReportResponse = {
   };
   dailyBreakdown: Array<{
     date: string;
-    openingLeftoverQuantity: number;
+    yesterdayCashLeftover?: number;
     salesTotal: number;
+    creditReceivedFromLoan?: number;
+    tomorrowCashLeftover?: number;
+    dailyTotalRevenue?: number;
+    companyExpenseTotal: number;
+    ownerExpenseTotal: number;
+    dailyNetIncome?: number;
+    openingLeftoverQuantity: number;
     customerCreditSalesTotal?: number;
     customerCreditPaymentTotal?: number;
     grossRevenueTotal?: number;
     totalCashCollected?: number;
     cashLeftoverTotal: number;
-    companyExpenseTotal: number;
-    ownerExpenseTotal: number;
     loanTotal: number;
     supplierDeliveryCost: number;
     stockLoanPaymentTotal?: number;
@@ -648,52 +663,49 @@ export default function ReportsPage() {
             <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-[#FAF6F0]">
                     <TableHead>Date</TableHead>
-                    <TableHead className="text-right text-emerald-800">Counter Sales</TableHead>
-                    <TableHead className="text-right text-amber-800">Credit Sales</TableHead>
-                    <TableHead className="text-right font-black text-emerald-950">Gross Revenue</TableHead>
-                    <TableHead className="text-right text-sky-800">Debt Collected</TableHead>
-                    <TableHead className="text-right text-teal-800">Cash Realized</TableHead>
-                    <TableHead className="text-right text-blue-800">Daily Expenses</TableHead>
-                    <TableHead className="text-right text-orange-800">Material Costs</TableHead>
-                    <TableHead className="text-right font-extrabold text-emerald-900 bg-emerald-100/50">Operating Net</TableHead>
-                    <TableHead className="text-right font-extrabold text-indigo-900 bg-indigo-100/50">Net Cash Change</TableHead>
+                    <TableHead className="text-right text-emerald-800">➕ Yesterday Leftover</TableHead>
+                    <TableHead className="text-right text-emerald-800">➕ Sales Income</TableHead>
+                    <TableHead className="text-right text-sky-800">➕ Credit Repaid</TableHead>
+                    <TableHead className="text-right text-rose-800">➖ Tomorrow Leftover</TableHead>
+                    <TableHead className="text-right font-black text-emerald-950 bg-emerald-50">🟰 Daily Revenue</TableHead>
+                    <TableHead className="text-right text-rose-700">➖ Company Expenses</TableHead>
+                    <TableHead className="text-right font-black text-emerald-900 bg-emerald-100/60">🟰 Daily Net Income</TableHead>
                     <TableHead className="text-right pr-6 text-purple-800">Owner Drawings</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(report.dailyBreakdown || []).length === 0 ? (
-                    <TableRow><TableCell colSpan={11} className="text-center py-8 text-[#8C7361] font-medium">No financial entries in this date range.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-[#8C7361] font-medium">No financial entries in this date range.</TableCell></TableRow>
                   ) : (report.dailyBreakdown || []).map((row: any) => {
-                    const grossRev = row.grossRevenueTotal ?? (row.salesTotal + (row.customerCreditSalesTotal || 0));
-                    const debtColl = row.customerCreditPaymentTotal || 0;
-                    const cashRealized = row.totalCashCollected ?? (row.salesTotal + debtColl);
-                    const dailyOpNet = row.operatingNetIncome ?? (grossRev - (row.companyExpenseTotal + row.supplierDeliveryCost + row.payrollTotal + (row.stockLoanPaymentTotal || 0)));
-                    const netCashChange = row.netCashPositionChange ?? (cashRealized - (row.companyExpenseTotal + (row.stockLoanPaymentTotal || 0) + row.payrollTotal + row.ownerExpenseTotal));
+                    const yesterdayCash = row.yesterdayCashLeftover || 0;
+                    const salesIncome = row.salesTotal || 0;
+                    const creditRepaid = row.creditReceivedFromLoan || row.customerCreditPaymentTotal || 0;
+                    const tomorrowCash = row.tomorrowCashLeftover || row.cashLeftoverTotal || 0;
+                    const dailyRev = row.dailyTotalRevenue ?? (yesterdayCash + salesIncome + creditRepaid - tomorrowCash);
+                    const companyExp = row.companyExpenseTotal || 0;
+                    const dailyNet = row.dailyNetIncome ?? (dailyRev - companyExp);
+
                     return (
-                      <TableRow key={row.date}>
+                      <TableRow key={row.date} className="hover:bg-zinc-50/80">
                         <TableCell className="font-bold text-[#2C1B10]">{row.date}</TableCell>
-                        <TableCell className="text-right font-semibold text-emerald-700">{money(row.salesTotal)}</TableCell>
-                        <TableCell className="text-right font-semibold text-amber-700">{money(row.customerCreditSalesTotal || 0)}</TableCell>
-                        <TableCell className="text-right font-black text-emerald-950">{money(grossRev)}</TableCell>
-                        <TableCell className="text-right font-semibold text-sky-700">{money(debtColl)}</TableCell>
-                        <TableCell className="text-right font-bold text-teal-800">{money(cashRealized)}</TableCell>
-                        <TableCell className="text-right font-bold text-blue-700">{money(row.companyExpenseTotal)}</TableCell>
-                        <TableCell className="text-right font-semibold text-orange-800">{money(row.supplierDeliveryCost)}</TableCell>
-                        <TableCell className={`text-right font-extrabold ${dailyOpNet >= 0 ? 'text-emerald-700 bg-emerald-50/50' : 'text-rose-700 bg-rose-50/50'}`}>
-                          {money(dailyOpNet)}
-                        </TableCell>
-                        <TableCell className={`text-right font-extrabold ${netCashChange >= 0 ? 'text-indigo-700 bg-indigo-50/50' : 'text-rose-700 bg-rose-50/50'}`}>
-                          {money(netCashChange)}
+                        <TableCell className="text-right font-mono text-emerald-800 font-semibold">{money(yesterdayCash)}</TableCell>
+                        <TableCell className="text-right font-mono text-emerald-800 font-semibold">{money(salesIncome)}</TableCell>
+                        <TableCell className="text-right font-mono text-sky-700 font-semibold">{money(creditRepaid)}</TableCell>
+                        <TableCell className="text-right font-mono text-rose-700 font-semibold">{money(tomorrowCash)}</TableCell>
+                        <TableCell className="text-right font-mono font-black text-emerald-950 bg-emerald-50/60">{money(dailyRev)}</TableCell>
+                        <TableCell className="text-right font-mono text-rose-700 font-bold">{money(companyExp)}</TableCell>
+                        <TableCell className={`text-right font-mono font-black ${dailyNet >= 0 ? 'text-emerald-800 bg-emerald-100/50' : 'text-rose-800 bg-rose-100/50'}`}>
+                          {money(dailyNet)}
                         </TableCell>
                         <TableCell className="text-right font-bold text-purple-700 pr-6">
                           {row.ownerExpenseTotal > 0 ? (
-                            <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-bold">
+                            <span className="bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full text-xs font-bold">
                               {money(row.ownerExpenseTotal)}
                             </span>
                           ) : (
-                            "0.00 ETB"
+                            <span className="text-zinc-400 font-mono text-xs">0.00 ETB</span>
                           )}
                         </TableCell>
                       </TableRow>

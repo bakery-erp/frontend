@@ -13,10 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface DashboardTotals {
+  yesterdayLeftoverCash?: number;
   salesTotal: number;
+  creditReceivedFromLoans?: number;
+  tomorrowLeftoverCash?: number;
+  dailyTotalRevenue?: number;
   cashLeftoverTotal: number;
   companyExpenseTotal: number;
   ownerExpenseTotal: number;
+  dailyNetIncome?: number;
   loanTotal: number;
   supplierDeliveryCost: number;
   payrollTotal: number;
@@ -54,14 +59,15 @@ export default function Dashboard() {
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [payrollRecords, setPayrollRecords] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
-
-  // Filter state for unified ledger
-  const [ledgerFilter, setLedgerFilter] = useState<'ALL' | 'REVENUE' | 'EXPENSE'>('ALL');
-  const [ledgerSearch, setLedgerSearch] = useState<string>('');
+  const [customerLoanPayments, setCustomerLoanPayments] = useState<any[]>([]);
 
   // Expand/collapse states for the two big cards
   const [showGainDetail, setShowGainDetail] = useState(false);
   const [showExpenseDetail, setShowExpenseDetail] = useState(false);
+
+  // Ledger Filter & Search states
+  const [ledgerFilter, setLedgerFilter] = useState<'ALL' | 'REVENUE' | 'EXPENSE'>('ALL');
+  const [ledgerSearch, setLedgerSearch] = useState('');
 
   useEffect(() => {
     if (user && user.role !== 'OWNER' && user.role !== 'ADMIN') {
@@ -99,15 +105,20 @@ export default function Dashboard() {
 
       const data = reportRes.data || {};
       const t: DashboardTotals = data.totals || {
+        yesterdayLeftoverCash: data.yesterdayLeftoverCash ?? 0,
         salesTotal: data.salesTotal ?? 0,
+        creditReceivedFromLoans: data.creditReceivedFromLoans ?? 0,
+        tomorrowLeftoverCash: data.tomorrowLeftoverCash ?? data.cashLeftoverTotal ?? 0,
+        dailyTotalRevenue: data.dailyTotalRevenue ?? data.salesTotal ?? 0,
         cashLeftoverTotal: data.cashLeftoverTotal ?? 0,
         companyExpenseTotal: data.companyExpenseTotal ?? 0,
         ownerExpenseTotal: data.ownerExpenseTotal ?? 0,
+        dailyNetIncome: data.dailyNetIncome ?? data.netIncome ?? 0,
         loanTotal: data.loanTotal ?? 0,
         supplierDeliveryCost: data.supplierDeliveryCost ?? 0,
         payrollTotal: data.payrollTotal ?? 0,
-        totalExpense: data.totalExpenses ?? data.totalExpense ?? 0,
-        totalExpenses: data.totalExpenses ?? 0,
+        totalExpense: data.companyExpenseTotal ?? 0,
+        totalExpenses: data.companyExpenseTotal ?? 0,
         grossProfit: data.grossProfit ?? 0,
         netIncome: data.netIncome ?? 0,
         openingLeftoverQuantity: 0,
@@ -118,6 +129,7 @@ export default function Dashboard() {
       setDeliveries(data.supplierDeliveries || []);
       setPayrollRecords(data.payrollRecords || []);
       setLoans(data.loans || []);
+      setCustomerLoanPayments(data.customerLoanPayments || []);
       setStockSummary(stockRes.data || null);
       setStaffCount(Array.isArray(usersRes.data) ? usersRes.data.length : 0);
 
@@ -138,9 +150,24 @@ export default function Dashboard() {
 
   const isOwner = user?.role === 'OWNER';
 
-  const todayGain = totals?.salesTotal ?? 0;
-  const todayExpense = (totals?.companyExpenseTotal ?? 0) + (totals?.ownerExpenseTotal ?? 0) + (totals?.supplierDeliveryCost ?? 0) + (totals?.payrollTotal ?? 0);
-  const todayNet = todayGain - todayExpense;
+  // Exact user formula:
+  const yesterdayCash = totals?.yesterdayLeftoverCash ?? 0;
+  const salesIncome = totals?.salesTotal ?? 0;
+  const creditReceived = totals?.creditReceivedFromLoans ?? 0;
+  const tomorrowCash = totals?.tomorrowLeftoverCash ?? totals?.cashLeftoverTotal ?? 0;
+
+  // Daily Total Revenue: Yesterday's Leftover + Total Income from Sell + Credit Received from Loan - Leftover Cash for Tomorrow
+  const todayGain = totals?.dailyTotalRevenue != null
+    ? totals.dailyTotalRevenue
+    : (yesterdayCash + salesIncome + creditReceived - tomorrowCash);
+
+  // Daily Total Expense: Company operating expenses taken from daily money
+  const todayExpense = totals?.companyExpenseTotal ?? 0;
+
+  // Daily Net Income: Total Revenue - Total Expense
+  const todayNet = totals?.dailyNetIncome != null
+    ? totals.dailyNetIncome
+    : (todayGain - todayExpense);
 
   // Build sales detail rows from sessions
   const salesDetailRows: Array<{ product: string; qty: number; subtotal: number }> = [];
@@ -332,58 +359,105 @@ export default function Dashboard() {
           {/* GAIN DETAIL PANEL */}
           {showGainDetail && (
             <Card className="mt-3 border-emerald-200 bg-white shadow-lg rounded-3xl overflow-hidden animate-in fade-in duration-200">
-              <CardHeader className="pb-2 bg-emerald-50/50 border-b border-emerald-100">
-                <CardTitle className="text-sm font-bold text-emerald-900">Sales Itemization — Today</CardTitle>
+              <CardHeader className="pb-3 bg-emerald-50/70 border-b border-emerald-100">
+                <CardTitle className="text-sm font-extrabold text-emerald-950">Daily Total Revenue Calculation Formula</CardTitle>
+                <CardDescription className="text-xs text-emerald-800">
+                  Yesterday Leftover + Product Sales + Credit/Loans Repaid - Tomorrow Leftover
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
-                {salesDetailRows.length === 0 ? (
-                  <p className="text-sm text-[#8C7361] py-6 text-center font-medium">No product sales logged in current session</p>
-                ) : (
-                  <Table>
-                    <TableHeader className="bg-emerald-100/50">
-                      <TableRow className="border-b border-emerald-200">
-                        <TableHead className="text-emerald-950 font-extrabold">Product Item</TableHead>
-                        <TableHead className="text-right text-emerald-950 font-extrabold">Qty Sold</TableHead>
-                        <TableHead className="text-right text-emerald-950 font-extrabold pr-6">Subtotal</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {salesDetailRows.map((row, i) => (
-                        <TableRow key={i} className="border-b border-emerald-100/50 hover:bg-emerald-50/40">
-                          <TableCell className="font-bold text-[#2C1B10]">{row.product}</TableCell>
-                          <TableCell className="text-right font-bold text-[#4A2E1B]">{row.qty}</TableCell>
-                          <TableCell className="text-right text-emerald-800 font-extrabold pr-6">{money(row.subtotal)}</TableCell>
+                {/* 4-Part Formula Grid */}
+                <div className="p-4 bg-emerald-50/30 border-b border-emerald-100 space-y-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
+                      <div>
+                        <span className="font-extrabold text-emerald-900 block">➕ Yesterday Leftover Cash</span>
+                        <span className="text-[11px] text-[#8C7361]">Opening drawer cash from yesterday</span>
+                      </div>
+                      <span className="font-mono font-bold text-emerald-900 text-sm">{money(yesterdayCash)}</span>
+                    </div>
+                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
+                      <div>
+                        <span className="font-extrabold text-emerald-900 block">➕ Income from Product Sales</span>
+                        <span className="text-[11px] text-[#8C7361]">(Available - Leftovers - Damaged) × Price</span>
+                      </div>
+                      <span className="font-mono font-bold text-emerald-900 text-sm">{money(salesIncome)}</span>
+                    </div>
+                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
+                      <div>
+                        <span className="font-extrabold text-emerald-900 block">➕ Credit Received from Loans</span>
+                        <span className="text-[11px] text-[#8C7361]">Customer product credits settled today</span>
+                      </div>
+                      <span className="font-mono font-bold text-emerald-900 text-sm">{money(creditReceived)}</span>
+                    </div>
+                    <div className="p-3 bg-white rounded-2xl border border-rose-200 shadow-xs flex items-center justify-between">
+                      <div>
+                        <span className="font-extrabold text-rose-900 block">➖ Tomorrow Leftover Cash</span>
+                        <span className="text-[11px] text-[#8C7361]">Cash retained in drawer for next day</span>
+                      </div>
+                      <span className="font-mono font-bold text-rose-900 text-sm">{money(tomorrowCash)}</span>
+                    </div>
+                  </div>
+                  <div className="p-3.5 bg-emerald-900 text-white rounded-2xl flex items-center justify-between font-extrabold text-sm shadow-sm">
+                    <span className="uppercase tracking-wider text-xs sm:text-sm">🟰 Total Daily Revenue:</span>
+                    <span className="font-mono text-emerald-300 text-base sm:text-lg">{money(todayGain)}</span>
+                  </div>
+                </div>
+
+                {/* Sales Itemization Table */}
+                <div className="p-4 bg-white">
+                  <p className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider mb-2">Itemized Product Sales Today</p>
+                  {salesDetailRows.length === 0 ? (
+                    <p className="text-xs text-[#8C7361] py-4 text-center font-medium">No individual product sales logged in current session</p>
+                  ) : (
+                    <Table>
+                      <TableHeader className="bg-emerald-100/50">
+                        <TableRow className="border-b border-emerald-200">
+                          <TableHead className="text-emerald-950 font-extrabold">Product Item</TableHead>
+                          <TableHead className="text-right text-emerald-950 font-extrabold">Qty Sold</TableHead>
+                          <TableHead className="text-right text-emerald-950 font-extrabold pr-6">Subtotal</TableHead>
                         </TableRow>
-                      ))}
-                      <TableRow className="bg-emerald-100/60 font-extrabold text-emerald-950">
-                        <TableCell className="font-extrabold">Total Realized Sales</TableCell>
-                        <TableCell className="text-right font-extrabold">{salesDetailRows.reduce((s, r) => s + r.qty, 0)} items</TableCell>
-                        <TableCell className="text-right text-emerald-900 font-black pr-6">{money(todayGain)}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {salesDetailRows.map((row, i) => (
+                          <TableRow key={i} className="border-b border-emerald-100/50 hover:bg-emerald-50/40">
+                            <TableCell className="font-bold text-[#2C1B10]">{row.product}</TableCell>
+                            <TableCell className="text-right font-bold text-[#4A2E1B]">{row.qty}</TableCell>
+                            <TableCell className="text-right text-emerald-800 font-extrabold pr-6">{money(row.subtotal)}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-emerald-100/60 font-extrabold text-emerald-950">
+                          <TableCell className="font-extrabold">Total Product Sales</TableCell>
+                          <TableCell className="text-right font-extrabold">{salesDetailRows.reduce((s, r) => s + r.qty, 0)} items</TableCell>
+                          <TableCell className="text-right text-emerald-900 font-black pr-6">{money(salesIncome)}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+
+                {/* Customer Credit Loan Repayments Table */}
+                {customerLoanPayments.length > 0 && (
+                  <div className="p-4 border-t border-emerald-100 bg-emerald-50/20">
+                    <p className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider mb-2">Customer Credit Payments Collected Today</p>
+                    <Table>
+                      <TableHeader className="bg-emerald-100/40">
+                        <TableRow>
+                          <TableHead className="text-emerald-950 font-bold">Customer / Entity</TableHead>
+                          <TableHead className="text-right text-emerald-950 font-bold pr-6">Amount Paid</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {customerLoanPayments.map((cp, idx) => (
+                          <TableRow key={cp.id || idx} className="border-b border-emerald-50">
+                            <TableCell className="font-bold text-[#2C1B10]">{cp.loan?.entityId || 'Customer Credit'}</TableCell>
+                            <TableCell className="text-right font-mono font-bold text-emerald-800 pr-6">{money(cp.amountPaid)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
-
-                {/* Product Inventory Money Valuation Summary */}
-                <div className="p-4 bg-amber-50/60 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div>
-                    <span className="font-bold text-amber-950 block">📦 Unsold House Product Stock Value:</span>
-                    <span className="text-amber-800 text-[11px]">Valuation of products available on hand ready for sale</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-black text-amber-950 font-mono">{money(productValuation)}</span>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-emerald-900 text-white flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div>
-                    <span className="font-black text-white uppercase tracking-wider block">💎 Combined Total Gain (Sales + Stock Value):</span>
-                    <span className="text-emerald-200 text-[11px]">Realized cash revenue plus on-hand ready product assets</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-base font-black text-emerald-300 font-mono">{money(todayGain + productValuation)}</span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           )}
@@ -618,34 +692,47 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <Card className="col-span-1 lg:col-span-2 border-[#EDE4D5] bg-white shadow-sm rounded-3xl overflow-hidden">
           <CardHeader className="border-b border-[#EDE4D5] bg-[#FFFDF8]">
-            <CardTitle className="text-base font-extrabold text-[#2C1B10]">Today&apos;s P&amp;L Summary</CardTitle>
-            <CardDescription className="text-xs text-[#8C7361]">Comprehensive revenue vs cost breakdown for active session</CardDescription>
+            <CardTitle className="text-base font-extrabold text-[#2C1B10]">Today&apos;s Daily P&amp;L Financial Statement</CardTitle>
+            <CardDescription className="text-xs text-[#8C7361]">Revenue, company operating costs, and daily net income</CardDescription>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="space-y-3.5">
-              <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Total Sales Revenue</span>
-                <span className="text-xs sm:text-sm font-extrabold text-emerald-600 font-mono">+{money(totals?.salesTotal)}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">➕ Yesterday&apos;s Leftover Cash Float</span>
+                <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(yesterdayCash)}</span>
               </div>
-              <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Raw Material / Resell Costs</span>
-                <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(totals?.supplierDeliveryCost)}</span>
+              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">➕ Total Income from Product Sales</span>
+                <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(salesIncome)}</span>
               </div>
-              <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Company Operational Expenses</span>
-                <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(totals?.companyExpenseTotal)}</span>
+              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">➕ Credit Received from Loans (Customer Settled)</span>
+                <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(creditReceived)}</span>
               </div>
-              <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Owner Expense Withdrawals</span>
-                <span className="text-xs sm:text-sm font-extrabold text-purple-600 font-mono">-{money(totals?.ownerExpenseTotal)}</span>
+              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
+                <span className="text-xs sm:text-sm font-semibold text-rose-800">➖ Leftover Cash Retained for Tomorrow</span>
+                <span className="text-xs sm:text-sm font-extrabold text-rose-700 font-mono">-{money(tomorrowCash)}</span>
               </div>
-              <div className="flex justify-between items-center pb-3 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">Payroll Disbursed</span>
-                <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(totals?.payrollTotal)}</span>
+              <div className="flex justify-between items-center p-3 bg-emerald-50/80 rounded-xl border border-emerald-200">
+                <span className="text-xs sm:text-sm font-black text-emerald-950 uppercase tracking-wider">🟰 Total Daily Revenue</span>
+                <span className="text-sm sm:text-base font-black text-emerald-900 font-mono">{money(todayGain)}</span>
               </div>
-              <div className="flex justify-between items-center p-4 bg-[#F4ECE1] rounded-2xl mt-4">
-                <span className="text-sm font-extrabold text-[#2C1B10]">Calculated Net Profit</span>
-                <span className={`text-base sm:text-lg font-extrabold font-mono ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1] pt-1">
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">➖ Company Operational Expenses (Paid from Daily Cash)</span>
+                <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(todayExpense)}</span>
+              </div>
+              {totals?.ownerExpenseTotal ? (
+                <div className="flex justify-between items-center pb-2.5 border-b border-purple-100 text-purple-950">
+                  <span className="text-xs font-semibold">ℹ️ Owner Personal Drawings / Withdrawals (Tracked Separately)</span>
+                  <span className="text-xs font-bold font-mono text-purple-800">{money(totals.ownerExpenseTotal)}</span>
+                </div>
+              ) : null}
+              <div className="flex justify-between items-center p-4 bg-[#F4ECE1] rounded-2xl mt-2">
+                <div>
+                  <span className="text-sm font-extrabold text-[#2C1B10] block">Daily Net Income</span>
+                  <span className="text-[11px] text-[#8C7361]">Total Revenue minus Company Operating Expenses</span>
+                </div>
+                <span className={`text-base sm:text-xl font-extrabold font-mono ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                   {money(todayNet)}
                 </span>
               </div>
