@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { useLanguage } from "@/context/LanguageContext";
 
 type ReportMode = "summary" | "period";
 type Period = "daily" | "weekly" | "monthly" | "quarterly" | "semester" | "yearly";
@@ -226,6 +227,7 @@ function money(value: number | undefined | null) {
 export default function ReportsPage() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
+  const { t } = useLanguage();
   const [mode, setMode] = useState<ReportMode>("summary");
   const [period, setPeriod] = useState<Period>("monthly");
   const [branchId, setBranchId] = useState<string>("");
@@ -392,10 +394,10 @@ export default function ReportsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 print:hidden">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight flex items-center gap-2">
-            📊 Owner Financial & Performance Reports
+            📊 {t('reports.title')}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            Detailed revenue, operational expense, raw material cost, supplier credit loans, and owner drawings analysis.
+            {t('reports.subtitle')}
           </p>
         </div>
 
@@ -403,23 +405,23 @@ export default function ReportsPage() {
           onClick={handlePrint}
           className="bg-[#2C1B10] hover:bg-[#4A2E1B] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-2"
         >
-          🖨️ Print Financial Statement
+          🖨️ {t('reports.printReport')}
         </Button>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Report Filters</CardTitle>
+          <CardTitle>{t('reports.title')}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-medium">Branch</label>
+            <label className="text-sm font-medium">{t('common.branch')}</label>
             <select
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
               className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm"
             >
-              <option value="">Select a branch</option>
+              <option value="">{t('dashboard.allBranches')}</option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
@@ -431,8 +433,8 @@ export default function ReportsPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium">Mode</label>
             <select value={mode} onChange={(e) => setMode(e.target.value as ReportMode)} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
-              <option value="summary">Date Range Summary</option>
-              <option value="period">Preset Period</option>
+              <option value="summary">{t('reports.dateRangeSummary')}</option>
+              <option value="period">{t('reports.presetPeriod')}</option>
             </select>
           </div>
 

@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Trash2, Pencil, X, AlertTriangle, CalendarDays, Wallet, Tag, Check, Settings } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface Expense {
   id: string;
@@ -49,6 +50,7 @@ export default function ExpensesPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   
   const isManagement = user?.role === "OWNER" || user?.role === "ADMIN";
   const canAccess = isManagement || user?.role === "CASHIER";
@@ -363,12 +365,10 @@ export default function ExpensesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Expenses & Operational Costs
+            {t('expenses.title')}
           </h1>
           <p className="text-sm text-[#8C7361] mt-1">
-            {isManagement
-              ? "Record, review, and control daily expenses and owner withdrawals."
-              : "Record daily operational expenses taken directly from active session cash."}
+            {t('expenses.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -378,7 +378,7 @@ export default function ExpensesPage() {
               variant="outline"
               className="flex items-center gap-1.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl h-11 px-4 text-xs sm:text-sm"
             >
-              <Settings className="w-4 h-4 text-[#E87A18]" /> Manage Expense Reasons
+              <Settings className="w-4 h-4 text-[#E87A18]" /> {t('expenses.btnManageCategories')}
             </Button>
           )}
           <Button
@@ -386,7 +386,7 @@ export default function ExpensesPage() {
             disabled={!activeSession}
             className="flex items-center gap-2 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl h-11 px-5 shadow-sm disabled:opacity-50 text-xs sm:text-sm"
           >
-            <Plus className="w-4 h-4" /> Add Expense
+            <Plus className="w-4 h-4" /> {t('expenses.btnNewExpense')}
           </Button>
         </div>
       </div>
@@ -401,9 +401,9 @@ export default function ExpensesPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-emerald-950">Active Session Open</span>
+                  <span className="font-bold text-sm text-emerald-950">{t('sessions.statusOpen')}</span>
                   <span className="bg-emerald-200 text-emerald-800 text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full">
-                    Open Now
+                    {t('dashboard.liveSessionActive')}
                   </span>
                 </div>
                 <p className="text-xs text-emerald-700 mt-0.5">
@@ -433,7 +433,7 @@ export default function ExpensesPage() {
               onClick={() => router.push("/daily-sessions")}
               className="bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-xl text-xs px-4"
             >
-              <CalendarDays className="w-3.5 h-3.5 mr-1.5" /> Go to Daily Sessions
+              <CalendarDays className="w-3.5 h-3.5 mr-1.5" /> {t('nav.dailySessions')}
             </Button>
           </div>
         )
@@ -444,7 +444,7 @@ export default function ExpensesPage() {
         <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white shadow-xs rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-extrabold uppercase text-blue-700 tracking-wider">
-              Daily Expenses
+              {t('expenses.tabCompany')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -457,7 +457,7 @@ export default function ExpensesPage() {
           <Card className="border-purple-200 bg-gradient-to-br from-purple-50/80 to-white shadow-xs rounded-2xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-extrabold uppercase text-purple-700 tracking-wider">
-                Owner Expenses
+                {t('expenses.tabOwner')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -470,7 +470,7 @@ export default function ExpensesPage() {
         <Card className="border-rose-200 bg-gradient-to-br from-rose-50/80 to-white shadow-xs rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-extrabold uppercase text-rose-700 tracking-wider">
-              Total Expenses
+              {t('common.total')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -666,7 +666,7 @@ export default function ExpensesPage() {
                 : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
             }`}
           >
-            All Expenses ({expenses.length})
+            {t('common.all')} ({expenses.length})
           </button>
           <button
             onClick={() => setTypeFilter("COMPANY")}
@@ -676,7 +676,7 @@ export default function ExpensesPage() {
                 : "text-[#8C7361] hover:text-blue-700 hover:bg-white/50"
             }`}
           >
-            💵 Daily Operational Expenses
+            💵 {t('expenses.tabCompany')}
           </button>
           {isManagement && (
             <button
@@ -687,7 +687,7 @@ export default function ExpensesPage() {
                   : "text-[#8C7361] hover:text-purple-700 hover:bg-white/50"
               }`}
             >
-              👑 Owner Personal Drawings
+              👑 {t('expenses.tabOwner')}
             </button>
           )}
         </div>
@@ -696,31 +696,30 @@ export default function ExpensesPage() {
       {/* Expenses Table */}
       <Card className="border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
         <CardHeader className="bg-[#FAF6F0]/60 border-b border-[#EDE4D5] py-4">
-          <CardTitle className="text-base font-extrabold text-[#2C1B10]">Expense Records</CardTitle>
+          <CardTitle className="text-base font-extrabold text-[#2C1B10]">{t('expenses.title')}</CardTitle>
           <CardDescription className="text-xs text-[#8C7361]">
-            Showing {displayExpenses.length} record(s) for selected filter
+            Showing {displayExpenses.length} record(s)
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
-            <p className="text-center text-[#8C7361] py-8 font-medium">Loading expense records...</p>
+            <p className="text-center text-[#8C7361] py-8 font-medium">{t('common.loading')}</p>
           ) : displayExpenses.length === 0 ? (
             <div className="text-center py-10 text-[#8C7361]">
-              <p className="font-bold text-sm text-[#2C1B10]">No expenses recorded for this period.</p>
-              <p className="text-xs text-[#8C7361] mt-1">Click &quot;Add Expense&quot; to log a new cost.</p>
+              <p className="font-bold text-sm text-[#2C1B10]">{t('dashboard.noExpensesToday')}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Expense Type</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Description / Purpose</TableHead>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Recorded By</TableHead>
-                  <TableHead className="text-right">Expense Amount</TableHead>
-                  {isManagement && <TableHead className="text-right pr-6">Actions</TableHead>}
+                  <TableHead>{t('common.date')}</TableHead>
+                  <TableHead>{t('expenses.expenseType')}</TableHead>
+                  <TableHead>{t('expenses.category')}</TableHead>
+                  <TableHead>{t('expenses.description')}</TableHead>
+                  <TableHead>{t('nav.dailySessions')}</TableHead>
+                  <TableHead>{t('expenses.loggedBy')}</TableHead>
+                  <TableHead className="text-right">{t('expenses.amount')}</TableHead>
+                  {isManagement && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>

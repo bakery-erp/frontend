@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface DailySession {
   id: string;
@@ -37,6 +38,7 @@ interface Product {
 export default function DailySessionsPage() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
+  const { t } = useLanguage();
   const [sessions, setSessions] = useState<DailySession[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -217,8 +219,8 @@ export default function DailySessionsPage() {
     <DashboardLayout>
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-[#2C1B10]">Daily Business Sessions</h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Opening float, product conversions, pause/reopen controls, and end-of-day leftover reconciliation</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#2C1B10]">{t('sessions.title')}</h1>
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('sessions.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button
@@ -231,22 +233,22 @@ export default function DailySessionsPage() {
             }
           >
             <CalendarDays className="w-4 h-4 mr-2" />
-            {isTodayOnly ? "Today Only (Active)" : "Today Only"}
+            {isTodayOnly ? `${t('common.date')} (Active)` : t('common.date')}
           </Button>
           {canManageSessions && (
             todaySession ? (
               todaySession.status === 'OPEN' ? (
                 <Button disabled className="bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md opacity-90 cursor-default">
-                  <PlayCircle className="w-4 h-4 mr-2" /> Today&apos;s Session Active
+                  <PlayCircle className="w-4 h-4 mr-2" /> {t('sessions.sessionActive')}
                 </Button>
               ) : (
                 <Button onClick={() => handleReopenSession(todaySession)} className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md">
-                  <RotateCcw className="w-4 h-4 mr-2" /> Reopen Today&apos;s Session
+                  <RotateCcw className="w-4 h-4 mr-2" /> {t('sessions.reopenSession')}
                 </Button>
               )
             ) : (
               <Button onClick={handleOpenNewSession} className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md">
-                <Plus className="w-4 h-4 mr-2" /> Start New Session Today
+                <Plus className="w-4 h-4 mr-2" /> {t('sessions.startNewSession')}
               </Button>
             )
           )}
@@ -257,18 +259,18 @@ export default function DailySessionsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Session Name</TableHead>
-              <TableHead>Session Date</TableHead>
-              <TableHead>Branch Location</TableHead>
-              <TableHead>Session Status</TableHead>
-              <TableHead>Cash Leftover</TableHead>
-              <TableHead>Sales Volume (Txns)</TableHead>
-              <TableHead className="w-[240px] text-right pr-6">Management Actions</TableHead>
+              <TableHead>{t('sessions.colSessionName')}</TableHead>
+              <TableHead>{t('sessions.colSessionDate')}</TableHead>
+              <TableHead>{t('sessions.colBranchLocation')}</TableHead>
+              <TableHead>{t('sessions.colSessionStatus')}</TableHead>
+              <TableHead>{t('sessions.colTomorrowLeftover')}</TableHead>
+              <TableHead>{t('sessions.colSalesVolume')}</TableHead>
+              <TableHead className="w-[240px] text-right pr-6">{t('sessions.colActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">Loading daily sessions...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{t('common.loading')}</TableCell></TableRow>
             ) : displayedSessions.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{isTodayOnly ? "No session recorded for today." : "No sessions recorded yet for active scope."}</TableCell></TableRow>
             ) : displayedSessions.map((sess) => {
@@ -289,30 +291,30 @@ export default function DailySessionsPage() {
                   <TableCell>
                     {sess.status === 'OPEN' && (
                       <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1.5 shadow-xs">
-                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span> OPEN FOR SALES
+                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span> {t('sessions.statusOpen')}
                       </span>
                     )}
                     {sess.status === 'PAUSED' && (
                       <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1.5 shadow-xs">
-                        <PauseCircle className="w-3.5 h-3.5 text-amber-600" /> PAUSED
+                        <PauseCircle className="w-3.5 h-3.5 text-amber-600" /> {t('sessions.statusPaused')}
                       </span>
                     )}
                     {sess.status === 'CLOSE_PENDING' && (
                       <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-900 border border-purple-300 inline-flex items-center gap-1.5 animate-pulse">
-                        <AlertTriangle className="w-3.5 h-3.5 text-purple-700" /> PENDING APPROVAL
+                        <AlertTriangle className="w-3.5 h-3.5 text-purple-700" /> {t('sessions.statusPending')}
                       </span>
                     )}
                     {sess.status === 'CLOSED' && (
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
-                        CLOSED & FINALIZED
+                        {t('sessions.statusClosed')}
                       </span>
                     )}
                   </TableCell>
                   <TableCell className="font-extrabold text-[#2C1B10]">
-                    {sess.cashLeftoverAmount != null ? `${Number(sess.cashLeftoverAmount).toFixed(2)} ETB` : '—'}
+                    {sess.cashLeftoverAmount != null ? `${Number(sess.cashLeftoverAmount).toFixed(2)} ${t('common.currency')}` : '—'}
                   </TableCell>
                   <TableCell className="font-semibold text-[#8C7361]">
-                    <span className="font-bold text-[#2C1B10]">{sess._count?.sales || 0}</span> sales
+                    <span className="font-bold text-[#2C1B10]">{sess._count?.sales || 0}</span> {t('common.items')}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -320,7 +322,7 @@ export default function DailySessionsPage() {
                         <>
                           {canManageSessions && (
                             <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-50 font-bold rounded-xl text-xs" onClick={() => handlePauseSession(sess)}>
-                              <PauseCircle className="w-3.5 h-3.5 mr-1" /> Pause
+                              <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('common.hide')}
                             </Button>
                           )}
                           <Button
@@ -328,7 +330,7 @@ export default function DailySessionsPage() {
                             className="bg-rose-700 text-white hover:bg-rose-800 font-bold rounded-xl text-xs shadow-xs"
                             onClick={() => window.location.href = `/daily-sessions/${sess.id}/close?mode=edit`}
                           >
-                            <Lock className="w-3.5 h-3.5 mr-1" /> Close Session
+                            <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalizeSession')}
                           </Button>
                         </>
                       )}
@@ -337,7 +339,7 @@ export default function DailySessionsPage() {
                         <>
                           {canManageSessions && (
                             <Button size="sm" variant="outline" className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold rounded-xl text-xs" onClick={() => handleReopenSession(sess)}>
-                              <PlayCircle className="w-3.5 h-3.5 mr-1" /> Resume
+                              <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopenSession')}
                             </Button>
                           )}
                           <Button
@@ -345,7 +347,7 @@ export default function DailySessionsPage() {
                             className="bg-rose-700 text-white hover:bg-rose-800 font-bold rounded-xl text-xs shadow-xs"
                             onClick={() => window.location.href = `/daily-sessions/${sess.id}/close?mode=edit`}
                           >
-                            <Lock className="w-3.5 h-3.5 mr-1" /> Close Session
+                            <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalizeSession')}
                           </Button>
                         </>
                       )}
@@ -367,7 +369,7 @@ export default function DailySessionsPage() {
                           className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#F4ECE1] font-bold rounded-xl text-xs"
                           onClick={() => window.location.href = `/daily-sessions/${sess.id}/close?mode=view`}
                         >
-                          <Eye className="w-3.5 h-3.5 mr-1" /> View / Edit Session
+                          <Eye className="w-3.5 h-3.5 mr-1" /> {t('common.view')}
                         </Button>
                       )}
                     </div>

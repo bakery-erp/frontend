@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import LanguageSelector from '@/components/LanguageSelector';
 import { Lock, Phone, Loader2, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +25,7 @@ export default function LoginPage() {
   const [isResetSubmitting, setIsResetSubmitting] = useState(false);
 
   const { login } = useAuth();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +65,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAF7EE] p-4 font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAF7EE] p-4 font-sans relative">
+      {/* Floating Language Selector at top-right */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+        <LanguageSelector variant="header" />
+      </div>
+
       <Card className="w-full max-w-md shadow-[0_10px_30px_rgba(74,46,27,0.08)] border border-[#EDE4D5] bg-[#FFFDF8] rounded-3xl overflow-hidden">
         <CardHeader className="space-y-4 text-center pt-8 pb-4">
           <div className="mx-auto w-16 h-16 bg-[#E87A18] rounded-2xl flex items-center justify-center shadow-lg shadow-[#E87A18]/25">
@@ -71,7 +79,7 @@ export default function LoginPage() {
           <div>
             <CardTitle className="text-2xl font-extrabold tracking-tight text-[#2C1B10]">Bakery ERP</CardTitle>
             <CardDescription className="pt-2 text-xs font-medium text-[#8C7361]">
-              Sign in to the management portal
+              {t('auth.signInSubtitle')}
             </CardDescription>
           </div>
         </CardHeader>
@@ -86,7 +94,7 @@ export default function LoginPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-[#4A2E1B]">Phone Number</Label>
+                <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-[#4A2E1B]">{t('auth.phoneLabel')}</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C7361]">
                     <Phone className="h-4 w-4" />
@@ -94,7 +102,7 @@ export default function LoginPage() {
                   <Input
                     id="phone"
                     type="text"
-                    placeholder="0912..."
+                    placeholder={t('auth.phonePlaceholder')}
                     className="pl-10 h-12 rounded-2xl focus-visible:ring-[#E87A18] focus-visible:border-transparent bg-[#F4ECE1]/50 text-[#2C1B10] placeholder:text-[#A48F7F] border-[#EDE4D5] focus:bg-white transition-all font-medium"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -105,7 +113,7 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-[#4A2E1B]">Password</Label>
+                  <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-[#4A2E1B]">{t('auth.passwordLabel')}</Label>
                   <button
                     type="button"
                     onClick={() => {
@@ -116,7 +124,7 @@ export default function LoginPage() {
                     }}
                     className="text-xs text-[#E87A18] hover:text-[#d46d13] font-bold underline underline-offset-2 transition-colors"
                   >
-                    Forgot Password?
+                    {t('auth.forgotPassword')}
                   </button>
                 </div>
                 <div className="relative">
@@ -126,7 +134,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                     className="pl-10 h-12 rounded-2xl focus-visible:ring-[#E87A18] focus-visible:border-transparent bg-[#F4ECE1]/50 text-[#2C1B10] placeholder:text-[#A48F7F] border-[#EDE4D5] focus:bg-white transition-all font-medium"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -144,10 +152,10 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Authenticating...
+                  {t('auth.signingInButton')}
                 </>
               ) : (
-                'Sign In to Dashboard'
+                t('auth.signInButton')
               )}
             </Button>
           </form>

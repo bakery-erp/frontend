@@ -6,6 +6,7 @@ import QueryProvider from "@/providers/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 export const metadata: Metadata = {
   title: "Bakery ERP Management",
@@ -22,12 +23,14 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-zinc-50 text-zinc-900">
         <ErrorBoundary>
           <QueryProvider>
-            <AuthProvider>
-              <BranchProvider>
-                {children}
-                <Toaster />
-              </BranchProvider>
-            </AuthProvider>
+            <LanguageProvider>
+              <AuthProvider>
+                <BranchProvider>
+                  {children}
+                  <Toaster />
+                </BranchProvider>
+              </AuthProvider>
+            </LanguageProvider>
           </QueryProvider>
         </ErrorBoundary>
       </body>

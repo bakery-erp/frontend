@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useLanguage } from '@/context/LanguageContext';
 
 interface DashboardTotals {
   yesterdayLeftoverCash?: number;
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
+  const { t } = useLanguage();
   const [totals, setTotals] = useState<DashboardTotals | null>(null);
   const [stockSummary, setStockSummary] = useState<StockSummary | null>(null);
   const [staffCount, setStaffCount] = useState<number>(0);
@@ -296,20 +298,20 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
         <div>
           <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#E87A18]/10 text-[#E87A18] border border-[#E87A18]/20 mb-2">
-            ✨ Bakery Operations & Management
+            {t('dashboard.badge')}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Welcome back, {user?.fullName || 'Manager'} 👋
+            {t('dashboard.welcomeBack', { name: user?.fullName || 'Manager' })}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] font-medium mt-1">
             {selectedBranchId
-              ? `Real-time operational dashboard for ${branches.find(b => b.id === selectedBranchId)?.name || 'Branch'}`
-              : 'Combined performance overview across all bakery branches.'}
+              ? t('dashboard.branchOverview', { branch: branches.find(b => b.id === selectedBranchId)?.name || 'Branch' })
+              : t('dashboard.allBranchesOverview')}
           </p>
         </div>
         <div className="bg-[#FFFDF8] border border-[#EDE4D5] rounded-2xl px-4 py-2 flex items-center space-x-3 shadow-xs">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-bold text-[#4A2E1B]">Live Session Active</span>
+          <span className="text-xs font-bold text-[#4A2E1B]">{t('dashboard.liveSessionActive')}</span>
         </div>
       </div>
 
@@ -328,13 +330,13 @@ export default function Dashboard() {
                   <ArrowUpRight className="h-6 w-6" />
                 </div>
                 <div>
-                  <CardTitle className="text-xs font-extrabold uppercase text-emerald-800 tracking-wider">Today&apos;s Revenue (Gain)</CardTitle>
-                  <p className="text-[11px] text-emerald-700/80 font-medium">Sales collected across counter</p>
+                  <CardTitle className="text-xs font-extrabold uppercase text-emerald-800 tracking-wider">{t('dashboard.todayRevenueTitle')}</CardTitle>
+                  <p className="text-[11px] text-emerald-700/80 font-medium">{t('dashboard.todayRevenueDesc')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  + Live Sales
+                  {t('dashboard.liveSalesBadge')}
                 </span>
                 <Button variant="ghost" size="sm" className="text-emerald-800 hover:bg-emerald-100/50 p-1 h-auto rounded-xl">
                   {showGainDetail ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -347,10 +349,10 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-emerald-100">
                 <span className="text-xs font-bold text-emerald-700">
-                  Click to {showGainDetail ? 'hide' : 'view'} itemized breakdown
+                  {showGainDetail ? t('dashboard.clickToHideBreakdown') : t('dashboard.clickToViewBreakdown')}
                 </span>
                 <span className="text-xs font-semibold text-emerald-600 flex items-center">
-                  {sessions.length} open session(s) <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                  {t('dashboard.openSessionsCount', { count: sessions.length })} <ChevronDown className="w-3.5 h-3.5 ml-1" />
                 </span>
               </div>
             </CardContent>
@@ -360,9 +362,9 @@ export default function Dashboard() {
           {showGainDetail && (
             <Card className="mt-3 border-emerald-200 bg-white shadow-lg rounded-3xl overflow-hidden animate-in fade-in duration-200">
               <CardHeader className="pb-3 bg-emerald-50/70 border-b border-emerald-100">
-                <CardTitle className="text-sm font-extrabold text-emerald-950">Daily Total Revenue Calculation Formula</CardTitle>
+                <CardTitle className="text-sm font-extrabold text-emerald-950">{t('dashboard.revenueFormulaTitle')}</CardTitle>
                 <CardDescription className="text-xs text-emerald-800">
-                  Yesterday Leftover + Product Sales + Credit/Loans Repaid - Tomorrow Leftover
+                  {t('dashboard.revenueFormulaDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
@@ -371,51 +373,51 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                     <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
                       <div>
-                        <span className="font-extrabold text-emerald-900 block">➕ Yesterday Leftover Cash</span>
-                        <span className="text-[11px] text-[#8C7361]">Opening drawer cash from yesterday</span>
+                        <span className="font-extrabold text-emerald-900 block">➕ {t('dashboard.yesterdayLeftoverCash')}</span>
+                        <span className="text-[11px] text-[#8C7361]">{t('dashboard.yesterdayLeftoverCashSub')}</span>
                       </div>
                       <span className="font-mono font-bold text-emerald-900 text-sm">{money(yesterdayCash)}</span>
                     </div>
                     <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
                       <div>
-                        <span className="font-extrabold text-emerald-900 block">➕ Income from Product Sales</span>
-                        <span className="text-[11px] text-[#8C7361]">(Available - Leftovers - Damaged) × Price</span>
+                        <span className="font-extrabold text-emerald-900 block">➕ {t('dashboard.incomeFromSales')}</span>
+                        <span className="text-[11px] text-[#8C7361]">{t('dashboard.incomeFromSalesSub')}</span>
                       </div>
                       <span className="font-mono font-bold text-emerald-900 text-sm">{money(salesIncome)}</span>
                     </div>
                     <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
                       <div>
-                        <span className="font-extrabold text-emerald-900 block">➕ Credit Received from Loans</span>
-                        <span className="text-[11px] text-[#8C7361]">Customer product credits settled today</span>
+                        <span className="font-extrabold text-emerald-900 block">➕ {t('dashboard.creditReceivedLoans')}</span>
+                        <span className="text-[11px] text-[#8C7361]">{t('dashboard.creditReceivedLoansSub')}</span>
                       </div>
                       <span className="font-mono font-bold text-emerald-900 text-sm">{money(creditReceived)}</span>
                     </div>
                     <div className="p-3 bg-white rounded-2xl border border-rose-200 shadow-xs flex items-center justify-between">
                       <div>
-                        <span className="font-extrabold text-rose-900 block">➖ Tomorrow Leftover Cash</span>
-                        <span className="text-[11px] text-[#8C7361]">Cash retained in drawer for next day</span>
+                        <span className="font-extrabold text-rose-900 block">➖ {t('dashboard.tomorrowLeftoverCash')}</span>
+                        <span className="text-[11px] text-[#8C7361]">{t('dashboard.tomorrowLeftoverCashSub')}</span>
                       </div>
                       <span className="font-mono font-bold text-rose-900 text-sm">{money(tomorrowCash)}</span>
                     </div>
                   </div>
                   <div className="p-3.5 bg-emerald-900 text-white rounded-2xl flex items-center justify-between font-extrabold text-sm shadow-sm">
-                    <span className="uppercase tracking-wider text-xs sm:text-sm">🟰 Total Daily Revenue:</span>
+                    <span className="uppercase tracking-wider text-xs sm:text-sm">🟰 {t('dashboard.totalDailyRevenue')}:</span>
                     <span className="font-mono text-emerald-300 text-base sm:text-lg">{money(todayGain)}</span>
                   </div>
                 </div>
 
                 {/* Sales Itemization Table */}
                 <div className="p-4 bg-white">
-                  <p className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider mb-2">Itemized Product Sales Today</p>
+                  <p className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider mb-2">{t('dashboard.itemizedSalesTitle')}</p>
                   {salesDetailRows.length === 0 ? (
-                    <p className="text-xs text-[#8C7361] py-4 text-center font-medium">No individual product sales logged in current session</p>
+                    <p className="text-xs text-[#8C7361] py-4 text-center font-medium">{t('dashboard.noSalesRecorded')}</p>
                   ) : (
                     <Table>
                       <TableHeader className="bg-emerald-100/50">
                         <TableRow className="border-b border-emerald-200">
-                          <TableHead className="text-emerald-950 font-extrabold">Product Item</TableHead>
-                          <TableHead className="text-right text-emerald-950 font-extrabold">Qty Sold</TableHead>
-                          <TableHead className="text-right text-emerald-950 font-extrabold pr-6">Subtotal</TableHead>
+                          <TableHead className="text-emerald-950 font-extrabold">{t('dashboard.colProductItem')}</TableHead>
+                          <TableHead className="text-right text-emerald-950 font-extrabold">{t('dashboard.colQtySold')}</TableHead>
+                          <TableHead className="text-right text-emerald-950 font-extrabold pr-6">{t('dashboard.colSubtotal')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -427,8 +429,8 @@ export default function Dashboard() {
                           </TableRow>
                         ))}
                         <TableRow className="bg-emerald-100/60 font-extrabold text-emerald-950">
-                          <TableCell className="font-extrabold">Total Product Sales</TableCell>
-                          <TableCell className="text-right font-extrabold">{salesDetailRows.reduce((s, r) => s + r.qty, 0)} items</TableCell>
+                          <TableCell className="font-extrabold">{t('dashboard.itemizedSalesTitle')}</TableCell>
+                          <TableCell className="text-right font-extrabold">{salesDetailRows.reduce((s, r) => s + r.qty, 0)} {t('common.items')}</TableCell>
                           <TableCell className="text-right text-emerald-900 font-black pr-6">{money(salesIncome)}</TableCell>
                         </TableRow>
                       </TableBody>
@@ -439,12 +441,12 @@ export default function Dashboard() {
                 {/* Customer Credit Loan Repayments Table */}
                 {customerLoanPayments.length > 0 && (
                   <div className="p-4 border-t border-emerald-100 bg-emerald-50/20">
-                    <p className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider mb-2">Customer Credit Payments Collected Today</p>
+                    <p className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider mb-2">{t('dashboard.customerCreditPaymentsTitle')}</p>
                     <Table>
                       <TableHeader className="bg-emerald-100/40">
                         <TableRow>
-                          <TableHead className="text-emerald-950 font-bold">Customer / Entity</TableHead>
-                          <TableHead className="text-right text-emerald-950 font-bold pr-6">Amount Paid</TableHead>
+                          <TableHead className="text-emerald-950 font-bold">{t('dashboard.colCustomerEntity')}</TableHead>
+                          <TableHead className="text-right text-emerald-950 font-bold pr-6">{t('dashboard.colAmountPaid')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -475,13 +477,13 @@ export default function Dashboard() {
                   <ArrowDownRight className="h-6 w-6" />
                 </div>
                 <div>
-                  <CardTitle className="text-xs font-extrabold uppercase text-rose-800 tracking-wider">Today&apos;s Expense (Costs)</CardTitle>
-                  <p className="text-[11px] text-rose-700/80 font-medium">Purchases, payroll & branch expenses</p>
+                  <CardTitle className="text-xs font-extrabold uppercase text-rose-800 tracking-wider">{t('dashboard.todayExpenseTitle')}</CardTitle>
+                  <p className="text-[11px] text-rose-700/80 font-medium">{t('dashboard.todayExpenseDesc')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
-                  Costs & Payables
+                  {t('dashboard.costsBadge')}
                 </span>
                 <Button variant="ghost" size="sm" className="text-rose-800 hover:bg-rose-100/50 p-1 h-auto rounded-xl">
                   {showExpenseDetail ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -494,10 +496,10 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-rose-100">
                 <span className="text-xs font-bold text-rose-700">
-                  Click to {showExpenseDetail ? 'hide' : 'view'} cost breakdown
+                  {showExpenseDetail ? t('dashboard.clickToHideBreakdown') : t('dashboard.clickToViewBreakdown')}
                 </span>
                 <span className="text-xs font-semibold text-rose-600 flex items-center">
-                  {expenses.length + deliveries.length} expense log(s) <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                  {t('dashboard.expenseLogsCount', { count: expenses.length + deliveries.length })} <ChevronDown className="w-3.5 h-3.5 ml-1" />
                 </span>
               </div>
             </CardContent>
@@ -507,25 +509,25 @@ export default function Dashboard() {
           {showExpenseDetail && (
             <Card className="mt-3 border-rose-200 bg-white shadow-lg rounded-3xl overflow-hidden animate-in fade-in duration-200">
               <CardHeader className="pb-2 bg-rose-50/50 border-b border-rose-100">
-                <CardTitle className="text-sm font-bold text-rose-900">Expense Breakdown — Today</CardTitle>
+                <CardTitle className="text-sm font-bold text-rose-900">{t('dashboard.expenseBreakdownTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4 overflow-x-auto">
                 {/* Summary Row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                   <div className="p-3 bg-rose-50/60 rounded-2xl border border-rose-100">
-                    <div className="text-rose-700 font-semibold mb-0.5">Company</div>
+                    <div className="text-rose-700 font-semibold mb-0.5">{t('dashboard.catCompany')}</div>
                     <div className="font-extrabold text-rose-950 text-sm">{money(totals?.companyExpenseTotal)}</div>
                   </div>
                   <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100">
-                    <div className="text-purple-700 font-semibold mb-0.5">Owner Withdrawals</div>
+                    <div className="text-purple-700 font-semibold mb-0.5">{t('dashboard.catOwnerWithdrawals')}</div>
                     <div className="font-extrabold text-purple-950 text-sm">{money(totals?.ownerExpenseTotal)}</div>
                   </div>
                   <div className="p-3 bg-amber-50/60 rounded-2xl border border-amber-100">
-                    <div className="text-amber-800 font-semibold mb-0.5">Supplier Purchases</div>
+                    <div className="text-amber-800 font-semibold mb-0.5">{t('dashboard.catSupplierPurchases')}</div>
                     <div className="font-extrabold text-amber-950 text-sm">{money(totals?.supplierDeliveryCost)}</div>
                   </div>
                   <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100">
-                    <div className="text-indigo-700 font-semibold mb-0.5">Payroll Paid</div>
+                    <div className="text-indigo-700 font-semibold mb-0.5">{t('dashboard.catPayrollPaid')}</div>
                     <div className="font-extrabold text-indigo-950 text-sm">{money(totals?.payrollTotal)}</div>
                   </div>
                 </div>
@@ -533,14 +535,14 @@ export default function Dashboard() {
                 {/* Expense line items */}
                 {expenses.length > 0 && (
                   <div className="rounded-2xl border border-rose-100 overflow-hidden">
-                    <p className="text-[11px] font-extrabold text-rose-800 uppercase tracking-wider p-2.5 bg-rose-50/40 border-b border-rose-100">Logged Operational Expenses</p>
+                    <p className="text-[11px] font-extrabold text-rose-800 uppercase tracking-wider p-2.5 bg-rose-50/40 border-b border-rose-100">{t('dashboard.loggedExpensesTitle')}</p>
                     <Table>
                       <TableHeader className="bg-rose-50/60">
                         <TableRow>
-                          <TableHead className="text-rose-950 font-bold">Category</TableHead>
-                          <TableHead className="text-rose-950 font-bold">Description</TableHead>
-                          <TableHead className="text-rose-950 font-bold">Type</TableHead>
-                          <TableHead className="text-right text-rose-950 font-bold pr-6">Amount</TableHead>
+                          <TableHead className="text-rose-950 font-bold">{t('expenses.category')}</TableHead>
+                          <TableHead className="text-rose-950 font-bold">{t('expenses.description')}</TableHead>
+                          <TableHead className="text-rose-950 font-bold">{t('expenses.expenseType')}</TableHead>
+                          <TableHead className="text-right text-rose-950 font-bold pr-6">{t('expenses.amount')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -564,7 +566,7 @@ export default function Dashboard() {
                 {/* Supplier delivery items */}
                 {deliveries.length > 0 && (
                   <div className="rounded-2xl border border-amber-100 overflow-hidden">
-                    <p className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wider p-2.5 bg-amber-50/40 border-b border-amber-100">Supplier Deliveries Received</p>
+                    <p className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wider p-2.5 bg-amber-50/40 border-b border-amber-100">{t('dashboard.supplierDeliveriesTitle')}</p>
                     <Table>
                       <TableHeader className="bg-amber-50/60">
                         <TableRow>
@@ -587,7 +589,7 @@ export default function Dashboard() {
                 )}
 
                 {expenses.length === 0 && deliveries.length === 0 && (
-                  <p className="text-xs text-[#8C7361] py-4 text-center">No expense logs or supplier receipts for today</p>
+                  <p className="text-xs text-[#8C7361] py-4 text-center">{t('dashboard.noExpensesToday')}</p>
                 )}
               </CardContent>
             </Card>
@@ -600,7 +602,7 @@ export default function Dashboard() {
         {/* Card 1: Net Profit */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Net Profit Today</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('dashboard.netProfitToday')}</CardTitle>
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
               <TrendingUp className="h-4 w-4" />
             </div>
@@ -610,7 +612,7 @@ export default function Dashboard() {
               {isLoading ? '...' : money(todayNet)}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
-              Sales minus operational costs
+              {t('dashboard.netProfitSub')}
             </p>
           </CardContent>
         </Card>
@@ -618,7 +620,7 @@ export default function Dashboard() {
         {/* Card 2: Product Inventory Asset Value */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1 bg-amber-50/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-amber-900 tracking-wider">Product Stock Value</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-amber-900 tracking-wider">{t('dashboard.productStockValue')}</CardTitle>
             <div className="w-8 h-8 rounded-xl bg-[#E87A18]/10 text-[#E87A18] flex items-center justify-center">
               <Package className="h-4 w-4" />
             </div>
@@ -628,7 +630,7 @@ export default function Dashboard() {
               {isLoading ? '...' : money(productValuation)}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
-              Money value of ready house products
+              {t('dashboard.productStockValueSub')}
             </p>
           </CardContent>
         </Card>
@@ -636,7 +638,7 @@ export default function Dashboard() {
         {/* Card 3: Loans Today */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Staff Loans Issued</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('dashboard.staffLoansIssued')}</CardTitle>
             <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center">
               <Wallet className="h-4 w-4" />
             </div>
@@ -646,7 +648,7 @@ export default function Dashboard() {
               {isLoading ? '...' : money(totals?.loanTotal)}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
-              {loans.length} salary loan record(s)
+              {t('dashboard.staffLoansSub', { count: loans.length })}
             </p>
           </CardContent>
         </Card>
@@ -654,7 +656,7 @@ export default function Dashboard() {
         {/* Card 4: Stock Health */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Raw Material Health</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('dashboard.rawMaterialHealth')}</CardTitle>
             <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-700 flex items-center justify-center">
               <Boxes className="h-4 w-4" />
             </div>
@@ -664,7 +666,7 @@ export default function Dashboard() {
               {isLoading ? '...' : `${stockSummary?.healthy || 0} / ${stockSummary?.totalItems || 0}`}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
-              {stockSummary?.lowStock ? `${stockSummary.lowStock} items low` : 'All stock healthy'}
+              {stockSummary?.lowStock ? t('dashboard.itemsLowThreshold', { count: stockSummary.lowStock }) : t('dashboard.allInventoryHealthy')}
             </p>
           </CardContent>
         </Card>
@@ -672,7 +674,7 @@ export default function Dashboard() {
         {/* Card 5: Team & Locations */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Staff & Branches</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('dashboard.activeStaffAndBranches')}</CardTitle>
             <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-700 flex items-center justify-center">
               <Users className="h-4 w-4" />
             </div>
@@ -682,7 +684,7 @@ export default function Dashboard() {
               {isLoading ? '...' : `${branches.length} Br, ${staffCount} Staff`}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
-              Active platform users
+              {t('dashboard.activeStaffSub', { branches: branches.length, staff: staffCount })}
             </p>
           </CardContent>
         </Card>
@@ -692,45 +694,45 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <Card className="col-span-1 lg:col-span-2 border-[#EDE4D5] bg-white shadow-sm rounded-3xl overflow-hidden">
           <CardHeader className="border-b border-[#EDE4D5] bg-[#FFFDF8]">
-            <CardTitle className="text-base font-extrabold text-[#2C1B10]">Today&apos;s Daily P&amp;L Financial Statement</CardTitle>
-            <CardDescription className="text-xs text-[#8C7361]">Revenue, company operating costs, and daily net income</CardDescription>
+            <CardTitle className="text-base font-extrabold text-[#2C1B10]">{t('dashboard.pnlStatementTitle')}</CardTitle>
+            <CardDescription className="text-xs text-[#8C7361]">{t('dashboard.pnlStatementDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">➕ Yesterday&apos;s Leftover Cash Float</span>
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">{t('dashboard.plusYesterdayLeftover')}</span>
                 <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(yesterdayCash)}</span>
               </div>
               <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">➕ Total Income from Product Sales</span>
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">{t('dashboard.plusProductSales')}</span>
                 <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(salesIncome)}</span>
               </div>
               <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">➕ Credit Received from Loans (Customer Settled)</span>
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">{t('dashboard.plusCreditReceived')}</span>
                 <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(creditReceived)}</span>
               </div>
               <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-rose-800">➖ Leftover Cash Retained for Tomorrow</span>
+                <span className="text-xs sm:text-sm font-semibold text-rose-800">{t('dashboard.minusTomorrowLeftover')}</span>
                 <span className="text-xs sm:text-sm font-extrabold text-rose-700 font-mono">-{money(tomorrowCash)}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-emerald-50/80 rounded-xl border border-emerald-200">
-                <span className="text-xs sm:text-sm font-black text-emerald-950 uppercase tracking-wider">🟰 Total Daily Revenue</span>
+                <span className="text-xs sm:text-sm font-black text-emerald-950 uppercase tracking-wider">{t('dashboard.equalsTotalRevenue')}</span>
                 <span className="text-sm sm:text-base font-black text-emerald-900 font-mono">{money(todayGain)}</span>
               </div>
               <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1] pt-1">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">➖ Company Operational Expenses (Paid from Daily Cash)</span>
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">{t('dashboard.minusCompanyExpenses')}</span>
                 <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(todayExpense)}</span>
               </div>
               {totals?.ownerExpenseTotal ? (
                 <div className="flex justify-between items-center pb-2.5 border-b border-purple-100 text-purple-950">
-                  <span className="text-xs font-semibold">ℹ️ Owner Personal Drawings / Withdrawals (Tracked Separately)</span>
+                  <span className="text-xs font-semibold">{t('dashboard.ownerDrawingsNote')}</span>
                   <span className="text-xs font-bold font-mono text-purple-800">{money(totals.ownerExpenseTotal)}</span>
                 </div>
               ) : null}
               <div className="flex justify-between items-center p-4 bg-[#F4ECE1] rounded-2xl mt-2">
                 <div>
-                  <span className="text-sm font-extrabold text-[#2C1B10] block">Daily Net Income</span>
-                  <span className="text-[11px] text-[#8C7361]">Total Revenue minus Company Operating Expenses</span>
+                  <span className="text-sm font-extrabold text-[#2C1B10] block">{t('dashboard.dailyNetIncome')}</span>
+                  <span className="text-[11px] text-[#8C7361]">{t('dashboard.dailyNetIncomeSub')}</span>
                 </div>
                 <span className={`text-base sm:text-xl font-extrabold font-mono ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                   {money(todayNet)}
@@ -742,14 +744,14 @@ export default function Dashboard() {
 
         <Card className="border-[#EDE4D5] bg-white shadow-sm rounded-3xl overflow-hidden">
           <CardHeader className="border-b border-[#EDE4D5] bg-[#FFFDF8]">
-            <CardTitle className="text-base font-extrabold text-[#2C1B10]">Inventory Status & Value</CardTitle>
-            <CardDescription className="text-xs text-[#8C7361]">Stock levels & asset valuation</CardDescription>
+            <CardTitle className="text-base font-extrabold text-[#2C1B10]">{t('dashboard.inventoryStatusTitle')}</CardTitle>
+            <CardDescription className="text-xs text-[#8C7361]">{t('dashboard.inventoryStatusDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center p-4 rounded-2xl bg-[#E87A18]/10 border border-[#E87A18]/20">
               <Package className="w-6 h-6 text-[#E87A18] mr-3 flex-shrink-0" />
               <div>
-                <p className="text-xs font-semibold text-[#8C7361]">Ready Product Asset Value</p>
+                <p className="text-xs font-semibold text-[#8C7361]">{t('dashboard.readyProductAssetValue')}</p>
                 <p className="text-lg font-extrabold text-[#2C1B10] font-mono">{money(productValuation)}</p>
               </div>
             </div>
@@ -757,8 +759,8 @@ export default function Dashboard() {
             <div className="flex items-center p-4 rounded-2xl bg-emerald-50 text-emerald-900 border border-emerald-200">
               <CheckCircle2 className="w-6 h-6 text-emerald-600 mr-3 flex-shrink-0" />
               <div>
-                <p className="text-sm font-extrabold">Healthy Stock Items</p>
-                <p className="text-xs text-emerald-700 font-medium">{stockSummary?.healthy || 0} items at normal levels</p>
+                <p className="text-sm font-extrabold">{t('dashboard.healthyStockItems')}</p>
+                <p className="text-xs text-emerald-700 font-medium">{t('dashboard.healthyStockSub', { count: stockSummary?.healthy || 0 })}</p>
               </div>
             </div>
 
@@ -766,13 +768,13 @@ export default function Dashboard() {
               <div className="flex items-center p-4 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200">
                 <AlertTriangle className="w-6 h-6 text-amber-600 mr-3 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-extrabold">Low Stock Threshold</p>
-                  <p className="text-xs text-amber-700 font-medium">{stockSummary.lowStock} item(s) need replenishment</p>
+                  <p className="text-sm font-extrabold">{t('dashboard.lowStockThreshold')}</p>
+                  <p className="text-xs text-amber-700 font-medium">{t('dashboard.lowStockSub', { count: stockSummary.lowStock })}</p>
                 </div>
               </div>
             ) : (
               <div className="p-4 rounded-2xl bg-[#F4ECE1] text-[#4A2E1B] text-xs font-semibold text-center border border-[#EDE4D5]">
-                ✓ No inventory replenishment warnings active today
+                {t('dashboard.noInventoryWarnings')}
               </div>
             )}
           </CardContent>
@@ -785,10 +787,10 @@ export default function Dashboard() {
           <div>
             <CardTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
               <Receipt className="w-5 h-5 text-[#E87A18]" />
-              Unified Financial Transactions Ledger (Everything List)
+              {t('dashboard.unifiedLedgerTitle')}
             </CardTitle>
             <CardDescription className="text-xs text-[#8C7361]">
-              Live list of all sales, customer credit sales, operating expenses, supplier deliveries, and payroll transactions.
+              {t('dashboard.unifiedLedgerDesc')}
             </CardDescription>
           </div>
 
@@ -801,7 +803,7 @@ export default function Dashboard() {
                   ledgerFilter === 'ALL' ? 'bg-[#4A2E1B] text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
                 }`}
               >
-                All ({unifiedTransactions.length})
+                {t('common.all')} ({unifiedTransactions.length})
               </button>
               <button
                 onClick={() => setLedgerFilter('REVENUE')}
@@ -809,7 +811,7 @@ export default function Dashboard() {
                   ledgerFilter === 'REVENUE' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
                 }`}
               >
-                Revenues
+                {t('dashboard.filterRevenueOnly')}
               </button>
               <button
                 onClick={() => setLedgerFilter('EXPENSE')}
@@ -817,13 +819,13 @@ export default function Dashboard() {
                   ledgerFilter === 'EXPENSE' ? 'bg-rose-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
                 }`}
               >
-                Expenses
+                {t('dashboard.filterExpensesOnly')}
               </button>
             </div>
 
             <Input
               type="text"
-              placeholder="Search ledger..."
+              placeholder={t('dashboard.searchTransactionsPlaceholder')}
               value={ledgerSearch}
               onChange={(e) => setLedgerSearch(e.target.value)}
               className="w-48 bg-white border-[#EDE4D5] rounded-xl text-xs h-9"
@@ -834,18 +836,18 @@ export default function Dashboard() {
         <CardContent className="p-0 overflow-x-auto">
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-10 text-[#8C7361] text-xs font-medium">
-              No financial transactions found matching your criteria.
+              {t('dashboard.noTransactionsFound')}
             </div>
           ) : (
             <Table>
               <TableHeader className="bg-[#FAF6F0]">
                 <TableRow>
-                  <TableHead className="w-32">Date / Time</TableHead>
-                  <TableHead>Transaction Title</TableHead>
-                  <TableHead>Financial Category</TableHead>
-                  <TableHead className="text-center">Type</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right pr-6">Amount (ETB)</TableHead>
+                  <TableHead className="w-32">{t('common.date')}</TableHead>
+                  <TableHead>{t('common.details')}</TableHead>
+                  <TableHead>{t('expenses.category')}</TableHead>
+                  <TableHead className="text-center">{t('expenses.expenseType')}</TableHead>
+                  <TableHead className="text-center">{t('common.status')}</TableHead>
+                  <TableHead className="text-right pr-6">{t('expenses.amount')} ({t('common.currency')})</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

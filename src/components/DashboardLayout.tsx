@@ -7,6 +7,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getImageUrl } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
+import LanguageSelector from '@/components/LanguageSelector';
 import {
   LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
@@ -16,6 +18,7 @@ import {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { branches, selectedBranchId, setSelectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -49,42 +52,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = role === 'ADMIN';
 
   const menuItems = [
-    ...(isOwner || isAdmin ? [{ icon: LayoutDashboard, label: 'Dashboard', href: '/' }] : []),
-    { icon: UserCheck, label: 'My Profile & Salary', href: '/my-profile' },
-    ...(isOwner ? [{ icon: MapPin, label: 'Branches', href: '/branches' }] : []),
-    ...((isOwner || isAdmin) ? [{ icon: Users, label: 'Users & Staff', href: '/users' }] : []),
+    ...(isOwner || isAdmin ? [{ icon: LayoutDashboard, label: t('nav.dashboard'), href: '/' }] : []),
+    { icon: UserCheck, label: t('nav.profileSalary'), href: '/my-profile' },
+    ...(isOwner ? [{ icon: MapPin, label: t('nav.branches'), href: '/branches' }] : []),
+    ...((isOwner || isAdmin) ? [{ icon: Users, label: t('nav.users'), href: '/users' }] : []),
     ...((isOwner || isAdmin || role === 'BAKER' || role === 'CAKE_WORKER' || role === 'SAMBUSA_WORKER') ? [
-      { icon: ChefHat, label: 'Production Batches', href: '/production' },
-      { icon: History, label: 'Daily Product History', href: '/production/history' }
+      { icon: ChefHat, label: t('nav.production'), href: '/production' },
+      { icon: History, label: t('nav.dailyProductHistory'), href: '/production/history' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
-      { icon: CalendarDays, label: 'Daily Sessions', href: '/daily-sessions' },
-      { icon: CreditCard, label: 'Customer Credit Sales', href: '/customer-credits' }
+      { icon: CalendarDays, label: t('nav.dailySessions'), href: '/daily-sessions' },
+      { icon: CreditCard, label: t('nav.customerCreditSales'), href: '/customer-credits' }
     ] : []),
     ...((isOwner || isAdmin) ? [
-      { icon: Layers, label: 'Product Categories', href: '/product-categories' }
+      { icon: Layers, label: t('nav.categories'), href: '/product-categories' }
     ] : []),
     ...((isOwner || isAdmin) ? [
-      { icon: Package, label: 'Products', href: '/products' }
+      { icon: Package, label: t('nav.products'), href: '/products' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
-      { icon: ArrowRightLeft, label: 'Product Conversions', href: '/product-conversions' }
+      { icon: ArrowRightLeft, label: t('nav.conversions'), href: '/product-conversions' }
     ] : []),
     ...((isOwner || isAdmin) ? [
-      { icon: Boxes, label: 'Stock & Inventory', href: '/stock' }
+      { icon: Boxes, label: t('nav.stock'), href: '/stock' }
     ] : []),
     ...((isOwner || isAdmin) ? [
-      { icon: ArrowRightLeft, label: 'Stock Movements', href: '/stock-movements' }
+      { icon: ArrowRightLeft, label: t('nav.stockMovements'), href: '/stock-movements' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
-      { icon: Truck, label: 'Suppliers & Purchases', href: '/suppliers' }
+      { icon: Truck, label: t('nav.suppliers'), href: '/suppliers' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
-      { icon: DollarSign, label: 'Expenses & Costs', href: '/expenses' }
+      { icon: DollarSign, label: t('nav.expenses'), href: '/expenses' }
     ] : []),
     ...((isOwner || isAdmin) ? [
-      { icon: Banknote, label: 'Payroll', href: '/payroll' },
-      { icon: BarChart3, label: 'Financial Reports', href: '/reports' }
+      { icon: Banknote, label: t('nav.payroll'), href: '/payroll' },
+      { icon: BarChart3, label: t('nav.reports'), href: '/reports' }
     ] : []),
   ];
 
@@ -117,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Navigation List */}
       <nav className="flex-1 px-3.5 py-5 overflow-y-auto space-y-1 sidebar-scrollbar">
-        <div className="text-[11px] font-bold text-[#CBB29F] uppercase tracking-widest mb-3 px-3">Menu Navigation</div>
+        <div className="text-[11px] font-bold text-[#CBB29F] uppercase tracking-widest mb-3 px-3">{t('nav.menuNavigation')}</div>
         <ul className="space-y-1.5">
           {menuItems.map((item, i) => {
             const isActive = item.href === activeHref;
@@ -139,6 +142,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </ul>
       </nav>
 
+      {/* Language Selector in Sidebar */}
+      <LanguageSelector variant="sidebar" className="px-3" />
+
       {/* User Info & Logout Button */}
       <div className="p-4 m-3 bg-[#3D2314] rounded-2xl border border-[#5A3A23]">
         <div className="mb-3 px-1">
@@ -149,7 +155,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           className="w-full justify-center bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md border-0 h-10 transition-all"
           onClick={logout}
         >
-          <LogOut className="w-4 h-4 mr-2" /> Logout
+          <LogOut className="w-4 h-4 mr-2" /> {t('nav.logout')}
         </Button>
       </div>
     </div>
@@ -193,14 +199,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="flex items-center space-x-2">
               <Building2 className="w-4 h-4 md:w-5 md:h-5 text-[#8C7361] hidden sm:inline" />
-              <span className="text-[10px] md:text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden sm:inline">Branch:</span>
+              <span className="text-[10px] md:text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden sm:inline">{t('dashboard.branch')}:</span>
               {isOwner ? (
                 <select
                   value={selectedBranchId || 'ALL'}
                   onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}
                   className="bg-[#F4ECE1] border border-[#E0D5C3] text-[#2C1B10] text-xs md:text-sm rounded-xl focus:ring-[#E87A18] focus:border-[#E87A18] px-2.5 md:px-3 py-1.5 font-bold truncate max-w-[180px] sm:max-w-none"
                 >
-                  <option value="ALL">🌐 All Branches</option>
+                  <option value="ALL">🌐 {t('dashboard.allBranches')}</option>
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>
                       📍 {b.name}
@@ -215,7 +221,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 md:space-x-4">
+          <div className="flex items-center space-x-2.5 md:space-x-4">
+            {/* Language Selector Dropdown */}
+            <LanguageSelector variant="header" />
+
             {/* Role Badge */}
             <span className="hidden sm:inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-[#E87A18]/10 text-[#E87A18] border border-[#E87A18]/20 uppercase tracking-wider">
               {user?.role}
