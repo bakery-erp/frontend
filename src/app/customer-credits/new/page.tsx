@@ -10,13 +10,23 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
-import { ArrowLeft, Plus, CreditCard, ShoppingBag, X, Check, Calculator } from "lucide-react";
+import { ArrowLeft, Plus, CreditCard, ShoppingBag, X, Check, Calculator, AlertTriangle, PackageCheck } from "lucide-react";
 
-interface Product {
+interface InShopProduct {
   id: string;
   name: string;
   unitType: string;
   basePrice: number;
+  categoryName?: string;
+  categoryType?: string;
+  openingAdariQty: number;
+  producedQty: number;
+  deliveredQty: number;
+  convertedInQty: number;
+  soldQty: number;
+  convertedOutQty: number;
+  creditLentQty: number;
+  availableStock: number;
 }
 
 interface ProductLineItem {
@@ -30,7 +40,9 @@ export default function NewCustomerCreditPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
 
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<InShopProduct[]>([]);
+  const [hasActiveSession, setHasActiveSession] = useState<boolean | null>(null);
+  const [sessionDate, setSessionDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,14 +58,28 @@ export default function NewCustomerCreditPage() {
     setIsLoading(true);
     try {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
-      const res = await api.get(`/products${branchQuery}`);
-      const activeProds = (res.data || []).filter((p: any) => p.isActive !== false);
-      setProducts(activeProds);
-      if (activeProds.length > 0) {
-        setLineItems([{ productId: activeProds[0].id, quantity: "", unitPrice: Number(activeProds[0].basePrice || 0) }]);
+      const res = await api.get(`/daily-sessions/active/available-products${branchQuery}`);
+      const data = res.data;
+      if (data && data.hasActiveSession) {
+        setHasActiveSession(true);
+        setSessionDate(data.sessionDate || "");
+        if (data.sessionDate) {
+          setCreditDate(data.sessionDate);
+        }
+        const prods: InShopProduct[] = data.products || [];
+        setProducts(prods);
+        if (prods.length > 0) {
+          const firstInStock = prods.find((p) => p.availableStock > 0) || prods[0];
+          setLineItems([{ productId: firstInStock.id, quantity: "", unitPrice: Number(firstInStock.basePrice || 0) }]);
+        }
+      } else {
+        setHasActiveSession(false);
+        setProducts([]);
+        setLineItems([]);
       }
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to load active products");
+      toast.error(e.response?.data?.error || "Failed to load in-shop available products");
+      setHasActiveSession(false);
     } finally {
       setIsLoading(false);
     }
@@ -71,15 +97,22 @@ export default function NewCustomerCreditPage() {
 
   const effectiveTotalBirr = customTotalAmount !== "" ? Number(customTotalAmount) : calculatedBirrTotal;
 
+  // Stock over-limit check
+  const hasOverStockError = lineItems.some((item) => {
+    const prod = products.find((p) => p.id === item.productId);
+    const qty = Number(item.quantity || 0);
+    return prod ? qty > prod.availableStock || qty <= 0 : false;
+  });
+
   const handleAddLineItem = () => {
-    const firstProd = products[0];
-    if (!firstProd) {
+    const inStockProd = products.find((p) => p.availableStock > 0) || products[0];
+    if (!inStockProd) {
       toast.error("No products available to select.");
       return;
     }
     setLineItems((prev) => [
       ...prev,
-      { productId: firstProd.id, quantity: "", unitPrice: Number(firstProd.basePrice || 0) },
+      { productId: inStockProd.id, quantity: "", unitPrice: Number(inStockProd.basePrice || 0) },
     ]);
   };
 
@@ -109,10 +142,33 @@ export default function NewCustomerCreditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasActiveSession === false) {
+      toast.error("Cannot log credit: No active daily session is open for this branch. Please open a session first.");
+      return;
+    }
     if (!customerName.trim()) {
       toast.error("Customer or Business name is required");
       return;
     }
+    if (lineItems.length === 0) {
+      toast.error("Please add at least one product item to lend on credit");
+      return;
+    }
+
+    // Validate quantities against in-shop stock
+    for (const item of lineItems) {
+      const prod = products.find((p) => p.id === item.productId);
+      const qty = Number(item.quantity || 0);
+      if (qty <= 0) {
+        toast.error(`Please enter a valid quantity greater than 0 for ${prod?.name || "all items"}`);
+        return;
+      }
+      if (prod && qty > prod.availableStock) {
+        toast.error(`Cannot lend ${qty} of "${prod.name}". Only ${prod.availableStock} ${prod.unitType} available in shop.`);
+        return;
+      }
+    }
+
     if (effectiveTotalBirr <= 0) {
       toast.error("Total credit amount in Birr must be greater than zero");
       return;
@@ -132,6 +188,16 @@ export default function NewCustomerCreditPage() {
 
     const finalNotes = [productSummary, notes.trim()].filter(Boolean).join(" - ");
 
+    const itemsPayload = lineItems.map((item) => {
+      const prod = products.find((p) => p.id === item.productId);
+      return {
+        productId: item.productId,
+        productName: prod ? prod.name : "Product",
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+      };
+    });
+
     setIsSubmitting(true);
     try {
       await api.post("/loans", {
@@ -142,6 +208,7 @@ export default function NewCustomerCreditPage() {
         notes: finalNotes || undefined,
         totalAmount: effectiveTotalBirr,
         date: creditDate,
+        items: itemsPayload,
       });
       toast.success("Customer product credit logged successfully!");
       router.push("/customer-credits");
@@ -173,11 +240,33 @@ export default function NewCustomerCreditPage() {
                 Log Customer Product Credit Sale
               </h1>
               <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-                Issue bakery products on credit with automatic line item subtotal and Birr total calculation.
+                Issue bakery products on credit with live in-shop inventory enforcement and automatic Birr calculation.
               </p>
             </div>
           </div>
         </div>
+
+        {/* No Active Session Banner */}
+        {hasActiveSession === false && (
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-extrabold text-amber-900">No Active Daily Session Open</h3>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Bakery products cannot be lent on credit without an open daily session. Please start or open a daily session for this branch first so stock and credit sales are properly tracked.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => router.push("/daily-sessions")}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shrink-0"
+            >
+              Go to Daily Sessions
+            </Button>
+          </div>
+        )}
 
         {/* Responsive Form Card */}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -228,31 +317,38 @@ export default function NewCustomerCreditPage() {
           {/* Product Line Items Builder */}
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2">
-              <h2 className="text-sm font-extrabold uppercase tracking-wider text-[#4A2E1B] flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-[#E87A18]" />
-                2. Products Issued on Credit
-              </h2>
+              <div>
+                <h2 className="text-sm font-extrabold uppercase tracking-wider text-[#4A2E1B] flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-[#E87A18]" />
+                  2. Products Issued on Credit
+                </h2>
+                <p className="text-[11px] text-[#8C7361] mt-0.5">
+                  Stock balances reflect live in-shop inventory for the active session.
+                </p>
+              </div>
               <Button
                 type="button"
                 onClick={handleAddLineItem}
+                disabled={hasActiveSession === false || products.length === 0}
                 size="sm"
-                className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 self-start sm:self-auto"
+                className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" /> Add Product Line
               </Button>
             </div>
 
             {isLoading ? (
-              <div className="text-center py-6 text-xs text-[#8C7361] font-medium">Loading catalog products...</div>
+              <div className="text-center py-6 text-xs text-[#8C7361] font-medium">Checking live in-shop product inventory...</div>
             ) : lineItems.length === 0 ? (
               <div className="text-center py-8 bg-[#FAF6F0] rounded-xl border border-dashed border-[#EDE4D5] text-[#8C7361] text-xs space-y-2">
                 <p>No products added to this credit invoice yet.</p>
                 <Button
                   type="button"
                   onClick={handleAddLineItem}
+                  disabled={hasActiveSession === false || products.length === 0}
                   variant="outline"
                   size="sm"
-                  className="rounded-xl border-[#E87A18] text-[#E87A18] font-bold text-xs"
+                  className="rounded-xl border-[#E87A18] text-[#E87A18] font-bold text-xs disabled:opacity-50"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" /> Add First Product
                 </Button>
@@ -261,25 +357,47 @@ export default function NewCustomerCreditPage() {
               <div className="space-y-3">
                 {/* Desktop Column Header Bar */}
                 <div className="hidden md:flex items-center gap-3 px-3 py-2 bg-[#FAF6F0] rounded-xl border border-[#EDE4D5] text-[11px] font-extrabold uppercase text-[#4A2E1B]">
-                  <div className="flex-1">Product Item</div>
-                  <div className="w-28 text-center">Qty</div>
+                  <div className="flex-1">Product Item & Live Stock</div>
+                  <div className="w-32 text-center">Qty to Lend</div>
                   <div className="w-32 text-center">Unit Price / Amount</div>
                   <div className="w-32 text-right pr-2">Subtotal</div>
                   <div className="w-9"></div>
                 </div>
 
                 {lineItems.map((item, idx) => {
+                  const selectedProd = products.find((p) => p.id === item.productId);
+                  const isOverStock = selectedProd ? Number(item.quantity || 0) > selectedProd.availableStock : false;
                   const itemSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+
                   return (
                     <div
                       key={idx}
-                      className="bg-[#FAF6F0]/60 p-3 sm:p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col md:flex-row md:items-center gap-3 transition-all"
+                      className={`p-3 sm:p-3.5 rounded-xl border transition-all ${
+                        isOverStock
+                          ? "bg-rose-50/50 border-rose-300"
+                          : "bg-[#FAF6F0]/60 border-[#EDE4D5]"
+                      } flex flex-col md:flex-row md:items-center gap-3`}
                     >
                       {/* Product Selector */}
                       <div className="flex-1">
-                        <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
-                          Product Item
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-bold uppercase text-[#8C7361]">
+                            Product Item
+                          </label>
+                          {selectedProd && (
+                            <span
+                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                selectedProd.availableStock > 5
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : selectedProd.availableStock > 0
+                                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                  : "bg-rose-50 text-rose-700 border border-rose-200"
+                              }`}
+                            >
+                              In Shop: {selectedProd.availableStock} {selectedProd.unitType}
+                            </span>
+                          )}
+                        </div>
                         <select
                           value={item.productId}
                           onChange={(e) => handleLineItemChange(idx, "productId", e.target.value)}
@@ -287,7 +405,7 @@ export default function NewCustomerCreditPage() {
                         >
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.name} ({p.unitType}) - {Number(p.basePrice).toFixed(2)} ETB
+                              {p.name} ({p.availableStock} {p.unitType} in shop) - {Number(p.basePrice).toFixed(2)} ETB {p.availableStock <= 0 ? " [OUT OF STOCK]" : ""}
                             </option>
                           ))}
                         </select>
@@ -295,18 +413,28 @@ export default function NewCustomerCreditPage() {
 
                       <div className="grid grid-cols-3 md:flex md:items-center gap-3">
                         {/* Quantity */}
-                        <div className="col-span-1 md:w-28">
+                        <div className="col-span-1 md:w-32">
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
                             Qty
                           </label>
                           <Input
                             type="number"
                             min="1"
+                            max={selectedProd ? selectedProd.availableStock : undefined}
                             value={item.quantity}
                             onChange={(e) => handleLineItemChange(idx, "quantity", e.target.value)}
                             placeholder="Qty"
-                            className="text-xs h-10 font-bold text-center font-mono rounded-xl bg-white"
+                            className={`text-xs h-10 font-bold text-center font-mono rounded-xl bg-white ${
+                              isOverStock
+                                ? "border-rose-500 ring-2 ring-rose-200 text-rose-700 font-extrabold"
+                                : ""
+                            }`}
                           />
+                          {isOverStock && selectedProd && (
+                            <p className="text-[9px] font-extrabold text-rose-600 mt-0.5 text-center leading-tight">
+                              Max: {selectedProd.availableStock} {selectedProd.unitType}
+                            </p>
+                          )}
                         </div>
 
                         {/* Editable Unit Price / Amount Input */}
@@ -413,8 +541,8 @@ export default function NewCustomerCreditPage() {
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2"
+              disabled={isSubmitting || hasActiveSession === false || hasOverStockError || lineItems.length === 0}
+              className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Check className="w-4 h-4" />
               {isSubmitting ? "Submitting Credit..." : "Log Product Credit"}

@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
-import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye, AlertTriangle } from "lucide-react";
 
 interface LoanPayment {
   id: string;
@@ -39,6 +39,7 @@ interface Product {
   name: string;
   unitType: string;
   basePrice: number;
+  availableStock?: number;
 }
 
 interface ProductLineItem {
@@ -51,13 +52,16 @@ function parseCustomerCreditEntity(raw: string) {
   if (!raw) return { name: "Client / Cafe", phone: "", items: [], notes: "" };
 
   let namePart = raw;
+  // Clean out structured [CreditItems: [...]]
+  namePart = namePart.replace(/\[CreditItems:\s*\[.*?\]\s*\]/g, "").trim();
+
   let productsPart = "";
   let notesPart = "";
 
-  const prodMatch = raw.match(/\[Products:\s*(.*?)\]/);
+  const prodMatch = namePart.match(/\[Products:\s*(.*?)\]/);
   if (prodMatch) {
     productsPart = prodMatch[1];
-    namePart = raw.replace(/\[Products:.*?\]/, "").trim();
+    namePart = namePart.replace(/\[Products:.*?\]/, "").trim();
   }
 
   const parts = namePart.split(/\s+-\s+/);
@@ -95,6 +99,7 @@ export default function CustomerCreditsPage() {
 
   const [credits, setCredits] = useState<CustomerCredit[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [hasActiveSession, setHasActiveSession] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Quick Filter States
@@ -122,12 +127,20 @@ export default function CustomerCreditsPage() {
     setIsLoading(true);
     try {
       const branchQuery = selectedBranchId ? `&branchId=${selectedBranchId}` : "";
+      const branchParam = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const [resCredits, resProducts] = await Promise.all([
         api.get(`/loans?type=CUSTOMER${branchQuery}`),
-        api.get(`/products${selectedBranchId ? '?branchId=' + selectedBranchId : ''}`),
+        api.get(`/daily-sessions/active/available-products${branchParam}`),
       ]);
       setCredits(resCredits.data);
-      setProducts(resProducts.data || []);
+      const availData = resProducts.data;
+      if (availData && availData.hasActiveSession) {
+        setHasActiveSession(true);
+        setProducts(availData.products || []);
+      } else {
+        setHasActiveSession(false);
+        setProducts(availData?.products || []);
+      }
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to load customer credit records");
       console.error(e);
@@ -148,6 +161,13 @@ export default function CustomerCreditsPage() {
 
   const effectiveTotalBirr = customTotalAmount !== "" ? Number(customTotalAmount) : calculatedBirrTotal;
 
+  // Stock over-limit check
+  const hasOverStockError = lineItems.some((item) => {
+    const prod = products.find((p) => p.id === item.productId);
+    const qty = Number(item.quantity || 0);
+    return prod && prod.availableStock != null ? qty > prod.availableStock || qty <= 0 : false;
+  });
+
   const resetAddForm = () => {
     setCustomerName("");
     setCustomerPhone("");
@@ -158,14 +178,14 @@ export default function CustomerCreditsPage() {
   };
 
   const handleAddLineItem = () => {
-    const firstProd = products[0];
-    if (!firstProd) {
+    const inStockProd = products.find((p) => (p.availableStock ?? 0) > 0) || products[0];
+    if (!inStockProd) {
       toast.error("No products available to select.");
       return;
     }
     setLineItems((prev) => [
       ...prev,
-      { productId: firstProd.id, quantity: "", unitPrice: Number(firstProd.basePrice || 0) },
+      { productId: inStockProd.id, quantity: "", unitPrice: Number(inStockProd.basePrice || 0) },
     ]);
   };
 
@@ -195,10 +215,33 @@ export default function CustomerCreditsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasActiveSession === false) {
+      toast.error("Cannot log credit: No active daily session is open for this branch. Please open a session first.");
+      return;
+    }
     if (!customerName.trim()) {
       toast.error("Customer or Business name is required");
       return;
     }
+    if (lineItems.length === 0) {
+      toast.error("Please add at least one product item to lend on credit");
+      return;
+    }
+
+    // Validate quantities against in-shop stock
+    for (const item of lineItems) {
+      const prod = products.find((p) => p.id === item.productId);
+      const qty = Number(item.quantity || 0);
+      if (qty <= 0) {
+        toast.error(`Please enter a valid quantity greater than 0 for ${prod?.name || "all items"}`);
+        return;
+      }
+      if (prod && prod.availableStock != null && qty > prod.availableStock) {
+        toast.error(`Cannot lend ${qty} of "${prod.name}". Only ${prod.availableStock} ${prod.unitType} available in shop.`);
+        return;
+      }
+    }
+
     if (effectiveTotalBirr <= 0) {
       toast.error("Total credit amount in Birr must be greater than zero");
       return;
@@ -218,6 +261,16 @@ export default function CustomerCreditsPage() {
 
     const finalNotes = [productSummary, notes.trim()].filter(Boolean).join(" - ");
 
+    const itemsPayload = lineItems.map((item) => {
+      const prod = products.find((p) => p.id === item.productId);
+      return {
+        productId: item.productId,
+        productName: prod ? prod.name : "Product",
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+      };
+    });
+
     setIsSubmitting(true);
     try {
       await api.post("/loans", {
@@ -228,6 +281,7 @@ export default function CustomerCreditsPage() {
         notes: finalNotes || undefined,
         totalAmount: effectiveTotalBirr,
         date: creditDate,
+        items: itemsPayload,
       });
       toast.success("Customer credit logged successfully");
       setIsAddOpen(false);
@@ -539,6 +593,19 @@ export default function CustomerCreditsPage() {
                 Issue Product Credit to Customer / Cafe
               </DialogTitle>
             </DialogHeader>
+
+            {hasActiveSession === false && (
+              <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-900 mt-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-extrabold block">No Active Daily Session Open</span>
+                  <span className="text-amber-700 text-[11px]">
+                    Products cannot be lent on credit without an open daily session. Please open a daily session for this branch first.
+                  </span>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleCreate} className="space-y-4 mt-2">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 sm:col-span-1">
@@ -583,8 +650,9 @@ export default function CustomerCreditsPage() {
                   <Button
                     type="button"
                     onClick={handleAddLineItem}
+                    disabled={hasActiveSession === false || products.length === 0}
                     size="sm"
-                    className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white text-xs font-bold h-7 px-2.5 rounded-lg flex items-center gap-1"
+                    className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white text-xs font-bold h-7 px-2.5 rounded-lg flex items-center gap-1 disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Product Line
                   </Button>
@@ -597,57 +665,97 @@ export default function CustomerCreditsPage() {
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {lineItems.map((item, idx) => {
+                      const selectedProd = products.find((p) => p.id === item.productId);
+                      const isOverStock = selectedProd && selectedProd.availableStock != null
+                        ? Number(item.quantity || 0) > selectedProd.availableStock
+                        : false;
                       const itemSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+
                       return (
-                        <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-[#EDE4D5]">
-                          <select
-                            value={item.productId}
-                            onChange={(e) => handleLineItemChange(idx, "productId", e.target.value)}
-                            className="flex-1 text-xs font-bold border border-zinc-200 rounded-lg h-9 px-2 bg-white text-[#2C1B10]"
-                          >
-                            {products.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} ({p.unitType}) - {Number(p.basePrice).toFixed(2)} ETB
-                              </option>
-                            ))}
-                          </select>
-
-                          <div className="w-20">
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => handleLineItemChange(idx, "quantity", e.target.value)}
-                              placeholder="Qty"
-                              className="text-xs h-9 font-bold text-center font-mono"
-                            />
+                        <div
+                          key={idx}
+                          className={`p-2 rounded-xl border transition-all ${
+                            isOverStock
+                              ? "bg-rose-50 border-rose-300"
+                              : "bg-white border-[#EDE4D5]"
+                          } flex flex-col sm:flex-row sm:items-center gap-2`}
+                        >
+                          <div className="flex-1">
+                            <select
+                              value={item.productId}
+                              onChange={(e) => handleLineItemChange(idx, "productId", e.target.value)}
+                              className="w-full text-xs font-bold border border-zinc-200 rounded-lg h-9 px-2 bg-white text-[#2C1B10]"
+                            >
+                              {products.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} ({p.availableStock ?? 0} {p.unitType} in shop) - {Number(p.basePrice).toFixed(2)} ETB {p.availableStock != null && p.availableStock <= 0 ? " [OUT OF STOCK]" : ""}
+                                </option>
+                              ))}
+                            </select>
+                            {selectedProd && (
+                              <div className="flex items-center gap-1.5 mt-1 px-1">
+                                <span className="text-[10px] font-bold text-[#8C7361]">In Shop:</span>
+                                <span
+                                  className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-md ${
+                                    (selectedProd.availableStock ?? 0) > 5
+                                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                      : (selectedProd.availableStock ?? 0) > 0
+                                      ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                      : "bg-rose-50 text-rose-700 border border-rose-200"
+                                  }`}
+                                >
+                                  {selectedProd.availableStock ?? 0} {selectedProd.unitType}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Editable Unit Price / Amount Input */}
-                          <div className="w-24">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={item.unitPrice}
-                              onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
-                              placeholder="Amount"
-                              className="text-xs h-9 font-bold text-center font-mono"
-                            />
-                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-20">
+                              <Input
+                                type="number"
+                                min="1"
+                                max={selectedProd?.availableStock ?? undefined}
+                                value={item.quantity}
+                                onChange={(e) => handleLineItemChange(idx, "quantity", e.target.value)}
+                                placeholder="Qty"
+                                className={`text-xs h-9 font-bold text-center font-mono ${
+                                  isOverStock ? "border-rose-500 ring-2 ring-rose-200 text-rose-700" : ""
+                                }`}
+                              />
+                              {isOverStock && selectedProd && (
+                                <p className="text-[9px] font-extrabold text-rose-600 mt-0.5 text-center leading-tight">
+                                  Max: {selectedProd.availableStock}
+                                </p>
+                              )}
+                            </div>
 
-                          <div className="text-xs font-extrabold text-[#E87A18] font-mono w-24 text-right pr-1">
-                            = {itemSubtotal.toFixed(2)} ETB
-                          </div>
+                            {/* Editable Unit Price / Amount Input */}
+                            <div className="w-24">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={item.unitPrice}
+                                onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
+                                placeholder="Amount"
+                                className="text-xs h-9 font-bold text-center font-mono"
+                              />
+                            </div>
 
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveLineItem(idx)}
-                            className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50 rounded-lg"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                            <div className="text-xs font-extrabold text-[#E87A18] font-mono w-24 text-right pr-1">
+                              = {itemSubtotal.toFixed(2)} ETB
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveLineItem(idx)}
+                              className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50 rounded-lg"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}
@@ -690,7 +798,11 @@ export default function CustomerCreditsPage() {
                 <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || hasActiveSession === false || hasOverStockError || lineItems.length === 0}
+                  className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl disabled:opacity-50"
+                >
                   {isSubmitting ? "Saving..." : "Log Product Credit"}
                 </Button>
               </DialogFooter>
