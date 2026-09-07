@@ -65,6 +65,8 @@ export default function ExpensesPage() {
   const getEthTodayStr = () => new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
 
   // Filter state
+  const [filterMode, setFilterMode] = useState<"DAILY" | "RANGE">("DAILY");
+  const [dailyDate, setDailyDate] = useState(getEthTodayStr());
   const [filterFrom, setFilterFrom] = useState(getEthTodayStr());
   const [filterTo, setFilterTo] = useState(getEthTodayStr());
   const [typeFilter, setTypeFilter] = useState<"ALL" | "COMPANY" | "OWNER">("ALL");
@@ -139,20 +141,44 @@ export default function ExpensesPage() {
   };
 
   const todayStr = getEthTodayStr();
-  const isTodayActive = filterFrom === todayStr && filterTo === todayStr;
+  const isTodayActive = filterMode === "DAILY" && filterFrom === todayStr && filterTo === todayStr;
 
-  const handleToggleToday = () => {
-    if (isTodayActive) {
-      // Toggle OFF: set range to 30 days ago
+  const handleSelectDailyMode = () => {
+    setFilterMode("DAILY");
+    setFilterFrom(dailyDate);
+    setFilterTo(dailyDate);
+  };
+
+  const handleDailyDateChange = (d: string) => {
+    setDailyDate(d);
+    setFilterFrom(d);
+    setFilterTo(d);
+  };
+
+  const handleSetToday = () => {
+    setFilterMode("DAILY");
+    setDailyDate(todayStr);
+    setFilterFrom(todayStr);
+    setFilterTo(todayStr);
+  };
+
+  const handleSelectRangeMode = () => {
+    setFilterMode("RANGE");
+    if (filterFrom === filterTo) {
+      // expand to last 7 days by default when switching to range mode
       const d = new Date(Date.now() + 3 * 3600 * 1000);
-      d.setDate(d.getDate() - 30);
+      d.setDate(d.getDate() - 7);
       setFilterFrom(d.toISOString().slice(0, 10));
       setFilterTo(todayStr);
-    } else {
-      // Toggle ON: set to today
-      setFilterFrom(todayStr);
-      setFilterTo(todayStr);
     }
+  };
+
+  const handleQuickRange = (days: number) => {
+    setFilterMode("RANGE");
+    const d = new Date(Date.now() + 3 * 3600 * 1000);
+    d.setDate(d.getDate() - days);
+    setFilterFrom(d.toISOString().slice(0, 10));
+    setFilterTo(todayStr);
   };
 
   useEffect(() => {
@@ -235,7 +261,7 @@ export default function ExpensesPage() {
 
   const openEditForm = (expense: Expense) => {
     setEditingId(expense.id);
-    setFormType(isManagement ? expense.type : "COMPANY");
+    setFormType(expense.type || "COMPANY");
     setFormAmount(String(expense.amount));
     
     // Map category to dropdown selection
@@ -299,7 +325,7 @@ export default function ExpensesPage() {
     setIsSaving(true);
     try {
       const payload: any = {
-        type: isManagement ? formType : "COMPANY", // Cashier is strictly forced to COMPANY expense
+        type: formType,
         amount: parseFloat(formAmount),
         category: formCategory.trim(),
         description: formDescription.trim() || null,
@@ -453,19 +479,17 @@ export default function ExpensesPage() {
           </CardContent>
         </Card>
 
-        {isManagement && (
-          <Card className="border-purple-200 bg-gradient-to-br from-purple-50/80 to-white shadow-xs rounded-2xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-extrabold uppercase text-purple-700 tracking-wider">
-                {t('expenses.tabOwner')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-black text-purple-900">{money(ownerTotal)}</div>
-              <p className="text-[11px] text-purple-600 mt-1 font-medium">Owner withdrawals & non-operating draws</p>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="border-purple-200 bg-gradient-to-br from-purple-50/80 to-white shadow-xs rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-extrabold uppercase text-purple-700 tracking-wider">
+              {t('expenses.tabOwner')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-black text-purple-900">{money(ownerTotal)}</div>
+            <p className="text-[11px] text-purple-600 mt-1 font-medium">Owner withdrawals & non-operating draws</p>
+          </CardContent>
+        </Card>
 
         <Card className="border-rose-200 bg-gradient-to-br from-rose-50/80 to-white shadow-xs rounded-2xl">
           <CardHeader className="pb-2">
@@ -480,46 +504,126 @@ export default function ExpensesPage() {
         </Card>
       </div>
 
-      {/* Date Filters */}
-      <Card className="mb-6 border-[#EDE4D5] rounded-2xl shadow-xs">
-        <CardContent className="flex flex-wrap items-end gap-4 pt-5 pb-5">
-          <div>
-            <label className="text-xs font-bold text-[#8C7361] block mb-1">From Date</label>
-            <Input
-              type="date"
-              value={filterFrom}
-              onChange={(e) => setFilterFrom(e.target.value)}
-              className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-            />
+      {/* Date Filters: Daily vs Range Mode */}
+      <Card className="mb-6 border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
+        <div className="bg-[#FAF6F0] px-4 py-3 border-b border-[#EDE4D5] flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold uppercase text-[#8C7361] tracking-wider">Mode:</span>
+            <div className="flex items-center bg-white p-1 rounded-xl border border-[#EDE4D5] shadow-2xs">
+              <button
+                type="button"
+                onClick={handleSelectDailyMode}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  filterMode === "DAILY"
+                    ? "bg-[#4A2E1B] text-white shadow-xs"
+                    : "text-[#8C7361] hover:text-[#4A2E1B]"
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" /> 📅 Daily Expenses
+              </button>
+              <button
+                type="button"
+                onClick={handleSelectRangeMode}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  filterMode === "RANGE"
+                    ? "bg-[#4A2E1B] text-white shadow-xs"
+                    : "text-[#8C7361] hover:text-[#4A2E1B]"
+                }`}
+              >
+                <Tag className="w-3.5 h-3.5" /> 📆 Date Range
+              </button>
+            </div>
           </div>
-          <div>
-            <label className="text-xs font-bold text-[#8C7361] block mb-1">To Date</label>
-            <Input
-              type="date"
-              value={filterTo}
-              onChange={(e) => setFilterTo(e.target.value)}
-              className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-            />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleToggleToday}
-            className={`border-[#EDE4D5] font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors ${
-              isTodayActive
-                ? "bg-[#4A2E1B] text-white hover:bg-[#382214] border-[#4A2E1B]"
-                : "bg-white text-[#4A2E1B] hover:bg-[#FAF6F0]"
-            }`}
-          >
-            📅 Today Only {isTodayActive && "✓"}
-          </Button>
-          <Button
-            onClick={loadExpenses}
-            variant="outline"
-            className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs"
-          >
-            Load Expenses
-          </Button>
+
+          {filterMode === "DAILY" ? (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleSetToday}
+                className={`h-8 border-[#EDE4D5] font-bold rounded-xl text-xs flex items-center gap-1 ${
+                  isTodayActive
+                    ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
+                    : "bg-white text-[#4A2E1B] hover:bg-[#FAF6F0]"
+                }`}
+              >
+                Today {isTodayActive && "✓"}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => handleQuickRange(7)}
+                className="h-8 border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs"
+              >
+                Last 7 Days
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => handleQuickRange(30)}
+                className="h-8 border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs"
+              >
+                Last 30 Days
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <CardContent className="flex flex-wrap items-end gap-4 pt-4 pb-4">
+          {filterMode === "DAILY" ? (
+            <div className="flex items-end gap-3 flex-wrap">
+              <div>
+                <label className="text-xs font-bold text-[#8C7361] block mb-1">Select Day</label>
+                <Input
+                  type="date"
+                  value={dailyDate}
+                  onChange={(e) => handleDailyDateChange(e.target.value)}
+                  className="w-48 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                />
+              </div>
+              <Button
+                onClick={loadExpenses}
+                variant="outline"
+                className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
+              >
+                Refresh Day Expenses
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-end gap-3 flex-wrap">
+              <div>
+                <label className="text-xs font-bold text-[#8C7361] block mb-1">From Date</label>
+                <Input
+                  type="date"
+                  value={filterFrom}
+                  onChange={(e) => setFilterFrom(e.target.value)}
+                  className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#8C7361] block mb-1">To Date</label>
+                <Input
+                  type="date"
+                  value={filterTo}
+                  onChange={(e) => setFilterTo(e.target.value)}
+                  className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                />
+              </div>
+              <Button
+                onClick={loadExpenses}
+                variant="outline"
+                className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
+              >
+                Filter Range
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -542,31 +646,24 @@ export default function ExpensesPage() {
 
           <CardContent className="pt-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Requirement 1: Expense Type Access Control */}
+              {/* Requirement 1: Expense Type Choice (Company vs Owner) */}
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
                   Expense Type <span className="text-rose-500">*</span>
                 </label>
-                {isManagement ? (
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value)}
-                    className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
-                  >
-                    <option value="COMPANY">Daily Expense (Operating Cash)</option>
-                    <option value="OWNER">Owner Expense</option>
-                  </select>
-                ) : (
-                  <div className="w-full bg-blue-50 border border-blue-200 text-blue-900 font-bold rounded-xl px-3 py-2 text-xs flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                    Daily Expense (Operating Cash)
-                  </div>
-                )}
-                {!isManagement && (
-                  <p className="text-[11px] text-zinc-500 mt-1">
-                    Cashiers can only record daily operating expenses from session birr.
-                  </p>
-                )}
+                <select
+                  value={formType}
+                  onChange={(e) => setFormType(e.target.value)}
+                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
+                >
+                  <option value="COMPANY">🏢 Company Operational Expense (Operating Cash)</option>
+                  <option value="OWNER">👤 Owner Expense / Drawing</option>
+                </select>
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  {formType === "COMPANY"
+                    ? "Deducted from daily session cash as operating business expense."
+                    : "Logged as owner withdrawal / personal draw."}
+                </p>
               </div>
 
               {/* Amount Input */}
@@ -678,18 +775,16 @@ export default function ExpensesPage() {
           >
             💵 {t('expenses.tabCompany')}
           </button>
-          {isManagement && (
-            <button
-              onClick={() => setTypeFilter("OWNER")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                typeFilter === "OWNER"
-                  ? "bg-purple-600 text-white shadow-xs"
-                  : "text-[#8C7361] hover:text-purple-700 hover:bg-white/50"
-              }`}
-            >
-              👑 {t('expenses.tabOwner')}
-            </button>
-          )}
+          <button
+            onClick={() => setTypeFilter("OWNER")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              typeFilter === "OWNER"
+                ? "bg-purple-600 text-white shadow-xs"
+                : "text-[#8C7361] hover:text-purple-700 hover:bg-white/50"
+            }`}
+          >
+            👤 {t('expenses.tabOwner')}
+          </button>
         </div>
       </div>
 

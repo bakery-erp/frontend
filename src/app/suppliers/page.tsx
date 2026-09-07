@@ -359,12 +359,13 @@ export default function SuppliersPage() {
                     <Button 
                       size="sm" 
                       variant="ghost" 
+                      disabled={!(user?.role === 'OWNER' || user?.role === 'ADMIN')}
                       onClick={() => togglePaymentStatus(d.id, d.isPaid)}
                       className={`px-3 py-1 rounded-full text-xs font-extrabold shadow-xs transition-all ${
                         d.isPaid 
                           ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300' 
                           : 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
-                      }`}
+                      } ${!(user?.role === 'OWNER' || user?.role === 'ADMIN') ? 'opacity-80 cursor-not-allowed' : ''}`}
                     >
                       {d.isPaid ? '✓ PAID' : '⚠ UNPAID'}
                     </Button>
