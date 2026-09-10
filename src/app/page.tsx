@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useBranch } from '@/context/BranchContext';
 import { api } from '@/lib/axios';
-import { Users, TrendingUp, AlertTriangle, Boxes, CheckCircle2, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, Wallet, DollarSign, Receipt, Package, Search, Filter } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Boxes, CheckCircle2, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, Wallet, DollarSign, Receipt, Package, Search, Filter, Truck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,7 +92,7 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      const todayYmd = new Date().toISOString().slice(0, 10);
+      const todayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
       const params: any = { from: todayYmd, to: todayYmd };
       if (selectedBranchId) {
         params.branchId = selectedBranchId;
@@ -225,7 +225,8 @@ export default function Dashboard() {
 
   // Supplier Deliveries
   deliveries.forEach((d) => {
-    const cost = Number(d.unitBuyPrice || 0) * Number(d.quantityReceived || 0);
+    const netQty = Math.max(0, Number(d.quantityReceived || 0) - Number(d.returnedQuantity || 0));
+    const cost = Number(d.unitBuyPrice || 0) * netQty;
     unifiedTransactions.push({
       id: d.id,
       date: d.createdAt,
@@ -233,7 +234,7 @@ export default function Dashboard() {
       category: d.product?.name || 'Raw Ingredients / Stock',
       type: 'EXPENSE',
       amount: cost,
-      status: 'RECEIVED',
+      status: d.isPaid ? 'PAID' : 'RECEIVED',
     });
   });
 
@@ -579,8 +580,15 @@ export default function Dashboard() {
                         {deliveries.map((d: any, i: number) => (
                           <TableRow key={d.id || i} className="border-b border-amber-50 hover:bg-amber-50/20">
                             <TableCell className="font-bold text-[#2C1B10]">{d.supplier?.name || '—'}</TableCell>
-                            <TableCell className="text-xs font-semibold text-[#8C7361]">{d.product?.name || d.stockItem?.name || '—'}</TableCell>
-                            <TableCell className="text-right font-extrabold text-amber-900 pr-6">{money((d.unitBuyPrice || 0) * (d.quantityReceived || 0))}</TableCell>
+                            <TableCell className="text-xs font-semibold text-[#8C7361]">
+                              <span className="font-bold text-[#2C1B10]">{d.product?.name || d.stockItem?.name || '—'}</span>
+                              <span className="ml-1 text-[11px] text-amber-800/80">
+                                ({d.returnedQuantity ? `${d.quantityReceived - d.returnedQuantity} of ${d.quantityReceived}` : `${d.quantityReceived}`} pcs @ {money(d.unitBuyPrice)})
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right font-extrabold text-amber-900 pr-6">
+                              {money((d.unitBuyPrice || 0) * Math.max(0, (d.quantityReceived || 0) - (d.returnedQuantity || 0)))}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -597,8 +605,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Secondary KPI Grid Cards (With Product Money Valuation) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      {/* ── Secondary KPI Grid Cards (With Product Money Valuation & Supplier Purchases) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
         {/* Card 1: Net Profit */}
         <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
@@ -631,6 +639,24 @@ export default function Dashboard() {
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
               {t('dashboard.productStockValueSub')}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 3: Supplier Purchases */}
+        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm hover:shadow-md transition-all p-1 bg-amber-50/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-xs font-bold uppercase text-amber-900 tracking-wider">{t('dashboard.catSupplierPurchases')}</CardTitle>
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-800 flex items-center justify-center">
+              <Truck className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-extrabold text-amber-950 tracking-tight font-heading font-mono">
+              {isLoading ? '...' : money(totals?.supplierDeliveryCost)}
+            </div>
+            <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
+              {deliveries.length > 0 ? `${deliveries.length} ${t('dashboard.supplierDeliveriesTitle')}` : t('dashboard.catSupplierPurchases')}
             </p>
           </CardContent>
         </Card>
