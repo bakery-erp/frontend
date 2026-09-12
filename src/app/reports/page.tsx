@@ -629,7 +629,7 @@ export default function FinancialReportsPage() {
          ───────────────────────────────────────────────────────────── */}
       {activeModal && (
         <Dialog open={true} onOpenChange={() => setActiveModal(null)}>
-          <DialogContent className="bg-white border-[#EDE4D5] w-[96vw] max-w-5xl xl:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-3xl shadow-2xl">
+          <DialogContent className="bg-white border-[#EDE4D5] w-[96vw] max-w-5xl sm:max-w-5xl xl:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-3xl shadow-2xl">
             {/* 1. REVENUE MODAL */}
             {activeModal === 'REVENUE' && (
               <div>
