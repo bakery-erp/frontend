@@ -33,6 +33,7 @@ interface PayrollRecord {
   bonus: number;
   finalAmount: number;
   paymentDate: string | null;
+  status?: string;
   user?: User;
 }
 
@@ -112,19 +113,20 @@ export default function PayrollHistoryPage() {
               <TableHead className="font-extrabold text-rose-700">Deductions</TableHead>
               <TableHead className="font-extrabold text-emerald-700">Final Net Paid</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">Payment Date (Eth)</TableHead>
+              <TableHead className="font-extrabold text-center text-[#2C1B10]">Worker Approval</TableHead>
               {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Action</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-[#8C7361] font-medium">
+                <TableCell colSpan={9} className="text-center py-10 text-[#8C7361] font-medium">
                   Loading payroll history...
                 </TableCell>
               </TableRow>
             ) : history.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-[#8C7361] font-medium">
+                <TableCell colSpan={9} className="text-center py-10 text-[#8C7361] font-medium">
                   No payroll execution records found.
                 </TableCell>
               </TableRow>
@@ -158,6 +160,15 @@ export default function PayrollHistoryPage() {
                   </TableCell>
                   <TableCell className="text-xs font-semibold text-[#8C7361]">
                     {formatEthDate(r.paymentDate, true)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge className={`text-[10px] font-bold ${
+                      r.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                      r.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                      'bg-amber-100 text-amber-800 border-amber-300'
+                    }`}>
+                      {r.status === 'APPROVED' ? 'APPROVED' : r.status === 'REJECTED' ? 'REJECTED' : 'PENDING'}
+                    </Badge>
                   </TableCell>
                   {(user?.role === "OWNER" || user?.role === "ADMIN") && (
                     <TableCell className="text-right pr-6">

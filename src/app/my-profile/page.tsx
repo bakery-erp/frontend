@@ -58,6 +58,7 @@ interface DashboardData {
     penaltyDeductions: number;
     bonus: number;
     finalAmount: number;
+    status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
     paymentDate: string | null;
     createdAt: string;
   }>;
@@ -220,6 +221,26 @@ export default function MyProfilePage() {
     }
   };
 
+  const handleApprovePayroll = async (id: string) => {
+    try {
+      await api.post(`/payroll/${id}/approve`);
+      toast.success('Payroll approved!');
+      fetchMyDashboard();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to approve payroll');
+    }
+  };
+
+  const handleRejectPayroll = async (id: string) => {
+    try {
+      await api.post(`/payroll/${id}/reject`);
+      toast.success('Payroll rejected');
+      fetchMyDashboard();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to reject payroll');
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -240,7 +261,8 @@ export default function MyProfilePage() {
 
   const pendingLoans = loans.filter((l) => l.status === 'PENDING_APPROVAL');
   const pendingPenalties = penalties.filter((p) => p.status === 'PENDING_APPROVAL');
-  const pendingCount = pendingLoans.length + pendingPenalties.length;
+  const pendingPayrolls = payrolls.filter((pr) => pr.status === 'PENDING_APPROVAL');
+  const pendingCount = pendingLoans.length + pendingPenalties.length + pendingPayrolls.length;
 
   // Totals calculations (only open/approved loans & penalties)
   const totalLoanBalance = loans
@@ -468,7 +490,13 @@ export default function MyProfilePage() {
                         <TableCell className="text-right text-rose-600">{Number(pr.penaltyDeductions) > 0 ? `-${money(pr.penaltyDeductions)}` : '-'}</TableCell>
                         <TableCell className="text-right font-extrabold text-emerald-700">{money(pr.finalAmount)}</TableCell>
                         <TableCell className="text-center">
-                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">PAID</Badge>
+                          <Badge className={`font-bold text-[10px] ${
+                            pr.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                            pr.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                            'bg-amber-100 text-amber-800 border-amber-300'
+                          }`}>
+                            {pr.status === 'APPROVED' ? 'APPROVED' : pr.status === 'REJECTED' ? 'REJECTED' : 'PENDING REVIEW'}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -571,20 +599,64 @@ export default function MyProfilePage() {
               <div>
                 <h3 className="text-base font-extrabold text-[#2C1B10] mb-2 flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-amber-600" />
-                  Pending Loans & Penalties Requiring Your Action
+                  Pending Payroll, Loans & Penalties Requiring Your Action
                 </h3>
                 <p className="text-xs text-[#8C7361] mb-4">
-                  Loans or penalties issued by management remain in pending status until you approve or reject them.
+                  Payrolls, loans, or penalties issued by management remain in pending status until you approve or reject them.
                 </p>
 
                 {pendingCount === 0 ? (
                   <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
                     <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
                     <p className="text-sm font-bold text-[#4A2E1B]">No Pending Approvals</p>
-                    <p className="text-xs text-[#8C7361] mt-1">You have reviewed all assigned loans and penalties.</p>
+                    <p className="text-xs text-[#8C7361] mt-1">You have reviewed all assigned payrolls, loans and penalties.</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    {/* Pending Payrolls */}
+                    {pendingPayrolls.length > 0 && (
+                      <div className="border border-indigo-200 rounded-2xl p-4 bg-indigo-50/50">
+                        <h4 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-indigo-600" /> Pending Monthly Salary Payrolls
+                        </h4>
+                        <div className="space-y-2">
+                          {pendingPayrolls.map((pr) => (
+                            <div key={pr.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-xl border border-indigo-200 gap-3">
+                              <div>
+                                <div className="font-extrabold text-base text-[#2C1B10]">
+                                  {getEthMonthName(pr.month)} {pr.year}
+                                  <span className="ml-2 font-mono text-emerald-700 font-black">{money(pr.finalAmount)}</span>
+                                </div>
+                                <div className="text-xs text-[#8C7361] mt-0.5 space-x-2">
+                                  <span>Base: {money(pr.baseSalary)}</span>
+                                  {Number(pr.bonus) > 0 && <span className="text-emerald-700 font-semibold">Bonus: +{money(pr.bonus)}</span>}
+                                  {Number(pr.loanDeductions) > 0 && <span className="text-rose-600 font-semibold">Loans: -{money(pr.loanDeductions)}</span>}
+                                  {Number(pr.penaltyDeductions) > 0 && <span className="text-rose-600 font-semibold">Penalties: -{money(pr.penaltyDeductions)}</span>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprovePayroll(pr.id)}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs"
+                                >
+                                  <Check className="w-4 h-4" /> Accept & Approve Payroll
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRejectPayroll(pr.id)}
+                                  className="border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center gap-1"
+                                >
+                                  <X className="w-4 h-4" /> Reject
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Pending Loans */}
                     {pendingLoans.length > 0 && (
                       <div className="border border-amber-200 rounded-2xl p-4 bg-amber-50/50">

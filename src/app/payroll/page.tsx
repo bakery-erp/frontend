@@ -102,6 +102,7 @@ interface PayrollRecord {
   bonus: number;
   finalAmount: number;
   paymentDate: string | null;
+  status?: string;
   user?: User;
 }
 

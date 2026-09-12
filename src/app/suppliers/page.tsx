@@ -32,6 +32,7 @@ interface SupplierDelivery {
   quantityReceived: number;
   returnedQuantity: number;
   unitBuyPrice: number;
+  paymentSource?: 'DAILY_CASH' | 'OWNER';
   isPaid: boolean;
   createdAt: string;
 }
@@ -59,6 +60,7 @@ export default function SuppliersPage() {
 
   // Multi-item delivery state
   const [deliverySupplierId, setDeliverySupplierId] = useState('');
+  const [deliveryPaymentSource, setDeliveryPaymentSource] = useState<'DAILY_CASH' | 'OWNER'>('DAILY_CASH');
   const [deliveryIsPaid, setDeliveryIsPaid] = useState(true);
   const [deliveryItems, setDeliveryItems] = useState<DeliveryLineItem[]>([]);
 
@@ -90,6 +92,7 @@ export default function SuppliersPage() {
 
   const openLogDeliveryModal = () => {
     if (suppliers.length > 0) setDeliverySupplierId(suppliers[0].id);
+    setDeliveryPaymentSource('DAILY_CASH');
     if (products.length > 0) {
       setDeliveryItems([
         {
@@ -186,6 +189,7 @@ export default function SuppliersPage() {
     try {
       await api.post('/supplier-deliveries', {
         supplierId: deliverySupplierId,
+        paymentSource: deliveryPaymentSource,
         isPaid: deliveryIsPaid,
         items: validItems.map((i) => ({
           productId: i.productId,
@@ -333,14 +337,15 @@ export default function SuppliersPage() {
               <TableHead>Qty Received</TableHead>
               <TableHead>Unit Cost</TableHead>
               <TableHead>Total Cost</TableHead>
+              <TableHead>Paid From</TableHead>
               <TableHead className="text-right pr-6">Payment Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">Loading delivery logs...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">Loading delivery logs...</TableCell></TableRow>
             ) : deliveries.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">No delivery receipts recorded.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">No delivery receipts recorded.</TableCell></TableRow>
             ) : deliveries.map((d) => {
               const totalCost = Number(d.unitBuyPrice) * d.quantityReceived;
               return (
@@ -355,6 +360,15 @@ export default function SuppliersPage() {
                   </TableCell>
                   <TableCell className="text-xs font-semibold text-[#8C7361]">{Number(d.unitBuyPrice).toFixed(2)} ETB</TableCell>
                   <TableCell className="font-extrabold text-[#2C1B10]">{totalCost.toFixed(2)} ETB</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                      d.paymentSource === 'OWNER'
+                        ? 'bg-purple-100 text-purple-800 border-purple-200'
+                        : 'bg-blue-100 text-blue-800 border-blue-200'
+                    }`}>
+                      {d.paymentSource === 'OWNER' ? 'Owner' : 'Daily Cash'}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right pr-6">
                     <Button 
                       size="sm" 
@@ -438,7 +452,7 @@ export default function SuppliersPage() {
             </DialogHeader>
 
             <form onSubmit={handleLogDelivery} className="space-y-4 py-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FAF6F0] p-3 rounded-2xl border border-[#EDE4D5]">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#FAF6F0] p-3 rounded-2xl border border-[#EDE4D5]">
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Select Supplier</label>
                   <select
@@ -451,6 +465,18 @@ export default function SuppliersPage() {
                         {s.name} ({s.type})
                       </option>
                     ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Paid From</label>
+                  <select
+                    value={deliveryPaymentSource}
+                    onChange={(e) => setDeliveryPaymentSource(e.target.value as 'DAILY_CASH' | 'OWNER')}
+                    className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
+                  >
+                    <option value="DAILY_CASH">Daily Money (Cashier Register)</option>
+                    <option value="OWNER">Paid by Owner (Out-of-Pocket)</option>
                   </select>
                 </div>
 

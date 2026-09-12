@@ -267,12 +267,12 @@ export default function Dashboard() {
   payrollRecords.forEach((pr) => {
     unifiedTransactions.push({
       id: pr.id,
-      date: pr.paymentDate || new Date().toISOString(),
+      date: pr.paymentDate || pr.createdAt || new Date().toISOString(),
       title: `Payroll Disbursement (${pr.user?.fullName || 'Employee'})`,
       category: 'Staff Salary Payroll',
       type: 'EXPENSE',
       amount: Number(pr.finalAmount || 0),
-      status: 'PAID',
+      status: pr.status || 'PAID',
     });
   });
 
@@ -596,7 +596,63 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {expenses.length === 0 && deliveries.length === 0 && (
+                {/* Payroll Disbursements table */}
+                {payrollRecords.length > 0 && (
+                  <div className="rounded-2xl border border-indigo-100 overflow-hidden">
+                    <p className="text-[11px] font-extrabold text-indigo-900 uppercase tracking-wider p-2.5 bg-indigo-50/40 border-b border-indigo-100">
+                      {t('dashboard.catPayrollPaid') || 'Payroll Disbursements'}
+                    </p>
+                    <Table>
+                      <TableHeader className="bg-indigo-50/60">
+                        <TableRow>
+                          <TableHead className="text-indigo-950 font-bold">Employee</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">Role</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">Base Salary</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">Deductions</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">Status</TableHead>
+                          <TableHead className="text-right text-indigo-950 font-bold pr-6">Net Paid</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payrollRecords.map((p: any, i: number) => {
+                          const totalDeductions = Number(p.loanDeductions || 0) + Number(p.penaltyDeductions || 0);
+                          return (
+                            <TableRow key={p.id || i} className="border-b border-indigo-50 hover:bg-indigo-50/20">
+                              <TableCell className="font-bold text-[#2C1B10]">
+                                {p.user?.fullName || p.user?.username || 'Employee'}
+                              </TableCell>
+                              <TableCell className="text-xs font-semibold text-[#8C7361]">
+                                {p.user?.role || 'STAFF'}
+                              </TableCell>
+                              <TableCell className="text-xs text-[#8C7361]">
+                                {money(p.baseSalary || 0)}
+                              </TableCell>
+                              <TableCell className="text-xs text-rose-700 font-semibold">
+                                {totalDeductions > 0 ? `-${money(totalDeductions)}` : '0 ETB'}
+                              </TableCell>
+                              <TableCell>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                  p.status === 'APPROVED'
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                    : p.status === 'REJECTED'
+                                    ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                    : 'bg-amber-100 text-amber-800 border-amber-200'
+                                }`}>
+                                  {p.status || 'PENDING'}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right font-extrabold text-indigo-900 pr-6">
+                                {money(p.finalAmount || 0)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {expenses.length === 0 && deliveries.length === 0 && payrollRecords.length === 0 && (
                   <p className="text-xs text-[#8C7361] py-4 text-center">{t('dashboard.noExpensesToday')}</p>
                 )}
               </CardContent>

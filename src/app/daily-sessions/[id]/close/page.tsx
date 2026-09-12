@@ -130,6 +130,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [resellQty, setResellQty] = useState("1");
   const [resellBuyPrice, setResellBuyPrice] = useState("");
   const [resellSellPrice, setResellSellPrice] = useState("");
+  const [resellPaymentSource, setResellPaymentSource] = useState<'DAILY_CASH' | 'OWNER'>('DAILY_CASH');
   const [resellIsPaid, setResellIsPaid] = useState(true);
   const [isLoggingResell, setIsLoggingResell] = useState(false);
 
@@ -240,6 +241,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         quantityReceived: Number(resellQty),
         unitBuyPrice: Number(resellBuyPrice),
         unitSellPrice: resellSellPrice ? Number(resellSellPrice) : undefined,
+        paymentSource: resellPaymentSource,
         isPaid: resellIsPaid,
         sessionId: resolvedParams.id,
       });
@@ -250,6 +252,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       setResellQty("1");
       setResellBuyPrice("");
       setResellSellPrice("");
+      setResellPaymentSource("DAILY_CASH");
       fetchSessionAndProducts();
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to log resell delivery");
@@ -1023,7 +1026,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Unit Sell Price (ETB)</label>
                 <Input
@@ -1034,6 +1037,18 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   onChange={(e) => setResellSellPrice(e.target.value)}
                   className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Paid From</label>
+                <select
+                  value={resellPaymentSource}
+                  onChange={(e) => setResellPaymentSource(e.target.value as 'DAILY_CASH' | 'OWNER')}
+                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
+                >
+                  <option value="DAILY_CASH">Daily Money (Cashier)</option>
+                  <option value="OWNER">Paid by Owner</option>
+                </select>
               </div>
 
               <div>
