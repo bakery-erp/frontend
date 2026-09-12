@@ -693,55 +693,6 @@ export default function FinancialReportsPage() {
                       </TableBody>
                     </Table>
                   </div>
-
-                  {/* Customer Credits Given in this Range */}
-                  {customerLoans.length > 0 && (
-                    <div className="mt-6 space-y-2">
-                      <h3 className="text-sm font-extrabold text-sky-900 uppercase tracking-wider flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-sky-700" />
-                        Customer Products Taken in Credit ({customerLoans.length})
-                      </h3>
-                      <p className="text-xs text-[#8C7361]">
-                        These sales are added to total revenue above as requested, but represent money still awaiting repayment from clients.
-                      </p>
-                      <div className="rounded-2xl border border-sky-200 overflow-hidden">
-                        <Table>
-                          <TableHeader className="bg-sky-50/60">
-                            <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Customer Name / Contact</TableHead>
-                              <TableHead className="text-right">Credited Amount</TableHead>
-                              <TableHead className="text-right">Balance Due</TableHead>
-                              <TableHead className="text-center pr-4">Status</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {customerLoans.map((l: any, idx: number) => (
-                              <TableRow key={l.id || idx}>
-                                <TableCell className="text-xs text-[#8C7361]">
-                                  {formatEthDate(l.date || l.createdAt)}
-                                </TableCell>
-                                <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                  {l.entityId || 'Unnamed Customer'}
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-xs font-bold text-sky-900">
-                                  {money(l.totalAmount)}
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-xs text-rose-700">
-                                  {money(l.remainingBalance)}
-                                </TableCell>
-                                <TableCell className="text-center pr-4">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${l.status === 'PAID' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}>
-                                    {l.status}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
