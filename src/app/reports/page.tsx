@@ -629,7 +629,7 @@ export default function FinancialReportsPage() {
          ───────────────────────────────────────────────────────────── */}
       {activeModal && (
         <Dialog open={true} onOpenChange={() => setActiveModal(null)}>
-          <DialogContent className="bg-white border-[#EDE4D5] sm:max-w-4xl max-h-[88vh] overflow-y-auto p-6 rounded-3xl">
+          <DialogContent className="bg-white border-[#EDE4D5] w-[96vw] max-w-5xl xl:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-3xl shadow-2xl">
             {/* 1. REVENUE MODAL */}
             {activeModal === 'REVENUE' && (
               <div>
@@ -672,16 +672,16 @@ export default function FinancialReportsPage() {
                     <Calendar className="w-4 h-4 text-emerald-600" />
                     Daily Session Revenue Breakdown
                   </h3>
-                  <div className="rounded-2xl border border-[#EDE4D5] overflow-hidden">
+                  <div className="rounded-2xl border border-[#EDE4D5] overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-[#FAF6F0]">
                         <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead className="text-right">Yesterday Leftover</TableHead>
-                          <TableHead className="text-right">POS Sales</TableHead>
-                          <TableHead className="text-right">Credit Repaid</TableHead>
-                          <TableHead className="text-right">Tomorrow Leftover</TableHead>
-                          <TableHead className="text-right font-extrabold text-[#2C1B10] pr-4">Daily Revenue</TableHead>
+                          <TableHead className="whitespace-nowrap min-w-[130px]">Date</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Yesterday Leftover</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">POS Sales</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Credit Repaid</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Tomorrow Leftover</TableHead>
+                          <TableHead className="text-right font-extrabold text-[#2C1B10] pr-4 whitespace-nowrap">Daily Revenue</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -694,22 +694,23 @@ export default function FinancialReportsPage() {
                         ) : (
                           dailyBreakdown.map((d: any, idx: number) => (
                             <TableRow key={d.date || idx}>
-                              <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                {formatEthDate(d.date)} <span className="text-[11px] text-[#8C7361] font-mono">({d.date})</span>
+                              <TableCell className="text-xs py-2">
+                                <div className="font-bold text-[#2C1B10] whitespace-nowrap">{formatEthDate(d.date)}</div>
+                                <div className="text-[10px] text-[#8C7361] font-mono">{d.date}</div>
                               </TableCell>
-                              <TableCell className="text-right font-mono text-xs text-[#8C7361]">
+                              <TableCell className="text-right font-mono text-xs text-[#8C7361] whitespace-nowrap">
                                 {money(d.yesterdayCashLeftover)}
                               </TableCell>
-                              <TableCell className="text-right font-mono text-xs font-semibold text-[#2C1B10]">
+                              <TableCell className="text-right font-mono text-xs font-semibold text-[#2C1B10] whitespace-nowrap">
                                 {money(d.salesTotal)}
                               </TableCell>
-                              <TableCell className="text-right font-mono text-xs text-emerald-700">
+                              <TableCell className="text-right font-mono text-xs text-emerald-700 whitespace-nowrap">
                                 +{money(d.creditReceivedFromLoan)}
                               </TableCell>
-                              <TableCell className="text-right font-mono text-xs text-rose-700">
+                              <TableCell className="text-right font-mono text-xs text-rose-700 whitespace-nowrap">
                                 -{money(d.tomorrowCashLeftover)}
                               </TableCell>
-                              <TableCell className="text-right font-mono text-xs font-extrabold text-emerald-800 pr-4">
+                              <TableCell className="text-right font-mono text-xs font-extrabold text-emerald-800 pr-4 whitespace-nowrap">
                                 {money(d.dailyTotalRevenue)}
                               </TableCell>
                             </TableRow>
