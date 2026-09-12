@@ -135,6 +135,31 @@ export default function FinancialReportsPage() {
     return `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`;
   };
 
+  const cleanCustomerInfo = (raw: string | null | undefined): { name: string; phone: string } => {
+    if (!raw) return { name: 'Client / Cafe', phone: '' };
+    let namePart = String(raw);
+    namePart = namePart.replace(/\[CreditItems:\s*\[.*?\]\s*\]/gi, '').trim();
+    namePart = namePart.replace(/\[Products:.*?\]/gi, '').trim();
+
+    let phone = '';
+    const phoneMatch = namePart.match(/\((.*?)\)/);
+    if (phoneMatch) {
+      phone = phoneMatch[1].trim();
+      namePart = namePart.replace(/\(.*?\)/, '').trim();
+    }
+
+    const parts = namePart.split(/\s+-\s+/);
+    if (parts.length > 1) {
+      namePart = parts[0].trim();
+    }
+    namePart = namePart.replace(/^-\s*|\s*-$/g, '').trim();
+
+    return {
+      name: namePart || 'Customer / Cafe',
+      phone,
+    };
+  };
+
   // ─────────────────────────────────────────────────────────────
   // CALCULATIONS ACCORDING TO USER REQUIREMENTS
   // ─────────────────────────────────────────────────────────────
@@ -693,6 +718,71 @@ export default function FinancialReportsPage() {
                       </TableBody>
                     </Table>
                   </div>
+
+                  {/* Customer Credits Given in this Range (Without bulky product details) */}
+                  {customerLoans.length > 0 && (
+                    <div className="mt-5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-extrabold text-sky-950 uppercase tracking-wider flex items-center gap-1.5">
+                          <CreditCard className="w-4 h-4 text-sky-700" />
+                          Customer Credits Given in Period ({customerLoans.length})
+                        </h4>
+                        <span className="text-[11px] font-bold text-sky-800">
+                          Total: {money(customerCreditTaken)}
+                        </span>
+                      </div>
+                      <div className="rounded-2xl border border-sky-200 overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-sky-50/60">
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Customer Name</TableHead>
+                              <TableHead className="text-right">Credited Amount</TableHead>
+                              <TableHead className="text-right">Balance Due</TableHead>
+                              <TableHead className="text-center pr-4">Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {customerLoans.map((l: any, idx: number) => {
+                              const cust = cleanCustomerInfo(l.entityId);
+                              return (
+                                <TableRow key={l.id || idx}>
+                                  <TableCell className="text-xs text-[#8C7361]">
+                                    {formatEthDate(l.date || l.createdAt)}
+                                  </TableCell>
+                                  <TableCell className="font-bold text-[#2C1B10] text-xs">
+                                    {cust.name}
+                                    {cust.phone && (
+                                      <span className="ml-1.5 text-[11px] text-[#8C7361] font-normal">
+                                        ({cust.phone})
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs font-bold text-sky-900">
+                                    {money(l.totalAmount)}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs text-rose-700">
+                                    {money(l.remainingBalance)}
+                                  </TableCell>
+                                  <TableCell className="text-center pr-4">
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                        l.status === 'PAID'
+                                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                          : 'bg-amber-100 text-amber-800 border-amber-300'
+                                      }`}
+                                    >
+                                      {l.status}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
