@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
-import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw, AlertTriangle, Lock } from "lucide-react";
+import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw, AlertTriangle, Lock, Clock, User as UserIcon } from "lucide-react";
 
 interface Product {
     id: string;
@@ -250,8 +250,8 @@ export default function ProductConversionsPage() {
                 </div>
             )}
 
-            {/* History Table */}
-            <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+            {/* History: Desktop Table & Mobile Cards */}
+            <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -338,6 +338,91 @@ export default function ProductConversionsPage() {
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile Audit Cards View */}
+            <div className="block md:hidden space-y-3">
+                {isLoading ? (
+                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
+                        Loading product conversion history...
+                    </div>
+                ) : conversions.length === 0 ? (
+                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
+                        No product conversions logged yet.
+                    </div>
+                ) : (
+                    conversions.map((c) => (
+                        <div
+                            key={c.id}
+                            className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3"
+                        >
+                            {/* Header: Date and Conversion Ratio Badge */}
+                            <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
+                                <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
+                                    <Clock className="w-3.5 h-3.5 text-[#8C7361]" />
+                                    <span className="font-semibold">
+                                        {format(new Date(c.createdAt), "MMM d, yyyy · hh:mm a")}
+                                    </span>
+                                </div>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                                    Ratio: {c.fromQuantity} ➔ {c.toQuantity}
+                                </span>
+                            </div>
+
+                            {/* Product Flow: Consumed & Produced */}
+                            <div className="grid grid-cols-2 gap-2 bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5]">
+                                <div className="space-y-0.5">
+                                    <span className="text-[10px] font-bold uppercase text-[#8C7361] block">
+                                        Source (Consumed)
+                                    </span>
+                                    <div className="font-extrabold text-sm text-rose-700 font-mono">
+                                        -{c.fromQuantity} {c.fromProduct?.unitType || "unit"}
+                                    </div>
+                                    <div className="text-xs font-semibold text-[#2C1B10] truncate">
+                                        {c.fromProduct?.name || "Original Item"}
+                                    </div>
+                                </div>
+                                <div className="space-y-0.5 text-right border-l border-[#EDE4D5] pl-2">
+                                    <span className="text-[10px] font-bold uppercase text-[#8C7361] block">
+                                        Target (Produced)
+                                    </span>
+                                    <div className="font-extrabold text-sm text-emerald-700 font-mono">
+                                        +{c.toQuantity} {c.toProduct?.unitType || "unit"}
+                                    </div>
+                                    <div className="text-xs font-semibold text-[#2C1B10] truncate">
+                                        {c.toProduct?.name || "Converted Item"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer: User & Action Buttons */}
+                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F4ECE1]">
+                                <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
+                                    <UserIcon className="w-3.5 h-3.5 text-[#8C7361]" />
+                                    <span className="font-medium text-[#4A2E1B]">{c.user?.fullName || "Staff"}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleOpenEdit(c)}
+                                        className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
+                                    >
+                                        <Edit className="w-3.5 h-3.5" /> Edit
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDelete(c.id)}
+                                        className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 w-8 p-0 rounded-xl"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* CREATE MODAL */}

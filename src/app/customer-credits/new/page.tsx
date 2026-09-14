@@ -413,10 +413,11 @@ export default function NewCustomerCreditPage() {
                         </select>
                       </div>
 
-                      <div className="grid grid-cols-3 md:flex md:items-center gap-3">
+                      {/* Mobile Row for Qty and Price */}
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:hidden">
                         {/* Quantity */}
-                        <div className="col-span-1 md:w-32">
-                          <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block">
                             Qty
                           </label>
                           <Input
@@ -440,10 +441,64 @@ export default function NewCustomerCreditPage() {
                         </div>
 
                         {/* Editable Unit Price / Amount Input */}
-                        <div className="col-span-1 md:w-32">
-                          <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
-                            Amount / Price
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block">
+                            Price / Unit
                           </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.unitPrice}
+                            onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
+                            placeholder="Price"
+                            className="text-xs h-10 font-bold text-center font-mono rounded-xl bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Mobile Subtotal and Delete Row */}
+                      <div className="flex items-center justify-between pt-2 border-t border-[#EDE4D5]/60 md:hidden">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361]">Subtotal:</span>
+                          <span className="text-xs font-extrabold text-[#E87A18] font-mono">
+                            {itemSubtotal.toFixed(2)} ETB
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveLineItem(idx)}
+                          className="h-8 px-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs flex items-center gap-1"
+                        >
+                          <X className="w-3.5 h-3.5" /> Remove
+                        </Button>
+                      </div>
+
+                      {/* Desktop Inline Layout */}
+                      <div className="hidden md:flex md:items-center gap-3">
+                        <div className="w-32">
+                          <Input
+                            type="number"
+                            min="1"
+                            max={selectedProd ? selectedProd.availableStock : undefined}
+                            value={item.quantity}
+                            onChange={(e) => handleLineItemChange(idx, "quantity", e.target.value)}
+                            placeholder="Qty"
+                            className={`text-xs h-10 font-bold text-center font-mono rounded-xl bg-white ${
+                              isOverStock
+                                ? "border-rose-500 ring-2 ring-rose-200 text-rose-700 font-extrabold"
+                                : ""
+                            }`}
+                          />
+                          {isOverStock && selectedProd && (
+                            <p className="text-[9px] font-extrabold text-rose-600 mt-0.5 text-center leading-tight">
+                              Max: {selectedProd.availableStock} {selectedProd.unitType}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="w-32">
                           <Input
                             type="number"
                             step="0.01"
@@ -454,25 +509,18 @@ export default function NewCustomerCreditPage() {
                           />
                         </div>
 
-                        {/* Line Subtotal */}
-                        <div className="col-span-1 md:w-32 text-right flex flex-col justify-center">
-                          <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block md:hidden">
-                            Subtotal
-                          </label>
+                        <div className="w-32 text-right pr-2">
                           <span className="text-xs font-extrabold text-[#E87A18] font-mono">
                             = {itemSubtotal.toFixed(2)} ETB
                           </span>
                         </div>
-                      </div>
 
-                      {/* Remove Button */}
-                      <div className="flex justify-end md:justify-center">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveLineItem(idx)}
-                          className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 rounded-xl"
+                          className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 rounded-xl shrink-0"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -485,8 +533,8 @@ export default function NewCustomerCreditPage() {
           </div>
 
           {/* Birr Calculation Summary Card */}
-          <div className="bg-gradient-to-r from-[#2C1B10] to-[#4A2E1B] text-white rounded-2xl p-5 shadow-md space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-[#2C1B10] to-[#4A2E1B] text-white rounded-2xl p-4 sm:p-5 shadow-md space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <div className="space-y-1">
                 <span className="text-xs font-extrabold uppercase text-amber-200 tracking-wider flex items-center gap-1.5">
                   <Calculator className="w-4 h-4 text-[#E87A18]" /> 3. Automated Birr Total Summary
@@ -496,14 +544,14 @@ export default function NewCustomerCreditPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 bg-black/30 p-3 rounded-xl border border-white/10">
-                <div className="text-right">
+              <div className="flex items-center justify-between sm:justify-end gap-3 bg-black/30 p-3 rounded-xl border border-white/10">
+                <div className="text-left sm:text-right">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase block">Total Credit Amount</span>
-                  <span className="text-xl font-extrabold text-amber-400 font-mono">
+                  <span className="text-lg sm:text-xl font-extrabold text-amber-400 font-mono">
                     {effectiveTotalBirr.toFixed(2)} ETB
                   </span>
                 </div>
-                <div className="w-32">
+                <div className="w-28 sm:w-32">
                   <Input
                     type="number"
                     step="0.01"
