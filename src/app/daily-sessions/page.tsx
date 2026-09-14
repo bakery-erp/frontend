@@ -62,6 +62,9 @@ export default function DailySessionsPage() {
       })
     : sessions;
 
+  // Distinct history sessions (excludes today's active session already highlighted in top banner)
+  const historySessions = displayedSessions.filter((s) => s.id !== todaySession?.id);
+
   // Finalize Session Modal State
   const [activeSession, setActiveSession] = useState<DailySession | null>(null);
   const [cashFloat, setCashFloat] = useState<string>('');
@@ -394,18 +397,31 @@ export default function DailySessionsPage() {
         )
       )}
 
+      {/* ── Session History Section Header ── */}
+      <div className="flex items-center justify-between gap-3 mb-4 pt-1">
+        <div>
+          <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-[#E87A18]" />
+            Session History
+          </h2>
+          <p className="text-xs text-[#8C7361] mt-0.5">
+            Previous closed sessions and past business days ({historySessions.length})
+          </p>
+        </div>
+      </div>
+
       {/* ── Mobile Session Cards (< md) ── */}
       <div className="space-y-3 block md:hidden mb-6">
         {isLoading ? (
           <div className="text-center py-8 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
             {t('common.loading')}
           </div>
-        ) : displayedSessions.length === 0 ? (
+        ) : historySessions.length === 0 ? (
           <div className="text-center py-8 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            {isTodayOnly ? "No session recorded for today." : "No sessions recorded yet for active scope."}
+            {isTodayOnly ? "No past session recorded for today." : "No past sessions found in history. Active session is running above."}
           </div>
         ) : (
-          displayedSessions.map((sess) => {
+          historySessions.map((sess) => {
             const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
             const formattedDate = new Date(sess.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
             return (
@@ -554,9 +570,9 @@ export default function DailySessionsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{t('common.loading')}</TableCell></TableRow>
-            ) : displayedSessions.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{isTodayOnly ? "No session recorded for today." : "No sessions recorded yet for active scope."}</TableCell></TableRow>
-            ) : displayedSessions.map((sess) => {
+            ) : historySessions.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{isTodayOnly ? "No past session recorded for today." : "No past sessions found in history. Active session is running above."}</TableCell></TableRow>
+            ) : historySessions.map((sess) => {
               const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
               const formattedDate = new Date(sess.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
               return (
