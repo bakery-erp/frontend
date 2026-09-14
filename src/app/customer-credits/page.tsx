@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
-import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye, AlertTriangle } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye, AlertTriangle, Phone, CheckCircle2, Clock } from "lucide-react";
 
 interface LoanPayment {
   id: string;
@@ -105,8 +105,16 @@ export default function CustomerCreditsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Quick Filter States
-  const [filterTodayOnly, setFilterTodayOnly] = useState(false);
+  type CreditFilterTab = "ALL" | "OPEN" | "PAID" | "TODAY";
+  const [filterTab, setFilterTab] = useState<CreditFilterTab>("ALL");
+  const activeFilterRef = useRef<HTMLButtonElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (activeFilterRef.current) {
+      activeFilterRef.current.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+    }
+  }, [filterTab]);
 
   // Dialog States
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -374,42 +382,68 @@ export default function CustomerCreditsPage() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm">
-          <span className="text-xs font-bold uppercase text-[#8C7361] block">{t('credits.colTotalAmount')}</span>
-          <span className="text-2xl font-extrabold text-[#2C1B10] mt-1 block font-mono">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm min-w-0">
+          <span className="text-xs font-bold uppercase text-[#8C7361] block truncate">{t('credits.colTotalAmount')}</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] mt-1 block font-mono truncate">
             {totalCreditGiven.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
         </div>
-        <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm bg-emerald-50/30">
-          <span className="text-xs font-bold uppercase text-emerald-800 block">{t('dashboard.creditReceivedLoans')}</span>
-          <span className="text-2xl font-extrabold text-emerald-700 mt-1 block font-mono">
+        <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm bg-emerald-50/30 min-w-0">
+          <span className="text-xs font-bold uppercase text-emerald-800 block truncate">{t('dashboard.creditReceivedLoans')}</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1 block font-mono truncate">
             {totalRepaid.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
         </div>
-        <div className="bg-white border border-rose-200 rounded-2xl p-4 shadow-sm bg-rose-50/30">
-          <span className="text-xs font-bold uppercase text-rose-800 block">{t('credits.colRemaining')}</span>
-          <span className="text-2xl font-extrabold text-rose-700 mt-1 block font-mono">
+        <div className="bg-white border border-rose-200 rounded-2xl p-4 shadow-sm bg-rose-50/30 min-w-0 sm:col-span-2 md:col-span-1">
+          <span className="text-xs font-bold uppercase text-rose-800 block truncate">{t('credits.colRemaining')}</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-rose-700 mt-1 block font-mono truncate">
             {totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
         </div>
       </div>
 
-      {/* Filter Bar with Today Button */}
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 mb-6 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant={filterTodayOnly ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterTodayOnly(!filterTodayOnly)}
-            className={`rounded-xl text-xs font-bold ${
-              filterTodayOnly ? "bg-[#4A2E1B] text-white" : "border-[#EDE4D5] text-[#4A2E1B]"
-            }`}
-          >
-            📅 {filterTodayOnly ? t('credits.filterToday') : t('credits.filterAll')}
-          </Button>
-        </div>
+      {/* Filter Bar with Horizontal Auto-Centering Tabs */}
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {(() => {
+          const todayYmd = new Date().toISOString().slice(0, 10);
+          const filterPills = [
+            { id: "ALL", label: t('credits.filterAll') || "All Credits", count: credits.length },
+            { id: "OPEN", label: t('credits.statusOpen') || "Open / Unpaid", count: credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length },
+            { id: "PAID", label: t('credits.statusPaid') || "Fully Paid", count: credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length },
+            { id: "TODAY", label: `📅 ${t('credits.filterToday') || "Today"}`, count: credits.filter((c) => (c.date || c.createdAt || "").slice(0, 10) === todayYmd).length },
+          ];
+
+          return (
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-full">
+              {filterPills.map((pill) => {
+                const isActive = filterTab === pill.id;
+                return (
+                  <button
+                    key={pill.id}
+                    ref={isActive ? activeFilterRef : null}
+                    type="button"
+                    onClick={() => setFilterTab(pill.id as CreditFilterTab)}
+                    className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      isActive
+                        ? "bg-[#4A2E1B] text-white shadow-xs"
+                        : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
+                    }`}
+                  >
+                    <span>{pill.label}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                        isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                      }`}
+                    >
+                      {pill.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         <Input
           placeholder={t('credits.searchPlaceholder')}
@@ -419,14 +453,17 @@ export default function CustomerCreditsPage() {
         />
       </div>
 
-      {/* Credit Table */}
+      {/* Credit Data: Desktop Table & Mobile Cards */}
       {(() => {
         const todayYmd = new Date().toISOString().slice(0, 10);
         const filteredCredits = credits.filter((c) => {
-          if (filterTodayOnly) {
-            const creditDate = (c.date || c.createdAt || "").slice(0, 10);
-            if (creditDate !== todayYmd) return false;
-          }
+          const isPaid = c.status === "PAID" || Number(c.remainingBalance) <= 0.01;
+          const creditDate = (c.date || c.createdAt || "").slice(0, 10);
+
+          if (filterTab === "OPEN" && isPaid) return false;
+          if (filterTab === "PAID" && !isPaid) return false;
+          if (filterTab === "TODAY" && creditDate !== todayYmd) return false;
+
           if (searchQuery) {
             const q = searchQuery.toLowerCase();
             if (!(c.entityId || "").toLowerCase().includes(q)) return false;
@@ -435,153 +472,307 @@ export default function CustomerCreditsPage() {
         });
 
         return (
-          <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('common.date')}</TableHead>
-                  <TableHead>{t('credits.colCustomer')}</TableHead>
-                  <TableHead>{t('credits.colProducts')}</TableHead>
-                  <TableHead className="text-right">{t('credits.colTotalAmount')}</TableHead>
-                  <TableHead className="text-right">{t('credits.colRemaining')}</TableHead>
-                  <TableHead className="text-center">{t('credits.colStatus')}</TableHead>
-                  <TableHead>{t('reports.dailyBreakdownTitle')}</TableHead>
-                  <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
-                      Loading customer product credit accounts...
-                    </TableCell>
+                    <TableHead>{t('common.date')}</TableHead>
+                    <TableHead>{t('credits.colCustomer')}</TableHead>
+                    <TableHead>{t('credits.colProducts')}</TableHead>
+                    <TableHead className="text-right">{t('credits.colTotalAmount')}</TableHead>
+                    <TableHead className="text-right">{t('credits.colRemaining')}</TableHead>
+                    <TableHead className="text-center">{t('credits.colStatus')}</TableHead>
+                    <TableHead>{t('reports.dailyBreakdownTitle')}</TableHead>
+                    <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
                   </TableRow>
-                ) : filteredCredits.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
-                      No customer credit sales found matching filter.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredCredits.map((c) => {
-                    const parsed = parseCustomerCreditEntity(c.entityId || "");
-                    return (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-bold text-[#2C1B10] text-xs">
-                          {c.date ? format(new Date(c.date), "MMM d, yyyy") : format(new Date(c.createdAt), "MMM d, yyyy")}
-                        </TableCell>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
+                        Loading customer product credit accounts...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredCredits.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
+                        No customer credit sales found matching filter.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredCredits.map((c) => {
+                      const parsed = parseCustomerCreditEntity(c.entityId || "");
+                      return (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-bold text-[#2C1B10] text-xs">
+                            {c.date ? format(new Date(c.date), "MMM d, yyyy") : format(new Date(c.createdAt), "MMM d, yyyy")}
+                          </TableCell>
 
-                        {/* Customer & Contact Column */}
-                        <TableCell className="max-w-[200px]">
-                          <div className="font-extrabold text-[#2C1B10] text-sm leading-tight">{parsed.name}</div>
-                          {parsed.phone && (
-                            <div className="text-xs text-[#8C7361] font-medium mt-0.5 flex items-center gap-1">
-                              📞 {parsed.phone}
-                            </div>
-                          )}
-                        </TableCell>
-
-                        {/* Products / Items Taken Column */}
-                        <TableCell className="max-w-[240px]">
-                          {parsed.items.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 items-center">
-                              {parsed.items.slice(0, 2).map((itemStr, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-tight"
-                                >
-                                  {itemStr}
-                                </span>
-                              ))}
-                              {parsed.items.length > 2 && (
-                                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#4A2E1B] text-white">
-                                  +{parsed.items.length - 2} more
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
-                          )}
-                          {parsed.notes && (
-                            <p className="text-[11px] text-[#8C7361] italic mt-0.5 font-normal truncate max-w-[220px]">
-                              Note: {parsed.notes}
-                            </p>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-right font-extrabold text-[#2C1B10] font-mono text-xs">
-                          {Number(c.totalAmount).toFixed(2)} ETB
-                        </TableCell>
-
-                        <TableCell className="text-right font-extrabold text-rose-700 font-mono text-xs">
-                          {Number(c.remainingBalance).toFixed(2)} ETB
-                        </TableCell>
-
-                        <TableCell className="text-center">
-                          {c.status === "PAID" || Number(c.remainingBalance) <= 0.01 ? (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              ✓ {t('credits.statusPaid')}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                              {t('credits.statusOpen')}
-                            </span>
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          {c.payments && c.payments.length > 0 ? (
-                            <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
-                              {c.payments.map((p) => (
-                                <div key={p.id} className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex justify-between font-mono">
-                                  <span className="text-[#8C7361]">{format(new Date(p.date || p.createdAt), "MMM d")}</span>
-                                  <span className="font-bold text-emerald-700">-{Number(p.amountPaid).toFixed(2)} ETB</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-[#8C7361] italic">No repayments yet</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-right pr-6">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => router.push(`/customer-credits/${c.id}`)}
-                              className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
-                            >
-                              <Eye className="w-3.5 h-3.5" /> {t('common.details')}
-                            </Button>
-                            {Number(c.remainingBalance) > 0.01 && canManage && (
-                              <Button
-                                size="sm"
-                                onClick={() => { setPayingCredit(c); setAmountPaid(String(c.remainingBalance)); }}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
-                              >
-                                <DollarSign className="w-3.5 h-3.5" /> {t('credits.btnPay')}
-                              </Button>
+                          {/* Customer & Contact Column */}
+                          <TableCell className="max-w-[200px]">
+                            <div className="font-extrabold text-[#2C1B10] text-sm leading-tight">{parsed.name}</div>
+                            {parsed.phone && (
+                              <div className="text-xs text-[#8C7361] font-medium mt-0.5 flex items-center gap-1">
+                                📞 {parsed.phone}
+                              </div>
                             )}
-                            {user?.role === "OWNER" || user?.role === "ADMIN" ? (
+                          </TableCell>
+
+                          {/* Products / Items Taken Column */}
+                          <TableCell className="max-w-[240px]">
+                            {parsed.items.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 items-center">
+                                {parsed.items.slice(0, 2).map((itemStr, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-tight"
+                                  >
+                                    {itemStr}
+                                  </span>
+                                ))}
+                                {parsed.items.length > 2 && (
+                                  <span className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#4A2E1B] text-white">
+                                    +{parsed.items.length - 2} more
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
+                            )}
+                            {parsed.notes && (
+                              <p className="text-[11px] text-[#8C7361] italic mt-0.5 font-normal truncate max-w-[220px]">
+                                Note: {parsed.notes}
+                              </p>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-right font-extrabold text-[#2C1B10] font-mono text-xs">
+                            {Number(c.totalAmount).toFixed(2)} ETB
+                          </TableCell>
+
+                          <TableCell className="text-right font-extrabold text-rose-700 font-mono text-xs">
+                            {Number(c.remainingBalance).toFixed(2)} ETB
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            {c.status === "PAID" || Number(c.remainingBalance) <= 0.01 ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                ✓ {t('credits.statusPaid')}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                                {t('credits.statusOpen')}
+                              </span>
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            {c.payments && c.payments.length > 0 ? (
+                              <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                                {c.payments.map((p) => (
+                                  <div key={p.id} className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex justify-between font-mono">
+                                    <span className="text-[#8C7361]">{format(new Date(p.date || p.createdAt), "MMM d")}</span>
+                                    <span className="font-bold text-emerald-700">-{Number(p.amountPaid).toFixed(2)} ETB</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-[#8C7361] italic">No repayments yet</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-right pr-6">
+                            <div className="flex items-center justify-end gap-1.5">
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                onClick={() => handleDelete(c.id)}
-                                className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
+                                variant="outline"
+                                onClick={() => router.push(`/customer-credits/${c.id}`)}
+                                className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Eye className="w-3.5 h-3.5" /> {t('common.details')}
                               </Button>
-                            ) : null}
+                              {Number(c.remainingBalance) > 0.01 && canManage && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => { setPayingCredit(c); setAmountPaid(String(c.remainingBalance)); }}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                                >
+                                  <DollarSign className="w-3.5 h-3.5" /> {t('credits.btnPay')}
+                                </Button>
+                              )}
+                              {user?.role === "OWNER" || user?.role === "ADMIN" ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDelete(c.id)}
+                                  className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Audit Cards View */}
+            <div className="block md:hidden space-y-3">
+              {isLoading ? (
+                <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
+                  Loading customer product credit accounts...
+                </div>
+              ) : filteredCredits.length === 0 ? (
+                <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
+                  No customer credit sales found matching filter.
+                </div>
+              ) : (
+                filteredCredits.map((c) => {
+                  const parsed = parseCustomerCreditEntity(c.entityId || "");
+                  const isPaid = c.status === "PAID" || Number(c.remainingBalance) <= 0.01;
+                  const formattedDate = c.date
+                    ? format(new Date(c.date), "MMM d, yyyy")
+                    : format(new Date(c.createdAt), "MMM d, yyyy");
+
+                  return (
+                    <div
+                      key={c.id}
+                      className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-3"
+                    >
+                      {/* Top Row: Date & Status Badge */}
+                      <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
+                        <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
+                          <Clock className="w-3.5 h-3.5 text-[#8C7361]" />
+                          <span className="font-semibold">{formattedDate}</span>
+                        </div>
+                        {isPaid ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            <CheckCircle2 className="w-3 h-3" /> {t('credits.statusPaid')}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                            <AlertTriangle className="w-3 h-3" /> {t('credits.statusOpen')}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Customer Info */}
+                      <div>
+                        <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{parsed.name}</h3>
+                        {parsed.phone && (
+                          <a
+                            href={`tel:${parsed.phone}`}
+                            className="inline-flex items-center gap-1 text-xs text-[#E87A18] font-bold mt-1 hover:underline"
+                          >
+                            <Phone className="w-3 h-3" /> {parsed.phone}
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Products Badges */}
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361] block mb-1">
+                          {t('credits.colProducts')}
+                        </span>
+                        {parsed.items.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {parsed.items.map((itemStr, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
+                              >
+                                {itemStr}
+                              </span>
+                            ))}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                        ) : (
+                          <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
+                        )}
+                        {parsed.notes && (
+                          <p className="text-xs text-[#8C7361] italic mt-1.5 bg-[#FAF6F0]/60 p-2 rounded-lg border border-[#EDE4D5]">
+                            Note: {parsed.notes}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Total and Remaining balance in 2-col box */}
+                      <div className="grid grid-cols-2 gap-2 bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5]">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('credits.colTotalAmount')}</span>
+                          <span className="text-sm font-extrabold text-[#2C1B10] font-mono block mt-0.5">
+                            {Number(c.totalAmount).toFixed(2)} ETB
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('credits.colRemaining')}</span>
+                          <span className="text-sm font-extrabold text-rose-700 font-mono block mt-0.5">
+                            {Number(c.remainingBalance).toFixed(2)} ETB
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Repayments if any */}
+                      {c.payments && c.payments.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block">
+                            {t('reports.dailyBreakdownTitle')} ({c.payments.length})
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {c.payments.map((p) => (
+                              <span
+                                key={p.id}
+                                className="text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-lg font-mono font-bold flex items-center gap-1"
+                              >
+                                <span>{format(new Date(p.date || p.createdAt), "MMM d")}:</span>
+                                <span>-{Number(p.amountPaid).toFixed(2)} ETB</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mobile touch action bar */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => router.push(`/customer-credits/${c.id}`)}
+                          className="flex-1 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> {t('common.details')}
+                        </Button>
+                        {Number(c.remainingBalance) > 0.01 && canManage && (
+                          <Button
+                            size="sm"
+                            onClick={() => { setPayingCredit(c); setAmountPaid(String(c.remainingBalance)); }}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
+                          >
+                            <DollarSign className="w-3.5 h-3.5" /> {t('credits.btnPay')}
+                          </Button>
+                        )}
+                        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(c.id)}
+                            className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-9 w-9 p-0 rounded-xl shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
         );
       })()}
 

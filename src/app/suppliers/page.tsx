@@ -7,7 +7,7 @@ import { useBranch } from '@/context/BranchContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
-import { Truck, Plus, CheckCircle2, DollarSign, PackageCheck, Trash2 } from 'lucide-react';
+import { Truck, Plus, CheckCircle2, DollarSign, PackageCheck, Trash2, Clock, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -252,32 +252,32 @@ export default function SuppliersPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-[#8C7361] uppercase">Active Suppliers</p>
-            <h3 className="text-2xl font-black text-[#2C1B10] mt-1">{suppliers.length}</h3>
+        <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">Active Suppliers</p>
+            <h3 className="text-xl sm:text-2xl font-black text-[#2C1B10] mt-1">{suppliers.length}</h3>
           </div>
-          <div className="p-3 bg-[#FAF6F0] rounded-xl"><PackageCheck className="w-6 h-6 text-[#E87A18]" /></div>
+          <div className="p-3 bg-[#FAF6F0] rounded-xl shrink-0"><PackageCheck className="w-6 h-6 text-[#E87A18]" /></div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-[#8C7361] uppercase">Total Receipts</p>
-            <h3 className="text-2xl font-black text-[#2C1B10] mt-1">{totalDeliveriesThisMonth}</h3>
+        <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">Total Receipts</p>
+            <h3 className="text-xl sm:text-2xl font-black text-[#2C1B10] mt-1">{totalDeliveriesThisMonth}</h3>
           </div>
-          <div className="p-3 bg-[#FAF6F0] rounded-xl"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
+          <div className="p-3 bg-[#FAF6F0] rounded-xl shrink-0"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-[#8C7361] uppercase">Accounts Payable (Unpaid)</p>
-            <h3 className="text-2xl font-black text-amber-700 mt-1">{totalUnpaidAmount.toFixed(2)} ETB</h3>
+        <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">Accounts Payable (Unpaid)</p>
+            <h3 className="text-xl sm:text-2xl font-black text-amber-700 mt-1 truncate">{totalUnpaidAmount.toFixed(2)} ETB</h3>
           </div>
-          <div className="p-3 bg-amber-50 rounded-xl"><DollarSign className="w-6 h-6 text-amber-600" /></div>
+          <div className="p-3 bg-amber-50 rounded-xl shrink-0"><DollarSign className="w-6 h-6 text-amber-600" /></div>
         </div>
       </div>
 
-      {/* Registered Suppliers Directory Table */}
+      {/* Registered Suppliers Directory: Desktop Table & Mobile Cards */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm mb-6">
         <div className="p-4 bg-[#FAF6F0] border-b border-[#EDE4D5] flex items-center justify-between">
           <h2 className="font-extrabold text-[#2C1B10] text-sm flex items-center gap-2">
@@ -286,109 +286,241 @@ export default function SuppliersPage() {
           <span className="text-xs text-[#8C7361]">All active suppliers by branch</span>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('suppliers.colSupplierName')}</TableHead>
-              <TableHead>{t('suppliers.colPhone')}</TableHead>
-              <TableHead>{t('suppliers.colType')}</TableHead>
-              <TableHead>{t('branches.title')}</TableHead>
-              <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">Loading suppliers directory...</TableCell></TableRow>
-            ) : suppliers.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">No registered suppliers found. Click "+ Add Supplier" to register one.</TableCell></TableRow>
-            ) : suppliers.map((sup: any) => {
+        {/* Desktop Suppliers Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('suppliers.colSupplierName')}</TableHead>
+                <TableHead>{t('suppliers.colPhone')}</TableHead>
+                <TableHead>{t('suppliers.colType')}</TableHead>
+                <TableHead>{t('branches.title')}</TableHead>
+                <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">Loading suppliers directory...</TableCell></TableRow>
+              ) : suppliers.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">No registered suppliers found. Click "+ Add Supplier" to register one.</TableCell></TableRow>
+              ) : suppliers.map((sup: any) => {
+                const assignedBranch = branches.find((b) => b.id === sup.branchId)?.name || sup.branch?.name || 'Main Branch';
+                return (
+                  <TableRow key={sup.id}>
+                    <TableCell className="font-bold text-[#2C1B10]">{sup.name}</TableCell>
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">{sup.phone || 'N/A'}</TableCell>
+                    <TableCell>
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                        {sup.type}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs font-bold text-[#4A2E1B]">🏢 {assignedBranch}</TableCell>
+                    <TableCell className="text-right pr-6 font-extrabold text-[#2C1B10]">{sup._count?.deliveries ?? 0}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile Suppliers Directory Cards */}
+        <div className="block md:hidden p-3 space-y-3">
+          {isLoading ? (
+            <p className="text-center py-6 text-xs text-[#8C7361]">Loading suppliers directory...</p>
+          ) : suppliers.length === 0 ? (
+            <p className="text-center py-6 text-xs text-[#8C7361]">No registered suppliers found.</p>
+          ) : (
+            suppliers.map((sup: any) => {
               const assignedBranch = branches.find((b) => b.id === sup.branchId)?.name || sup.branch?.name || 'Main Branch';
               return (
-                <TableRow key={sup.id}>
-                  <TableCell className="font-bold text-[#2C1B10]">{sup.name}</TableCell>
-                  <TableCell className="text-xs font-semibold text-[#8C7361]">{sup.phone || 'N/A'}</TableCell>
-                  <TableCell>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                <div key={sup.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2">
+                    <h3 className="font-extrabold text-[#2C1B10] text-sm">{sup.name}</h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
                       {sup.type}
                     </span>
-                  </TableCell>
-                  <TableCell className="text-xs font-bold text-[#4A2E1B]">🏢 {assignedBranch}</TableCell>
-                  <TableCell className="text-right pr-6 font-extrabold text-[#2C1B10]">{sup._count?.deliveries ?? 0}</TableCell>
-                </TableRow>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-[#8C7361]">
+                    <span>🏢 {assignedBranch}</span>
+                    {sup.phone ? (
+                      <a href={`tel:${sup.phone}`} className="font-bold text-[#E87A18] hover:underline flex items-center gap-1">
+                        <Phone className="w-3 h-3" /> {sup.phone}
+                      </a>
+                    ) : (
+                      <span className="text-zinc-400">No phone</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-[#8C7361] flex items-center justify-between pt-1 border-t border-[#F4ECE1]">
+                    <span>Deliveries Received:</span>
+                    <span className="font-extrabold text-[#2C1B10] font-mono">{sup._count?.deliveries ?? 0}</span>
+                  </div>
+                </div>
               );
-            })}
-          </TableBody>
-        </Table>
+            })
+          )}
+        </div>
       </div>
 
-      {/* Delivery Logs Table */}
+      {/* Delivery Logs: Desktop Table & Mobile Cards */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm mb-8">
         <div className="p-4 bg-[#FAF6F0] border-b border-[#EDE4D5] flex items-center justify-between">
           <h2 className="font-extrabold text-[#2C1B10] text-sm">Recent Supplier Deliveries</h2>
           <span className="text-xs text-[#8C7361]">Auto-increments stock quantity</span>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Delivery Date</TableHead>
-              <TableHead>Supplier</TableHead>
-              <TableHead>Stock Material / Item</TableHead>
-              <TableHead>Qty Received</TableHead>
-              <TableHead>Unit Cost</TableHead>
-              <TableHead>Total Cost</TableHead>
-              <TableHead>Paid From</TableHead>
-              <TableHead className="text-right pr-6">Payment Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">Loading delivery logs...</TableCell></TableRow>
-            ) : deliveries.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">No delivery receipts recorded.</TableCell></TableRow>
-            ) : deliveries.map((d) => {
+        {/* Desktop Deliveries Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Delivery Date</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead>Stock Material / Item</TableHead>
+                <TableHead>Qty Received</TableHead>
+                <TableHead>Unit Cost</TableHead>
+                <TableHead>Total Cost</TableHead>
+                <TableHead>Paid From</TableHead>
+                <TableHead className="text-right pr-6">Payment Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">Loading delivery logs...</TableCell></TableRow>
+              ) : deliveries.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">No delivery receipts recorded.</TableCell></TableRow>
+              ) : deliveries.map((d) => {
+                const totalCost = Number(d.unitBuyPrice) * d.quantityReceived;
+                return (
+                  <TableRow key={d.id}>
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">
+                      {new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </TableCell>
+                    <TableCell className="font-bold text-[#2C1B10]">{d.supplier?.name || 'Supplier'}</TableCell>
+                    <TableCell className="font-semibold text-[#4A2E1B]">{d.stockItem?.name || d.product?.name || 'Raw Material'}</TableCell>
+                    <TableCell className="font-bold text-[#2C1B10]">
+                      {d.quantityReceived} <span className="text-xs text-[#8C7361] font-normal">{d.stockItem?.unitType || ''}</span>
+                    </TableCell>
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">{Number(d.unitBuyPrice).toFixed(2)} ETB</TableCell>
+                    <TableCell className="font-extrabold text-[#2C1B10]">{totalCost.toFixed(2)} ETB</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                        d.paymentSource === 'OWNER'
+                          ? 'bg-purple-100 text-purple-800 border-purple-200'
+                          : 'bg-blue-100 text-blue-800 border-blue-200'
+                      }`}>
+                        {d.paymentSource === 'OWNER' ? 'Owner' : 'Daily Cash'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right pr-6">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        disabled={!(user?.role === 'OWNER' || user?.role === 'ADMIN')}
+                        onClick={() => togglePaymentStatus(d.id, d.isPaid)}
+                        className={`px-3 py-1 rounded-full text-xs font-extrabold shadow-xs transition-all ${
+                          d.isPaid 
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300' 
+                            : 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
+                        } ${!(user?.role === 'OWNER' || user?.role === 'ADMIN') ? 'opacity-80 cursor-not-allowed' : ''}`}
+                      >
+                        {d.isPaid ? '✓ PAID' : '⚠ UNPAID'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile Deliveries View Cards */}
+        <div className="block md:hidden p-3 space-y-3">
+          {isLoading ? (
+            <p className="text-center py-6 text-xs text-[#8C7361]">Loading delivery logs...</p>
+          ) : deliveries.length === 0 ? (
+            <p className="text-center py-6 text-xs text-[#8C7361]">No delivery receipts recorded.</p>
+          ) : (
+            deliveries.map((d) => {
               const totalCost = Number(d.unitBuyPrice) * d.quantityReceived;
+              const dateStr = new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+              const isOwner = d.paymentSource === 'OWNER';
+
               return (
-                <TableRow key={d.id}>
-                  <TableCell className="text-xs font-semibold text-[#8C7361]">
-                    {new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </TableCell>
-                  <TableCell className="font-bold text-[#2C1B10]">{d.supplier?.name || 'Supplier'}</TableCell>
-                  <TableCell className="font-semibold text-[#4A2E1B]">{d.stockItem?.name || d.product?.name || 'Raw Material'}</TableCell>
-                  <TableCell className="font-bold text-[#2C1B10]">
-                    {d.quantityReceived} <span className="text-xs text-[#8C7361] font-normal">{d.stockItem?.unitType || ''}</span>
-                  </TableCell>
-                  <TableCell className="text-xs font-semibold text-[#8C7361]">{Number(d.unitBuyPrice).toFixed(2)} ETB</TableCell>
-                  <TableCell className="font-extrabold text-[#2C1B10]">{totalCost.toFixed(2)} ETB</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-                      d.paymentSource === 'OWNER'
-                        ? 'bg-purple-100 text-purple-800 border-purple-200'
-                        : 'bg-blue-100 text-blue-800 border-blue-200'
-                    }`}>
-                      {d.paymentSource === 'OWNER' ? 'Owner' : 'Daily Cash'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right pr-6">
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
+                <div key={d.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3">
+                  {/* Header: Date and Payment Status Button */}
+                  <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
+                    <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
+                      <Clock className="w-3.5 h-3.5 text-[#8C7361]" />
+                      <span className="font-semibold">{dateStr}</span>
+                    </div>
+                    <button
+                      type="button"
                       disabled={!(user?.role === 'OWNER' || user?.role === 'ADMIN')}
                       onClick={() => togglePaymentStatus(d.id, d.isPaid)}
-                      className={`px-3 py-1 rounded-full text-xs font-extrabold shadow-xs transition-all ${
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs transition-all ${
                         d.isPaid 
-                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300' 
-                          : 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                          : 'bg-amber-100 text-amber-900 border border-amber-300'
                       } ${!(user?.role === 'OWNER' || user?.role === 'ADMIN') ? 'opacity-80 cursor-not-allowed' : ''}`}
                     >
                       {d.isPaid ? '✓ PAID' : '⚠ UNPAID'}
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                    </button>
+                  </div>
+
+                  {/* Supplier & Item */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Supplier</span>
+                      <h4 className="font-extrabold text-[#2C1B10] text-sm leading-tight mt-0.5">
+                        {d.supplier?.name || 'Supplier'}
+                      </h4>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Stock Item</span>
+                      <span className="font-semibold text-xs text-[#4A2E1B] block mt-0.5">
+                        {d.stockItem?.name || d.product?.name || 'Raw Material'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Quantity, Unit cost, Total Cost in 3-column box */}
+                  <div className="grid grid-cols-3 gap-2 bg-[#FAF6F0] p-2.5 rounded-xl border border-[#EDE4D5] text-xs">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Qty</span>
+                      <span className="font-extrabold text-[#2C1B10] font-mono text-xs">
+                        {d.quantityReceived} {d.stockItem?.unitType || ''}
+                      </span>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Unit Cost</span>
+                      <span className="font-semibold text-[#8C7361] font-mono text-xs">
+                        {Number(d.unitBuyPrice).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Total</span>
+                      <span className="font-extrabold text-[#2C1B10] font-mono text-xs">
+                        {totalCost.toFixed(2)} ETB
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Paid From */}
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-[#F4ECE1]">
+                    <span className="text-[#8C7361]">Paid From:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      isOwner
+                        ? 'bg-purple-100 text-purple-800 border-purple-200'
+                        : 'bg-blue-100 text-blue-800 border-blue-200'
+                    }`}>
+                      {isOwner ? '👤 Owner' : '💵 Daily Cash'}
+                    </span>
+                  </div>
+                </div>
               );
-            })}
-          </TableBody>
-        </Table>
+            })
+          )}
+        </div>
       </div>
 
       {/* Add Supplier Modal */}

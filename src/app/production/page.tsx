@@ -46,9 +46,14 @@ export default function ProductionPage() {
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
+  const [expandedMaterialsBatches, setExpandedMaterialsBatches] = useState<Record<string, boolean>>({});
 
   const toggleExpandBatch = (batchId: string) => {
     setExpandedBatches((prev) => ({ ...prev, [batchId]: !prev[batchId] }));
+  };
+
+  const toggleExpandMaterials = (batchId: string) => {
+    setExpandedMaterialsBatches((prev) => ({ ...prev, [batchId]: !prev[batchId] }));
   };
 
   useEffect(() => {
@@ -435,22 +440,46 @@ export default function ProductionPage() {
               {/* Raw Materials Deducted */}
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7361] block mb-1">
-                  Raw Materials Consumed
+                  Raw Materials Consumed{batch.materialUsages.length > 0 ? ` (${batch.materialUsages.length})` : ""}
                 </span>
                 {batch.materialUsages.length === 0 ? (
                   <span className="text-xs text-zinc-400 italic">No materials deducted</span>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {batch.materialUsages.map((mat) => (
-                      <span
-                        key={mat.id}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800"
-                      >
-                        {mat.stockItem.name}: -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                ) : (() => {
+                  const isMatExpanded = !!expandedMaterialsBatches[batch.id];
+                  const visibleMaterials = isMatExpanded
+                    ? batch.materialUsages
+                    : batch.materialUsages.slice(0, 5);
+                  const hasMoreMaterials = batch.materialUsages.length > 5;
+
+                  return (
+                    <div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {visibleMaterials.map((mat) => (
+                          <span
+                            key={mat.id}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800"
+                          >
+                            {mat.stockItem.name}: -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
+                          </span>
+                        ))}
+                      </div>
+
+                      {hasMoreMaterials && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandMaterials(batch.id)}
+                          className="mt-2 text-xs font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors"
+                        >
+                          {isMatExpanded ? (
+                            <>Show less</>
+                          ) : (
+                            <>+ Show {batch.materialUsages.length - 5} more materials</>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Card Footer: Logged by & Action Buttons */}

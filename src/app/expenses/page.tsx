@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, X, AlertTriangle, CalendarDays, Wallet, Tag, Check, Settings } from "lucide-react";
+import { Plus, Trash2, Pencil, X, AlertTriangle, CalendarDays, Wallet, Tag, Check, Settings, User as UserIcon, Clock } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface Expense {
@@ -70,6 +70,13 @@ export default function ExpensesPage() {
   const [filterFrom, setFilterFrom] = useState(getEthTodayStr());
   const [filterTo, setFilterTo] = useState(getEthTodayStr());
   const [typeFilter, setTypeFilter] = useState<"ALL" | "COMPANY" | "OWNER">("ALL");
+  const activeTypeFilterRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (activeTypeFilterRef.current) {
+      activeTypeFilterRef.current.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+    }
+  }, [typeFilter]);
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -753,42 +760,39 @@ export default function ExpensesPage() {
       )}
 
       {/* Expense View Mode Filter Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-1 bg-[#FAF6F0] p-1.5 rounded-2xl border border-[#EDE4D5]">
-          <button
-            onClick={() => setTypeFilter("ALL")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              typeFilter === "ALL"
-                ? "bg-[#4A2E1B] text-white shadow-xs"
-                : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
-            }`}
-          >
-            {t('common.all')} ({expenses.length})
-          </button>
-          <button
-            onClick={() => setTypeFilter("COMPANY")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              typeFilter === "COMPANY"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-[#8C7361] hover:text-blue-700 hover:bg-white/50"
-            }`}
-          >
-            💵 {t('expenses.tabCompany')}
-          </button>
-          <button
-            onClick={() => setTypeFilter("OWNER")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              typeFilter === "OWNER"
-                ? "bg-purple-600 text-white shadow-xs"
-                : "text-[#8C7361] hover:text-purple-700 hover:bg-white/50"
-            }`}
-          >
-            👤 {t('expenses.tabOwner')}
-          </button>
-        </div>
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 mb-4">
+        {[
+          { id: "ALL", label: t('common.all'), count: expenses.length, color: "bg-[#4A2E1B] text-white" },
+          { id: "COMPANY", label: `💵 ${t('expenses.tabCompany')}`, count: expenses.filter((e) => e.type === "COMPANY").length, color: "bg-blue-600 text-white" },
+          { id: "OWNER", label: `👤 ${t('expenses.tabOwner')}`, count: expenses.filter((e) => e.type === "OWNER").length, color: "bg-purple-600 text-white" },
+        ].map((tab) => {
+          const isActive = typeFilter === tab.id;
+          return (
+            <button
+              key={tab.id}
+              ref={isActive ? activeTypeFilterRef : null}
+              type="button"
+              onClick={() => setTypeFilter(tab.id as "ALL" | "COMPANY" | "OWNER")}
+              className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                isActive
+                  ? `${tab.color} shadow-xs`
+                  : "bg-[#FAF6F0] text-[#8C7361] hover:text-[#2C1B10] hover:bg-[#F3ECE1] border border-[#EDE4D5]"
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                  isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Expenses Table */}
+      {/* Expenses Content Card */}
       <Card className="border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
         <CardHeader className="bg-[#FAF6F0]/60 border-b border-[#EDE4D5] py-4">
           <CardTitle className="text-base font-extrabold text-[#2C1B10]">{t('expenses.title')}</CardTitle>
@@ -796,7 +800,7 @@ export default function ExpensesPage() {
             Showing {displayExpenses.length} record(s)
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
           {isLoading ? (
             <p className="text-center text-[#8C7361] py-8 font-medium">{t('common.loading')}</p>
           ) : displayExpenses.length === 0 ? (
@@ -804,68 +808,169 @@ export default function ExpensesPage() {
               <p className="font-bold text-sm text-[#2C1B10]">{t('dashboard.noExpensesToday')}</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('common.date')}</TableHead>
-                  <TableHead>{t('expenses.expenseType')}</TableHead>
-                  <TableHead>{t('expenses.category')}</TableHead>
-                  <TableHead>{t('expenses.description')}</TableHead>
-                  <TableHead>{t('nav.dailySessions')}</TableHead>
-                  <TableHead>{t('expenses.loggedBy')}</TableHead>
-                  <TableHead className="text-right">{t('expenses.amount')}</TableHead>
-                  {isManagement && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayExpenses.map((expense) => (
-                  <TableRow key={expense.id}>
-                    <TableCell className="text-xs font-semibold text-[#8C7361]">
-                      {expense.date ? new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
-                        expense.type === "OWNER"
-                          ? "bg-purple-100 text-purple-800 border-purple-200"
-                          : "bg-blue-100 text-blue-800 border-blue-200"
-                      }`}>
-                        {expense.type === "OWNER" ? "👤 OWNER" : "💵 DAILY"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-bold text-[#2C1B10]">{expense.financialCategory?.name || expense.category}</TableCell>
-                    <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate">
-                      {expense.description || "-"}
-                    </TableCell>
-                    <TableCell className="text-xs font-mono text-emerald-700 font-semibold">
-                      {expense.sessionId ? `#${expense.sessionId.slice(-6)}` : "-"}
-                    </TableCell>
-                    <TableCell className="text-xs font-medium text-[#2C1B10]">
-                      {expense.user?.fullName || "-"}
-                    </TableCell>
-                    <TableCell className="text-right font-extrabold text-sm text-rose-700">
-                      {money(expense.amount)}
-                    </TableCell>
-                    {isManagement && (
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openEditForm(expense)} className="rounded-xl h-8 w-8 p-0">
-                            <Pencil className="w-3.5 h-3.5 text-zinc-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="rounded-xl h-8 w-8 p-0 text-rose-600 hover:text-rose-700"
-                            onClick={() => setExpenseToDelete(expense.id)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('common.date')}</TableHead>
+                      <TableHead>{t('expenses.expenseType')}</TableHead>
+                      <TableHead>{t('expenses.category')}</TableHead>
+                      <TableHead>{t('expenses.description')}</TableHead>
+                      <TableHead>{t('nav.dailySessions')}</TableHead>
+                      <TableHead>{t('expenses.loggedBy')}</TableHead>
+                      <TableHead className="text-right">{t('expenses.amount')}</TableHead>
+                      {isManagement && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayExpenses.map((expense) => (
+                      <TableRow key={expense.id}>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">
+                          {expense.date ? new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
+                            expense.type === "OWNER"
+                              ? "bg-purple-100 text-purple-800 border-purple-200"
+                              : "bg-blue-100 text-blue-800 border-blue-200"
+                          }`}>
+                            {expense.type === "OWNER" ? "👤 OWNER" : "💵 DAILY"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-bold text-[#2C1B10]">{expense.financialCategory?.name || expense.category}</TableCell>
+                        <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate">
+                          {expense.description || "-"}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono text-emerald-700 font-semibold">
+                          {expense.sessionId ? `#${expense.sessionId.slice(-6)}` : "-"}
+                        </TableCell>
+                        <TableCell className="text-xs font-medium text-[#2C1B10]">
+                          {expense.user?.fullName || "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-extrabold text-sm text-rose-700 font-mono">
+                          {money(expense.amount)}
+                        </TableCell>
+                        {isManagement && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => openEditForm(expense)} className="rounded-xl h-8 w-8 p-0">
+                                <Pencil className="w-3.5 h-3.5 text-zinc-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="rounded-xl h-8 w-8 p-0 text-rose-600 hover:text-rose-700"
+                                onClick={() => setExpenseToDelete(expense.id)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Audit Cards View */}
+              <div className="block md:hidden p-3 space-y-3">
+                {displayExpenses.map((expense) => {
+                  const isOwner = expense.type === "OWNER";
+                  const dateFormatted = expense.date
+                    ? new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                    : "—";
+
+                  return (
+                    <div
+                      key={expense.id}
+                      className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3"
+                    >
+                      {/* Top Header: Date, Session, Type badge */}
+                      <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
+                        <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
+                          <Clock className="w-3.5 h-3.5 text-[#8C7361]" />
+                          <span className="font-semibold">{dateFormatted}</span>
+                          {expense.sessionId && (
+                            <span className="font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md text-[10px] font-bold">
+                              #{expense.sessionId.slice(-6)}
+                            </span>
+                          )}
                         </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                        <span
+                          className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
+                            isOwner
+                              ? "bg-purple-100 text-purple-800 border-purple-200"
+                              : "bg-blue-100 text-blue-800 border-blue-200"
+                          }`}
+                        >
+                          {isOwner ? "👤 OWNER" : "💵 DAILY"}
+                        </span>
+                      </div>
+
+                      {/* Category and Amount */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block">
+                            {t('expenses.category')}
+                          </span>
+                          <h4 className="font-extrabold text-[#2C1B10] text-base leading-tight mt-0.5 truncate">
+                            {expense.financialCategory?.name || expense.category}
+                          </h4>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block">
+                            {t('expenses.amount')}
+                          </span>
+                          <span className="text-base font-extrabold text-rose-700 font-mono block mt-0.5">
+                            {money(expense.amount)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Description if present */}
+                      {expense.description && (
+                        <div className="bg-[#FAF6F0] p-2.5 rounded-xl border border-[#EDE4D5] text-xs text-[#4A2E1B]">
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block mb-0.5">Note:</span>
+                          <p className="leading-relaxed">{expense.description}</p>
+                        </div>
+                      )}
+
+                      {/* Footer: Logged By & Management Actions */}
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F4ECE1]">
+                        <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
+                          <UserIcon className="w-3.5 h-3.5 text-[#8C7361]" />
+                          <span className="font-medium text-[#4A2E1B]">{expense.user?.fullName || "Staff"}</span>
+                        </div>
+
+                        {isManagement && (
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditForm(expense)}
+                              className="h-8 px-2.5 rounded-xl border-[#EDE4D5] text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] flex items-center gap-1"
+                            >
+                              <Pencil className="w-3.5 h-3.5" /> Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpenseToDelete(expense.id)}
+                              className="h-8 w-8 p-0 rounded-xl text-rose-600 hover:bg-rose-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
