@@ -1066,42 +1066,39 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 </div>
 
                 {/* 4. Live Cost Preview & Action Buttons */}
-                <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 overflow-hidden">
-                  <div className="flex items-center gap-3 text-xs">
+                <div className="bg-white p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col gap-3.5">
+                  <div className="flex items-center justify-between gap-3 text-xs border-b border-[#F4ECE1] pb-2.5">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total Batch Cost</span>
-                      <span className="font-mono font-extrabold text-sm text-[#4A2E1B]">
+                      <span className="font-mono font-extrabold text-sm sm:text-base text-[#4A2E1B]">
                         {(Number(resellQty) * Number(resellBuyPrice) || 0).toFixed(2)} ETB
                       </span>
                     </div>
                     {Number(resellSellPrice) > 0 && (
-                      <>
-                        <span className="text-[#EDE4D5]">|</span>
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Est. Revenue</span>
-                          <span className="font-mono font-extrabold text-sm text-emerald-700">
-                            {(Number(resellQty) * Number(resellSellPrice) || 0).toFixed(2)} ETB
-                          </span>
-                        </div>
-                      </>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Est. Revenue</span>
+                        <span className="font-mono font-extrabold text-sm sm:text-base text-emerald-700">
+                          {(Number(resellQty) * Number(resellSellPrice) || 0).toFixed(2)} ETB
+                        </span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="flex flex-col gap-2 w-full">
+                    <Button
+                      type="submit"
+                      disabled={isLoggingResell}
+                      className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold h-11 w-full shadow-xs flex items-center justify-center text-center"
+                    >
+                      {isLoggingResell ? "Saving..." : "Save Resell Delivery"}
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsResellFormOpen(false)}
-                      className="border-[#EDE4D5] text-[#4A2E1B] rounded-xl text-xs h-10 px-3.5 flex-1 sm:flex-initial shrink-0 font-bold hover:bg-[#FAF6F0]"
+                      className="border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] rounded-xl text-xs h-10 w-full font-bold hover:bg-[#FAF6F0]"
                     >
                       Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isLoggingResell}
-                      className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold h-10 px-3.5 flex-1 sm:flex-initial shadow-xs shrink-0 flex items-center justify-center text-center"
-                    >
-                      <span className="truncate">{isLoggingResell ? "Saving..." : "Save Resell Delivery"}</span>
                     </Button>
                   </div>
                 </div>
