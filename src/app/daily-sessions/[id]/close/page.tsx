@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
@@ -7,7 +7,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3, FileText, X } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3, FileText, X, Check } from "lucide-react";
 
 interface Product {
   id: string;
@@ -36,6 +36,8 @@ interface ExpenseItem {
   amount: number;
   category: string;
   description: string;
+  user?: { id?: string; fullName?: string };
+  isEditing?: boolean;
 }
 
 interface ProductionSummaryItem {
@@ -78,16 +80,6 @@ interface DailySessionDetail {
   leftoverRecords?: LeftoverItem[];
 }
 
-const EXPENSE_CATEGORIES = [
-  { value: "STAFF_LOAN", label: "Staff Loan / Salary Advance" },
-  { value: "RAW_MATERIAL", label: "Raw Material Purchase" },
-  { value: "MAINTENANCE", label: "Maintenance & Repairs" },
-  { value: "TRANSPORT", label: "Transport & Logistics" },
-  { value: "UTILITIES", label: "Utilities / Bills" },
-  { value: "FOOD_ALLOWANCE", label: "Staff Food & Refreshment" },
-  { value: "OTHER", label: "Other Operational Expense" },
-];
-
 export default function SessionClosePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
@@ -97,9 +89,16 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [session, setSession] = useState<DailySessionDetail | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [financialCategories, setFinancialCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isViewOnly, setIsViewOnly] = useState(false);
+
+  // UX Focus and Scroll Refs
+  const expenseTopRef = useRef<HTMLDivElement | null>(null);
+  const expenseAmountInputRef = useRef<HTMLInputElement | null>(null);
+  const resellFormRef = useRef<HTMLDivElement | null>(null);
+  const resellSupplierRef = useRef<HTMLSelectElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -135,16 +134,42 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     fetchSessionAndProducts();
   }, [resolvedParams.id]);
 
+  const defaultCategoryList = [
+    "Staff Loan / Salary Advance",
+    "Staff Food / Lunch",
+    "Raw Materials / Ingredients",
+    "Utilities (Water / Power / Gas)",
+    "Rent & Facilities",
+    "Transport / Fuel / Freight",
+    "Maintenance & Repairs",
+    "Supplies & Packaging",
+    "Other Operational Expense",
+  ];
+
+  const allCategoryOptions = Array.from(
+    new Set([
+      ...financialCategories,
+      ...defaultCategoryList,
+      ...expenseList.map((e) => e.category).filter(Boolean),
+    ])
+  );
+
   const fetchSessionAndProducts = async () => {
     setIsLoading(true);
     try {
-      const [resSess, resProd] = await Promise.all([
+      const [resSess, resProd, resFinCat] = await Promise.all([
         api.get(`/daily-sessions/${resolvedParams.id}`),
         api.get(`/products?isActive=true`),
+        api.get(`/financial-categories?type=EXPENSE`).catch(() => ({ data: [] })),
       ]);
       const s: DailySessionDetail = resSess.data;
       setSession(s);
       setProducts(resProd.data);
+
+      const dbFinCats: string[] = Array.isArray(resFinCat.data)
+        ? resFinCat.data.map((c: any) => c.name).filter(Boolean)
+        : [];
+      setFinancialCategories(dbFinCats);
 
       // Check Midnight & Closed Session Lockout for Cashier
       const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
@@ -174,13 +199,18 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       });
       setLeftovers(initialLeftovers);
 
-      // Populate expenses list
-      const initialExpenses: ExpenseItem[] = (s.expenses || []).map((e) => ({
-        id: e.id,
-        amount: Number(e.amount),
-        category: e.category || "MISC",
-        description: e.description || "",
-      }));
+      // Populate expenses list: preserve existing category name and start in read mode
+      const initialExpenses: ExpenseItem[] = (s.expenses || []).map((e: any) => {
+        const catName = e.financialCategory?.name || e.category || "Other Operational Expense";
+        return {
+          id: e.id,
+          amount: Number(e.amount),
+          category: catName,
+          description: e.description || "",
+          user: e.user ? { id: e.user.id, fullName: e.user.fullName } : undefined,
+          isEditing: false, // Already written expenses start in clean read/summary card mode
+        };
+      });
       setExpenseList(initialExpenses);
 
       // Fetch suppliers for resell modal
@@ -197,9 +227,30 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
   const handleAddExpenseRow = () => {
     setExpenseList((prev) => [
+      {
+        amount: "" as any,
+        category: allCategoryOptions[0] || "Other Operational Expense",
+        description: "",
+        isEditing: true, // Newly added expense row starts in edit mode ON TOP!
+      },
       ...prev,
-      { amount: 0, category: "STAFF_LOAN", description: "" },
     ]);
+
+    setTimeout(() => {
+      expenseTopRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      expenseAmountInputRef.current?.focus();
+    }, 60);
+  };
+
+  const handleToggleResellForm = () => {
+    const nextState = !isResellFormOpen;
+    setIsResellFormOpen(nextState);
+    if (nextState) {
+      setTimeout(() => {
+        resellFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        resellSupplierRef.current?.focus();
+      }, 60);
+    }
   };
 
   const handleRemoveExpenseRow = (index: number) => {
@@ -381,7 +432,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   }
 
   const productionSummary = session.productionSummary || [];
-  const supplierDeliveries = session.supplierDeliveries || [];
+  const supplierDeliveries = [...(session.supplierDeliveries || [])].reverse();
 
   return (
     <DashboardLayout>
@@ -692,60 +743,124 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           ) : (
             <div className="space-y-3">
               {expenseList.map((exp, idx) => (
-                <div key={idx} className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 sm:items-center">
-                  <div className="sm:col-span-3">
-                    <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Expense Type</label>
-                    <select
-                      value={exp.category}
-                      disabled={isViewOnly}
-                      onChange={(e) => handleExpenseChange(idx, "category", e.target.value)}
-                      className="w-full bg-white border border-[#EDE4D5] rounded-lg h-9 text-xs px-2 font-medium disabled:opacity-80"
-                    >
-                      {EXPENSE_CATEGORIES.map((cat) => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                exp.isEditing ? (
+                  /* ── EDIT MODE CARD ── */
+                  <div
+                    key={idx}
+                    ref={idx === 0 ? expenseTopRef : undefined}
+                    className="bg-[#FAF6F0] p-3.5 rounded-xl border border-amber-300 shadow-2xs space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 sm:items-center animate-in fade-in duration-150"
+                  >
+                    <div className="sm:col-span-4">
+                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Expense Category</label>
+                      <select
+                        value={exp.category}
+                        disabled={isViewOnly}
+                        onChange={(e) => handleExpenseChange(idx, "category", e.target.value)}
+                        className="w-full bg-white border border-[#EDE4D5] rounded-lg h-9 text-xs px-2 font-semibold text-[#2C1B10] disabled:opacity-80 focus:ring-1 focus:ring-amber-500"
+                      >
+                        {allCategoryOptions.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                  <div className="sm:col-span-3">
-                    <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Amount (ETB)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={exp.amount || ""}
-                      disabled={isViewOnly}
-                      onChange={(e) => handleExpenseChange(idx, "amount", e.target.value)}
-                      className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold disabled:opacity-80"
-                    />
-                  </div>
+                    <div className="sm:col-span-3">
+                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Amount (ETB)</label>
+                      <Input
+                        ref={idx === 0 ? expenseAmountInputRef : undefined}
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={exp.amount || ""}
+                        disabled={isViewOnly}
+                        onChange={(e) => handleExpenseChange(idx, "amount", e.target.value)}
+                        className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold disabled:opacity-80 focus:ring-2 focus:ring-amber-500/20"
+                      />
+                    </div>
 
-                  <div className="sm:col-span-5">
-                    <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Description / Person / Reason</label>
-                    <Input
-                      type="text"
-                      placeholder="e.g. Employee advance to Abebe / Flour purchase"
-                      value={exp.description || ""}
-                      disabled={isViewOnly}
-                      onChange={(e) => handleExpenseChange(idx, "description", e.target.value)}
-                      className="bg-white border-[#EDE4D5] h-9 text-xs disabled:opacity-80"
-                    />
-                  </div>
+                    <div className="sm:col-span-3">
+                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Description / Person / Reason</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Employee advance to Abebe / Flour purchase"
+                        value={exp.description || ""}
+                        disabled={isViewOnly}
+                        onChange={(e) => handleExpenseChange(idx, "description", e.target.value)}
+                        className="bg-white border-[#EDE4D5] h-9 text-xs disabled:opacity-80"
+                      />
+                    </div>
 
-                  <div className="sm:col-span-1 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={isViewOnly}
-                      onClick={() => handleRemoveExpenseRow(idx)}
-                      className="h-9 w-full sm:w-9 p-0 text-rose-600 hover:bg-rose-50 rounded-lg disabled:opacity-40 flex items-center justify-center gap-1.5"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span className="sm:hidden text-xs font-bold">Remove Item</span>
-                    </Button>
+                    <div className="sm:col-span-2 flex items-center justify-end gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#EDE4D5]">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleExpenseChange(idx, "isEditing", false)}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white h-9 px-3 text-xs font-bold rounded-lg flex-1 sm:flex-initial shadow-2xs"
+                      >
+                        <Check className="w-3.5 h-3.5 mr-1" /> Done
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isViewOnly}
+                        onClick={() => handleRemoveExpenseRow(idx)}
+                        className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 rounded-lg disabled:opacity-40"
+                        title="Remove expense item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* ── READ-ONLY SUMMARY CARD (Recorded/Written Expense) ── */
+                  <div key={idx} className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-amber-300/60 transition-all">
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-950 border border-amber-300 inline-flex items-center gap-1.5">
+                          <Tag className="w-3 h-3 text-[#E87A18]" />
+                          {exp.category}
+                        </span>
+                        {exp.user?.fullName && (
+                          <span className="text-[10px] text-[#8C7361] font-medium">by {exp.user.fullName}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#2C1B10] font-medium">
+                        {exp.description ? exp.description : <span className="italic text-[#8C7361]">No description provided</span>}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#EDE4D5]">
+                      <span className="font-mono font-extrabold text-sm sm:text-base text-rose-600">
+                        -{Number(exp.amount || 0).toFixed(2)} ETB
+                      </span>
+
+                      {!isViewOnly && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleExpenseChange(idx, "isEditing", true)}
+                            className="h-8 px-2.5 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#F4ECE1] rounded-lg"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveExpenseRow(idx)}
+                            className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50 rounded-lg"
+                            title="Remove expense"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
               ))}
             </div>
           )}
@@ -771,7 +886,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             </div>
             <Button
               type="button"
-              onClick={() => setIsResellFormOpen(!isResellFormOpen)}
+              onClick={handleToggleResellForm}
               size="sm"
               className={`text-xs font-bold rounded-xl w-full sm:w-auto h-9 transition-all ${
                 isResellFormOpen
@@ -793,7 +908,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
           {/* Inline Expandable Form (No cramped popup modal on mobile!) */}
           {isResellFormOpen && (
-            <div className="mb-5 bg-[#FAF6F0] p-4 sm:p-5 rounded-2xl border border-indigo-200/90 shadow-2xs space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div
+              ref={resellFormRef}
+              className="mb-5 bg-[#FAF6F0] p-4 sm:p-5 rounded-2xl border border-indigo-200/90 shadow-2xs space-y-4 animate-in fade-in slide-in-from-top-2 duration-200"
+            >
               <div className="flex items-center justify-between border-b border-[#EDE4D5] pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
@@ -823,6 +941,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       Supplier <span className="text-rose-600">*</span>
                     </label>
                     <select
+                      ref={resellSupplierRef}
                       required
                       value={resellSupplierId}
                       onChange={(e) => setResellSupplierId(e.target.value)}
@@ -947,42 +1066,39 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 </div>
 
                 {/* 4. Live Cost Preview & Action Buttons */}
-                <div className="bg-white p-3 rounded-xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
-                  <div className="flex items-center gap-3 text-xs">
+                <div className="bg-white p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col gap-3.5">
+                  <div className="flex items-center justify-between gap-3 text-xs border-b border-[#F4ECE1] pb-2.5">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total Batch Cost</span>
-                      <span className="font-mono font-extrabold text-sm text-[#4A2E1B]">
+                      <span className="font-mono font-extrabold text-sm sm:text-base text-[#4A2E1B]">
                         {(Number(resellQty) * Number(resellBuyPrice) || 0).toFixed(2)} ETB
                       </span>
                     </div>
                     {Number(resellSellPrice) > 0 && (
-                      <>
-                        <span className="text-[#EDE4D5]">|</span>
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Est. Revenue</span>
-                          <span className="font-mono font-extrabold text-sm text-emerald-700">
-                            {(Number(resellQty) * Number(resellSellPrice) || 0).toFixed(2)} ETB
-                          </span>
-                        </div>
-                      </>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Est. Revenue</span>
+                        <span className="font-mono font-extrabold text-sm sm:text-base text-emerald-700">
+                          {(Number(resellQty) * Number(resellSellPrice) || 0).toFixed(2)} ETB
+                        </span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 w-full">
+                    <Button
+                      type="submit"
+                      disabled={isLoggingResell}
+                      className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold h-11 w-full shadow-xs flex items-center justify-center text-center"
+                    >
+                      {isLoggingResell ? "Saving..." : "Save Resell Delivery"}
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsResellFormOpen(false)}
-                      className="border-[#EDE4D5] rounded-xl text-xs h-9 flex-1 sm:flex-initial"
+                      className="border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] rounded-xl text-xs h-10 w-full font-bold hover:bg-[#FAF6F0]"
                     >
                       Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isLoggingResell}
-                      className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold h-9 px-4 flex-1 sm:flex-initial shadow-xs"
-                    >
-                      {isLoggingResell ? "Saving..." : "Save Resell Delivery"}
                     </Button>
                   </div>
                 </div>
