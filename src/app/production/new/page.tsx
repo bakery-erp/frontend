@@ -19,6 +19,8 @@ import {
   Utensils,
   Boxes,
   Edit3,
+  Clock,
+  XCircle,
 } from "lucide-react";
 
 interface ProductCategory {
@@ -353,20 +355,44 @@ function ProductionFormContent() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 shrink-0">
             {isEditMode && originalBatchStatus && (
-              <span className="px-3 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wide border bg-amber-50 text-amber-900 border-amber-300">
-                Status: {originalBatchStatus}
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
+                  originalBatchStatus === "PENDING_APPROVAL"
+                    ? "bg-amber-50 text-amber-900 border-amber-300"
+                    : originalBatchStatus === "COMPLETED"
+                    ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                    : originalBatchStatus === "REJECTED"
+                    ? "bg-rose-50 text-rose-900 border-rose-300"
+                    : "bg-zinc-100 text-zinc-800 border-zinc-200"
+                }`}
+              >
+                {originalBatchStatus === "PENDING_APPROVAL" && <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
+                {originalBatchStatus === "COMPLETED" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                {originalBatchStatus === "REJECTED" && <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
+                {originalBatchStatus === "PENDING_APPROVAL"
+                  ? "Pending Approval"
+                  : originalBatchStatus === "COMPLETED"
+                  ? "Approved / Completed"
+                  : originalBatchStatus === "REJECTED"
+                  ? "Rejected"
+                  : originalBatchStatus}
               </span>
             )}
             <span
-              className={`px-3 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wide border ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
                 isSessionOpen
-                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                  : "bg-amber-100 text-amber-900 border-amber-300"
+                  ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                  : "bg-amber-50 text-amber-900 border-amber-300"
               }`}
             >
-              Session: {isSessionOpen ? "ACTIVE OPEN" : "INACTIVE / PAUSED"}
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  isSessionOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                }`}
+              />
+              {isSessionOpen ? "Session Open" : "Session Closed"}
             </span>
           </div>
         </div>
