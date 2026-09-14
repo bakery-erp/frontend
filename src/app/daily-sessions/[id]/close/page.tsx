@@ -7,8 +7,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3, FileText } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3, FileText, X } from "lucide-react";
 
 interface Product {
   id: string;
@@ -43,52 +42,50 @@ interface ProductionSummaryItem {
   productId: string;
   productName: string;
   unitType: string;
-  categoryName?: string;
-  categoryType?: string;
+  categoryName: string;
   totalProduced: number;
 }
 
 interface SupplierDeliveryItem {
   id: string;
   supplierId: string;
-  supplier: { id: string; name: string };
+  supplier?: Supplier;
   productId: string;
-  product: { id: string; name: string };
+  product?: Product;
   quantityReceived: number;
   unitBuyPrice: number;
   unitSellPrice: number;
   isPaid: boolean;
-  createdAt: string;
 }
 
 interface DailySessionDetail {
   id: string;
+  date: string;
   branchId: string;
   branch?: { id: string; name: string };
-  date: string;
-  label?: string | null;
-  status: "OPEN" | "PAUSED" | "CLOSE_PENDING" | "CLOSED";
-  openingCashFloat?: number | null;
-  cashLeftoverAmount?: number | null;
-  actualCashAmount?: number | null;
-  actualCbeAmount?: number | null;
-  actualTelebirrAmount?: number | null;
-  notes?: string | null;
-  sales?: any[];
-  expenses?: any[];
-  leftoverRecords?: LeftoverItem[];
+  status: "OPEN" | "PAUSED" | "CLOSED" | "CLOSE_PENDING";
+  label: string | null;
+  openingCash: number | null;
+  cashFloatAmount: number | null;
+  actualCashAmount: number | null;
+  actualCbeAmount: number | null;
+  actualTelebirrAmount: number | null;
+  cashLeftoverAmount: number | null;
+  notes: string | null;
   productionSummary?: ProductionSummaryItem[];
   supplierDeliveries?: SupplierDeliveryItem[];
+  expenses?: ExpenseItem[];
+  leftoverRecords?: LeftoverItem[];
 }
 
 const EXPENSE_CATEGORIES = [
   { value: "STAFF_LOAN", label: "Staff Loan / Salary Advance" },
-  { value: "RAW_MATERIALS", label: "Raw Materials / Flour / Ingredients" },
-  { value: "UTILITIES", label: "Utilities (Water / Power / Gas)" },
-  { value: "TRANSPORT", label: "Transport / Fuel / Freight" },
-  { value: "LUNCH", label: "Staff Food / Lunch" },
-  { value: "RENT", label: "Rent & Facilities" },
-  { value: "MISC", label: "Miscellaneous / Other" },
+  { value: "RAW_MATERIAL", label: "Raw Material Purchase" },
+  { value: "MAINTENANCE", label: "Maintenance & Repairs" },
+  { value: "TRANSPORT", label: "Transport & Logistics" },
+  { value: "UTILITIES", label: "Utilities / Bills" },
+  { value: "FOOD_ALLOWANCE", label: "Staff Food & Refreshment" },
+  { value: "OTHER", label: "Other Operational Expense" },
 ];
 
 export default function SessionClosePage({ params }: { params: Promise<{ id: string }> }) {
@@ -123,8 +120,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [leftovers, setLeftovers] = useState<Record<string, { quantityRemaining: number; damagedQuantity: number; damageReason: string }>>({});
   const [expenseList, setExpenseList] = useState<ExpenseItem[]>([]);
 
-  // Resells Log Modal State
-  const [isResellModalOpen, setIsResellModalOpen] = useState(false);
+  // Resells Inline Form State (No annoying popup modal)
+  const [isResellFormOpen, setIsResellFormOpen] = useState(false);
   const [resellSupplierId, setResellSupplierId] = useState("");
   const [resellProductId, setResellProductId] = useState("");
   const [resellQty, setResellQty] = useState("1");
@@ -246,7 +243,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         sessionId: resolvedParams.id,
       });
       toast.success("Resell delivery logged for this session!");
-      setIsResellModalOpen(false);
+      setIsResellFormOpen(false);
       setResellSupplierId("");
       setResellProductId("");
       setResellQty("1");
@@ -773,13 +770,225 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               </p>
             </div>
             <Button
-              onClick={() => setIsResellModalOpen(true)}
+              type="button"
+              onClick={() => setIsResellFormOpen(!isResellFormOpen)}
               size="sm"
-              className="bg-indigo-700 text-white hover:bg-indigo-800 text-xs font-bold rounded-xl w-full sm:w-auto h-9"
+              className={`text-xs font-bold rounded-xl w-full sm:w-auto h-9 transition-all ${
+                isResellFormOpen
+                  ? "bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
+                  : "bg-indigo-700 text-white hover:bg-indigo-800 shadow-xs"
+              }`}
             >
-              <Plus className="w-4 h-4 mr-1" /> Log Resell Delivery
+              {isResellFormOpen ? (
+                <>
+                  <X className="w-4 h-4 mr-1.5" /> Close Entry Form
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-1.5" /> Log Resell Delivery
+                </>
+              )}
             </Button>
           </div>
+
+          {/* Inline Expandable Form (No cramped popup modal on mobile!) */}
+          {isResellFormOpen && (
+            <div className="mb-5 bg-[#FAF6F0] p-4 sm:p-5 rounded-2xl border border-indigo-200/90 shadow-2xs space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between border-b border-[#EDE4D5] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
+                    <ShoppingCart className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-[#2C1B10]">Log Resell Product Delivery</h3>
+                    <p className="text-[11px] text-[#8C7361]">Record supplier purchases received during this shift</p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsResellFormOpen(false)}
+                  className="h-8 w-8 p-0 text-[#8C7361] hover:bg-[#EDE4D5] rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <form onSubmit={handleLogResellDelivery} className="space-y-3.5">
+                {/* 1. Supplier & Product */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                      Supplier <span className="text-rose-600">*</span>
+                    </label>
+                    <select
+                      required
+                      value={resellSupplierId}
+                      onChange={(e) => setResellSupplierId(e.target.value)}
+                      className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    >
+                      <option value="">Select Supplier...</option>
+                      {suppliers.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.type})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                      Resell Product <span className="text-rose-600">*</span>
+                    </label>
+                    <select
+                      required
+                      value={resellProductId}
+                      onChange={(e) => {
+                        setResellProductId(e.target.value);
+                        const p = products.find((pr) => pr.id === e.target.value);
+                        if (p) setResellSellPrice(String(p.basePrice));
+                      }}
+                      className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    >
+                      <option value="">Select Product...</option>
+                      {products
+                        .filter((p) => p.category?.type === 'RESELL' || p.category?.type !== 'PRODUCED')
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>{p.name} ({p.unitType}) - {p.basePrice} ETB</option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 2. Quantities & Prices */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                      Quantity Received <span className="text-rose-600">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      required
+                      value={resellQty}
+                      onChange={(e) => setResellQty(e.target.value)}
+                      className="bg-white border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                      Unit Buy Price (ETB) <span className="text-rose-600">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      required
+                      placeholder="0.00"
+                      value={resellBuyPrice}
+                      onChange={(e) => setResellBuyPrice(e.target.value)}
+                      className="bg-white border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                      Unit Sell Price (ETB)
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={resellSellPrice}
+                      onChange={(e) => setResellSellPrice(e.target.value)}
+                      className="bg-white border-[#EDE4D5] h-10 text-xs font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Payment Source & Payment Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                      Paid From
+                    </label>
+                    <select
+                      value={resellPaymentSource}
+                      onChange={(e) => setResellPaymentSource(e.target.value as 'DAILY_CASH' | 'OWNER')}
+                      className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    >
+                      <option value="DAILY_CASH">Daily Money (Cashier Register)</option>
+                      <option value="OWNER">Paid by Owner / Company Direct</option>
+                    </select>
+                    <p className="text-[10px] text-[#8C7361] mt-1">
+                      {resellPaymentSource === 'DAILY_CASH'
+                        ? 'Deducted directly from daily cashier register drawer.'
+                        : 'Paid externally by owner; does not reduce drawer cash.'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                      Payment Status
+                    </label>
+                    <select
+                      value={resellIsPaid ? "true" : "false"}
+                      onChange={(e) => setResellIsPaid(e.target.value === "true")}
+                      className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    >
+                      <option value="true">Paid Cash / Instant</option>
+                      <option value="false">On Credit (Unpaid Supplier Bill)</option>
+                    </select>
+                    <p className="text-[10px] text-[#8C7361] mt-1">
+                      {resellIsPaid
+                        ? 'Payment settled immediately at delivery time.'
+                        : 'Recorded as supplier debt for later settlement.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 4. Live Cost Preview & Action Buttons */}
+                <div className="bg-white p-3 rounded-xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+                  <div className="flex items-center gap-3 text-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total Batch Cost</span>
+                      <span className="font-mono font-extrabold text-sm text-[#4A2E1B]">
+                        {(Number(resellQty) * Number(resellBuyPrice) || 0).toFixed(2)} ETB
+                      </span>
+                    </div>
+                    {Number(resellSellPrice) > 0 && (
+                      <>
+                        <span className="text-[#EDE4D5]">|</span>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Est. Revenue</span>
+                          <span className="font-mono font-extrabold text-sm text-emerald-700">
+                            {(Number(resellQty) * Number(resellSellPrice) || 0).toFixed(2)} ETB
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsResellFormOpen(false)}
+                      className="border-[#EDE4D5] rounded-xl text-xs h-9 flex-1 sm:flex-initial"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isLoggingResell}
+                      className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold h-9 px-4 flex-1 sm:flex-initial shadow-xs"
+                    >
+                      {isLoggingResell ? "Saving..." : "Save Resell Delivery"}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
 
           {supplierDeliveries.length === 0 ? (
             <div className="text-center py-6 border border-dashed border-[#EDE4D5] rounded-xl text-xs text-[#8C7361]">
@@ -1098,129 +1307,6 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
-
-      {/* Log Resell Delivery Modal */}
-      <Dialog open={isResellModalOpen} onOpenChange={setIsResellModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white border-[#EDE4D5] rounded-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-indigo-600" /> Log Resell Product Delivery
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleLogResellDelivery} className="space-y-4 py-2">
-            <div>
-              <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Supplier</label>
-              <select
-                required
-                value={resellSupplierId}
-                onChange={(e) => setResellSupplierId(e.target.value)}
-                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
-              >
-                <option value="">Select Supplier...</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.type})</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Resell Product</label>
-              <select
-                required
-                value={resellProductId}
-                onChange={(e) => {
-                  setResellProductId(e.target.value);
-                  const p = products.find((pr) => pr.id === e.target.value);
-                  if (p) setResellSellPrice(String(p.basePrice));
-                }}
-                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
-              >
-                <option value="">Select Product...</option>
-                {products
-                  .filter((p) => p.category?.type === 'RESELL' || p.category?.type !== 'PRODUCED')
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>{p.name} ({p.unitType}) - {p.basePrice} ETB</option>
-                  ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Quantity Received</label>
-                <Input
-                  type="number"
-                  min="1"
-                  required
-                  value={resellQty}
-                  onChange={(e) => setResellQty(e.target.value)}
-                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Unit Buy Price (ETB)</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  required
-                  placeholder="0.00"
-                  value={resellBuyPrice}
-                  onChange={(e) => setResellBuyPrice(e.target.value)}
-                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Unit Sell Price (ETB)</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={resellSellPrice}
-                  onChange={(e) => setResellSellPrice(e.target.value)}
-                  className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Paid From</label>
-                <select
-                  value={resellPaymentSource}
-                  onChange={(e) => setResellPaymentSource(e.target.value as 'DAILY_CASH' | 'OWNER')}
-                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
-                >
-                  <option value="DAILY_CASH">Daily Money (Cashier)</option>
-                  <option value="OWNER">Paid by Owner</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Payment Status</label>
-                <select
-                  value={resellIsPaid ? "true" : "false"}
-                  onChange={(e) => setResellIsPaid(e.target.value === "true")}
-                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
-                >
-                  <option value="true">Paid Cash / Instant</option>
-                  <option value="false">On Credit (Unpaid)</option>
-                </select>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-3">
-              <Button type="button" variant="outline" onClick={() => setIsResellModalOpen(false)} className="border-[#EDE4D5] rounded-xl text-xs">
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoggingResell} className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold">
-                {isLoggingResell ? "Logging..." : "Save Resell Delivery"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }
