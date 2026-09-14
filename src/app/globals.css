@@ -6,6 +6,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --breakpoint-2xs: 320px;
+  --breakpoint-xs: 375px;
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -208,4 +216,13 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:active {
   background: #E87A18;
+}
+
+/* Hide scrollbar utility for clean mobile touch scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

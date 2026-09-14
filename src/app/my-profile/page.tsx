@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
@@ -103,6 +103,23 @@ export default function MyProfilePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties' | 'pending' | 'settings'>('payroll');
 
+  // Tab auto-centering ref
+  const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const btn = tabRefs.current[activeTab];
+      if (btn) {
+        btn.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest',
+        });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+
   // Settings State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -111,6 +128,7 @@ export default function MyProfilePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [heroAvatarError, setHeroAvatarError] = useState(false);
 
   useEffect(() => {
     fetchMyDashboard();
@@ -171,6 +189,7 @@ export default function MyProfilePage() {
       setSelectedFile(null);
       setIsAvatarModalOpen(false);
       if (res.data?.filesUrl && updateUser) {
+        setHeroAvatarError(false);
         updateUser({ filesUrl: res.data.filesUrl });
       }
       fetchMyDashboard();
@@ -276,70 +295,73 @@ export default function MyProfilePage() {
   return (
     <DashboardLayout>
       {/* ── Page Header & Profile Card ── */}
-      <div className="mb-8">
-        <div className="bg-gradient-to-r from-[#2C1B10] via-[#4A2E1B] to-[#5A3A23] rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+      <div className="mb-5 xs:mb-8">
+        <div className="bg-gradient-to-r from-[#2C1B10] via-[#4A2E1B] to-[#5A3A23] rounded-2xl xs:rounded-3xl p-3.5 xs:p-5 md:p-8 text-white shadow-xl relative overflow-hidden">
           <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 opacity-10 pointer-events-none">
             <User className="w-96 h-96 text-white" />
           </div>
 
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="flex items-center space-x-5">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 xs:gap-6">
+            <div className="flex items-center space-x-3 xs:space-x-5 min-w-0 w-full md:w-auto">
               <button
                 type="button"
                 onClick={() => setIsAvatarModalOpen(true)}
-                className="relative group cursor-pointer rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
+                className="relative group cursor-pointer rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#E87A18] shrink-0"
                 title="Click to update profile picture"
               >
-                {u?.filesUrl ? (
+                {u?.filesUrl && !heroAvatarError ? (
                   <img
                     src={getImageUrl(u.filesUrl)!}
                     alt={u.fullName}
-                    className="w-20 h-20 rounded-2xl object-cover border-2 border-white/40 shadow-lg group-hover:scale-105 transition-transform"
+                    onError={() => setHeroAvatarError(true)}
+                    className="w-14 h-14 xs:w-16 xs:h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white/40 shadow-lg group-hover:scale-105 transition-transform"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-[#E87A18] text-white flex items-center justify-center font-extrabold text-3xl shadow-lg border-2 border-white/20 group-hover:scale-105 transition-transform">
+                  <div className="w-14 h-14 xs:w-16 xs:h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#E87A18] text-white flex items-center justify-center font-extrabold text-xl xs:text-2xl sm:text-3xl shadow-lg border-2 border-white/20 group-hover:scale-105 transition-transform">
                     {u?.fullName ? u.fullName.charAt(0).toUpperCase() : 'E'}
                   </div>
                 )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold">
-                  <Camera className="w-5 h-5 mb-0.5" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[9px] xs:text-[10px] font-bold">
+                  <Camera className="w-4 h-4 xs:w-5 xs:h-5 mb-0.5" />
                   <span>Change</span>
                 </div>
               </button>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge className="bg-[#E87A18] text-white text-xs px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mb-1">
+                  <Badge className="bg-[#E87A18] text-white text-[10px] xs:text-xs px-2 xs:px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
                     {u?.role?.replace('_', ' ') || 'EMPLOYEE'}
                   </Badge>
-                  <span className="text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2.5 py-0.5 rounded-full">
-                    <Building2 className="w-3 h-3 mr-1" />
-                    {u?.branch?.name || 'Global Staff'}
+                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full truncate max-w-[150px] xs:max-w-none">
+                    <Building2 className="w-3 h-3 mr-1 shrink-0" />
+                    <span className="truncate">
+                      {u?.branch?.name && u.branch.name.trim() !== '.' && u.branch.name.trim() !== '' ? u.branch.name : 'Main Bakery'}
+                    </span>
                   </span>
                 </div>
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">{u?.fullName}</h1>
-                <p className="text-xs md:text-sm text-amber-100/70 font-medium flex items-center mt-1">
-                  <Phone className="w-3.5 h-3.5 mr-1.5" /> {u?.phone}
+                <h1 className="text-lg xs:text-2xl md:text-3xl font-extrabold tracking-tight truncate">{u?.fullName}</h1>
+                <p className="text-[11px] xs:text-xs md:text-sm text-amber-100/70 font-medium flex items-center mt-0.5 xs:mt-1 truncate">
+                  <Phone className="w-3 h-3 xs:w-3.5 xs:h-3.5 mr-1 xs:mr-1.5 shrink-0" /> <span className="truncate">{u?.phone}</span>
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full md:w-auto bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 xs:gap-3 w-full md:w-auto bg-white/10 p-2.5 xs:p-4 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10">
               <div>
-                <span className="text-[10px] uppercase font-bold text-amber-200/80 block">Base Salary</span>
-                <span className="text-sm font-extrabold">{money(u?.salary)}</span>
+                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">Base Salary</span>
+                <span className="text-xs xs:text-sm font-extrabold truncate block">{money(u?.salary)}</span>
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-amber-200/80 block">Shift</span>
-                <span className="text-sm font-extrabold flex items-center">
-                  <Clock className="w-3 h-3 mr-1 text-amber-300" />
-                  {u?.shift || 'Standard'}
+                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">Shift</span>
+                <span className="text-xs xs:text-sm font-extrabold flex items-center truncate">
+                  <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
+                  <span className="truncate">{u?.shift || 'Standard'}</span>
                 </span>
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <span className="text-[10px] uppercase font-bold text-amber-200/80 block">Start Date</span>
-                <span className="text-sm font-extrabold flex items-center">
-                  <Calendar className="w-3 h-3 mr-1 text-amber-300" />
-                  {u?.startDate ? formatEthDate(u.startDate) : 'N/A'}
+                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">Start Date</span>
+                <span className="text-xs xs:text-sm font-extrabold flex items-center">
+                  <Calendar className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
+                  <span>{u?.startDate ? formatEthDate(u.startDate) : 'N/A'}</span>
                 </span>
               </div>
             </div>
@@ -348,28 +370,28 @@ export default function MyProfilePage() {
       </div>
 
       {/* ── Key Metrics Summary Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 xs:mb-8">
+        <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.baseSalary')}</CardTitle>
-            <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0">
               <Banknote className="h-5 w-5" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-3.5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(u?.salary)}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">Agreed monthly base rate</p>
+            <p className="text-xs text-[#8C7361] font-semibold mt-1">Monthly base rate</p>
           </CardContent>
         </Card>
 
-        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+        <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.loanBalance')}</CardTitle>
-            <div className="w-9 h-9 rounded-2xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center shrink-0">
               <Wallet className="h-5 w-5" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-3.5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(totalLoanBalance)}</div>
             <p className="text-xs text-[#8C7361] font-semibold mt-1">
               {loans.filter((l) => l.status === 'OPEN').length} active loan(s)
@@ -377,131 +399,224 @@ export default function MyProfilePage() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+        <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.penaltiesTotal')}</CardTitle>
-            <div className="w-9 h-9 rounded-2xl bg-rose-500/10 text-rose-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-700 flex items-center justify-center shrink-0">
               <AlertTriangle className="h-5 w-5" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{money(totalPenaltyAmount)}</div>
             <p className="text-xs text-[#8C7361] font-semibold mt-1">{penalties.length} logged record(s)</p>
           </CardContent>
         </Card>
 
-        <Card className="border-[#EDE4D5] bg-white rounded-3xl shadow-sm p-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+        <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
             <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Pending Approvals</CardTitle>
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
               <ShieldCheck className="h-5 w-5" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-3.5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">{pendingCount}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">Requires your approval</p>
+            <p className="text-xs text-[#8C7361] font-semibold mt-1">Requires your review</p>
           </CardContent>
         </Card>
       </div>
 
       {/* ── Main Navigation Tabs ── */}
-      <div className="bg-white rounded-3xl border border-[#EDE4D5] shadow-sm overflow-hidden mb-8">
-        <div className="flex border-b border-[#EDE4D5] bg-[#FFFDF8] px-6 pt-3 gap-6 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('payroll')}
-            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'payroll' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
-            }`}
-          >
-            <Receipt className="w-4 h-4" /> Payslips ({payrolls.length})
-          </button>
+      <div className="bg-white rounded-2xl xs:rounded-3xl border border-[#EDE4D5] shadow-xs overflow-hidden mb-6 xs:mb-8">
+        {/* Sleek Segmented Pill Tabs with Auto-Centering & Edge Fade Hints */}
+        <div className="relative">
+          {/* Subtle scroll edge gradient hints on mobile to indicate scrollability */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
 
-          <button
-            onClick={() => setActiveTab('loans')}
-            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'loans' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
-            }`}
-          >
-            <Wallet className="w-4 h-4" /> My Loans ({loans.length})
-          </button>
+          <div className="bg-[#FAF7EE] px-2 py-1.5 xs:py-2 border-b border-[#EDE4D5] flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_3rem]">
+            <button
+              ref={(el) => { tabRefs.current['payroll'] = el; }}
+              type="button"
+              onClick={() => setActiveTab('payroll')}
+              className={`px-3 py-2 rounded-xl text-xs xs:text-sm font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E87A18] ${
+                activeTab === 'payroll'
+                  ? 'bg-white text-[#E87A18] shadow-xs ring-1 ring-[#E87A18]/25'
+                  : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50'
+              }`}
+            >
+              <Receipt className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
+              <span>Payslips ({payrolls.length})</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('penalties')}
-            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'penalties' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
-            }`}
-          >
-            <AlertTriangle className="w-4 h-4" /> My Penalties ({penalties.length})
-          </button>
+            <button
+              ref={(el) => { tabRefs.current['loans'] = el; }}
+              type="button"
+              onClick={() => setActiveTab('loans')}
+              className={`px-3 py-2 rounded-xl text-xs xs:text-sm font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E87A18] ${
+                activeTab === 'loans'
+                  ? 'bg-white text-[#E87A18] shadow-xs ring-1 ring-[#E87A18]/25'
+                  : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50'
+              }`}
+            >
+              <Wallet className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
+              <span>My Loans ({loans.length})</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap relative ${
-              activeTab === 'pending' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" /> Pending Approvals
-            {pendingCount > 0 && (
-              <span className="bg-amber-600 text-white px-2 py-0.5 text-[10px] rounded-full font-bold">
-                {pendingCount}
-              </span>
-            )}
-          </button>
+            <button
+              ref={(el) => { tabRefs.current['penalties'] = el; }}
+              type="button"
+              onClick={() => setActiveTab('penalties')}
+              className={`px-3 py-2 rounded-xl text-xs xs:text-sm font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E87A18] ${
+                activeTab === 'penalties'
+                  ? 'bg-white text-[#E87A18] shadow-xs ring-1 ring-[#E87A18]/25'
+                  : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50'
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
+              <span>My Penalties ({penalties.length})</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`pb-4 text-sm font-extrabold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'settings' ? 'border-[#E87A18] text-[#E87A18]' : 'border-transparent text-[#8C7361]'
-            }`}
-          >
-            <Lock className="w-4 h-4" /> Profile & Security Settings
-          </button>
+            <button
+              ref={(el) => { tabRefs.current['pending'] = el; }}
+              type="button"
+              onClick={() => setActiveTab('pending')}
+              className={`px-3 py-2 rounded-xl text-xs xs:text-sm font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E87A18] ${
+                activeTab === 'pending'
+                  ? 'bg-white text-[#E87A18] shadow-xs ring-1 ring-[#E87A18]/25'
+                  : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
+              <span>Pending Approvals</span>
+              {pendingCount > 0 && (
+                <span className="bg-amber-600 text-white px-1.5 py-0.5 text-[9px] xs:text-[10px] rounded-full font-bold leading-none">
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              ref={(el) => { tabRefs.current['settings'] = el; }}
+              type="button"
+              onClick={() => setActiveTab('settings')}
+              className={`px-3 py-2 rounded-xl text-xs xs:text-sm font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E87A18] ${
+                activeTab === 'settings'
+                  ? 'bg-white text-[#E87A18] shadow-xs ring-1 ring-[#E87A18]/25'
+                  : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50'
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
+              <span>Security Settings</span>
+            </button>
+          </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-3.5 xs:p-5 sm:p-6">
           {/* TAB 1: PAYROLL */}
           {activeTab === 'payroll' && (
             <div>
-              <h3 className="text-base font-extrabold text-[#2C1B10] mb-4">Salary Payslips & History</h3>
+              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">Salary Payslips & History</h3>
               {payrolls.length === 0 ? (
-                <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
+                <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
                   <p className="text-sm font-bold text-[#4A2E1B]">No Payroll Records Found</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Period</TableHead>
-                      <TableHead className="text-right">Base Salary</TableHead>
-                      <TableHead className="text-right">Bonus (+)</TableHead>
-                      <TableHead className="text-right">Loan Deduction (-)</TableHead>
-                      <TableHead className="text-right">Penalty Deduction (-)</TableHead>
-                      <TableHead className="text-right">Final Amount Paid</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {payrolls.map((pr) => (
-                      <TableRow key={pr.id}>
-                        <TableCell className="font-bold">{getEthMonthName(pr.month)} {pr.year}</TableCell>
-                        <TableCell className="text-right">{money(pr.baseSalary)}</TableCell>
-                        <TableCell className="text-right text-emerald-600">{Number(pr.bonus) > 0 ? `+${money(pr.bonus)}` : '-'}</TableCell>
-                        <TableCell className="text-right text-rose-600">{Number(pr.loanDeductions) > 0 ? `-${money(pr.loanDeductions)}` : '-'}</TableCell>
-                        <TableCell className="text-right text-rose-600">{Number(pr.penaltyDeductions) > 0 ? `-${money(pr.penaltyDeductions)}` : '-'}</TableCell>
-                        <TableCell className="text-right font-extrabold text-emerald-700">{money(pr.finalAmount)}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={`font-bold text-[10px] ${
-                            pr.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                            pr.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
-                            'bg-amber-100 text-amber-800 border-amber-300'
-                          }`}>
-                            {pr.status === 'APPROVED' ? 'APPROVED' : pr.status === 'REJECTED' ? 'REJECTED' : 'PENDING REVIEW'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <>
+                  {/* Mobile Receipt Cards (< md) */}
+                  <div className="space-y-3 md:hidden">
+                    {payrolls.map((pr) => {
+                      const isApproved = pr.status === 'APPROVED';
+                      const isRejected = pr.status === 'REJECTED';
+                      const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Review';
+                      const statusBadgeClass = isApproved
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : isRejected
+                        ? 'bg-rose-100 text-rose-800 border-rose-300'
+                        : 'bg-amber-100 text-amber-800 border-amber-300';
+
+                      return (
+                        <div key={pr.id} className="bg-[#FFFDF8] border border-[#EDE4D5] rounded-2xl p-3.5 shadow-xs space-y-2.5">
+                          <div className="flex items-center justify-between border-b border-[#EDE4D5]/70 pb-2 gap-2">
+                            <div className="font-extrabold text-sm text-[#2C1B10] whitespace-nowrap">
+                              {getEthMonthName(pr.month)} {pr.year}
+                            </div>
+                            <Badge className={`font-bold text-[10px] px-2 py-0.5 shrink-0 ${statusBadgeClass}`}>
+                              {statusLabel}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Base Salary</span>
+                              <span className="font-bold text-[#2C1B10]">{money(pr.baseSalary)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Bonus (+)</span>
+                              <span className="font-bold text-emerald-600">{Number(pr.bonus) > 0 ? `+${money(pr.bonus)}` : '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Loan Deductions (-)</span>
+                              <span className="font-bold text-rose-600">{Number(pr.loanDeductions) > 0 ? `-${money(pr.loanDeductions)}` : '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Penalties (-)</span>
+                              <span className="font-bold text-rose-600">{Number(pr.penaltyDeductions) > 0 ? `-${money(pr.penaltyDeductions)}` : '-'}</span>
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t border-[#EDE4D5]/70 flex items-center justify-between bg-emerald-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
+                            <span className="text-[11px] xs:text-xs font-extrabold text-emerald-900 uppercase tracking-wide">Final Net Paid</span>
+                            <span className="text-sm font-black text-emerald-700">{money(pr.finalAmount)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop Full Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Period</TableHead>
+                          <TableHead className="text-right">Base Salary</TableHead>
+                          <TableHead className="text-right">Bonus (+)</TableHead>
+                          <TableHead className="text-right">Loan Deduction (-)</TableHead>
+                          <TableHead className="text-right">Penalty Deduction (-)</TableHead>
+                          <TableHead className="text-right">Final Amount Paid</TableHead>
+                          <TableHead className="text-center">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payrolls.map((pr) => {
+                          const isApproved = pr.status === 'APPROVED';
+                          const isRejected = pr.status === 'REJECTED';
+                          const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Review';
+                          const statusBadgeClass = isApproved
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : isRejected
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : 'bg-amber-100 text-amber-800 border-amber-300';
+
+                          return (
+                            <TableRow key={pr.id}>
+                              <TableCell className="font-bold">{getEthMonthName(pr.month)} {pr.year}</TableCell>
+                              <TableCell className="text-right">{money(pr.baseSalary)}</TableCell>
+                              <TableCell className="text-right text-emerald-600">{Number(pr.bonus) > 0 ? `+${money(pr.bonus)}` : '-'}</TableCell>
+                              <TableCell className="text-right text-rose-600">{Number(pr.loanDeductions) > 0 ? `-${money(pr.loanDeductions)}` : '-'}</TableCell>
+                              <TableCell className="text-right text-rose-600">{Number(pr.penaltyDeductions) > 0 ? `-${money(pr.penaltyDeductions)}` : '-'}</TableCell>
+                              <TableCell className="text-right font-extrabold text-emerald-700">{money(pr.finalAmount)}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge className={`font-bold text-[10px] ${statusBadgeClass}`}>
+                                  {statusLabel}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -509,40 +624,109 @@ export default function MyProfilePage() {
           {/* TAB 2: LOANS */}
           {activeTab === 'loans' && (
             <div>
-              <h3 className="text-base font-extrabold text-[#2C1B10] mb-4">My Loans & Advances</h3>
+              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">My Loans & Advances</h3>
               {loans.length === 0 ? (
-                <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
+                <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
                   <p className="text-sm font-bold text-[#4A2E1B]">No Loans Logged</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Original Amount</TableHead>
-                      <TableHead className="text-right">Remaining Balance</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loans.map((l) => (
-                      <TableRow key={l.id}>
-                        <TableCell className="font-bold">{formatEthDate(l.createdAt)}</TableCell>
-                        <TableCell className="text-right">{money(l.totalAmount)}</TableCell>
-                        <TableCell className="text-right font-extrabold text-indigo-700">{money(l.remainingBalance)}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={`font-bold text-[10px] ${
-                            l.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' :
-                            l.status === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-800' :
-                            l.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-indigo-100 text-indigo-800'
-                          }`}>
-                            {l.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <>
+                  {/* Mobile Loan Cards (< md) */}
+                  <div className="space-y-3 md:hidden">
+                    {loans.map((l) => {
+                      const total = Number(l.totalAmount || 0);
+                      const balance = Number(l.remainingBalance || 0);
+                      const paid = Math.max(0, total - balance);
+                      const percentPaid = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 100;
+                      const isPaid = l.status === 'PAID';
+                      const isPending = l.status === 'PENDING_APPROVAL';
+                      const isRejected = l.status === 'REJECTED';
+                      const statusLabel = isPaid ? 'Paid in Full' : isPending ? 'Pending Approval' : isRejected ? 'Rejected' : 'Active Loan';
+                      const statusBadgeClass = isPaid
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : isPending
+                        ? 'bg-amber-100 text-amber-800 border-amber-300'
+                        : isRejected
+                        ? 'bg-rose-100 text-rose-800 border-rose-300'
+                        : 'bg-indigo-100 text-indigo-800 border-indigo-300';
+
+                      return (
+                        <div key={l.id} className="bg-[#FFFDF8] border border-[#EDE4D5] rounded-2xl p-3.5 shadow-xs space-y-2.5">
+                          <div className="flex items-center justify-between border-b border-[#EDE4D5]/70 pb-2 gap-2">
+                            <div className="font-extrabold text-xs text-[#2C1B10] flex items-center gap-1.5 whitespace-nowrap">
+                              <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                              <span>{formatEthDate(l.createdAt)}</span>
+                            </div>
+                            <Badge className={`font-bold text-[10px] px-2 py-0.5 shrink-0 ${statusBadgeClass}`}>
+                              {statusLabel}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total Advance</span>
+                              <span className="font-bold text-[#2C1B10]">{money(l.totalAmount)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Remaining Balance</span>
+                              <span className="font-black text-indigo-700">{money(l.remainingBalance)}</span>
+                            </div>
+                          </div>
+                          <div className="pt-1">
+                            <div className="flex justify-between text-[10px] font-bold text-[#8C7361] mb-1">
+                              <span>Repaid: {percentPaid}%</span>
+                              <span>Paid: {money(paid)}</span>
+                            </div>
+                            <div className="w-full bg-[#EDE4D5] rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-[#E87A18] h-1.5 rounded-full transition-all duration-300" style={{ width: `${percentPaid}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead className="text-right">Original Amount</TableHead>
+                          <TableHead className="text-right">Remaining Balance</TableHead>
+                          <TableHead className="text-center">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {loans.map((l) => {
+                          const isPaid = l.status === 'PAID';
+                          const isPending = l.status === 'PENDING_APPROVAL';
+                          const isRejected = l.status === 'REJECTED';
+                          const statusLabel = isPaid ? 'Paid in Full' : isPending ? 'Pending Approval' : isRejected ? 'Rejected' : 'Active Loan';
+                          const statusBadgeClass = isPaid
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : isPending
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : isRejected
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : 'bg-indigo-100 text-indigo-800 border-indigo-300';
+
+                          return (
+                            <TableRow key={l.id}>
+                              <TableCell className="font-bold">{formatEthDate(l.createdAt)}</TableCell>
+                              <TableCell className="text-right">{money(l.totalAmount)}</TableCell>
+                              <TableCell className="text-right font-extrabold text-indigo-700">{money(l.remainingBalance)}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge className={`font-bold text-[10px] ${statusBadgeClass}`}>
+                                  {statusLabel}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -550,105 +734,171 @@ export default function MyProfilePage() {
           {/* TAB 3: PENALTIES */}
           {activeTab === 'penalties' && (
             <div>
-              <h3 className="text-base font-extrabold text-[#2C1B10] mb-4">My Penalties & Fine Records</h3>
+              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">My Penalties & Fine Records</h3>
               {penalties.length === 0 ? (
-                <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
+                <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
+                  <CheckCircle2 className="w-9 h-9 text-emerald-600 mx-auto mb-2" />
                   <p className="text-sm font-bold text-[#4A2E1B]">Clean Record — No Penalties!</p>
+                  <p className="text-xs text-[#8C7361] mt-1">You have zero penalty deductions on record.</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date Logged</TableHead>
-                      <TableHead>Reason</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-center">Approval Status</TableHead>
-                      <TableHead className="text-center">Deduction Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {penalties.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-bold">{formatEthDate(p.createdAt)}</TableCell>
-                        <TableCell>{p.reason}</TableCell>
-                        <TableCell className="text-right font-bold text-rose-700">{money(p.amount)}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={`font-bold text-[10px] ${
-                            p.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                            p.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {p.status || 'PENDING'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={`font-bold text-[10px] ${p.isDeducted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {p.isDeducted ? 'DEDUCTED' : 'PENDING SALARY'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <>
+                  {/* Mobile Penalty Cards (< md) */}
+                  <div className="space-y-3 md:hidden">
+                    {penalties.map((p) => {
+                      const isApproved = p.status === 'APPROVED';
+                      const isRejected = p.status === 'REJECTED';
+                      const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Approval';
+                      const statusBadgeClass = isApproved
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : isRejected
+                        ? 'bg-rose-100 text-rose-800 border-rose-300'
+                        : 'bg-amber-100 text-amber-800 border-amber-300';
+
+                      return (
+                        <div key={p.id} className="bg-[#FFFDF8] border border-rose-200/70 rounded-2xl p-3.5 shadow-xs space-y-3">
+                          {/* Header: Date on left, Single status badge on right */}
+                          <div className="flex items-center justify-between border-b border-[#EDE4D5]/70 pb-2.5 gap-2">
+                            <div className="font-extrabold text-xs text-[#2C1B10] flex items-center gap-1.5 whitespace-nowrap">
+                              <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                              <span>{formatEthDate(p.createdAt)}</span>
+                            </div>
+                            <Badge className={`font-bold text-[10px] px-2 py-0.5 shrink-0 ${statusBadgeClass}`}>
+                              {statusLabel}
+                            </Badge>
+                          </div>
+
+                          {/* Reason */}
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Reason / Notice</span>
+                            <p className="text-xs font-bold text-[#2C1B10] mt-0.5 break-words">{p.reason || 'No description provided'}</p>
+                          </div>
+
+                          {/* Deduction Status Row */}
+                          <div className="flex items-center justify-between text-xs pt-1">
+                            <span className="text-[10px] uppercase font-bold text-[#8C7361]">Salary Deduction</span>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                              p.isDeducted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {p.isDeducted ? '✓ Deducted from Salary' : '⏳ Pending next Payroll'}
+                            </span>
+                          </div>
+
+                          {/* Amount Highlight Footer */}
+                          <div className="pt-2 border-t border-[#EDE4D5]/70 flex items-center justify-between bg-rose-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
+                            <span className="text-[11px] xs:text-xs font-bold text-rose-900 uppercase tracking-wide">Penalty Amount</span>
+                            <span className="text-sm font-black text-rose-700">{money(p.amount)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date Logged</TableHead>
+                          <TableHead>Reason</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead className="text-center">Approval Status</TableHead>
+                          <TableHead className="text-center">Deduction Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {penalties.map((p) => {
+                          const isApproved = p.status === 'APPROVED';
+                          const isRejected = p.status === 'REJECTED';
+                          const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Approval';
+                          const statusBadgeClass = isApproved
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : isRejected
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : 'bg-amber-100 text-amber-800 border-amber-300';
+
+                          return (
+                            <TableRow key={p.id}>
+                              <TableCell className="font-bold">{formatEthDate(p.createdAt)}</TableCell>
+                              <TableCell>{p.reason}</TableCell>
+                              <TableCell className="text-right font-bold text-rose-700">{money(p.amount)}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge className={`font-bold text-[10px] ${statusBadgeClass}`}>
+                                  {statusLabel}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge className={`font-bold text-[10px] ${p.isDeducted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                  {p.isDeducted ? 'DEDUCTED' : 'PENDING SALARY'}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </div>
           )}
 
           {/* TAB 4: PENDING APPROVALS */}
           {activeTab === 'pending' && (
-            <div className="space-y-6">
+            <div className="space-y-5 xs:space-y-6">
               <div>
-                <h3 className="text-base font-extrabold text-[#2C1B10] mb-2 flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-amber-600" />
-                  Pending Payroll, Loans & Penalties Requiring Your Action
+                <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-1.5 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 xs:w-5 xs:h-5 text-amber-600 shrink-0" />
+                  Pending Payroll, Loans & Penalties Requiring Action
                 </h3>
-                <p className="text-xs text-[#8C7361] mb-4">
-                  Payrolls, loans, or penalties issued by management remain in pending status until you approve or reject them.
+                <p className="text-[11px] xs:text-xs text-[#8C7361] mb-4">
+                  Payrolls, loans, or penalties issued by management remain in pending status until you acknowledge, approve, or dispute them.
                 </p>
 
                 {pendingCount === 0 ? (
-                  <div className="py-12 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
+                  <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
+                    <CheckCircle2 className="w-9 h-9 text-emerald-600 mx-auto mb-2" />
                     <p className="text-sm font-bold text-[#4A2E1B]">No Pending Approvals</p>
-                    <p className="text-xs text-[#8C7361] mt-1">You have reviewed all assigned payrolls, loans and penalties.</p>
+                    <p className="text-xs text-[#8C7361] mt-1">You have reviewed all assigned items.</p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-4 xs:space-y-6">
                     {/* Pending Payrolls */}
                     {pendingPayrolls.length > 0 && (
-                      <div className="border border-indigo-200 rounded-2xl p-4 bg-indigo-50/50">
-                        <h4 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                          <Wallet className="w-4 h-4 text-indigo-600" /> Pending Monthly Salary Payrolls
+                      <div className="border border-indigo-200 rounded-2xl p-3 xs:p-4 bg-indigo-50/50">
+                        <h4 className="text-xs xs:text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-indigo-600 shrink-0" /> Pending Monthly Salary Payslips
                         </h4>
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           {pendingPayrolls.map((pr) => (
-                            <div key={pr.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-xl border border-indigo-200 gap-3">
-                              <div>
-                                <div className="font-extrabold text-base text-[#2C1B10]">
-                                  {getEthMonthName(pr.month)} {pr.year}
-                                  <span className="ml-2 font-mono text-emerald-700 font-black">{money(pr.finalAmount)}</span>
+                            <div key={pr.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-3.5 xs:p-4 rounded-xl border border-indigo-200 gap-3">
+                              <div className="min-w-0">
+                                <div className="font-extrabold text-sm xs:text-base text-[#2C1B10] flex flex-wrap items-center gap-2">
+                                  <span>{getEthMonthName(pr.month)} {pr.year}</span>
+                                  <span className="font-mono text-emerald-700 font-black">{money(pr.finalAmount)}</span>
                                 </div>
-                                <div className="text-xs text-[#8C7361] mt-0.5 space-x-2">
+                                <div className="text-[11px] xs:text-xs text-[#8C7361] mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5">
                                   <span>Base: {money(pr.baseSalary)}</span>
                                   {Number(pr.bonus) > 0 && <span className="text-emerald-700 font-semibold">Bonus: +{money(pr.bonus)}</span>}
                                   {Number(pr.loanDeductions) > 0 && <span className="text-rose-600 font-semibold">Loans: -{money(pr.loanDeductions)}</span>}
                                   {Number(pr.penaltyDeductions) > 0 && <span className="text-rose-600 font-semibold">Penalties: -{money(pr.penaltyDeductions)}</span>}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
                                 <Button
                                   size="sm"
                                   onClick={() => handleApprovePayroll(pr.id)}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs"
+                                  className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 shadow-xs px-3"
                                 >
-                                  <Check className="w-4 h-4" /> Accept & Approve Payroll
+                                  <Check className="w-4 h-4 shrink-0" /> Accept Payslip
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleRejectPayroll(pr.id)}
-                                  className="border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center gap-1"
+                                  className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <X className="w-4 h-4" /> Reject
+                                  <X className="w-4 h-4 shrink-0" /> Reject
                                 </Button>
                               </div>
                             </div>
@@ -659,30 +909,30 @@ export default function MyProfilePage() {
 
                     {/* Pending Loans */}
                     {pendingLoans.length > 0 && (
-                      <div className="border border-amber-200 rounded-2xl p-4 bg-amber-50/50">
-                        <h4 className="text-sm font-bold text-amber-900 mb-3">Pending Salary Advances / Loans</h4>
-                        <div className="space-y-2">
+                      <div className="border border-amber-200 rounded-2xl p-3 xs:p-4 bg-amber-50/50">
+                        <h4 className="text-xs xs:text-sm font-bold text-amber-900 mb-3">Pending Salary Advances / Loans</h4>
+                        <div className="space-y-2.5">
                           {pendingLoans.map((l) => (
-                            <div key={l.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3.5 rounded-xl border border-amber-200 gap-3">
+                            <div key={l.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-3.5 xs:p-4 rounded-xl border border-amber-200 gap-3">
                               <div>
-                                <div className="font-extrabold text-[#2C1B10]">{money(l.totalAmount)}</div>
-                                <div className="text-xs text-[#8C7361]">Issued: {formatEthDate(l.createdAt)}</div>
+                                <div className="font-extrabold text-sm xs:text-base text-[#2C1B10]">{money(l.totalAmount)}</div>
+                                <div className="text-xs text-[#8C7361] mt-0.5">Issued: {formatEthDate(l.createdAt)}</div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
                                 <Button
                                   size="sm"
                                   onClick={() => handleApproveLoan(l.id)}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1"
+                                  className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <Check className="w-4 h-4" /> Accept & Approve Loan
+                                  <Check className="w-4 h-4 shrink-0" /> Accept Loan
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleRejectLoan(l.id)}
-                                  className="border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center gap-1"
+                                  className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <X className="w-4 h-4" /> Reject
+                                  <X className="w-4 h-4 shrink-0" /> Reject
                                 </Button>
                               </div>
                             </div>
@@ -693,31 +943,31 @@ export default function MyProfilePage() {
 
                     {/* Pending Penalties */}
                     {pendingPenalties.length > 0 && (
-                      <div className="border border-rose-200 rounded-2xl p-4 bg-rose-50/50">
-                        <h4 className="text-sm font-bold text-rose-900 mb-3">Pending Penalties / Fines</h4>
-                        <div className="space-y-2">
+                      <div className="border border-rose-200 rounded-2xl p-3 xs:p-4 bg-rose-50/50">
+                        <h4 className="text-xs xs:text-sm font-bold text-rose-900 mb-3">Pending Penalties / Fines</h4>
+                        <div className="space-y-2.5">
                           {pendingPenalties.map((p) => (
-                            <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3.5 rounded-xl border border-rose-200 gap-3">
+                            <div key={p.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-3.5 xs:p-4 rounded-xl border border-rose-200 gap-3">
                               <div>
-                                <div className="font-extrabold text-rose-700">{money(p.amount)}</div>
-                                <div className="text-xs font-semibold text-[#2C1B10]">Reason: {p.reason}</div>
-                                <div className="text-[11px] text-[#8C7361]">Logged: {formatEthDate(p.createdAt)}</div>
+                                <div className="font-extrabold text-sm xs:text-base text-rose-700">{money(p.amount)}</div>
+                                <div className="text-xs font-semibold text-[#2C1B10] mt-0.5">Reason: {p.reason}</div>
+                                <div className="text-[11px] text-[#8C7361] mt-0.5">Logged: {formatEthDate(p.createdAt)}</div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
                                 <Button
                                   size="sm"
                                   onClick={() => handleApprovePenalty(p.id)}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1"
+                                  className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <Check className="w-4 h-4" /> Acknowledge & Approve
+                                  <Check className="w-4 h-4 shrink-0" /> Acknowledge Fine
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleRejectPenalty(p.id)}
-                                  className="border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center gap-1"
+                                  className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <X className="w-4 h-4" /> Reject Fine
+                                  <X className="w-4 h-4 shrink-0" /> Reject
                                 </Button>
                               </div>
                             </div>
@@ -734,14 +984,13 @@ export default function MyProfilePage() {
           {/* TAB 5: SECURITY SETTINGS */}
           {activeTab === 'settings' && (
             <div className="max-w-xl">
-              {/* Password Change Form */}
-              <div className="bg-[#FAF7EE] border border-[#EDE4D5] rounded-2xl p-6 shadow-xs">
-                <h4 className="text-base font-extrabold text-[#2C1B10] mb-1 flex items-center gap-2">
-                  <Lock className="w-5 h-5 text-[#E87A18]" /> Change Account Password
+              <div className="bg-[#FAF7EE] border border-[#EDE4D5] rounded-2xl p-4 xs:p-6 shadow-xs">
+                <h4 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-1 flex items-center gap-2">
+                  <Lock className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" /> Change Account Password
                 </h4>
-                <p className="text-xs text-[#8C7361] mb-5">Update your account login password.</p>
+                <p className="text-[11px] xs:text-xs text-[#8C7361] mb-4 xs:mb-5">Update your account login password.</p>
 
-                <form onSubmit={handlePasswordChange} className="space-y-4">
+                <form onSubmit={handlePasswordChange} className="space-y-3.5 xs:space-y-4">
                   <div>
                     <label className="text-xs font-bold text-[#2C1B10] mb-1 block">Current Password</label>
                     <Input
@@ -749,7 +998,7 @@ export default function MyProfilePage() {
                       required
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-10 text-sm"
+                      className="bg-white border-zinc-200 rounded-xl h-11 text-sm"
                     />
                   </div>
                   <div>
@@ -759,7 +1008,7 @@ export default function MyProfilePage() {
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-10 text-sm"
+                      className="bg-white border-zinc-200 rounded-xl h-11 text-sm"
                     />
                   </div>
                   <div>
@@ -769,13 +1018,13 @@ export default function MyProfilePage() {
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-10 text-sm"
+                      className="bg-white border-zinc-200 rounded-xl h-11 text-sm"
                     />
                   </div>
                   <Button
                     type="submit"
                     disabled={isChangingPass}
-                    className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs h-10 px-5 mt-2"
+                    className="min-h-[44px] h-11 w-full xs:w-auto bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs px-6 mt-2"
                   >
                     {isChangingPass ? 'Updating...' : 'Update Password'}
                   </Button>
@@ -788,40 +1037,40 @@ export default function MyProfilePage() {
 
       {/* ── PROFILE PICTURE POPUP DIALOG ── */}
       <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 bg-white border-[#EDE4D5]">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-2xl p-4 xs:p-6 bg-white border-[#EDE4D5]">
           <DialogHeader>
-            <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+            <DialogTitle className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
               <Camera className="w-5 h-5 text-[#E87A18]" /> Change Profile Picture
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleAvatarUpload} className="space-y-5 py-2">
+          <form onSubmit={handleAvatarUpload} className="space-y-4 py-2">
             <p className="text-xs text-[#8C7361]">
               Select a new image from your device to update your ERP avatar.
             </p>
 
-            <div className="flex flex-col items-center justify-center p-4 bg-[#FAF7EE] border border-dashed border-[#EDE4D5] rounded-2xl">
+            <div className="flex flex-col items-center justify-center p-3 xs:p-4 bg-[#FAF7EE] border border-dashed border-[#EDE4D5] rounded-2xl">
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                className="w-full text-xs text-[#2C1B10] file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#E87A18] file:text-white hover:file:bg-[#d46d13]"
+                className="w-full text-xs text-[#2C1B10] file:mr-2.5 file:py-2 file:px-3 xs:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#E87A18] file:text-white hover:file:bg-[#d46d13]"
               />
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="flex-col xs:flex-row gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsAvatarModalOpen(false)}
-                className="rounded-xl border-[#EDE4D5] text-xs font-bold text-[#4A2E1B]"
+                className="min-h-[44px] h-11 rounded-xl border-[#EDE4D5] text-xs font-bold text-[#4A2E1B] w-full xs:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isUploadingAvatar || !selectedFile}
-                className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs"
+                className="min-h-[44px] h-11 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs w-full xs:w-auto"
               >
                 {isUploadingAvatar ? 'Uploading...' : 'Save Avatar Picture'}
               </Button>
