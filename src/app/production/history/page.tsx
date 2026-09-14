@@ -14,7 +14,6 @@ import {
   PackageCheck, 
   DollarSign, 
   Search, 
-  CalendarDays, 
   History,
   Layers,
   Boxes
@@ -207,128 +206,207 @@ export default function DailyProductHistoryPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-emerald-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Total Quantity Produced</p>
-            <h3 className="text-2xl font-extrabold text-emerald-900 font-mono mt-1">
-              {filteredRoleSummary.totalProducedQuantity.toLocaleString()} <span className="text-xs text-emerald-700 font-normal">Pcs</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 xs:gap-4 mb-4 xs:mb-6">
+        <div className="bg-white border border-emerald-100 rounded-2xl p-3.5 xs:p-4 shadow-xs flex items-center justify-between min-w-0">
+          <div className="min-w-0 pr-2">
+            <p className="text-[11px] xs:text-xs font-bold text-emerald-800 uppercase tracking-wider truncate">
+              Total Quantity Produced
+            </p>
+            <h3 className="text-xl xs:text-2xl font-extrabold text-emerald-900 font-mono mt-0.5 xs:mt-1">
+              {filteredRoleSummary.totalProducedQuantity.toLocaleString()}{" "}
+              <span className="text-xs text-emerald-700 font-normal">Pcs</span>
             </h3>
           </div>
-          <div className="p-3 bg-emerald-50 rounded-xl">
-            <PackageCheck className="w-6 h-6 text-emerald-600" />
+          <div className="p-2.5 xs:p-3 bg-emerald-50 rounded-xl shrink-0">
+            <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-emerald-600" />
           </div>
         </div>
 
         {isGlobalAdmin ? (
-          <div className="bg-white border border-amber-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Est. Production Valuation</p>
-              <h3 className="text-2xl font-extrabold text-amber-900 font-mono mt-1">
-                {filteredRoleSummary.totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-amber-700 font-normal">ETB</span>
+          <div className="bg-white border border-amber-100 rounded-2xl p-3.5 xs:p-4 shadow-xs flex items-center justify-between min-w-0">
+            <div className="min-w-0 pr-2">
+              <p className="text-[11px] xs:text-xs font-bold text-amber-800 uppercase tracking-wider truncate">
+                Est. Production Valuation
+              </p>
+              <h3 className="text-xl xs:text-2xl font-extrabold text-amber-900 font-mono mt-0.5 xs:mt-1 truncate">
+                {filteredRoleSummary.totalValuation.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                <span className="text-xs text-amber-700 font-normal">ETB</span>
               </h3>
             </div>
-            <div className="p-3 bg-amber-50 rounded-xl">
-              <DollarSign className="w-6 h-6 text-amber-600" />
+            <div className="p-2.5 xs:p-3 bg-amber-50 rounded-xl shrink-0">
+              <DollarSign className="w-5 h-5 xs:w-6 xs:h-6 text-amber-600" />
             </div>
           </div>
         ) : (
-          <div className="bg-white border border-indigo-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-indigo-800 uppercase tracking-wider">Product Varieties Logged</p>
-              <h3 className="text-2xl font-extrabold text-indigo-900 font-mono mt-1">
-                {uniqueProductsCount.toLocaleString()} <span className="text-xs text-indigo-700 font-normal">Types</span>
+          <div className="bg-white border border-indigo-100 rounded-2xl p-3.5 xs:p-4 shadow-xs flex items-center justify-between min-w-0">
+            <div className="min-w-0 pr-2">
+              <p className="text-[11px] xs:text-xs font-bold text-indigo-800 uppercase tracking-wider truncate">
+                Product Varieties Logged
+              </p>
+              <h3 className="text-xl xs:text-2xl font-extrabold text-indigo-900 font-mono mt-0.5 xs:mt-1">
+                {uniqueProductsCount.toLocaleString()}{" "}
+                <span className="text-xs text-indigo-700 font-normal">Types</span>
               </h3>
             </div>
-            <div className="p-3 bg-indigo-50 rounded-xl">
-              <Boxes className="w-6 h-6 text-indigo-600" />
+            <div className="p-2.5 xs:p-3 bg-indigo-50 rounded-xl shrink-0">
+              <Boxes className="w-5 h-5 xs:w-6 xs:h-6 text-indigo-600" />
             </div>
           </div>
         )}
 
-        <div className="bg-white border border-purple-100 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-purple-800 uppercase tracking-wider">Production Batches Logged</p>
-            <h3 className="text-2xl font-extrabold text-purple-900 font-mono mt-1">
-              {filteredRoleSummary.count.toLocaleString()} <span className="text-xs text-purple-700 font-normal">Batches</span>
+        <div className="bg-white border border-purple-100 rounded-2xl p-3.5 xs:p-4 shadow-xs flex items-center justify-between min-w-0">
+          <div className="min-w-0 pr-2">
+            <p className="text-[11px] xs:text-xs font-bold text-purple-800 uppercase tracking-wider truncate">
+              Production Batches Logged
+            </p>
+            <h3 className="text-xl xs:text-2xl font-extrabold text-purple-900 font-mono mt-0.5 xs:mt-1">
+              {filteredRoleSummary.count.toLocaleString()}{" "}
+              <span className="text-xs text-purple-700 font-normal">Batches</span>
             </h3>
           </div>
-          <div className="p-3 bg-purple-50 rounded-xl">
-            <Layers className="w-6 h-6 text-purple-600" />
+          <div className="p-2.5 xs:p-3 bg-purple-50 rounded-xl shrink-0">
+            <Layers className="w-5 h-5 xs:w-6 xs:h-6 text-purple-600" />
           </div>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 mb-6 shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleSetToday}
-            className={`h-[38px] px-3 text-xs font-bold rounded-xl border transition-all ${
-              startDate === format(new Date(), "yyyy-MM-dd") && endDate === format(new Date(), "yyyy-MM-dd")
-                ? "bg-amber-100 border-amber-400 text-amber-900 shadow-xs"
-                : "border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]"
-            }`}
-          >
-            📅 Today Only
-          </Button>
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 xs:p-4 mb-4 xs:mb-6 shadow-xs">
+        <form onSubmit={handleSearchSubmit} className="space-y-2.5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+            {/* Quick Actions & Product Select */}
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSetToday}
+                className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all shrink-0 ${
+                  startDate === format(new Date(), "yyyy-MM-dd") && endDate === format(new Date(), "yyyy-MM-dd")
+                    ? "bg-amber-100 border-amber-400 text-amber-900 shadow-xs"
+                    : "border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]"
+                }`}
+              >
+                📅 Today Only
+              </Button>
 
-          <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2">
-            {/* Product Dropdown */}
-            <select
-              value={productFilter}
-              onChange={(e) => setProductFilter(e.target.value)}
-              className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 text-xs px-3 font-semibold text-[#2C1B10] focus:outline-none max-w-[170px]"
-            >
-              <option value="">All Products</option>
-              {allProducts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Date Range Inputs */}
-            <div className="flex items-center gap-1 bg-[#FAF6F0] px-2.5 py-1.5 rounded-xl border border-[#EDE4D5] h-9">
-              <CalendarDays className="w-[#8C7361] h-3.5" />
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-[#2C1B10] focus:outline-none"
-              />
-              <span className="text-[11px] text-[#8C7361]">to</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-[#2C1B10] focus:outline-none"
-              />
+              <select
+                value={productFilter}
+                onChange={(e) => setProductFilter(e.target.value)}
+                className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 text-xs px-2.5 font-semibold text-[#2C1B10] focus:outline-none flex-1 lg:flex-initial lg:w-48 truncate"
+              >
+                <option value="">All Products</option>
+                {allProducts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-[#8C7361] absolute left-3 top-2.5" />
-              <Input
-                type="text"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl w-36 sm:w-44"
-              />
-            </div>
+            {/* Date Range & Search */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+              {/* Date Range Inputs */}
+              <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
+                  aria-label="Start Date"
+                />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
+                  aria-label="End Date"
+                />
+              </div>
 
-            <Button type="submit" size="sm" className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] rounded-xl text-xs font-bold h-9 px-3">
-              Filter
-            </Button>
-          </form>
-        </div>
+              {/* Search Bar & Button */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-44">
+                  <Search className="w-3.5 h-3.5 text-[#8C7361] absolute left-3 top-2.5 pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder="Search..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-8 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl w-full"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] rounded-xl text-xs font-bold h-9 px-4 shrink-0 shadow-xs"
+                >
+                  Filter
+                </Button>
+              </div>
+            </div>
+          </div>
+        </form>
       </div>
 
-      {/* Main Table */}
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
+      {/* ── Mobile Audit Cards (< md) ── */}
+      <div className="space-y-3 block md:hidden mb-6">
+        {isLoading ? (
+          <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
+            Loading daily production history...
+          </div>
+        ) : filteredRoleRecords.length === 0 ? (
+          <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
+            No daily production history records found.
+          </div>
+        ) : (
+          filteredRoleRecords.map((row) => (
+            <div
+              key={row.id}
+              className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-2.5 hover:border-[#E87A18]/30 transition-all"
+            >
+              <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2">
+                <div>
+                  <span className="font-extrabold text-sm text-[#2C1B10] block">{row.productName}</span>
+                  <span className="text-[11px] text-[#8C7361] font-medium">Unit: {row.unitType}</span>
+                </div>
+                <span className="px-2.5 py-1 bg-amber-100/70 border border-amber-200 rounded-lg text-xs font-bold text-amber-900 shrink-0">
+                  {row.shift || "DAY"} Shift
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Produced Qty</span>
+                  <span className="font-mono text-base font-extrabold text-emerald-800">
+                    {row.quantity.toLocaleString()} <span className="text-xs font-normal">Pcs</span>
+                  </span>
+                </div>
+
+                {isGlobalAdmin && (
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Subtotal</span>
+                    <span className="font-mono text-xs font-bold text-[#E87A18]">
+                      {row.subtotal.toFixed(2)} ETB
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-[#F4ECE1] flex items-center justify-between gap-2 text-[11px] text-[#8C7361]">
+                <span>{formatEthDate(row.createdAt, true)}</span>
+                <span className="font-semibold text-zinc-800">{row.sourceName}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ── Desktop Main Table (hidden on < md, visible on md+) ── */}
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs hidden md:block">
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>

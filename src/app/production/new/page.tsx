@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useMemo, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
@@ -12,17 +12,15 @@ import { toast } from "sonner";
 import {
   PackageCheck,
   Search,
-  Filter,
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
   Layers,
-  Sparkles,
   Utensils,
   Boxes,
-  Plus,
-  Trash2,
-  ChevronRight
+  Edit3,
+  Clock,
+  XCircle,
 } from "lucide-react";
 
 interface ProductCategory {
@@ -53,10 +51,14 @@ interface ActiveSession {
   status: "OPEN" | "PAUSED" | "CLOSE_PENDING" | "CLOSED";
 }
 
-export default function NewProductionPage() {
+function ProductionFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editBatchId = searchParams.get("edit");
+  const isEditMode = Boolean(editBatchId);
+
   const { user } = useAuth();
-  const { selectedBranchId, branches } = useBranch();
+  const { selectedBranchId } = useBranch();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
@@ -65,6 +67,7 @@ export default function NewProductionPage() {
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [originalBatchStatus, setOriginalBatchStatus] = useState<string | null>(null);
 
   // Form Header State
   const [date, setDate] = useState<string>(
@@ -78,13 +81,33 @@ export default function NewProductionPage() {
   const [productSearch, setProductSearch] = useState<string>("");
   const [materialSearch, setMaterialSearch] = useState<string>("");
 
+  // Refs for auto-centering active category tabs
+  const parentCatTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const subCatTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
   // Multi-selected items & quantities: Map of id -> quantity string
   const [selectedProducts, setSelectedProducts] = useState<Record<string, string>>({});
   const [selectedMaterials, setSelectedMaterials] = useState<Record<string, string>>({});
 
+  // Auto-scroll active parent category tab to center
+  useEffect(() => {
+    const el = parentCatTabRefs.current[selectedParentCatId];
+    if (el) {
+      el.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedParentCatId]);
+
+  // Auto-scroll active subcategory tab to center
+  useEffect(() => {
+    const el = subCatTabRefs.current[selectedSubCatId];
+    if (el) {
+      el.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedSubCatId]);
+
   useEffect(() => {
     fetchInitialData();
-  }, [selectedBranchId]);
+  }, [selectedBranchId, editBatchId]);
 
   const fetchInitialData = async () => {
     setIsLoading(true);
@@ -114,6 +137,41 @@ export default function NewProductionPage() {
       setProducts(filteredProds);
       setStockItems(resStock.data || []);
       setActiveSession(resSess.data);
+
+      // If in Edit mode, load the existing batch data and pre-fill selections
+      if (editBatchId) {
+        try {
+          const resBatch = await api.get(`/production-batches/${editBatchId}`);
+          const batch = resBatch.data;
+          if (batch) {
+            setOriginalBatchStatus(batch.status);
+            if (batch.date) {
+              setDate(new Date(batch.date).toISOString().slice(0, 10));
+            }
+            if (batch.shift) {
+              setShift(batch.shift);
+            }
+            if (Array.isArray(batch.items)) {
+              const pMap: Record<string, string> = {};
+              batch.items.forEach((item: any) => {
+                const pId = item.productId || item.product?.id;
+                if (pId) pMap[pId] = String(item.quantityProduced);
+              });
+              setSelectedProducts(pMap);
+            }
+            if (Array.isArray(batch.materialUsages)) {
+              const mMap: Record<string, string> = {};
+              batch.materialUsages.forEach((mat: any) => {
+                const sId = mat.stockItemId || mat.stockItem?.id;
+                if (sId) mMap[sId] = String(mat.quantityUsed);
+              });
+              setSelectedMaterials(mMap);
+            }
+          }
+        } catch (err: any) {
+          toast.error("Failed to load production batch for editing");
+        }
+      }
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Error loading production categories & products");
     } finally {
@@ -204,7 +262,7 @@ export default function NewProductionPage() {
     }));
   };
 
-  // Submit Handler
+  // Submit Handler (Create vs Edit)
   const handleSubmitBatch = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -224,23 +282,39 @@ export default function NewProductionPage() {
     setIsSubmitting(true);
     try {
       const systemDate = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
-      const payload = {
-        branchId: selectedBranchId || undefined,
-        date: isGlobalAdmin ? date : systemDate,
-        shift,
-        items: productEntries,
-        materialUsages: materialEntries,
-      };
 
-      const res = await api.post("/production-batches", payload);
-      if (res.data.status === "PENDING_APPROVAL") {
-        toast.success("Production batch logged! Submitted for Admin/Owner approval.");
+      if (isEditMode) {
+        const payload = {
+          date: isGlobalAdmin ? date : undefined,
+          shift,
+          items: productEntries,
+          materialUsages: materialEntries,
+        };
+
+        await api.patch(`/production-batches/${editBatchId}`, payload);
+        toast.success("Production batch updated successfully!");
       } else {
-        toast.success("Production batch created & inventory updated successfully!");
+        const payload = {
+          branchId: selectedBranchId || undefined,
+          date: isGlobalAdmin ? date : systemDate,
+          shift,
+          items: productEntries,
+          materialUsages: materialEntries,
+        };
+
+        const res = await api.post("/production-batches", payload);
+        if (res.data.status === "PENDING_APPROVAL") {
+          toast.success("Production batch logged! Submitted for Admin/Owner approval.");
+        } else {
+          toast.success("Production batch created & inventory updated successfully!");
+        }
       }
       router.push("/production");
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to log production batch");
+      toast.error(
+        err.response?.data?.error ||
+          (isEditMode ? "Failed to update production batch" : "Failed to log production batch")
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -253,53 +327,92 @@ export default function NewProductionPage() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6 pb-12">
         {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
-          <div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
+          <div className="min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push("/production")}
-              className="text-[#8C7361] hover:text-[#2C1B10] mb-2 p-0 h-auto flex items-center gap-1 font-bold text-xs"
+              className="text-[#8C7361] hover:text-[#2C1B10] mb-1.5 p-0 h-auto flex items-center gap-1 font-bold text-xs"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Production Log
             </Button>
-            <h1 className="text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
-              <PackageCheck className="w-6 h-6 text-[#E87A18]" /> Multi-Item Production Batch Entry
+            <h1 className="text-lg xs:text-xl sm:text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
+              {isEditMode ? (
+                <>
+                  <Edit3 className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> Edit Production Batch
+                </>
+              ) : (
+                <>
+                  <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> Multi-Item Production Batch Entry
+                </>
+              )}
             </h1>
-            <p className="text-xs text-[#8C7361] mt-0.5">
-              Select product categories, sub-categories, baked items, and raw materials consumed during this shift.
+            <p className="text-xs text-[#8C7361] mt-1 max-w-2xl">
+              {isEditMode
+                ? "Update products baked, quantities produced, or raw materials consumed for this batch."
+                : "Select product categories, sub-categories, baked items, and raw materials consumed during this shift."}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {isEditMode && originalBatchStatus && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
+                  originalBatchStatus === "PENDING_APPROVAL"
+                    ? "bg-amber-50 text-amber-900 border-amber-300"
+                    : originalBatchStatus === "COMPLETED"
+                    ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                    : originalBatchStatus === "REJECTED"
+                    ? "bg-rose-50 text-rose-900 border-rose-300"
+                    : "bg-zinc-100 text-zinc-800 border-zinc-200"
+                }`}
+              >
+                {originalBatchStatus === "PENDING_APPROVAL" && <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
+                {originalBatchStatus === "COMPLETED" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                {originalBatchStatus === "REJECTED" && <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
+                {originalBatchStatus === "PENDING_APPROVAL"
+                  ? "Pending Approval"
+                  : originalBatchStatus === "COMPLETED"
+                  ? "Approved / Completed"
+                  : originalBatchStatus === "REJECTED"
+                  ? "Rejected"
+                  : originalBatchStatus}
+              </span>
+            )}
             <span
-              className={`px-3 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wide border ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
                 isSessionOpen
-                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                  : "bg-amber-100 text-amber-900 border-amber-300"
+                  ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                  : "bg-amber-50 text-amber-900 border-amber-300"
               }`}
             >
-              Session: {isSessionOpen ? "ACTIVE OPEN" : "INACTIVE / PAUSED"}
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  isSessionOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                }`}
+              />
+              {isSessionOpen ? "Session Open" : "Session Closed"}
             </span>
           </div>
         </div>
 
-        {/* Warning if no active open session */}
-        {!isSessionOpen && (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-3 shadow-xs">
+        {/* Warning if no active open session (only for new batches) */}
+        {!isSessionOpen && !isEditMode && (
+          <div className="p-3.5 xs:p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5 xs:gap-3 shadow-xs">
             <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
             <div>
               <h4 className="font-extrabold text-sm">Active Session Required</h4>
               <p className="text-xs text-amber-800 mt-0.5">
-                Daily session is currently paused or closed. You can review categories and select items, but logging production requires an active open session.
+                Daily session is currently paused or closed. You can review categories and select items, but logging new production requires an active open session.
               </p>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmitBatch} className="space-y-6">
+        <form onSubmit={handleSubmitBatch} className="space-y-4 xs:space-y-6">
           {/* Shift & Date Header Configuration */}
-          <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
                 Production Date {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
@@ -308,9 +421,9 @@ export default function NewProductionPage() {
                 type="date"
                 required
                 disabled={!isGlobalAdmin}
-                value={isGlobalAdmin ? date : new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)}
+                value={isGlobalAdmin ? date : (isEditMode ? date : new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10))}
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-medium disabled:opacity-75 disabled:cursor-not-allowed text-[#4A2E1B]"
+                className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-medium disabled:opacity-75 disabled:cursor-not-allowed text-[#4A2E1B] h-10 xs:h-11"
               />
               {!isGlobalAdmin && (
                 <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">
@@ -325,7 +438,7 @@ export default function NewProductionPage() {
               <select
                 value={shift}
                 onChange={(e) => setShift(e.target.value as any)}
-                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
+                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
               >
                 <option value="DAY">Day Shift (Pagal / Day)</option>
                 <option value="NIGHT">Night Shift (Rati / Night)</option>
@@ -334,35 +447,38 @@ export default function NewProductionPage() {
           </div>
 
           {/* SECTION 1: PRODUCT CATEGORY FILTER & MULTI-PRODUCT SELECTION */}
-          <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F4ECE1] pb-4">
+          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
-                <h2 className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <Utensils className="w-5 h-5 text-[#E87A18]" /> 1. Select Bakery Products & Quantities
+                <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                  <Utensils className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" /> 1. Select Bakery Products & Quantities
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
                   Filter by category / subcategory and check all items baked in this batch.
                 </p>
               </div>
 
-              <span className="text-xs font-extrabold px-3 py-1.5 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
+              <span className="text-xs font-extrabold px-3 py-1 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
                 {totalProductsSelectedCount} Products Selected
               </span>
             </div>
 
-            {/* Category & Subcategory Filter Tabs */}
-            <div className="space-y-3 bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5]">
+            {/* Category & Subcategory Filter Tabs with Auto-Center */}
+            <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
               <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
                 <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1">
                 <button
+                  ref={(el) => {
+                    parentCatTabRefs.current["ALL"] = el;
+                  }}
                   type="button"
                   onClick={() => {
                     setSelectedParentCatId("ALL");
                     setSelectedSubCatId("ALL");
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
                     selectedParentCatId === "ALL"
                       ? "bg-[#4A2E1B] text-white shadow-xs"
                       : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
@@ -377,12 +493,15 @@ export default function NewProductionPage() {
                   return (
                     <button
                       key={cat.id}
+                      ref={(el) => {
+                        parentCatTabRefs.current[cat.id] = el;
+                      }}
                       type="button"
                       onClick={() => {
                         setSelectedParentCatId(cat.id);
                         setSelectedSubCatId("ALL");
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
                         selectedParentCatId === cat.id
                           ? "bg-[#4A2E1B] text-white shadow-xs"
                           : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
@@ -396,12 +515,15 @@ export default function NewProductionPage() {
 
               {/* Sub-Category Filter Row if applicable */}
               {subCategories.length > 0 && (
-                <div className="pt-3 border-t border-[#EDE4D5] flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-bold text-[#8C7361] mr-1">Sub-Category:</span>
+                <div className="pt-2.5 border-t border-[#EDE4D5] flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1">
+                  <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
                   <button
+                    ref={(el) => {
+                      subCatTabRefs.current["ALL"] = el;
+                    }}
                     type="button"
                     onClick={() => setSelectedSubCatId("ALL")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
                       selectedSubCatId === "ALL"
                         ? "bg-[#E87A18] text-white"
                         : "bg-white text-[#8C7361] border border-[#EDE4D5]"
@@ -412,9 +534,12 @@ export default function NewProductionPage() {
                   {subCategories.map((sub) => (
                     <button
                       key={sub.id}
+                      ref={(el) => {
+                        subCatTabRefs.current[sub.id] = el;
+                      }}
                       type="button"
                       onClick={() => setSelectedSubCatId(sub.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
                         selectedSubCatId === sub.id
                           ? "bg-[#E87A18] text-white"
                           : "bg-white text-[#8C7361] border border-[#EDE4D5]"
@@ -500,18 +625,18 @@ export default function NewProductionPage() {
           </div>
 
           {/* SECTION 2: RAW MATERIAL / INGREDIENT SELECTION */}
-          <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F4ECE1] pb-4">
+          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
-                <h2 className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <Boxes className="w-5 h-5 text-indigo-600" /> 2. Select Consumed Raw Materials & Ingredients
+                <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                  <Boxes className="w-4 h-4 xs:w-5 xs:h-5 text-indigo-600" /> 2. Select Consumed Raw Materials & Ingredients
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
                   Multi-select flour, sugar, yeast, oil, and packaging materials consumed for this production.
                 </p>
               </div>
 
-              <span className="text-xs font-extrabold px-3 py-1.5 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
+              <span className="text-xs font-extrabold px-3 py-1 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
                 {totalMaterialsSelectedCount} Ingredients Selected
               </span>
             </div>
@@ -528,7 +653,7 @@ export default function NewProductionPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[350px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3 max-h-[350px] overflow-y-auto pr-1">
               {filteredMaterials.map((mat) => {
                 const isSelected = selectedMaterials[mat.id] !== undefined;
                 const qtyVal = selectedMaterials[mat.id] || "";
@@ -564,7 +689,7 @@ export default function NewProductionPage() {
 
                     {isSelected && (
                       <div className="pt-2 border-t border-indigo-200 flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase text-indigo-900">Used:</span>
+                        <span className="text-[10px] font-extrabold uppercase text-indigo-900 shrink-0">Used:</span>
                         <Input
                           type="number"
                           step="0.001"
@@ -572,9 +697,9 @@ export default function NewProductionPage() {
                           placeholder="Qty"
                           value={qtyVal}
                           onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
-                          className="h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-indigo-950"
+                          className="h-9 xs:h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-indigo-950"
                         />
-                        <span className="text-[10px] font-bold text-zinc-500">{mat.unitType}</span>
+                        <span className="text-[10px] font-bold text-zinc-500 shrink-0">{mat.unitType}</span>
                       </div>
                     )}
                   </div>
@@ -584,33 +709,41 @@ export default function NewProductionPage() {
           </div>
 
           {/* SUMMARY PANEL & SUBMISSION */}
-          <div className="bg-[#FAF6F0] p-6 rounded-2xl border border-[#EDE4D5] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm">
             <div>
-              <h3 className="font-extrabold text-sm text-[#2C1B10]">Ready to submit production batch?</h3>
+              <h3 className="font-extrabold text-sm text-[#2C1B10]">
+                {isEditMode ? "Save changes to this production batch?" : "Ready to submit production batch?"}
+              </h3>
               <p className="text-xs text-[#8C7361] mt-0.5">
                 Selected <strong className="text-[#4A2E1B]">{totalProductsSelectedCount} products</strong> and{" "}
                 <strong className="text-[#4A2E1B]">{totalMaterialsSelectedCount} materials</strong> for shift log.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2.5 xs:gap-3 w-full sm:w-auto">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.push("/production")}
-                className="border-[#EDE4D5] text-[#8C7361] hover:bg-white rounded-xl text-xs font-bold flex-1 sm:flex-initial"
+                className="border-[#EDE4D5] text-[#8C7361] hover:bg-white rounded-xl text-xs font-bold flex-1 sm:flex-initial h-10 xs:h-11"
               >
                 Cancel
               </Button>
 
               <Button
                 type="submit"
-                disabled={isSubmitting || !isSessionOpen || totalProductsSelectedCount === 0}
-                className="bg-[#E87A18] hover:bg-[#d46d13] disabled:opacity-50 text-white font-bold rounded-xl text-xs sm:text-sm px-6 py-2.5 shadow-md flex-1 sm:flex-initial"
+                disabled={
+                  isSubmitting ||
+                  totalProductsSelectedCount === 0 ||
+                  (!isEditMode && !isSessionOpen)
+                }
+                className="bg-[#E87A18] hover:bg-[#d46d13] disabled:opacity-50 text-white font-bold rounded-xl text-xs sm:text-sm px-5 py-2.5 shadow-md flex-1 sm:flex-initial h-10 xs:h-11 flex items-center justify-center gap-2"
               >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
+                <CheckCircle2 className="w-4 h-4" />
                 {isSubmitting
-                  ? "Submitting..."
+                  ? (isEditMode ? "Updating Batch..." : "Submitting...")
+                  : isEditMode
+                  ? "Save & Update Batch"
                   : !isSessionOpen
                   ? "Session Closed"
                   : isGlobalAdmin
@@ -622,5 +755,21 @@ export default function NewProductionPage() {
         </form>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function NewProductionPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout>
+          <div className="max-w-6xl mx-auto py-12 text-center text-sm text-[#8C7361]">
+            Loading production form...
+          </div>
+        </DashboardLayout>
+      }
+    >
+      <ProductionFormContent />
+    </Suspense>
   );
 }
