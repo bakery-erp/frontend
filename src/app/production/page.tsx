@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -31,6 +32,7 @@ interface ProductionBatch {
 }
 
 export default function ProductionPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
@@ -41,6 +43,27 @@ export default function ProductionPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "PENDING">("ALL");
+
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
+
+  const toggleExpandBatch = (batchId: string) => {
+    setExpandedBatches((prev) => ({ ...prev, [batchId]: !prev[batchId] }));
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const btn = tabRefs.current[filterTab];
+      if (btn) {
+        btn.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest',
+        });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [filterTab]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -191,47 +214,6 @@ export default function ProductionPage() {
     }
   };
 
-  // Edit Batch State
-  const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
-
-  const openEditModal = (batch: ProductionBatch) => {
-    setEditingBatchId(batch.id);
-    setDate(format(new Date(batch.date), "yyyy-MM-dd"));
-    setShift(batch.shift || "DAY");
-    setItems(batch.items.map(i => ({ productId: i.product.id || (i as any).productId, quantityProduced: String(i.quantityProduced) })));
-    setMaterials(batch.materialUsages.map(m => ({ stockItemId: m.stockItem.id || (m as any).stockItemId, quantityUsed: String(m.quantityUsed) })));
-  };
-
-  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!editingBatchId) return;
-    if (items.length === 0) {
-      toast.error("You must add at least one produced product");
-      return;
-    }
-
-    setIsSubmitting(true);
-    const data = {
-      date,
-      shift,
-      items: items.map(i => ({ productId: i.productId, quantityProduced: Number(i.quantityProduced) })),
-      materialUsages: materials.map(m => ({ stockItemId: m.stockItemId, quantityUsed: Number(m.quantityUsed) })),
-    };
-
-    try {
-      await api.patch(`/production-batches/${editingBatchId}`, data);
-      toast.success("Production batch updated successfully");
-      setEditingBatchId(null);
-      setItems([]);
-      setMaterials([]);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error updating batch");
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
 
@@ -298,45 +280,54 @@ export default function ProductionPage() {
 
       {/* Filter Tabs & Shift Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3">
-        <div className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth">
-          <button
-            onClick={() => setFilterTab("ALL")}
-            className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-              filterTab === "ALL"
-                ? "bg-[#2C1B10] text-white shadow-xs"
-                : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
-            }`}
-          >
-            All Batches ({roleBatches.length})
-          </button>
-          <button
-            onClick={() => setFilterTab("TODAY")}
-            className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-              filterTab === "TODAY"
-                ? "bg-emerald-700 text-white shadow-xs"
-                : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-            }`}
-          >
-            📅 Today ({todayCount})
-          </button>
-          <button
-            onClick={() => setFilterTab("PENDING")}
-            className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-              filterTab === "PENDING"
-                ? "bg-amber-600 text-white shadow-xs"
-                : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            Pending Approvals
-            {pendingCount > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
-              }`}>
-                {pendingCount}
-              </span>
-            )}
-          </button>
+        <div className="relative overflow-hidden flex-1 max-w-full">
+          {/* Edge gradient hints on small screens */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-3 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-3 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+
+          <div className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5">
+            <button
+              ref={(el) => { tabRefs.current["ALL"] = el; }}
+              onClick={() => setFilterTab("ALL")}
+              className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                filterTab === "ALL"
+                  ? "bg-[#2C1B10] text-white shadow-xs"
+                  : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
+              }`}
+            >
+              All Batches ({roleBatches.length})
+            </button>
+            <button
+              ref={(el) => { tabRefs.current["TODAY"] = el; }}
+              onClick={() => setFilterTab("TODAY")}
+              className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                filterTab === "TODAY"
+                  ? "bg-emerald-700 text-white shadow-xs"
+                  : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+              }`}
+            >
+              📅 Today ({todayCount})
+            </button>
+            <button
+              ref={(el) => { tabRefs.current["PENDING"] = el; }}
+              onClick={() => setFilterTab("PENDING")}
+              className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                filterTab === "PENDING"
+                  ? "bg-amber-600 text-white shadow-xs"
+                  : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              Pending Approvals
+              {pendingCount > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
+                }`}>
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Shift Filter Pill Group (Only visible for Owner & Admin) */}
@@ -400,21 +391,45 @@ export default function ProductionPage() {
               {/* Items Produced */}
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7361] block mb-1.5">
-                  Products Baked / Produced
+                  Products Baked / Produced ({batch.items.length})
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {batch.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]"
-                    >
-                      <span>{item.product.name}</span>
-                      <span className="text-[#E87A18] font-extrabold">
-                        × {item.quantityProduced} {item.product.unitType}
-                      </span>
+                {(() => {
+                  const isExpanded = !!expandedBatches[batch.id];
+                  const hasMore = batch.items.length > 5;
+                  const displayedItems = hasMore && !isExpanded ? batch.items.slice(0, 5) : batch.items;
+
+                  return (
+                    <div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {displayedItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]"
+                          >
+                            <span>{item.product.name}</span>
+                            <span className="text-[#E87A18] font-extrabold">
+                              × {item.quantityProduced} {item.product.unitType}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {hasMore && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandBatch(batch.id)}
+                          className="mt-2 text-xs font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors"
+                        >
+                          {isExpanded ? (
+                            <>Show less</>
+                          ) : (
+                            <>+ Show {batch.items.length - 5} more products</>
+                          )}
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Raw Materials Deducted */}
@@ -449,7 +464,7 @@ export default function ProductionPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => openEditModal(batch)}
+                      onClick={() => router.push(`/production/new?edit=${batch.id}`)}
                       className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
                     >
                       Edit
@@ -545,7 +560,7 @@ export default function ProductionPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => openEditModal(batch)}
+                        onClick={() => router.push(`/production/new?edit=${batch.id}`)}
                         className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                       >
                         Edit
@@ -733,141 +748,7 @@ export default function ProductionPage() {
         </Dialog>
       )}
 
-      {/* EDIT BATCH DIALOG */}
-      {editingBatchId && (
-        <Dialog open={true} onOpenChange={(open) => { if (!open) setEditingBatchId(null); }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
-                Edit Production Batch
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleUpdate} className="mt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4 mb-6">
-                <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Production Date</label>
-                  <Input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="rounded-xl border-zinc-200" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Shift</label>
-                  <select
-                    value={shift} onChange={(e) => setShift(e.target.value as any)}
-                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
-                  >
-                    <option value="DAY">Day Shift</option>
-                    <option value="NIGHT">Night Shift</option>
-                  </select>
-                </div>
-              </div>
 
-              {/* PRODUCTS PRODUCED */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-bold text-[#2C1B10] uppercase">Products Baked <span className="text-red-500">*</span></label>
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs rounded-lg border-zinc-300" onClick={() => setItems([...items, { productId: "", quantityProduced: "" }])}>
-                    <Plus className="w-3 h-3 mr-1" /> Add Product
-                  </Button>
-                </div>
-                {items.length === 0 && <div className="text-xs text-zinc-500 italic p-3 border border-dashed rounded-xl text-center bg-zinc-50">No products added yet. Click 'Add Product'.</div>}
-                <div className="space-y-2.5">
-                  {items.map((item, index) => (
-                    <div key={index} className="flex flex-col xs:flex-row gap-2 p-2 xs:p-0 bg-zinc-50 xs:bg-transparent rounded-xl border xs:border-0 border-zinc-200">
-                      <select
-                        required
-                        value={item.productId}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].productId = e.target.value;
-                          setItems(newItems);
-                        }}
-                        className="flex-1 border border-zinc-200 rounded-xl h-10 xs:h-9 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
-                      >
-                        <option value="" disabled>Select Product</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number" required placeholder="Qty" min="1"
-                          value={item.quantityProduced}
-                          onChange={(e) => {
-                            const newItems = [...items];
-                            newItems[index].quantityProduced = e.target.value;
-                            setItems(newItems);
-                          }}
-                          className="w-full xs:w-28 h-10 xs:h-9 rounded-xl border-zinc-200"
-                        />
-                        <Button type="button" variant="ghost" size="icon" className="h-10 xs:h-9 w-10 xs:w-9 text-red-500 hover:bg-red-50 rounded-xl shrink-0" onClick={() => {
-                          const newItems = [...items];
-                          newItems.splice(index, 1);
-                          setItems(newItems);
-                        }}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* RAW MATERIALS USED */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-bold text-[#2C1B10] uppercase">Raw Materials Consumed</label>
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs rounded-lg border-zinc-300" onClick={() => setMaterials([...materials, { stockItemId: "", quantityUsed: "" }])}>
-                    <Plus className="w-3 h-3 mr-1" /> Add Material
-                  </Button>
-                </div>
-                {materials.length === 0 && <div className="text-xs text-zinc-500 italic p-3 border border-dashed rounded-xl text-center bg-zinc-50">Log ingredients used so stock levels can be updated upon approval.</div>}
-                <div className="space-y-2.5">
-                  {materials.map((mat, index) => (
-                    <div key={index} className="flex flex-col xs:flex-row gap-2 p-2 xs:p-0 bg-zinc-50 xs:bg-transparent rounded-xl border xs:border-0 border-zinc-200">
-                      <select
-                        required
-                        value={mat.stockItemId}
-                        onChange={(e) => {
-                          const newMats = [...materials];
-                          newMats[index].stockItemId = e.target.value;
-                          setMaterials(newMats);
-                        }}
-                        className="flex-1 border border-zinc-200 rounded-xl h-10 xs:h-9 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
-                      >
-                        <option value="" disabled>Select Material</option>
-                        {stockItems.map(s => <option key={s.id} value={s.id}>{s.name} ({s.unitType})</option>)}
-                      </select>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number" step="0.001" required placeholder="Qty" min="0.001"
-                          value={mat.quantityUsed}
-                          onChange={(e) => {
-                            const newMats = [...materials];
-                            newMats[index].quantityUsed = e.target.value;
-                            setMaterials(newMats);
-                          }}
-                          className="w-full xs:w-32 h-10 xs:h-9 rounded-xl border-zinc-200"
-                        />
-                        <Button type="button" variant="ghost" size="icon" className="h-10 xs:h-9 w-10 xs:w-9 text-red-500 hover:bg-red-50 rounded-xl shrink-0" onClick={() => {
-                          const newMats = [...materials];
-                          newMats.splice(index, 1);
-                          setMaterials(newMats);
-                        }}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditingBatchId(null)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
-                  {isSubmitting ? "Updating..." : "Save Changes"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
     </DashboardLayout>
   );
 }
