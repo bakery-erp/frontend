@@ -327,8 +327,8 @@ function ProductionFormContent() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6 pb-12">
         {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
-          <div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
+          <div className="min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
@@ -337,7 +337,7 @@ function ProductionFormContent() {
             >
               <ArrowLeft className="w-4 h-4" /> Back to Production Log
             </Button>
-            <h1 className="text-xl xs:text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
+            <h1 className="text-lg xs:text-xl sm:text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
               {isEditMode ? (
                 <>
                   <Edit3 className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> Edit Production Batch
@@ -348,14 +348,14 @@ function ProductionFormContent() {
                 </>
               )}
             </h1>
-            <p className="text-xs text-[#8C7361] mt-0.5">
+            <p className="text-xs text-[#8C7361] mt-1 max-w-2xl">
               {isEditMode
                 ? "Update products baked, quantities produced, or raw materials consumed for this batch."
                 : "Select product categories, sub-categories, baked items, and raw materials consumed during this shift."}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             {isEditMode && originalBatchStatus && (
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
