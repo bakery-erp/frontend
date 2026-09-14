@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
@@ -93,6 +93,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isViewOnly, setIsViewOnly] = useState(false);
+
+  // UX Focus and Scroll Refs
+  const expenseTopRef = useRef<HTMLDivElement | null>(null);
+  const expenseAmountInputRef = useRef<HTMLInputElement | null>(null);
+  const resellFormRef = useRef<HTMLDivElement | null>(null);
+  const resellSupplierRef = useRef<HTMLSelectElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -221,14 +227,30 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
   const handleAddExpenseRow = () => {
     setExpenseList((prev) => [
-      ...prev,
       {
-        amount: 0,
+        amount: "" as any,
         category: allCategoryOptions[0] || "Other Operational Expense",
         description: "",
-        isEditing: true, // Newly added expense row starts in edit mode
+        isEditing: true, // Newly added expense row starts in edit mode ON TOP!
       },
+      ...prev,
     ]);
+
+    setTimeout(() => {
+      expenseTopRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      expenseAmountInputRef.current?.focus();
+    }, 60);
+  };
+
+  const handleToggleResellForm = () => {
+    const nextState = !isResellFormOpen;
+    setIsResellFormOpen(nextState);
+    if (nextState) {
+      setTimeout(() => {
+        resellFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        resellSupplierRef.current?.focus();
+      }, 60);
+    }
   };
 
   const handleRemoveExpenseRow = (index: number) => {
@@ -410,7 +432,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   }
 
   const productionSummary = session.productionSummary || [];
-  const supplierDeliveries = session.supplierDeliveries || [];
+  const supplierDeliveries = [...(session.supplierDeliveries || [])].reverse();
 
   return (
     <DashboardLayout>
@@ -723,7 +745,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               {expenseList.map((exp, idx) => (
                 exp.isEditing ? (
                   /* ── EDIT MODE CARD ── */
-                  <div key={idx} className="bg-[#FAF6F0] p-3.5 rounded-xl border border-amber-300 shadow-2xs space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 sm:items-center animate-in fade-in duration-150">
+                  <div
+                    key={idx}
+                    ref={idx === 0 ? expenseTopRef : undefined}
+                    className="bg-[#FAF6F0] p-3.5 rounded-xl border border-amber-300 shadow-2xs space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 sm:items-center animate-in fade-in duration-150"
+                  >
                     <div className="sm:col-span-4">
                       <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Expense Category</label>
                       <select
@@ -741,13 +767,14 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     <div className="sm:col-span-3">
                       <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Amount (ETB)</label>
                       <Input
+                        ref={idx === 0 ? expenseAmountInputRef : undefined}
                         type="number"
                         step="0.01"
                         placeholder="0.00"
                         value={exp.amount || ""}
                         disabled={isViewOnly}
                         onChange={(e) => handleExpenseChange(idx, "amount", e.target.value)}
-                        className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold disabled:opacity-80"
+                        className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold disabled:opacity-80 focus:ring-2 focus:ring-amber-500/20"
                       />
                     </div>
 
@@ -859,7 +886,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             </div>
             <Button
               type="button"
-              onClick={() => setIsResellFormOpen(!isResellFormOpen)}
+              onClick={handleToggleResellForm}
               size="sm"
               className={`text-xs font-bold rounded-xl w-full sm:w-auto h-9 transition-all ${
                 isResellFormOpen
@@ -881,7 +908,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
           {/* Inline Expandable Form (No cramped popup modal on mobile!) */}
           {isResellFormOpen && (
-            <div className="mb-5 bg-[#FAF6F0] p-4 sm:p-5 rounded-2xl border border-indigo-200/90 shadow-2xs space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div
+              ref={resellFormRef}
+              className="mb-5 bg-[#FAF6F0] p-4 sm:p-5 rounded-2xl border border-indigo-200/90 shadow-2xs space-y-4 animate-in fade-in slide-in-from-top-2 duration-200"
+            >
               <div className="flex items-center justify-between border-b border-[#EDE4D5] pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
@@ -911,6 +941,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       Supplier <span className="text-rose-600">*</span>
                     </label>
                     <select
+                      ref={resellSupplierRef}
                       required
                       value={resellSupplierId}
                       onChange={(e) => setResellSupplierId(e.target.value)}
@@ -1035,7 +1066,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 </div>
 
                 {/* 4. Live Cost Preview & Action Buttons */}
-                <div className="bg-white p-3 rounded-xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+                <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 overflow-hidden">
                   <div className="flex items-center gap-3 text-xs">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total Batch Cost</span>
@@ -1056,21 +1087,21 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsResellFormOpen(false)}
-                      className="border-[#EDE4D5] rounded-xl text-xs h-9 flex-1 sm:flex-initial"
+                      className="border-[#EDE4D5] text-[#4A2E1B] rounded-xl text-xs h-10 px-3.5 flex-1 sm:flex-initial shrink-0 font-bold hover:bg-[#FAF6F0]"
                     >
                       Cancel
                     </Button>
                     <Button
                       type="submit"
                       disabled={isLoggingResell}
-                      className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold h-9 px-4 flex-1 sm:flex-initial shadow-xs"
+                      className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold h-10 px-3.5 flex-1 sm:flex-initial shadow-xs shrink-0 flex items-center justify-center text-center"
                     >
-                      {isLoggingResell ? "Saving..." : "Save Resell Delivery"}
+                      <span className="truncate">{isLoggingResell ? "Saving..." : "Save Resell Delivery"}</span>
                     </Button>
                   </div>
                 </div>
