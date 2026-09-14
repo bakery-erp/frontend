@@ -262,21 +262,25 @@ export default function ProductionPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 xs:mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('production.title')}</h1>
+          <h1 className="text-xl xs:text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('production.title')}</h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('production.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 xs:gap-3 w-full sm:w-auto">
           {isGlobalAdmin && (
-            <Button onClick={() => window.location.href = '/production/history'} variant="outline" className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm flex items-center gap-1.5">
+            <Button
+              onClick={() => window.location.href = '/production/history'}
+              variant="outline"
+              className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 flex-1 sm:flex-initial h-10 xs:h-11"
+            >
               <History className="w-4 h-4 text-[#E87A18]" /> {t('nav.dailyProductHistory')}
             </Button>
           )}
           <Button
             onClick={() => window.location.href = '/production/new'}
             disabled={!isSessionOpen}
-            className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
+            className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 flex-1 sm:flex-initial h-10 xs:h-11"
           >
             <Plus className="w-4 h-4" /> {t('production.newBatch')}
           </Button>
@@ -284,7 +288,7 @@ export default function ProductionPage() {
       </div>
 
       {!isSessionOpen && (
-        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
+        <div className="mb-4 xs:mb-6 p-3.5 xs:p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
           <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
           <span>
             Daily business session is currently <strong>{sessionStatusLabel}</strong>. Logging new production batches is disabled until the session is reopened.
@@ -292,39 +296,43 @@ export default function ProductionPage() {
         </div>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-zinc-200 pb-3">
-        <div className="flex items-center gap-2 overflow-x-auto">
+      {/* Filter Tabs & Shift Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3">
+        <div className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth">
           <button
             onClick={() => setFilterTab("ALL")}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${filterTab === "ALL"
-                ? "bg-[#2C1B10] text-white shadow-sm"
-                : "text-zinc-600 hover:bg-zinc-100"
-              }`}
+            className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+              filterTab === "ALL"
+                ? "bg-[#2C1B10] text-white shadow-xs"
+                : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
+            }`}
           >
             All Batches ({roleBatches.length})
           </button>
           <button
             onClick={() => setFilterTab("TODAY")}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${filterTab === "TODAY"
-                ? "bg-emerald-700 text-white shadow-sm"
+            className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              filterTab === "TODAY"
+                ? "bg-emerald-700 text-white shadow-xs"
                 : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-              }`}
+            }`}
           >
             📅 Today ({todayCount})
           </button>
           <button
             onClick={() => setFilterTab("PENDING")}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${filterTab === "PENDING"
-                ? "bg-amber-600 text-white shadow-sm"
+            className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              filterTab === "PENDING"
+                ? "bg-amber-600 text-white shadow-xs"
                 : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
-              }`}
+            }`}
           >
             <Clock className="w-3.5 h-3.5" />
             Pending Approvals
             {pendingCount > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
-                }`}>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
+              }`}>
                 {pendingCount}
               </span>
             )}
@@ -333,7 +341,7 @@ export default function ProductionPage() {
 
         {/* Shift Filter Pill Group (Only visible for Owner & Admin) */}
         {isGlobalAdmin && (
-          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5]">
+          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 self-start sm:self-auto">
             <button
               onClick={() => setShiftFilter("ALL")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -348,7 +356,7 @@ export default function ProductionPage() {
                 shiftFilter === "DAY" ? "bg-amber-500 text-zinc-950 shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
               }`}
             >
-              ☀️ Day Shift
+              ☀️ Day
             </button>
             <button
               onClick={() => setShiftFilter("NIGHT")}
@@ -356,13 +364,127 @@ export default function ProductionPage() {
                 shiftFilter === "NIGHT" ? "bg-indigo-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
               }`}
             >
-              🌙 Night Shift
+              🌙 Night
             </button>
           </div>
         )}
       </div>
 
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
+      {/* ── Mobile Card List (block on < md) ── */}
+      <div className="space-y-3 block md:hidden mb-6">
+        {isLoading ? (
+          <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
+            Loading production logs...
+          </div>
+        ) : filteredBatches.length === 0 ? (
+          <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
+            {filterTab === "PENDING" ? "No pending batch approvals found." : "No production batches recorded."}
+          </div>
+        ) : (
+          filteredBatches.map((batch) => (
+            <div
+              key={batch.id}
+              className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-3 hover:border-[#E87A18]/30 transition-all"
+            >
+              {/* Card Header: Date, Shift, and Status */}
+              <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
+                <div>
+                  <div className="font-extrabold text-sm text-[#2C1B10]">{formatEthDate(batch.date)}</div>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#8C7361] mt-0.5">
+                    {batch.shift === "NIGHT" ? "🌙 Night Shift" : "☀️ Day Shift"}
+                  </span>
+                </div>
+                <div>{getStatusBadge(batch.status)}</div>
+              </div>
+
+              {/* Items Produced */}
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7361] block mb-1.5">
+                  Products Baked / Produced
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {batch.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]"
+                    >
+                      <span>{item.product.name}</span>
+                      <span className="text-[#E87A18] font-extrabold">
+                        × {item.quantityProduced} {item.product.unitType}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Raw Materials Deducted */}
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7361] block mb-1">
+                  Raw Materials Consumed
+                </span>
+                {batch.materialUsages.length === 0 ? (
+                  <span className="text-xs text-zinc-400 italic">No materials deducted</span>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {batch.materialUsages.map((mat) => (
+                      <span
+                        key={mat.id}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800"
+                      >
+                        {mat.stockItem.name}: -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Card Footer: Logged by & Action Buttons */}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F4ECE1]">
+                <span className="text-[11px] text-[#8C7361] font-semibold truncate">
+                  By: <strong className="text-[#2C1B10]">{batch.user.fullName}</strong>
+                </span>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openEditModal(batch)}
+                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
+                    <>
+                      <Button
+                        size="sm"
+                        disabled={actionBatchId === batch.id}
+                        onClick={() => handleApprove(batch.id)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-xs"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionBatchId === batch.id}
+                        onClick={() => handleReject(batch.id)}
+                        className="border-red-300 text-red-700 hover:bg-red-50 font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
+                      >
+                        <XCircle className="w-3.5 h-3.5" /> Reject
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ── Desktop Table (hidden on < md, visible on md+) ── */}
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -621,7 +743,7 @@ export default function ProductionPage() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleUpdate} className="mt-2">
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4 mb-6">
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Production Date</label>
                   <Input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="rounded-xl border-zinc-200" />
@@ -647,9 +769,9 @@ export default function ProductionPage() {
                   </Button>
                 </div>
                 {items.length === 0 && <div className="text-xs text-zinc-500 italic p-3 border border-dashed rounded-xl text-center bg-zinc-50">No products added yet. Click 'Add Product'.</div>}
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {items.map((item, index) => (
-                    <div key={index} className="flex gap-2">
+                    <div key={index} className="flex flex-col xs:flex-row gap-2 p-2 xs:p-0 bg-zinc-50 xs:bg-transparent rounded-xl border xs:border-0 border-zinc-200">
                       <select
                         required
                         value={item.productId}
@@ -658,28 +780,30 @@ export default function ProductionPage() {
                           newItems[index].productId = e.target.value;
                           setItems(newItems);
                         }}
-                        className="flex-1 border border-zinc-200 rounded-xl h-9 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
+                        className="flex-1 border border-zinc-200 rounded-xl h-10 xs:h-9 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
                       >
                         <option value="" disabled>Select Product</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
-                      <Input
-                        type="number" required placeholder="Qty" min="1"
-                        value={item.quantityProduced}
-                        onChange={(e) => {
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number" required placeholder="Qty" min="1"
+                          value={item.quantityProduced}
+                          onChange={(e) => {
+                            const newItems = [...items];
+                            newItems[index].quantityProduced = e.target.value;
+                            setItems(newItems);
+                          }}
+                          className="w-full xs:w-28 h-10 xs:h-9 rounded-xl border-zinc-200"
+                        />
+                        <Button type="button" variant="ghost" size="icon" className="h-10 xs:h-9 w-10 xs:w-9 text-red-500 hover:bg-red-50 rounded-xl shrink-0" onClick={() => {
                           const newItems = [...items];
-                          newItems[index].quantityProduced = e.target.value;
+                          newItems.splice(index, 1);
                           setItems(newItems);
-                        }}
-                        className="w-24 h-9 rounded-xl border-zinc-200"
-                      />
-                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 rounded-xl" onClick={() => {
-                        const newItems = [...items];
-                        newItems.splice(index, 1);
-                        setItems(newItems);
-                      }}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -694,9 +818,9 @@ export default function ProductionPage() {
                   </Button>
                 </div>
                 {materials.length === 0 && <div className="text-xs text-zinc-500 italic p-3 border border-dashed rounded-xl text-center bg-zinc-50">Log ingredients used so stock levels can be updated upon approval.</div>}
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {materials.map((mat, index) => (
-                    <div key={index} className="flex gap-2">
+                    <div key={index} className="flex flex-col xs:flex-row gap-2 p-2 xs:p-0 bg-zinc-50 xs:bg-transparent rounded-xl border xs:border-0 border-zinc-200">
                       <select
                         required
                         value={mat.stockItemId}
@@ -705,28 +829,30 @@ export default function ProductionPage() {
                           newMats[index].stockItemId = e.target.value;
                           setMaterials(newMats);
                         }}
-                        className="flex-1 border border-zinc-200 rounded-xl h-9 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
+                        className="flex-1 border border-zinc-200 rounded-xl h-10 xs:h-9 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
                       >
                         <option value="" disabled>Select Material</option>
                         {stockItems.map(s => <option key={s.id} value={s.id}>{s.name} ({s.unitType})</option>)}
                       </select>
-                      <Input
-                        type="number" step="0.001" required placeholder="Qty" min="0.001"
-                        value={mat.quantityUsed}
-                        onChange={(e) => {
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number" step="0.001" required placeholder="Qty" min="0.001"
+                          value={mat.quantityUsed}
+                          onChange={(e) => {
+                            const newMats = [...materials];
+                            newMats[index].quantityUsed = e.target.value;
+                            setMaterials(newMats);
+                          }}
+                          className="w-full xs:w-32 h-10 xs:h-9 rounded-xl border-zinc-200"
+                        />
+                        <Button type="button" variant="ghost" size="icon" className="h-10 xs:h-9 w-10 xs:w-9 text-red-500 hover:bg-red-50 rounded-xl shrink-0" onClick={() => {
                           const newMats = [...materials];
-                          newMats[index].quantityUsed = e.target.value;
+                          newMats.splice(index, 1);
                           setMaterials(newMats);
-                        }}
-                        className="w-32 h-9 rounded-xl border-zinc-200"
-                      />
-                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 rounded-xl" onClick={() => {
-                        const newMats = [...materials];
-                        newMats.splice(index, 1);
-                        setMaterials(newMats);
-                      }}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

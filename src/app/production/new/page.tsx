@@ -253,25 +253,25 @@ export default function NewProductionPage() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6 pb-12">
         {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
           <div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push("/production")}
-              className="text-[#8C7361] hover:text-[#2C1B10] mb-2 p-0 h-auto flex items-center gap-1 font-bold text-xs"
+              className="text-[#8C7361] hover:text-[#2C1B10] mb-1.5 p-0 h-auto flex items-center gap-1 font-bold text-xs"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Production Log
             </Button>
-            <h1 className="text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
-              <PackageCheck className="w-6 h-6 text-[#E87A18]" /> Multi-Item Production Batch Entry
+            <h1 className="text-xl xs:text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
+              <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> Multi-Item Production Batch Entry
             </h1>
             <p className="text-xs text-[#8C7361] mt-0.5">
               Select product categories, sub-categories, baked items, and raw materials consumed during this shift.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <span
               className={`px-3 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wide border ${
                 isSessionOpen
@@ -286,7 +286,7 @@ export default function NewProductionPage() {
 
         {/* Warning if no active open session */}
         {!isSessionOpen && (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-3 shadow-xs">
+          <div className="p-3.5 xs:p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5 xs:gap-3 shadow-xs">
             <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
             <div>
               <h4 className="font-extrabold text-sm">Active Session Required</h4>
@@ -297,9 +297,9 @@ export default function NewProductionPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmitBatch} className="space-y-6">
+        <form onSubmit={handleSubmitBatch} className="space-y-4 xs:space-y-6">
           {/* Shift & Date Header Configuration */}
-          <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
                 Production Date {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
@@ -310,7 +310,7 @@ export default function NewProductionPage() {
                 disabled={!isGlobalAdmin}
                 value={isGlobalAdmin ? date : new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)}
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-medium disabled:opacity-75 disabled:cursor-not-allowed text-[#4A2E1B]"
+                className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-medium disabled:opacity-75 disabled:cursor-not-allowed text-[#4A2E1B] h-10 xs:h-11"
               />
               {!isGlobalAdmin && (
                 <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">
@@ -325,7 +325,7 @@ export default function NewProductionPage() {
               <select
                 value={shift}
                 onChange={(e) => setShift(e.target.value as any)}
-                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
+                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
               >
                 <option value="DAY">Day Shift (Pagal / Day)</option>
                 <option value="NIGHT">Night Shift (Rati / Night)</option>
@@ -334,35 +334,35 @@ export default function NewProductionPage() {
           </div>
 
           {/* SECTION 1: PRODUCT CATEGORY FILTER & MULTI-PRODUCT SELECTION */}
-          <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F4ECE1] pb-4">
+          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
-                <h2 className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <Utensils className="w-5 h-5 text-[#E87A18]" /> 1. Select Bakery Products & Quantities
+                <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                  <Utensils className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" /> 1. Select Bakery Products & Quantities
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
                   Filter by category / subcategory and check all items baked in this batch.
                 </p>
               </div>
 
-              <span className="text-xs font-extrabold px-3 py-1.5 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
+              <span className="text-xs font-extrabold px-3 py-1 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
                 {totalProductsSelectedCount} Products Selected
               </span>
             </div>
 
             {/* Category & Subcategory Filter Tabs */}
-            <div className="space-y-3 bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5]">
+            <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
               <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
                 <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1">
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedParentCatId("ALL");
                     setSelectedSubCatId("ALL");
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
                     selectedParentCatId === "ALL"
                       ? "bg-[#4A2E1B] text-white shadow-xs"
                       : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
@@ -382,7 +382,7 @@ export default function NewProductionPage() {
                         setSelectedParentCatId(cat.id);
                         setSelectedSubCatId("ALL");
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
                         selectedParentCatId === cat.id
                           ? "bg-[#4A2E1B] text-white shadow-xs"
                           : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
@@ -396,12 +396,12 @@ export default function NewProductionPage() {
 
               {/* Sub-Category Filter Row if applicable */}
               {subCategories.length > 0 && (
-                <div className="pt-3 border-t border-[#EDE4D5] flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-bold text-[#8C7361] mr-1">Sub-Category:</span>
+                <div className="pt-2.5 border-t border-[#EDE4D5] flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1">
+                  <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
                   <button
                     type="button"
                     onClick={() => setSelectedSubCatId("ALL")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
                       selectedSubCatId === "ALL"
                         ? "bg-[#E87A18] text-white"
                         : "bg-white text-[#8C7361] border border-[#EDE4D5]"
@@ -414,7 +414,7 @@ export default function NewProductionPage() {
                       key={sub.id}
                       type="button"
                       onClick={() => setSelectedSubCatId(sub.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
                         selectedSubCatId === sub.id
                           ? "bg-[#E87A18] text-white"
                           : "bg-white text-[#8C7361] border border-[#EDE4D5]"
@@ -500,18 +500,18 @@ export default function NewProductionPage() {
           </div>
 
           {/* SECTION 2: RAW MATERIAL / INGREDIENT SELECTION */}
-          <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F4ECE1] pb-4">
+          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
-                <h2 className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <Boxes className="w-5 h-5 text-indigo-600" /> 2. Select Consumed Raw Materials & Ingredients
+                <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                  <Boxes className="w-4 h-4 xs:w-5 xs:h-5 text-indigo-600" /> 2. Select Consumed Raw Materials & Ingredients
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
                   Multi-select flour, sugar, yeast, oil, and packaging materials consumed for this production.
                 </p>
               </div>
 
-              <span className="text-xs font-extrabold px-3 py-1.5 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
+              <span className="text-xs font-extrabold px-3 py-1 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
                 {totalMaterialsSelectedCount} Ingredients Selected
               </span>
             </div>
@@ -528,7 +528,7 @@ export default function NewProductionPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[350px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3 max-h-[350px] overflow-y-auto pr-1">
               {filteredMaterials.map((mat) => {
                 const isSelected = selectedMaterials[mat.id] !== undefined;
                 const qtyVal = selectedMaterials[mat.id] || "";
@@ -564,7 +564,7 @@ export default function NewProductionPage() {
 
                     {isSelected && (
                       <div className="pt-2 border-t border-indigo-200 flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase text-indigo-900">Used:</span>
+                        <span className="text-[10px] font-extrabold uppercase text-indigo-900 shrink-0">Used:</span>
                         <Input
                           type="number"
                           step="0.001"
@@ -572,9 +572,9 @@ export default function NewProductionPage() {
                           placeholder="Qty"
                           value={qtyVal}
                           onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
-                          className="h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-indigo-950"
+                          className="h-9 xs:h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-indigo-950"
                         />
-                        <span className="text-[10px] font-bold text-zinc-500">{mat.unitType}</span>
+                        <span className="text-[10px] font-bold text-zinc-500 shrink-0">{mat.unitType}</span>
                       </div>
                     )}
                   </div>
@@ -584,7 +584,7 @@ export default function NewProductionPage() {
           </div>
 
           {/* SUMMARY PANEL & SUBMISSION */}
-          <div className="bg-[#FAF6F0] p-6 rounded-2xl border border-[#EDE4D5] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm">
             <div>
               <h3 className="font-extrabold text-sm text-[#2C1B10]">Ready to submit production batch?</h3>
               <p className="text-xs text-[#8C7361] mt-0.5">
@@ -593,12 +593,12 @@ export default function NewProductionPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2.5 xs:gap-3 w-full sm:w-auto">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.push("/production")}
-                className="border-[#EDE4D5] text-[#8C7361] hover:bg-white rounded-xl text-xs font-bold flex-1 sm:flex-initial"
+                className="border-[#EDE4D5] text-[#8C7361] hover:bg-white rounded-xl text-xs font-bold flex-1 sm:flex-initial h-10 xs:h-11"
               >
                 Cancel
               </Button>
@@ -606,9 +606,9 @@ export default function NewProductionPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting || !isSessionOpen || totalProductsSelectedCount === 0}
-                className="bg-[#E87A18] hover:bg-[#d46d13] disabled:opacity-50 text-white font-bold rounded-xl text-xs sm:text-sm px-6 py-2.5 shadow-md flex-1 sm:flex-initial"
+                className="bg-[#E87A18] hover:bg-[#d46d13] disabled:opacity-50 text-white font-bold rounded-xl text-xs sm:text-sm px-5 py-2.5 shadow-md flex-1 sm:flex-initial h-10 xs:h-11 flex items-center justify-center gap-2"
               >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
+                <CheckCircle2 className="w-4 h-4" />
                 {isSubmitting
                   ? "Submitting..."
                   : !isSessionOpen

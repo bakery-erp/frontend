@@ -53,6 +53,8 @@ interface ProductionBatch {
 
 export default function MobileSambusaStation() {
   const { user } = useAuth();
+  const isGlobalAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [activeTab, setActiveTab] = useState<'NEW_BATCH' | 'SHIFT_HISTORY'>('NEW_BATCH');
 
@@ -173,8 +175,6 @@ export default function MobileSambusaStation() {
     return acc + b.items.reduce((iAcc, item) => iAcc + item.quantityProduced, 0);
   }, 0);
 
-  const isGlobalAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
-
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col justify-between pb-6 font-sans">
       {/* Top Header */}
@@ -285,29 +285,29 @@ export default function MobileSambusaStation() {
               {products.map((p) => {
                 const qty = producedCounts[p.id] || 0;
                 return (
-                  <div key={p.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between shadow-md">
-                    <div>
-                      <p className="font-extrabold text-base text-white">{p.name}</p>
-                      {p.flavor && <p className="text-xs text-zinc-400">{p.flavor}</p>}
+                  <div key={p.id} className="bg-zinc-900 border border-zinc-800 p-3 xs:p-4 rounded-2xl flex items-center justify-between shadow-md gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-extrabold text-sm xs:text-base text-white truncate">{p.name}</p>
+                      <span className="text-[11px] text-zinc-400 block">{p.flavor || p.unitType}</span>
                     </div>
 
-                    <div className="flex items-center space-x-3 bg-zinc-950 border border-zinc-800 p-2 rounded-xl">
+                    <div className="flex items-center space-x-1.5 xs:space-x-3 bg-zinc-950 border border-zinc-800 p-1.5 xs:p-2 rounded-xl shrink-0">
                       <button
                         type="button"
                         disabled={!isSessionOpen}
                         onClick={() => updateCount(p.id, -5)}
-                        className="w-10 h-10 bg-zinc-900 text-zinc-300 disabled:opacity-40 rounded-lg font-bold"
+                        className="w-9 h-9 xs:w-10 xs:h-10 bg-zinc-900 text-zinc-300 disabled:opacity-40 rounded-lg font-bold text-xs xs:text-sm active:scale-95 transition-all"
                       >
                         -5
                       </button>
-                      <span className="w-10 text-center text-xl font-extrabold font-mono text-rose-400">
+                      <span className="w-8 xs:w-10 text-center text-lg xs:text-xl font-extrabold font-mono text-rose-400">
                         {qty}
                       </span>
                       <button
                         type="button"
                         disabled={!isSessionOpen}
                         onClick={() => updateCount(p.id, 5)}
-                        className="w-10 h-10 bg-rose-500 text-white disabled:opacity-40 rounded-lg font-bold shadow-md shadow-rose-500/20"
+                        className="w-9 h-9 xs:w-10 xs:h-10 bg-rose-500 text-white disabled:opacity-40 rounded-lg font-bold shadow-md shadow-rose-500/20 text-xs xs:text-sm active:scale-95 transition-all"
                       >
                         +5
                       </button>
