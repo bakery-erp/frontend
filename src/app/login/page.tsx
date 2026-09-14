@@ -65,27 +65,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAF7EE] p-4 font-sans relative">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAF7EE] p-2.5 xs:p-4 font-sans relative">
       {/* Floating Language Selector at top-right */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+      <div className="absolute top-2.5 right-2.5 xs:top-4 xs:right-4 sm:top-6 sm:right-6 z-20">
         <LanguageSelector variant="header" />
       </div>
 
-      <Card className="w-full max-w-md shadow-[0_10px_30px_rgba(74,46,27,0.08)] border border-[#EDE4D5] bg-[#FFFDF8] rounded-3xl overflow-hidden">
-        <CardHeader className="space-y-4 text-center pt-8 pb-4">
-          <div className="mx-auto w-16 h-16 bg-[#E87A18] rounded-2xl flex items-center justify-center shadow-lg shadow-[#E87A18]/25">
-            <Store className="w-8 h-8 text-white" />
+      <Card className="w-full max-w-md shadow-[0_10px_30px_rgba(74,46,27,0.08)] border border-[#EDE4D5] bg-[#FFFDF8] rounded-2xl xs:rounded-3xl overflow-hidden mt-8 xs:mt-0">
+        <CardHeader className="space-y-3 xs:space-y-4 text-center pt-6 xs:pt-8 pb-3 xs:pb-4">
+          <div className="mx-auto w-14 h-14 xs:w-16 xs:h-16 bg-[#E87A18] rounded-2xl flex items-center justify-center shadow-lg shadow-[#E87A18]/25">
+            <Store className="w-7 h-7 xs:w-8 xs:h-8 text-white" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-extrabold tracking-tight text-[#2C1B10]">Bakery ERP</CardTitle>
-            <CardDescription className="pt-2 text-xs font-medium text-[#8C7361]">
+            <CardTitle className="text-xl xs:text-2xl font-extrabold tracking-tight text-[#2C1B10]">Bakery ERP</CardTitle>
+            <CardDescription className="pt-1 xs:pt-2 text-xs font-medium text-[#8C7361]">
               {t('auth.signInSubtitle')}
             </CardDescription>
           </div>
         </CardHeader>
 
-        <CardContent className="px-6 sm:px-8 pb-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <CardContent className="px-3.5 xs:px-6 sm:px-8 pb-5 xs:pb-6">
+          <form onSubmit={handleSubmit} className="space-y-4 xs:space-y-5">
             {error && (
               <div className="p-3 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-center text-center">
                 {error}
@@ -167,10 +167,10 @@ export default function LoginPage() {
 
       {/* Forgot Password Request Modal */}
       {isResetOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in-0">
-          <div className="bg-[#FFFDF8] rounded-3xl p-6 w-full max-w-md shadow-2xl border border-[#EDE4D5] space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 xs:p-4 bg-black/40 backdrop-blur-xs animate-in fade-in-0">
+          <div className="bg-[#FFFDF8] rounded-2xl xs:rounded-3xl p-4 xs:p-6 w-[calc(100vw-1.5rem)] max-w-md shadow-2xl border border-[#EDE4D5] space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#EDE4D5]">
-              <h3 className="text-base font-extrabold text-[#2C1B10]">Request Password Reset</h3>
+              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10]">Request Password Reset</h3>
               <button
                 onClick={() => setIsResetOpen(false)}
                 className="text-[#8C7361] hover:text-[#4A2E1B] text-lg font-bold p-1 transition-colors"
@@ -184,11 +184,11 @@ export default function LoginPage() {
             </p>
 
             {resetMsg ? (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs font-semibold text-emerald-800 text-center space-y-3">
+              <div className="p-3.5 xs:p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs font-semibold text-emerald-800 text-center space-y-3">
                 <p>{resetMsg}</p>
                 <Button
                   onClick={() => setIsResetOpen(false)}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-10 rounded-xl"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-11 rounded-xl"
                 >
                   Return to Login
                 </Button>
@@ -219,19 +219,19 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-col xs:flex-row gap-2 pt-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setIsResetOpen(false)}
-                    className="flex-1 h-11 rounded-xl text-xs font-bold bg-[#F4ECE1] hover:bg-[#E0D5C3] text-[#4A2E1B] border-[#EDE4D5]"
+                    className="w-full xs:flex-1 h-11 rounded-xl text-xs font-bold bg-[#F4ECE1] hover:bg-[#E0D5C3] text-[#4A2E1B] border-[#EDE4D5]"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     disabled={isResetSubmitting}
-                    className="flex-1 h-11 rounded-xl text-xs font-extrabold bg-[#E87A18] hover:bg-[#d46d13] text-white shadow-md shadow-[#E87A18]/20"
+                    className="w-full xs:flex-1 h-11 rounded-xl text-xs font-extrabold bg-[#E87A18] hover:bg-[#d46d13] text-white shadow-md shadow-[#E87A18]/20"
                   >
                     {isResetSubmitting ? (
                       <>
