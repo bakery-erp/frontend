@@ -116,7 +116,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [actualTelebirr, setActualTelebirr] = useState<string>("");
   const [cashLeftover, setCashLeftover] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
-  const [leftovers, setLeftovers] = useState<Record<string, { quantityRemaining: number; damagedQuantity: number; damageReason: string }>>({});
+  const [leftovers, setLeftovers] = useState<Record<string, { quantityRemaining: number | string; damagedQuantity: number | string; damageReason: string }>>({});
   const [expenseList, setExpenseList] = useState<ExpenseItem[]>([]);
 
   // Resells Inline Form State (No annoying popup modal)
@@ -187,13 +187,13 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       setCashLeftover(s.cashLeftoverAmount != null ? String(s.cashLeftoverAmount) : "");
       setNotes(s.notes || "");
 
-      // Populate leftovers map
-      const initialLeftovers: Record<string, { quantityRemaining: number; damagedQuantity: number; damageReason: string }> = {};
+      // Populate leftovers map: default empty so placeholder 0 displays and typing immediately enters fresh number
+      const initialLeftovers: Record<string, { quantityRemaining: number | string; damagedQuantity: number | string; damageReason: string }> = {};
       (resProd.data || []).forEach((p: Product) => {
         const existing = (s.leftoverRecords || []).find((r) => r.productId === p.id);
         initialLeftovers[p.id] = {
-          quantityRemaining: existing ? existing.quantityRemaining : 0,
-          damagedQuantity: existing ? existing.damagedQuantity : 0,
+          quantityRemaining: existing && existing.quantityRemaining > 0 ? existing.quantityRemaining : "",
+          damagedQuantity: existing && existing.damagedQuantity > 0 ? existing.damagedQuantity : "",
           damageReason: existing ? existing.damageReason || "" : "",
         };
       });
@@ -266,11 +266,21 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   };
 
   const handleLeftoverChange = (productId: string, field: "quantityRemaining" | "damagedQuantity" | "damageReason", value: any) => {
+    let cleanVal = value;
+    if (field !== "damageReason") {
+      if (value === "" || value === null || value === undefined) {
+        cleanVal = "";
+      } else {
+        // Parse int to strip any accidental leading zeros (e.g., typing 88 when 0 was present)
+        const parsed = parseInt(String(value), 10);
+        cleanVal = isNaN(parsed) ? "" : Math.max(0, parsed);
+      }
+    }
     setLeftovers((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],
-        [field]: field === "damageReason" ? value : Math.max(0, Number(value) || 0),
+        [field]: cleanVal,
       },
     }));
   };
@@ -312,18 +322,19 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const buildPayload = () => {
     const formattedLeftovers = Object.entries(leftovers).map(([productId, val]) => ({
       productId,
-      quantityRemaining: val.quantityRemaining,
-      damagedQuantity: val.damagedQuantity,
-      damageReason: val.damageReason,
+      quantityRemaining: Number(val.quantityRemaining) || 0,
+      damagedQuantity: Number(val.damagedQuantity) || 0,
+      damageReason: val.damageReason || "",
     }));
 
     // Validate leftover quantities against available stock limits
     const availableStockSummary = (session as any)?.availableStockSummary || {};
     for (const [productId, val] of Object.entries(leftovers)) {
+      const qty = Number(val.quantityRemaining) || 0;
       const stockInfo = availableStockSummary[productId];
-      if (stockInfo && val.quantityRemaining > stockInfo.maxAvailable) {
+      if (stockInfo && qty > stockInfo.maxAvailable) {
         toast.error(
-          `Cannot save leftover of ${val.quantityRemaining} Pcs for ${stockInfo.productName}. Maximum available in this session is ${stockInfo.maxAvailable} Pcs (Produced/Delivered: ${stockInfo.producedQty + stockInfo.deliveredQty}, Sold: ${stockInfo.soldQty}). Please correct it.`
+          `Cannot save leftover of ${qty} Pcs for ${stockInfo.productName}. Maximum available in this session is ${stockInfo.maxAvailable} Pcs (Produced/Delivered: ${stockInfo.producedQty + stockInfo.deliveredQty}, Sold: ${stockInfo.soldQty}). Please correct it.`
         );
         return null;
       }
@@ -606,6 +617,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   placeholder="0.00 ETB"
                   value={actualCash}
                   disabled={isViewOnly}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setActualCash(e.target.value)}
                   className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
                 />
@@ -625,6 +637,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   placeholder="0.00 ETB"
                   value={actualCbe}
                   disabled={isViewOnly}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setActualCbe(e.target.value)}
                   className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
                 />
@@ -644,6 +657,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   placeholder="0.00 ETB"
                   value={actualTelebirr}
                   disabled={isViewOnly}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setActualTelebirr(e.target.value)}
                   className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
                 />
@@ -670,8 +684,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   placeholder="0.00 ETB"
                   value={cashLeftover}
                   disabled={isViewOnly}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setCashLeftover(e.target.value)}
-                  className="bg-white border-[#FDE68A] font-mono font-bold text-base text-amber-900 disabled:opacity-80"
+                  className="bg-white border-[#FDE68A] font-mono font-bold text-base text-[#92400E] disabled:opacity-80"
                 />
               </div>
               <p className="text-[10px] text-amber-700 font-medium mt-2">Cash kept in drawer for tomorrow</p>
@@ -773,6 +788,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                         placeholder="0.00"
                         value={exp.amount || ""}
                         disabled={isViewOnly}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => handleExpenseChange(idx, "amount", e.target.value)}
                         className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold disabled:opacity-80 focus:ring-2 focus:ring-amber-500/20"
                       />
@@ -1195,11 +1211,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           {/* Mobile Leftovers Touch Cards (< md) */}
           <div className="space-y-3 block md:hidden">
             {products.map((p) => {
-              const val = leftovers[p.id] || { quantityRemaining: 0, damagedQuantity: 0, damageReason: "" };
+              const val = leftovers[p.id] || { quantityRemaining: "", damagedQuantity: "", damageReason: "" };
               const availableStockSummary = (session as any)?.availableStockSummary || {};
               const stockInfo = availableStockSummary[p.id];
               const maxAvail = stockInfo ? stockInfo.maxAvailable : 999999;
-              const isOverMax = val.quantityRemaining > maxAvail;
+              const isOverMax = (Number(val.quantityRemaining) || 0) > maxAvail;
 
               return (
                 <div
@@ -1234,10 +1250,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                         type="number"
                         min="0"
                         max={maxAvail}
-                        value={val.quantityRemaining}
+                        placeholder="0"
+                        value={val.quantityRemaining === 0 || val.quantityRemaining === "" ? "" : val.quantityRemaining}
                         disabled={isViewOnly}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => handleLeftoverChange(p.id, "quantityRemaining", e.target.value)}
-                        className={`h-9 text-xs font-bold font-mono bg-white border-[#EDE4D5] disabled:opacity-80 ${
+                        className={`h-9 text-xs font-bold font-mono bg-white border-[#EDE4D5] disabled:opacity-80 placeholder:text-[#8C7361]/60 ${
                           isOverMax ? "border-rose-500 bg-rose-50 text-rose-900 ring-1 ring-rose-500" : ""
                         }`}
                       />
@@ -1248,10 +1266,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       <Input
                         type="number"
                         min="0"
-                        value={val.damagedQuantity}
+                        placeholder="0"
+                        value={val.damagedQuantity === 0 || val.damagedQuantity === "" ? "" : val.damagedQuantity}
                         disabled={isViewOnly}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => handleLeftoverChange(p.id, "damagedQuantity", e.target.value)}
-                        className="h-9 text-xs bg-white border-[#EDE4D5] font-mono disabled:opacity-80"
+                        className="h-9 text-xs bg-white border-[#EDE4D5] font-mono disabled:opacity-80 placeholder:text-[#8C7361]/60"
                       />
                     </div>
                   </div>
@@ -1291,11 +1311,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               </thead>
               <tbody className="divide-y divide-[#F4ECE1]">
                 {products.map((p) => {
-                  const val = leftovers[p.id] || { quantityRemaining: 0, damagedQuantity: 0, damageReason: "" };
+                  const val = leftovers[p.id] || { quantityRemaining: "", damagedQuantity: "", damageReason: "" };
                   const availableStockSummary = (session as any)?.availableStockSummary || {};
                   const stockInfo = availableStockSummary[p.id];
                   const maxAvail = stockInfo ? stockInfo.maxAvailable : 999999;
-                  const isOverMax = val.quantityRemaining > maxAvail;
+                  const isOverMax = (Number(val.quantityRemaining) || 0) > maxAvail;
 
                   return (
                     <tr key={p.id} className={isOverMax ? "bg-rose-50/50" : ""}>
@@ -1313,10 +1333,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                           type="number"
                           min="0"
                           max={maxAvail}
-                          value={val.quantityRemaining}
+                          placeholder="0"
+                          value={val.quantityRemaining === 0 || val.quantityRemaining === "" ? "" : val.quantityRemaining}
                           disabled={isViewOnly}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => handleLeftoverChange(p.id, "quantityRemaining", e.target.value)}
-                          className={`h-8 text-xs font-bold font-mono bg-white border-[#EDE4D5] disabled:opacity-80 ${
+                          className={`h-8 text-xs font-bold font-mono bg-white border-[#EDE4D5] disabled:opacity-80 placeholder:text-[#8C7361]/60 ${
                             isOverMax ? "border-rose-500 bg-rose-50 text-rose-900 ring-1 ring-rose-500" : ""
                           }`}
                         />
@@ -1330,10 +1352,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                         <Input
                           type="number"
                           min="0"
-                          value={val.damagedQuantity}
+                          placeholder="0"
+                          value={val.damagedQuantity === 0 || val.damagedQuantity === "" ? "" : val.damagedQuantity}
                           disabled={isViewOnly}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => handleLeftoverChange(p.id, "damagedQuantity", e.target.value)}
-                          className="h-8 text-xs bg-white border-[#EDE4D5] disabled:opacity-80"
+                          className="h-8 text-xs bg-white border-[#EDE4D5] disabled:opacity-80 placeholder:text-[#8C7361]/60"
                         />
                       </td>
                       <td className="p-3">

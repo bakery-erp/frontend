@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
-import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw, AlertTriangle, Lock, Clock, User as UserIcon } from "lucide-react";
+import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw, AlertTriangle, Lock, Clock, User as UserIcon, History } from "lucide-react";
 
 interface Product {
     id: string;
@@ -206,9 +206,53 @@ export default function ProductConversionsPage() {
         }
     };
 
+    const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "HISTORY">("ALL");
+    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const btn = tabRefs.current[filterTab];
+            if (btn) {
+                btn.scrollIntoView({
+                    behavior: "smooth",
+                    inline: "center",
+                    block: "nearest",
+                });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [filterTab]);
+
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const isToday = (dateStr: string) => {
+        try {
+            return format(new Date(dateStr), "yyyy-MM-dd") === todayStr;
+        } catch {
+            return false;
+        }
+    };
+
+    const todayConversions = conversions.filter((c) => isToday(c.createdAt));
+    const historyConversions = conversions.filter((c) => !isToday(c.createdAt));
+
+    const displayedConversions =
+        filterTab === "TODAY"
+            ? todayConversions
+            : filterTab === "HISTORY"
+            ? historyConversions
+            : conversions;
+
     const selectedStock = fromProductId ? sessionStockSummary[fromProductId] : undefined;
     const maxAvailableForConversion = selectedStock ? selectedStock.maxAvailable : 0;
     const isExceedingStock = Boolean(fromProductId && selectedStock && Number(fromQuantity) > maxAvailableForConversion);
+
+    const emptyMessage = isLoading
+        ? "Loading product conversion history..."
+        : filterTab === "TODAY"
+        ? "No product conversions recorded today yet. Click 'New Conversion' to log one."
+        : filterTab === "HISTORY"
+        ? "No past conversion records found in history."
+        : "No product conversions logged yet.";
 
     return (
         <DashboardLayout>
@@ -250,6 +294,81 @@ export default function ProductConversionsPage() {
                 </div>
             )}
 
+            {/* Filter Tabs: All, Today, History */}
+            <div className="relative mb-4">
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-3 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-3 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+
+                <div className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5">
+                    <button
+                        ref={(el) => { tabRefs.current["ALL"] = el; }}
+                        onClick={() => setFilterTab("ALL")}
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                            filterTab === "ALL"
+                                ? "bg-[#2C1B10] text-white shadow-xs"
+                                : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
+                        }`}
+                    >
+                        All Conversions ({conversions.length})
+                    </button>
+                    <button
+                        ref={(el) => { tabRefs.current["TODAY"] = el; }}
+                        onClick={() => setFilterTab("TODAY")}
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                            filterTab === "TODAY"
+                                ? "bg-emerald-700 text-white shadow-xs"
+                                : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                        }`}
+                    >
+                        <Clock className="w-3.5 h-3.5" />
+                        Today ({todayConversions.length})
+                    </button>
+                    <button
+                        ref={(el) => { tabRefs.current["HISTORY"] = el; }}
+                        onClick={() => setFilterTab("HISTORY")}
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                            filterTab === "HISTORY"
+                                ? "bg-amber-700 text-white shadow-xs"
+                                : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                        }`}
+                    >
+                        <History className="w-3.5 h-3.5" />
+                        History ({historyConversions.length})
+                    </button>
+                </div>
+            </div>
+
+            {/* Section Indicator */}
+            <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                    {filterTab === "TODAY" ? (
+                        <>
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
+                                Today&apos;s Conversions ({todayConversions.length})
+                            </h2>
+                        </>
+                    ) : filterTab === "HISTORY" ? (
+                        <>
+                            <History className="w-4 h-4 text-amber-700" />
+                            <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
+                                Conversion History ({historyConversions.length})
+                            </h2>
+                        </>
+                    ) : (
+                        <>
+                            <ArrowRightLeft className="w-4 h-4 text-[#E87A18]" />
+                            <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
+                                All Conversions ({conversions.length})
+                            </h2>
+                        </>
+                    )}
+                </div>
+                <span className="text-[11px] font-semibold text-[#8C7361]">
+                    Showing {displayedConversions.length} record{displayedConversions.length === 1 ? "" : "s"}
+                </span>
+            </div>
+
             {/* History: Desktop Table & Mobile Cards */}
             <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
                 <Table>
@@ -267,21 +386,28 @@ export default function ProductConversionsPage() {
                         {isLoading ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
-                                    Loading product conversion history...
+                                    {emptyMessage}
                                 </TableCell>
                             </TableRow>
-                        ) : conversions.length === 0 ? (
+                        ) : displayedConversions.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
-                                    No product conversions logged yet.
+                                    {emptyMessage}
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            conversions.map((c) => (
+                            displayedConversions.map((c) => (
                                 <TableRow key={c.id}>
                                     <TableCell>
-                                        <div className="font-bold text-[#2C1B10]">
-                                            {format(new Date(c.createdAt), "MMM d, yyyy")}
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="font-bold text-[#2C1B10]">
+                                                {format(new Date(c.createdAt), "MMM d, yyyy")}
+                                            </span>
+                                            {isToday(c.createdAt) && (
+                                                <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                    Today
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="text-xs text-[#8C7361] font-semibold mt-0.5">
                                             {format(new Date(c.createdAt), "hh:mm a")}
@@ -344,27 +470,32 @@ export default function ProductConversionsPage() {
             <div className="block md:hidden space-y-3">
                 {isLoading ? (
                     <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                        Loading product conversion history...
+                        {emptyMessage}
                     </div>
-                ) : conversions.length === 0 ? (
+                ) : displayedConversions.length === 0 ? (
                     <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                        No product conversions logged yet.
+                        {emptyMessage}
                     </div>
                 ) : (
-                    conversions.map((c) => (
+                    displayedConversions.map((c) => (
                         <div
                             key={c.id}
                             className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3"
                         >
                             {/* Header: Date and Conversion Ratio Badge */}
                             <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
-                                <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
-                                    <Clock className="w-3.5 h-3.5 text-[#8C7361]" />
+                                <div className="flex items-center gap-1.5 text-xs text-[#8C7361] flex-wrap">
+                                    <Clock className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
                                     <span className="font-semibold">
                                         {format(new Date(c.createdAt), "MMM d, yyyy · hh:mm a")}
                                     </span>
+                                    {isToday(c.createdAt) && (
+                                        <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                            Today
+                                        </span>
+                                    )}
                                 </div>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] shrink-0">
                                     Ratio: {c.fromQuantity} ➔ {c.toQuantity}
                                 </span>
                             </div>
@@ -480,8 +611,9 @@ export default function ProductConversionsPage() {
                                     min="1"
                                     max={selectedStock ? maxAvailableForConversion : undefined}
                                     value={fromQuantity}
+                                    onFocus={(e) => e.target.select()}
                                     onChange={(e) => setFromQuantity(e.target.value)}
-                                    className="rounded-xl border-zinc-200"
+                                    className="rounded-xl border-zinc-200 font-mono font-bold"
                                 />
                                 {isExceedingStock && (
                                     <div className="mt-1.5 p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5">
@@ -523,8 +655,9 @@ export default function ProductConversionsPage() {
                                     required
                                     min="1"
                                     value={toQuantity}
+                                    onFocus={(e) => e.target.select()}
                                     onChange={(e) => setToQuantity(e.target.value)}
-                                    className="rounded-xl border-zinc-200"
+                                    className="rounded-xl border-zinc-200 font-mono font-bold"
                                 />
                             </div>
 
@@ -600,8 +733,9 @@ export default function ProductConversionsPage() {
                                     min="1"
                                     max={selectedStock ? maxAvailableForConversion : undefined}
                                     value={fromQuantity}
+                                    onFocus={(e) => e.target.select()}
                                     onChange={(e) => setFromQuantity(e.target.value)}
-                                    className="rounded-xl border-zinc-200"
+                                    className="rounded-xl border-zinc-200 font-mono font-bold"
                                 />
                                 {isExceedingStock && (
                                     <div className="mt-1.5 p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5">
@@ -643,8 +777,9 @@ export default function ProductConversionsPage() {
                                     required
                                     min="1"
                                     value={toQuantity}
+                                    onFocus={(e) => e.target.select()}
                                     onChange={(e) => setToQuantity(e.target.value)}
-                                    className="rounded-xl border-zinc-200"
+                                    className="rounded-xl border-zinc-200 font-mono font-bold"
                                 />
                             </div>
 

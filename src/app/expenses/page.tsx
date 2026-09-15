@@ -91,6 +91,21 @@ export default function ExpensesPage() {
   const [formDate, setFormDate] = useState(getEthTodayStr());
   const [isSaving, setIsSaving] = useState(false);
 
+  // Auto-focus and scroll ref for Record New Expense
+  const formCardRef = useRef<HTMLDivElement | null>(null);
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (showForm) {
+      const timer = setTimeout(() => {
+        formCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        amountInputRef.current?.focus();
+        amountInputRef.current?.select();
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [showForm, editingId]);
+
   // Category Management Modal State
   const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
@@ -472,6 +487,140 @@ export default function ExpensesPage() {
         )
       )}
 
+      {/* Create / Edit Form Modal/Card - Positioned on Top for Immediate Focus */}
+      {showForm && (
+        <div ref={formCardRef} className="scroll-mt-6">
+          <Card className="mb-6 border-2 border-[#4A2E1B]/30 rounded-2xl shadow-md bg-white animate-in fade-in-50 duration-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-zinc-100">
+              <div>
+                <CardTitle className="text-base font-extrabold text-[#2C1B10]">
+                  {editingId ? "Edit Expense Record" : "Record New Expense"}
+                </CardTitle>
+                <CardDescription className="text-xs text-zinc-500 mt-0.5">
+                  Expense will be logged under active session <span className="font-mono font-bold text-emerald-700">#{activeSession?.id.slice(-6)}</span>
+                </CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={resetForm} className="rounded-xl">
+                <X className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+
+            <CardContent className="pt-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Requirement 1: Expense Type Choice (Company vs Owner) */}
+                <div>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                    Expense Type <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
+                  >
+                    <option value="COMPANY">🏢 Company Operational Expense (Operating Cash)</option>
+                    <option value="OWNER">👤 Owner Expense / Drawing</option>
+                  </select>
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    {formType === "COMPANY"
+                      ? "Deducted from daily session cash as operating business expense."
+                      : "Logged as owner withdrawal / personal draw."}
+                  </p>
+                </div>
+
+                {/* Amount Input with Auto-Focus and Selection */}
+                <div>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                    Amount (ETB) <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    ref={amountInputRef}
+                    autoFocus
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={formAmount}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setFormAmount(e.target.value)}
+                    className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10] focus:ring-2 focus:ring-[#4A2E1B]"
+                  />
+                </div>
+
+                {/* Requirement 2: Category Dropdown & Others Option */}
+                <div>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                    Category <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={selectedCategoryValue}
+                    onChange={(e) => handleCategorySelect(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
+                  >
+                    <option value="">-- Select Category --</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                    <option value="OTHER">Others</option>
+                  </select>
+
+                  {selectedCategoryValue === "OTHER" && (
+                    <div className="mt-2">
+                      <Input
+                        placeholder="Specify custom category name (e.g. Ekub, Cleaning)"
+                        value={customCategoryName}
+                        onChange={(e) => handleCustomCategoryChange(e.target.value)}
+                        className="bg-white border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Date Input */}
+                <div>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Expense Date</label>
+                  <Input
+                    type="date"
+                    value={formDate}
+                    onChange={(e) => setFormDate(e.target.value)}
+                    className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                  />
+                </div>
+
+                {/* Description Input */}
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Description / Reason</label>
+                  <Input
+                    placeholder="Additional note (e.g. Lunch for bakery staff, Transport fee for flour)"
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSaving}
+                  className="w-full sm:w-auto h-11 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs sm:text-sm px-6 shadow-sm"
+                >
+                  {isSaving ? "Saving..." : editingId ? "Update Expense" : "Record Expense"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={resetForm}
+                  className="w-full sm:w-auto h-10 border-[#EDE4D5] rounded-xl text-xs sm:text-sm font-semibold text-[#8C7361] hover:text-[#4A2E1B]"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white shadow-xs rounded-2xl">
@@ -633,131 +782,6 @@ export default function ExpensesPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Create / Edit Form Modal/Card */}
-      {showForm && (
-        <Card className="mb-6 border-2 border-[#4A2E1B]/30 rounded-2xl shadow-md bg-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-zinc-100">
-            <div>
-              <CardTitle className="text-base font-extrabold text-[#2C1B10]">
-                {editingId ? "Edit Expense Record" : "Record New Expense"}
-              </CardTitle>
-              <CardDescription className="text-xs text-zinc-500 mt-0.5">
-                Expense will be logged under active session <span className="font-mono font-bold text-emerald-700">#{activeSession?.id.slice(-6)}</span>
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" onClick={resetForm} className="rounded-xl">
-              <X className="w-4 h-4" />
-            </Button>
-          </CardHeader>
-
-          <CardContent className="pt-5 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Requirement 1: Expense Type Choice (Company vs Owner) */}
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                  Expense Type <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={formType}
-                  onChange={(e) => setFormType(e.target.value)}
-                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
-                >
-                  <option value="COMPANY">🏢 Company Operational Expense (Operating Cash)</option>
-                  <option value="OWNER">👤 Owner Expense / Drawing</option>
-                </select>
-                <p className="text-[11px] text-zinc-500 mt-1">
-                  {formType === "COMPANY"
-                    ? "Deducted from daily session cash as operating business expense."
-                    : "Logged as owner withdrawal / personal draw."}
-                </p>
-              </div>
-
-              {/* Amount Input */}
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                  Amount (ETB) <span className="text-rose-500">*</span>
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={formAmount}
-                  onChange={(e) => setFormAmount(e.target.value)}
-                  className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-                />
-              </div>
-
-              {/* Requirement 2: Category Dropdown & Others Option */}
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                  Category <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={selectedCategoryValue}
-                  onChange={(e) => handleCategorySelect(e.target.value)}
-                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
-                >
-                  <option value="">-- Select Category --</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                  <option value="OTHER">Others</option>
-                </select>
-
-                {selectedCategoryValue === "OTHER" && (
-                  <div className="mt-2">
-                    <Input
-                      placeholder="Specify custom category name (e.g. Ekub, Cleaning)"
-                      value={customCategoryName}
-                      onChange={(e) => handleCustomCategoryChange(e.target.value)}
-                      className="bg-white border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Date Input */}
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Expense Date</label>
-                <Input
-                  type="date"
-                  value={formDate}
-                  onChange={(e) => setFormDate(e.target.value)}
-                  className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-                />
-              </div>
-
-              {/* Description Input */}
-              <div className="md:col-span-2">
-                <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Description / Reason</label>
-                <Input
-                  placeholder="Additional note (e.g. Lunch for bakery staff, Transport fee for flour)"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-                />
-              </div>
-            </div>
-
-            <div className="pt-3 flex items-center gap-3">
-              <Button
-                onClick={handleSubmit}
-                disabled={isSaving}
-                className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs px-5 h-10 shadow-sm"
-              >
-                {isSaving ? "Saving..." : editingId ? "Update Expense" : "Record Expense"}
-              </Button>
-              <Button variant="outline" onClick={resetForm} className="border-[#EDE4D5] rounded-xl text-xs font-bold">
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Expense View Mode Filter Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 mb-4">

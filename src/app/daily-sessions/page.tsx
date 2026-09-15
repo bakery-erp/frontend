@@ -68,7 +68,7 @@ export default function DailySessionsPage() {
   // Finalize Session Modal State
   const [activeSession, setActiveSession] = useState<DailySession | null>(null);
   const [cashFloat, setCashFloat] = useState<string>('');
-  const [leftoverCounts, setLeftoverCounts] = useState<Record<string, { quantityRemaining: number; damagedQuantity: number; damageReason: string }>>({});
+  const [leftoverCounts, setLeftoverCounts] = useState<Record<string, { quantityRemaining: number | string; damagedQuantity: number | string; damageReason: string }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Conversion Modal State
@@ -152,9 +152,9 @@ export default function DailySessionsPage() {
     }
     setActiveSession(session);
     setCashFloat(session.cashLeftoverAmount ? String(session.cashLeftoverAmount) : '');
-    const initial: Record<string, { quantityRemaining: number; damagedQuantity: number; damageReason: string }> = {};
+    const initial: Record<string, { quantityRemaining: number | string; damagedQuantity: number | string; damageReason: string }> = {};
     products.forEach((p) => {
-      initial[p.id] = { quantityRemaining: 0, damagedQuantity: 0, damageReason: '' };
+      initial[p.id] = { quantityRemaining: '', damagedQuantity: '', damageReason: '' };
     });
     setLeftoverCounts(initial);
   };
@@ -797,11 +797,17 @@ export default function DailySessionsPage() {
                             <Input
                               type="number"
                               min="0"
-                              value={current.quantityRemaining}
-                              onChange={(e) => setLeftoverCounts({
-                                ...leftoverCounts,
-                                [p.id]: { ...current, quantityRemaining: parseInt(e.target.value, 10) || 0 }
-                              })}
+                              placeholder="0"
+                              value={current.quantityRemaining === 0 || current.quantityRemaining === '' ? '' : current.quantityRemaining}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const parsed = val === '' ? '' : parseInt(val, 10);
+                                setLeftoverCounts({
+                                  ...leftoverCounts,
+                                  [p.id]: { ...current, quantityRemaining: parsed === '' || isNaN(parsed as number) ? '' : Math.max(0, parsed as number) }
+                                });
+                              }}
                               className="h-8 text-sm"
                             />
                           </div>
@@ -813,11 +819,17 @@ export default function DailySessionsPage() {
                             <Input
                               type="number"
                               min="0"
-                              value={current.damagedQuantity}
-                              onChange={(e) => setLeftoverCounts({
-                                ...leftoverCounts,
-                                [p.id]: { ...current, damagedQuantity: parseInt(e.target.value, 10) || 0 }
-                              })}
+                              placeholder="0"
+                              value={current.damagedQuantity === 0 || current.damagedQuantity === '' ? '' : current.damagedQuantity}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const parsed = val === '' ? '' : parseInt(val, 10);
+                                setLeftoverCounts({
+                                  ...leftoverCounts,
+                                  [p.id]: { ...current, damagedQuantity: parsed === '' || isNaN(parsed as number) ? '' : Math.max(0, parsed as number) }
+                                });
+                              }}
                               className="h-8 text-sm"
                             />
                           </div>
