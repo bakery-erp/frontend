@@ -325,42 +325,42 @@ export default function StockMovementsPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10]">Stock Movements & Credit Purchases</h1>
-          <p className="text-sm text-[#8C7361] mt-1">Track material inventory entries, usage, and stock loans acquired from suppliers</p>
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Track material inventory entries, usage, and stock loans acquired from suppliers</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setIsAddOpen(true)} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-sm text-xs sm:text-sm">
             + Record Movement
           </Button>
         </div>
       </div>
 
       {/* Main Mode Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-[#F4ECE1] rounded-2xl w-fit mb-6 border border-[#EDE4D5]">
+      <div className="flex items-center gap-2 p-1.5 bg-[#F4ECE1] rounded-2xl w-full sm:w-fit mb-6 border border-[#EDE4D5] overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab("movements")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
+          className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
             activeTab === "movements"
-              ? "bg-white text-[#2C1B10] shadow-sm"
+              ? "bg-white text-[#2C1B10] shadow-xs"
               : "text-[#8C7361] hover:text-[#2C1B10]"
           }`}
         >
-          <ArrowRightLeft className="w-4 h-4 text-[#E87A18]" />
-          Stock Movements Ledger ({movements.length})
+          <ArrowRightLeft className="w-4 h-4 text-[#E87A18] shrink-0" />
+          <span>Movements Ledger ({movements.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("loans")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
+          className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
             activeTab === "loans"
-              ? "bg-white text-[#2C1B10] shadow-sm"
+              ? "bg-white text-[#2C1B10] shadow-xs"
               : "text-[#8C7361] hover:text-[#2C1B10]"
           }`}
         >
-          <CreditCard className="w-4 h-4 text-purple-600" />
-          Company Stock Loans & Credit ({loans.length})
+          <CreditCard className="w-4 h-4 text-purple-600 shrink-0" />
+          <span>Stock Loans & Credit ({loans.length})</span>
           {loanStats.activeLoansCount > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-red-500 text-white font-bold">
               {loanStats.activeLoansCount}
@@ -483,69 +483,69 @@ export default function StockMovementsPage() {
       {activeTab === "loans" && (
         <div className="space-y-6">
           {/* Summary KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider">Total Credit Purchased</span>
-                <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-                  <CreditCard className="w-5 h-5" />
+                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">Total Credit</span>
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <p className="text-xl font-extrabold text-[#2C1B10] mt-2">
+              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] mt-1.5 sm:mt-2 font-mono truncate">
                 {loanStats.totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
               </p>
-              <span className="text-[11px] text-[#8C7361]">Total stock bought on credit</span>
+              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">Total stock bought on credit</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+            <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider">Total Paid Amount</span>
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                  <Coins className="w-5 h-5" />
+                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">Total Paid</span>
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                  <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <p className="text-xl font-extrabold text-emerald-700 mt-2">
+              <p className="text-base sm:text-xl font-extrabold text-emerald-700 mt-1.5 sm:mt-2 font-mono truncate">
                 {loanStats.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
               </p>
-              <span className="text-[11px] text-[#8C7361]">Paid to suppliers so far</span>
+              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">Paid to suppliers so far</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+            <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider">Outstanding Debt</span>
-                <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
-                  <AlertCircle className="w-5 h-5" />
+                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">Remaining Debt</span>
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <p className="text-xl font-extrabold text-rose-600 mt-2">
+              <p className="text-base sm:text-xl font-extrabold text-rose-600 mt-1.5 sm:mt-2 font-mono truncate">
                 {loanStats.totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
               </p>
-              <span className="text-[11px] text-[#8C7361]">Remaining balance due</span>
+              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">Remaining balance due</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+            <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider">Active Loans</span>
-                <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-                  <Clock className="w-5 h-5" />
+                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">Active Loans</span>
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <p className="text-xl font-extrabold text-[#2C1B10] mt-2">
+              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] mt-1.5 sm:mt-2 font-mono truncate">
                 {loanStats.activeLoansCount} <span className="text-xs font-normal text-[#8C7361]">unsettled</span>
               </p>
-              <span className="text-[11px] text-[#8C7361]">Pending full payment</span>
+              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">Pending full payment</span>
             </div>
           </div>
 
           {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#EDE4D5]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-[#EDE4D5]">
             {/* Status Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
               {["ALL", "UNPAID", "PARTIAL", "PAID"].map(st => (
                 <button
                   key={st}
                   onClick={() => setLoanStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     loanStatusFilter === st
                       ? "bg-[#2C1B10] text-white shadow-xs"
                       : "bg-[#FAF7EE] text-[#8C7361] hover:text-[#2C1B10]"
@@ -557,13 +557,13 @@ export default function StockMovementsPage() {
             </div>
 
             {/* Search Input */}
-            <div className="relative min-w-[220px]">
+            <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#8C7361]" />
               <Input
                 placeholder="Search supplier or item..."
                 value={loanSearch}
                 onChange={(e) => setLoanSearch(e.target.value)}
-                className="pl-9 text-xs rounded-xl bg-[#FAF7EE] border-[#EDE4D5]"
+                className="pl-9 text-xs rounded-xl bg-[#FAF7EE] border-[#EDE4D5] h-9 w-full"
               />
             </div>
           </div>
@@ -686,15 +686,15 @@ export default function StockMovementsPage() {
                   <div className="grid grid-cols-3 gap-2 text-center text-xs bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total</span>
-                      <span className="font-bold text-[#2C1B10]">{tot.toLocaleString()} ETB</span>
+                      <span className="font-bold text-[#2C1B10] font-mono">{tot.toLocaleString()} ETB</span>
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Paid</span>
-                      <span className="font-bold text-emerald-700">{paid.toLocaleString()} ETB</span>
+                      <span className="font-bold text-emerald-700 font-mono">{paid.toLocaleString()} ETB</span>
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Remaining</span>
-                      <span className="font-extrabold text-rose-600">{rem.toLocaleString()} ETB</span>
+                      <span className="font-extrabold text-rose-600 font-mono">{rem.toLocaleString()} ETB</span>
                     </div>
                   </div>
 
@@ -707,7 +707,7 @@ export default function StockMovementsPage() {
                           setPayAmount(rem > 0 ? String(rem) : "");
                           setPayNote("");
                         }}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl h-8 px-3 flex-1"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl h-9 px-3 flex-1 shadow-sm"
                       >
                         <Coins className="w-3.5 h-3.5 mr-1" /> Pay Installment
                       </Button>
@@ -716,9 +716,9 @@ export default function StockMovementsPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedLoanForHistory(loan)}
-                      className="text-xs font-bold rounded-xl h-8 px-3 border-[#EDE4D5]"
+                      className="text-xs font-bold rounded-xl h-9 px-3 border-[#EDE4D5] hover:bg-[#FAF6F0]"
                     >
-                      <History className="w-3.5 h-3.5 mr-1" /> Payment History ({loan.payments?.length || 0})
+                      <History className="w-3.5 h-3.5 mr-1 text-[#8C7361]" /> History ({loan.payments?.length || 0})
                     </Button>
                   </div>
                 </div>
@@ -738,12 +738,12 @@ export default function StockMovementsPage() {
             setSupplierName("");
           }
         }}>
-          <DialogContent className="max-w-md rounded-2xl">
+          <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold">Record Stock Movement</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-[#2C1B10]">Record Stock Movement</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-3.5 py-3">
                 
                 <div>
                   <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">Movement Type</label>
@@ -785,18 +785,19 @@ export default function StockMovementsPage() {
                     step="0.001" 
                     min="0"
                     required 
+                    onFocus={(e) => e.target.select()}
                     placeholder={movementType === "ADJUSTMENT" ? "e.g. 50" : "e.g. 10"} 
-                    className="rounded-xl"
+                    className="h-10 rounded-xl font-mono"
                   />
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">Reason / Reference Notes (Optional)</label>
-                  <Input name="reason" placeholder="e.g. Supplier delivery, Recount, Spilled" className="rounded-xl text-xs" />
+                  <Input name="reason" placeholder="e.g. Supplier delivery, Recount, Spilled" className="h-10 rounded-xl text-xs" />
                 </div>
 
                 {movementType === "IN" && (
-                  <div className="p-4 bg-purple-50/80 rounded-2xl border border-purple-200 space-y-3">
+                  <div className="p-3.5 bg-purple-50/80 rounded-2xl border border-purple-200 space-y-3">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
                         type="checkbox" 
@@ -815,7 +816,7 @@ export default function StockMovementsPage() {
                             value={supplierName} 
                             onChange={(e) => setSupplierName(e.target.value)} 
                             placeholder="e.g. National Flour Mills" 
-                            className="bg-white rounded-xl border-purple-200 text-xs" 
+                            className="bg-white rounded-xl border-purple-200 text-xs h-9" 
                           />
                         </div>
                         <div>
@@ -826,8 +827,9 @@ export default function StockMovementsPage() {
                             min="0" 
                             value={paidAmount} 
                             onChange={(e) => setPaidAmount(e.target.value)} 
+                            onFocus={(e) => e.target.select()}
                             placeholder="0.00 (leave 0 if 100% credit)" 
-                            className="bg-white rounded-xl border-purple-200 text-xs font-semibold" 
+                            className="bg-white rounded-xl border-purple-200 text-xs font-mono h-9" 
                           />
                           <p className="text-[10px] text-purple-700 mt-1">The remaining amount will be logged under company credit loans.</p>
                         </div>
@@ -837,10 +839,21 @@ export default function StockMovementsPage() {
                 )}
 
               </div>
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmitting ? "Saving..." : "Record Movement"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddOpen(false)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
@@ -851,16 +864,16 @@ export default function StockMovementsPage() {
       {/* RECORD LOAN PAYMENT MODAL */}
       {selectedLoanForPay && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setSelectedLoanForPay(null); }}>
-          <DialogContent className="max-w-md rounded-2xl">
+          <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
-                <Coins className="w-5 h-5 text-emerald-600" />
+                <Coins className="w-5 h-5 text-emerald-600 shrink-0" />
                 Record Stock Loan Payment
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handlePayLoanSubmit} className="space-y-4 py-2">
-              <div className="bg-[#FAF7EE] p-4 rounded-2xl border border-[#EDE4D5] space-y-2 text-xs">
+              <div className="bg-[#FAF7EE] p-3.5 sm:p-4 rounded-2xl border border-[#EDE4D5] space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-[#8C7361] font-semibold">Supplier Name:</span>
                   <span className="font-extrabold text-[#2C1B10]">{selectedLoanForPay.supplierName || "Unspecified"}</span>
@@ -873,15 +886,15 @@ export default function StockMovementsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#8C7361] font-semibold">Total Purchase Value:</span>
-                  <span className="font-bold text-[#2C1B10]">{Number(selectedLoanForPay.totalAmount).toLocaleString()} ETB</span>
+                  <span className="font-bold text-[#2C1B10] font-mono">{Number(selectedLoanForPay.totalAmount).toLocaleString()} ETB</span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-[#EDE4D5]">
                   <span className="text-[#8C7361] font-semibold">Paid to Date:</span>
-                  <span className="font-bold text-emerald-700">{Number(selectedLoanForPay.paidAmount).toLocaleString()} ETB</span>
+                  <span className="font-bold text-emerald-700 font-mono">{Number(selectedLoanForPay.paidAmount).toLocaleString()} ETB</span>
                 </div>
                 <div className="flex justify-between text-sm pt-1 border-t border-[#EDE4D5]">
                   <span className="font-bold text-rose-700">Remaining Balance:</span>
-                  <span className="font-extrabold text-rose-600">{Number(selectedLoanForPay.remainingBalance).toLocaleString()} ETB</span>
+                  <span className="font-extrabold text-rose-600 font-mono">{Number(selectedLoanForPay.remainingBalance).toLocaleString()} ETB</span>
                 </div>
               </div>
 
@@ -904,8 +917,9 @@ export default function StockMovementsPage() {
                   required
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   placeholder="Enter amount to pay"
-                  className="rounded-xl font-bold text-base"
+                  className="h-10 rounded-xl font-mono font-bold text-base"
                 />
               </div>
 
@@ -915,14 +929,25 @@ export default function StockMovementsPage() {
                   value={payNote}
                   onChange={(e) => setPayNote(e.target.value)}
                   placeholder="e.g. Bank transfer, Cash installment #2, Receipt #1024"
-                  className="rounded-xl text-xs"
+                  className="h-10 rounded-xl text-xs"
                 />
               </div>
 
-              <DialogFooter className="gap-2 sm:gap-0 pt-2">
-                <Button type="button" variant="outline" onClick={() => setSelectedLoanForPay(null)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmittingPay} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmittingPay}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmittingPay ? "Saving..." : "Confirm Payment"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSelectedLoanForPay(null)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
