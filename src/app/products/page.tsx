@@ -213,54 +213,54 @@ export default function ProductsPage() {
       </div>
 
       {/* House Stock Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6">
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm flex items-center space-x-3">
-          <div className="p-3 rounded-xl bg-amber-50 text-amber-700">
-            <PackageCheck className="w-6 h-6" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5 mb-6">
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
+          <div className="p-2 sm:p-3 rounded-xl bg-amber-50 text-amber-700 shrink-0">
+            <PackageCheck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <p className="text-xs font-semibold text-[#8C7361]">Available House Stock</p>
-            <p className="text-xl font-extrabold text-[#2C1B10] font-mono">{totalHouseStock.toLocaleString()} Pcs</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm flex items-center space-x-3">
-          <div className="p-3 rounded-xl bg-orange-50 text-[#E87A18]">
-            <Truck className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-[#8C7361]">Delivered (Suppliers)</p>
-            <p className="text-xl font-extrabold text-[#E87A18] font-mono">{totalDeliveredItems.toLocaleString()} Pcs</p>
+          <div className="min-w-0">
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">House Stock</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalHouseStock.toLocaleString()} Pcs</p>
           </div>
         </div>
 
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm flex items-center space-x-3">
-          <div className="p-3 rounded-xl bg-emerald-50 text-emerald-700">
-            <TrendingUp className="w-6 h-6" />
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
+          <div className="p-2 sm:p-3 rounded-xl bg-orange-50 text-[#E87A18] shrink-0">
+            <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <p className="text-xs font-semibold text-[#8C7361]">Baked / Produced</p>
-            <p className="text-xl font-extrabold text-[#2C1B10] font-mono">{totalProducedItems.toLocaleString()} Pcs</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm flex items-center space-x-3">
-          <div className="p-3 rounded-xl bg-blue-50 text-blue-700">
-            <ShoppingBag className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-[#8C7361]">Sold at POS</p>
-            <p className="text-xl font-extrabold text-[#2C1B10] font-mono">{totalSoldItems.toLocaleString()} Pcs</p>
+          <div className="min-w-0">
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">Delivered</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#E87A18] font-mono truncate">{totalDeliveredItems.toLocaleString()} Pcs</p>
           </div>
         </div>
 
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm flex items-center space-x-3">
-          <div className="p-3 rounded-xl bg-purple-50 text-purple-700">
-            <ImageIcon className="w-6 h-6" />
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
+          <div className="p-2 sm:p-3 rounded-xl bg-emerald-50 text-emerald-700 shrink-0">
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <p className="text-xs font-semibold text-[#8C7361]">Active Catalog</p>
-            <p className="text-xl font-extrabold text-[#2C1B10] font-mono">{products.length} Items</p>
+          <div className="min-w-0">
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">Produced</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalProducedItems.toLocaleString()} Pcs</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
+          <div className="p-2 sm:p-3 rounded-xl bg-blue-50 text-blue-700 shrink-0">
+            <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">Sold at POS</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalSoldItems.toLocaleString()} Pcs</p>
+          </div>
+        </div>
+
+        <div className="col-span-2 sm:col-span-1 bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
+          <div className="p-2 sm:p-3 rounded-xl bg-purple-50 text-purple-700 shrink-0">
+            <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">Catalog</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{products.length} Items</p>
           </div>
         </div>
       </div>
@@ -272,7 +272,7 @@ export default function ProductsPage() {
           placeholder="Search products by name or flavor..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md bg-white border-[#EDE4D5] rounded-xl text-sm"
+          className="w-full sm:max-w-md bg-white border-[#EDE4D5] rounded-xl text-sm"
         />
       </div>
 
@@ -284,20 +284,20 @@ export default function ProductsPage() {
           No products match your search.
         </div>
       ) : viewMode === 'GRID' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
           {filteredProducts.map((prod) => {
             const imgUrl = getProductImage(prod);
             const stockQty = prod.currentHouseStock ?? 0;
             return (
-              <div key={prod.id} className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
-                <div className="relative h-44 bg-zinc-100 overflow-hidden">
+              <div key={prod.id} className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
+                <div className="relative h-40 sm:h-44 bg-zinc-100 overflow-hidden">
                   <img
                     src={imgUrl}
                     alt={prod.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-2.5 right-2.5">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border shadow-sm ${
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border shadow-xs ${
                       stockQty > 20
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         : stockQty > 0
@@ -308,13 +308,13 @@ export default function ProductsPage() {
                     </span>
                   </div>
                   {prod.category && (
-                    <div className="absolute bottom-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-md">
+                    <div className="absolute bottom-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-md max-w-[80%] truncate">
                       {prod.category.name}
                     </div>
                   )}
                 </div>
 
-                <div className="p-4 flex-1 flex flex-col justify-between">
+                <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="font-extrabold text-base text-[#2C1B10] tracking-tight">
                       {prod.name} {prod.flavor && <span className="text-xs font-normal text-[#8C7361]">({prod.flavor})</span>}
@@ -322,7 +322,7 @@ export default function ProductsPage() {
                     <p className="text-xs text-[#8C7361] mt-0.5 font-medium">Selling Price: <strong className="text-[#E87A18]">{Number(prod.basePrice).toFixed(2)} ETB</strong></p>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-[#F4ECE1] grid grid-cols-3 gap-1 text-center text-xs text-[#8C7361]">
+                  <div className="mt-3.5 pt-3 border-t border-[#F4ECE1] grid grid-cols-3 gap-1 text-center text-xs text-[#8C7361]">
                     <div>
                       <span className="block text-[10px] uppercase font-bold text-[#8C7361]">Produced</span>
                       <strong className="text-[#2C1B10]">{prod.totalProduced || 0}</strong>
@@ -337,9 +337,9 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   {isAdminOrOwner && (
-                    <div className="mt-2 text-right">
-                      <Button size="sm" variant="ghost" className="h-7 text-xs font-bold text-[#4A2E1B] hover:bg-[#F4ECE1]" onClick={() => openEditDialog(prod)}>
-                        Edit
+                    <div className="mt-3 pt-2 border-t border-[#FAF6F0] flex justify-end">
+                      <Button size="sm" variant="ghost" className="h-8 text-xs font-bold text-[#4A2E1B] hover:bg-[#F4ECE1] px-3" onClick={() => openEditDialog(prod)}>
+                        Edit Product
                       </Button>
                     </div>
                   )}
@@ -349,68 +349,155 @@ export default function ProductsPage() {
           })}
         </div>
       ) : (
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">Preview</TableHead>
-                <TableHead>{t('products.colName')}</TableHead>
-                <TableHead>{t('products.colCategory')}</TableHead>
-                <TableHead>{t('stock.title')}</TableHead>
-                <TableHead>{t('products.colUnit')}</TableHead>
-                <TableHead>{t('products.colPrice')}</TableHead>
-                <TableHead className="text-center">{t('production.title')}</TableHead>
-                <TableHead className="text-center">🚚 Delivered</TableHead>
-                <TableHead className="text-center">{t('dashboard.incomeFromSales')}</TableHead>
-                <TableHead>{t('products.colActive')}</TableHead>
-                {isAdminOrOwner && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((prod) => {
-                const imgUrl = getProductImage(prod);
-                const stockQty = prod.currentHouseStock ?? 0;
-                return (
-                  <TableRow key={prod.id}>
-                    <TableCell>
-                      <img src={imgUrl} alt={prod.name} className="w-11 h-11 rounded-xl object-cover border border-[#EDE4D5] shadow-xs" />
-                    </TableCell>
-                    <TableCell className="font-bold text-[#2C1B10]">
-                      <div>{prod.name}</div>
-                      {prod.flavor && <span className="text-xs font-normal text-[#8C7361]">({prod.flavor})</span>}
-                    </TableCell>
-                    <TableCell>
-                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
-                        {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold border ${
+        <div>
+          {/* Mobile Touch Cards View (md:hidden) */}
+          <div className="block md:hidden space-y-3">
+            {filteredProducts.map((prod) => {
+              const imgUrl = getProductImage(prod);
+              const stockQty = prod.currentHouseStock ?? 0;
+              return (
+                <div key={prod.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={imgUrl}
+                      alt={prod.name}
+                      className="w-16 h-16 rounded-xl object-cover border border-[#EDE4D5] shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <div>
+                          <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{prod.name}</h4>
+                          {prod.flavor && <p className="text-xs text-[#8C7361]">{prod.flavor}</p>}
+                        </div>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          prod.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'
+                        }`}>
+                          {prod.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                          {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
+                        </span>
+                        <span className="text-[10px] font-semibold text-[#8C7361]">({prod.unitType})</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stock and Price Row */}
+                  <div className="mt-3 pt-2.5 border-t border-[#F4ECE1] flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Price</span>
+                      <span className="font-extrabold text-sm text-[#E87A18] font-mono">{Number(prod.basePrice).toFixed(2)} ETB</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block text-right">House Stock</span>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-extrabold border ${
                         stockQty > 20 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : stockQty > 0 ? 'bg-amber-100 text-amber-900 border-amber-200' : 'bg-rose-100 text-rose-800 border-rose-200'
                       }`}>
                         {stockQty} {prod.unitType}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-xs font-semibold text-[#8C7361]">{prod.unitType}</TableCell>
-                    <TableCell className="font-extrabold text-[#E87A18] text-sm">{Number(prod.basePrice).toFixed(2)} ETB</TableCell>
-                    <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalProduced || 0}</TableCell>
-                    <TableCell className="text-center font-extrabold text-[#E87A18]">{prod.totalDelivered || 0}</TableCell>
-                    <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalSold || 0}</TableCell>
-                    <TableCell>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${prod.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
-                        {prod.isActive ? `✓ ${t('products.activeLabel')}` : t('products.inactiveLabel')}
-                      </span>
-                    </TableCell>
-                    {isAdminOrOwner && (
-                      <TableCell className="text-right pr-6">
-                        <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEditDialog(prod)}>{t('common.edit')}</Button>
+                    </div>
+                  </div>
+
+                  {/* Operational Metrics */}
+                  <div className="mt-2.5 bg-[#FAF6F0] rounded-xl p-2 grid grid-cols-3 gap-1 text-center text-xs">
+                    <div>
+                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">Produced</span>
+                      <strong className="text-[#2C1B10] font-mono">{prod.totalProduced || 0}</strong>
+                    </div>
+                    <div>
+                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">Delivered</span>
+                      <strong className="text-[#E87A18] font-mono font-black">{prod.totalDelivered || 0}</strong>
+                    </div>
+                    <div>
+                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">Sold</span>
+                      <strong className="text-[#2C1B10] font-mono">{prod.totalSold || 0}</strong>
+                    </div>
+                  </div>
+
+                  {isAdminOrOwner && (
+                    <div className="mt-3 pt-2 border-t border-[#F4ECE1]">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-9 font-bold text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                        onClick={() => openEditDialog(prod)}
+                      >
+                        Edit Product Details
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Preview</TableHead>
+                  <TableHead>{t('products.colName')}</TableHead>
+                  <TableHead>{t('products.colCategory')}</TableHead>
+                  <TableHead>{t('stock.title')}</TableHead>
+                  <TableHead>{t('products.colUnit')}</TableHead>
+                  <TableHead>{t('products.colPrice')}</TableHead>
+                  <TableHead className="text-center">{t('production.title')}</TableHead>
+                  <TableHead className="text-center">🚚 Delivered</TableHead>
+                  <TableHead className="text-center">{t('dashboard.incomeFromSales')}</TableHead>
+                  <TableHead>{t('products.colActive')}</TableHead>
+                  {isAdminOrOwner && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((prod) => {
+                  const imgUrl = getProductImage(prod);
+                  const stockQty = prod.currentHouseStock ?? 0;
+                  return (
+                    <TableRow key={prod.id}>
+                      <TableCell>
+                        <img src={imgUrl} alt={prod.name} className="w-11 h-11 rounded-xl object-cover border border-[#EDE4D5] shadow-xs" />
                       </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      <TableCell className="font-bold text-[#2C1B10]">
+                        <div>{prod.name}</div>
+                        {prod.flavor && <span className="text-xs font-normal text-[#8C7361]">({prod.flavor})</span>}
+                      </TableCell>
+                      <TableCell>
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                          {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold border ${
+                          stockQty > 20 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : stockQty > 0 ? 'bg-amber-100 text-amber-900 border-amber-200' : 'bg-rose-100 text-rose-800 border-rose-200'
+                        }`}>
+                          {stockQty} {prod.unitType}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs font-semibold text-[#8C7361]">{prod.unitType}</TableCell>
+                      <TableCell className="font-extrabold text-[#E87A18] text-sm">{Number(prod.basePrice).toFixed(2)} ETB</TableCell>
+                      <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalProduced || 0}</TableCell>
+                      <TableCell className="text-center font-extrabold text-[#E87A18]">{prod.totalDelivered || 0}</TableCell>
+                      <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalSold || 0}</TableCell>
+                      <TableCell>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${prod.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
+                          {prod.isActive ? `✓ ${t('products.activeLabel')}` : t('products.inactiveLabel')}
+                        </span>
+                      </TableCell>
+                      {isAdminOrOwner && (
+                        <TableCell className="text-right pr-6">
+                          <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEditDialog(prod)}>{t('common.edit')}</Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
@@ -422,7 +509,7 @@ export default function ProductsPage() {
             setEditingProduct(null);
           }
         }}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
                 {editingProduct ? "Edit Product Details & Image" : "Add New Product"}
@@ -430,7 +517,7 @@ export default function ProductsPage() {
             </DialogHeader>
             <form onSubmit={(e) => handleSubmit(e, !!editingProduct)} className="space-y-4 py-2">
               <div>
-                <label className="text-xs font-bold text-zinc-700 block mb-1">Product Image Selection</label>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1">Product Image Selection</label>
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   {PRODUCT_PRESET_IMAGES.map((preset, idx) => (
                     <button
@@ -449,7 +536,7 @@ export default function ProductsPage() {
                   ))}
                 </div>
 
-                <label className="text-[11px] text-zinc-500 block mb-1">Custom Image URL (Optional)</label>
+                <label className="text-[11px] text-[#8C7361] block mb-1">Custom Image URL (Optional)</label>
                 <Input
                   type="url"
                   placeholder="https://..."
@@ -459,19 +546,19 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="text-xs font-semibold text-zinc-700 block mb-1">Product Name</label>
-                  <Input name="name" required defaultValue={editingProduct?.name || ""} placeholder="e.g. Special White Bread" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Product Name</label>
+                  <Input name="name" required defaultValue={editingProduct?.name || ""} placeholder="e.g. Special White Bread" className="h-10" />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 block mb-1">Flavor / Variant (Optional)</label>
-                  <Input name="flavor" defaultValue={editingProduct?.flavor || ""} placeholder="e.g. Chocolate / Sesame" />
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Flavor / Variant (Optional)</label>
+                  <Input name="flavor" defaultValue={editingProduct?.flavor || ""} placeholder="e.g. Chocolate / Sesame" className="h-10" />
                 </div>
                 
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 block mb-1">Category</label>
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Category</label>
                   <select name="categoryId" required defaultValue={editingProduct?.categoryId || ""} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
                     <option value="" disabled>Select Category</option>
                     {categories.map(c => (
@@ -481,7 +568,7 @@ export default function ProductsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 block mb-1">Unit Type</label>
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Unit Type</label>
                   <select name="unitType" required defaultValue={editingProduct?.unitType || "PIECE"} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
                     <option value="PIECE">Piece</option>
                     <option value="KG">Kg</option>
@@ -490,17 +577,36 @@ export default function ProductsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 block mb-1">Selling Price (ETB)</label>
-                  <Input name="basePrice" type="number" step="0.01" required defaultValue={editingProduct?.basePrice ?? ""} />
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Selling Price (ETB)</label>
+                  <Input
+                    name="basePrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    placeholder="0.00"
+                    defaultValue={editingProduct?.basePrice ?? ""}
+                    onFocus={(e) => e.target.select()}
+                    className="h-10 font-mono"
+                  />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 block mb-1">Cost Price (ETB) - Optional</label>
-                  <Input name="buyPrice" type="number" step="0.01" defaultValue={editingProduct?.buyPrice ?? ""} />
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Cost Price (ETB) - Optional</label>
+                  <Input
+                    name="buyPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    defaultValue={editingProduct?.buyPrice ?? ""}
+                    onFocus={(e) => e.target.select()}
+                    className="h-10 font-mono"
+                  />
                 </div>
                 
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 block mb-1">Financial Category (Revenue)</label>
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Financial Category (Revenue)</label>
                   <select name="financialCategoryId" defaultValue={editingProduct?.financialCategoryId || ""} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
                     <option value="">None (No financial tracking)</option>
                     {financialCategories.map(c => (
@@ -510,8 +616,8 @@ export default function ProductsPage() {
                 </div>
 
                 {editingProduct && (
-                  <div className="col-span-2">
-                    <label className="text-xs font-semibold text-zinc-700 block mb-1">Status</label>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Status</label>
                     <select name="isActive" required defaultValue={editingProduct.isActive ? "true" : "false"} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
                       <option value="true">Active</option>
                       <option value="false">Inactive</option>
@@ -520,10 +626,21 @@ export default function ProductsPage() {
                 )}
               </div>
 
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => { setIsAddOpen(false); setEditingProduct(null); }}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#4A2E1B] text-white hover:bg-[#3D2314]">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-4">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#4A2E1B] text-white hover:bg-[#3D2314] font-bold order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmitting ? (editingProduct ? "Saving..." : "Creating...") : (editingProduct ? "Save Changes" : "Create Product")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-auto h-10 border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                  onClick={() => { setIsAddOpen(false); setEditingProduct(null); }}
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
