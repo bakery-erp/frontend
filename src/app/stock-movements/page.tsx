@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -102,6 +102,23 @@ export default function StockMovementsPage() {
   }, [user, isGlobalAdmin]);
 
   const [activeTab, setActiveTab] = useState<"movements" | "loans">("movements");
+
+  // Tab auto-centering ref like in profile page
+  const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const btn = tabRefs.current[activeTab];
+      if (btn) {
+        btn.scrollIntoView({
+          behavior: "smooth",
+          inline: "center",
+          block: "nearest",
+        });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [loans, setLoans] = useState<StockPurchaseLoan[]>([]);
@@ -114,6 +131,21 @@ export default function StockMovementsPage() {
   // Filter state for loans
   const [loanStatusFilter, setLoanStatusFilter] = useState<string>("ALL");
   const [loanSearch, setLoanSearch] = useState<string>("");
+
+  const loanStatusTabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const btn = loanStatusTabRefs.current[loanStatusFilter];
+      if (btn) {
+        btn.scrollIntoView({
+          behavior: "smooth",
+          inline: "center",
+          block: "nearest",
+        });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [loanStatusFilter]);
 
   // Payment Modal State
   const [selectedLoanForPay, setSelectedLoanForPay] = useState<StockPurchaseLoan | null>(null);
@@ -337,36 +369,46 @@ export default function StockMovementsPage() {
         </div>
       </div>
 
-      {/* Main Mode Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-[#F4ECE1] rounded-2xl w-full sm:w-fit mb-6 border border-[#EDE4D5] overflow-x-auto scrollbar-none">
-        <button
-          onClick={() => setActiveTab("movements")}
-          className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
-            activeTab === "movements"
-              ? "bg-white text-[#2C1B10] shadow-xs"
-              : "text-[#8C7361] hover:text-[#2C1B10]"
-          }`}
-        >
-          <ArrowRightLeft className="w-4 h-4 text-[#E87A18] shrink-0" />
-          <span>Movements Ledger ({movements.length})</span>
-        </button>
+      {/* Main Mode Tabs with Auto-Centering & Edge Fade Hints */}
+      <div className="relative w-full sm:w-fit mb-6 overflow-hidden">
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
 
-        <button
-          onClick={() => setActiveTab("loans")}
-          className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
-            activeTab === "loans"
-              ? "bg-white text-[#2C1B10] shadow-xs"
-              : "text-[#8C7361] hover:text-[#2C1B10]"
-          }`}
+        <div 
+          className="flex items-center gap-2 p-1.5 bg-[#FAF7EE] rounded-2xl w-full sm:w-fit border border-[#EDE4D5] overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem]"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          <CreditCard className="w-4 h-4 text-purple-600 shrink-0" />
-          <span>Stock Loans & Credit ({loans.length})</span>
-          {loanStats.activeLoansCount > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-red-500 text-white font-bold">
-              {loanStats.activeLoansCount}
-            </span>
-          )}
-        </button>
+          <button
+            ref={(el) => { tabRefs.current["movements"] = el; }}
+            onClick={() => setActiveTab("movements")}
+            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap outline-none ${
+              activeTab === "movements"
+                ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
+                : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
+            }`}
+          >
+            <ArrowRightLeft className={`w-4 h-4 shrink-0 ${activeTab === "movements" ? "text-amber-300" : "text-[#E87A18]"}`} />
+            <span>Movements Ledger ({movements.length})</span>
+          </button>
+
+          <button
+            ref={(el) => { tabRefs.current["loans"] = el; }}
+            onClick={() => setActiveTab("loans")}
+            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap outline-none ${
+              activeTab === "loans"
+                ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
+                : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
+            }`}
+          >
+            <CreditCard className={`w-4 h-4 shrink-0 ${activeTab === "loans" ? "text-purple-300" : "text-purple-600"}`} />
+            <span>Stock Loans & Credit ({loans.length})</span>
+            {loanStats.activeLoansCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-bold">
+                {loanStats.activeLoansCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* TAB 1: STOCK MOVEMENTS LEDGER */}
@@ -539,21 +581,29 @@ export default function StockMovementsPage() {
 
           {/* Filters Bar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-[#EDE4D5]">
-            {/* Status Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-              {["ALL", "UNPAID", "PARTIAL", "PAID"].map(st => (
-                <button
-                  key={st}
-                  onClick={() => setLoanStatusFilter(st)}
-                  className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                    loanStatusFilter === st
-                      ? "bg-[#2C1B10] text-white shadow-xs"
-                      : "bg-[#FAF7EE] text-[#8C7361] hover:text-[#2C1B10]"
-                  }`}
-                >
-                  {st === "ALL" ? "All Credit Purchases" : st}
-                </button>
-              ))}
+            {/* Status Tabs with Auto-Centering and Edge Fade */}
+            <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+              <div
+                className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-0.5"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {["ALL", "UNPAID", "PARTIAL", "PAID"].map(st => (
+                  <button
+                    key={st}
+                    ref={(el) => { loanStatusTabRefs.current[st] = el; }}
+                    onClick={() => setLoanStatusFilter(st)}
+                    className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                      loanStatusFilter === st
+                        ? "bg-[#2C1B10] text-white shadow-xs"
+                        : "bg-[#FAF7EE] text-[#8C7361] hover:text-[#2C1B10]"
+                    }`}
+                  >
+                    {st === "ALL" ? "All Credit Purchases" : st}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Search Input */}

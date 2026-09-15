@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
@@ -71,6 +71,22 @@ export default function FinancialReportsPage() {
   const [from, setFrom] = useState<string>(monthStartYmd);
   const [to, setTo] = useState<string>(todayYmd);
   const [activePreset, setActivePreset] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
+
+  // Auto-center active preset tab smoothly
+  const presetTabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const btn = presetTabRefs.current[activePreset];
+      if (btn) {
+        btn.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest',
+        });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [activePreset]);
 
   // Core Data States
   const [report, setReport] = useState<any>(null);
@@ -241,21 +257,29 @@ export default function FinancialReportsPage() {
 
         {/* Date Range & Presets Toolbar */}
         <div className="flex flex-col md:flex-row md:items-center gap-2.5 bg-white p-2.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
-          {/* Scrollable preset pills */}
-          <div className="flex items-center gap-1 bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] overflow-x-auto scrollbar-none shrink-0">
-            {(['today', 'yesterday', 'week', 'month'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => handlePreset(p)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all whitespace-nowrap shrink-0 ${
-                  activePreset === p
-                    ? 'bg-[#4A2E1B] text-white shadow-xs'
-                    : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60'
-                }`}
-              >
-                {p === 'week' ? 'Last 7 Days' : p === 'month' ? 'This Month' : p}
-              </button>
-            ))}
+          {/* Scrollable preset pills with auto-centering and edge gradient fades */}
+          <div className="relative w-full sm:w-auto max-w-full overflow-hidden shrink-0">
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+            <div
+              className="flex items-center gap-1 bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_1.5rem]"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {(['today', 'yesterday', 'week', 'month'] as const).map((p) => (
+                <button
+                  key={p}
+                  ref={(el) => { presetTabRefs.current[p] = el; }}
+                  onClick={() => handlePreset(p)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all whitespace-nowrap shrink-0 ${
+                    activePreset === p
+                      ? 'bg-[#4A2E1B] text-white shadow-xs'
+                      : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60'
+                  }`}
+                >
+                  {p === 'week' ? 'Last 7 Days' : p === 'month' ? 'This Month' : p}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs w-full sm:w-auto">

@@ -6,10 +6,11 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { LayoutGrid, List, Plus, PackageCheck, TrendingUp, ShoppingBag, ShieldAlert, Image as ImageIcon, Truck } from "lucide-react";
 
 interface ProductCategory {
@@ -57,6 +58,7 @@ const PRODUCT_PRESET_IMAGES: { label: string; url: string }[] = [
 ];
 
 export default function ProductsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
@@ -68,12 +70,6 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'GRID' | 'TABLE'>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Add / Edit Modal State
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
 
   const formatCategoryLabel = (category: ProductCategory) =>
     category.parent ? `${category.parent.name} / ${category.name}` : category.name;
@@ -114,55 +110,6 @@ export default function ProductsPage() {
     return PRODUCT_PRESET_IMAGES[0].url;
   };
 
-  const openAddDialog = () => {
-    setEditingProduct(null);
-    setSelectedImageUrl(PRODUCT_PRESET_IMAGES[0].url);
-    setIsAddOpen(true);
-  };
-
-  const openEditDialog = (product: Product) => {
-    setEditingProduct(product);
-    setSelectedImageUrl(product.imageUrl || getProductImage(product));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, isEdit: boolean) => {
-    e.preventDefault();
-    if (!isAdminOrOwner) {
-      toast.error('Only Owners and Admins can create or edit products');
-      return;
-    }
-    setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      categoryId: formData.get("categoryId"),
-      financialCategoryId: formData.get("financialCategoryId") || undefined,
-      name: formData.get("name"),
-      flavor: formData.get("flavor") || undefined,
-      unitType: formData.get("unitType"),
-      basePrice: Number(formData.get("basePrice")),
-      buyPrice: formData.get("buyPrice") ? Number(formData.get("buyPrice")) : undefined,
-      imageUrl: selectedImageUrl || undefined,
-      isActive: formData.get("isActive") === "true"
-    };
-
-    try {
-      if (isEdit && editingProduct) {
-        await api.patch(`/products/${editingProduct.id}`, data);
-        toast.success("Product updated successfully");
-      } else {
-        await api.post("/products", data);
-        toast.success("Product created successfully");
-      }
-      setIsAddOpen(false);
-      setEditingProduct(null);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Operation failed");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const filteredProducts = products.filter((p) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
@@ -183,7 +130,7 @@ export default function ProductsPage() {
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('products.subtitle')}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
           {/* View Switcher */}
           <div className="bg-[#F4ECE1] p-1 rounded-xl flex items-center border border-[#EDE4D5]">
             <button
@@ -205,9 +152,11 @@ export default function ProductsPage() {
           </div>
 
           {isAdminOrOwner && (
-            <Button onClick={openAddDialog} className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md">
-              <Plus className="w-4 h-4 mr-1.5" /> {t('products.newProduct')}
-            </Button>
+            <Link href="/products/new">
+              <Button className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md h-10 px-4">
+                <Plus className="w-4 h-4 mr-1.5" /> {t('products.newProduct')}
+              </Button>
+            </Link>
           )}
         </div>
       </div>
@@ -338,7 +287,7 @@ export default function ProductsPage() {
                   </div>
                   {isAdminOrOwner && (
                     <div className="mt-3 pt-2 border-t border-[#FAF6F0] flex justify-end">
-                      <Button size="sm" variant="ghost" className="h-8 text-xs font-bold text-[#4A2E1B] hover:bg-[#F4ECE1] px-3" onClick={() => openEditDialog(prod)}>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs font-bold text-[#4A2E1B] hover:bg-[#F4ECE1] px-3" onClick={() => router.push(`/products/${prod.id}/edit`)}>
                         Edit Product
                       </Button>
                     </div>
@@ -423,7 +372,7 @@ export default function ProductsPage() {
                         variant="outline"
                         size="sm"
                         className="w-full h-9 font-bold text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
-                        onClick={() => openEditDialog(prod)}
+                        onClick={() => router.push(`/products/${prod.id}/edit`)}
                       >
                         Edit Product Details
                       </Button>
@@ -489,7 +438,7 @@ export default function ProductsPage() {
                       </TableCell>
                       {isAdminOrOwner && (
                         <TableCell className="text-right pr-6">
-                          <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEditDialog(prod)}>{t('common.edit')}</Button>
+                          <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => router.push(`/products/${prod.id}/edit`)}>{t('common.edit')}</Button>
                         </TableCell>
                       )}
                     </TableRow>
@@ -499,153 +448,6 @@ export default function ProductsPage() {
             </Table>
           </div>
         </div>
-      )}
-
-      {/* Add / Edit Dialog Wrapper */}
-      {(isAddOpen || editingProduct) && (
-        <Dialog open={true} onOpenChange={(open) => {
-          if (!open) {
-            setIsAddOpen(false);
-            setEditingProduct(null);
-          }
-        }}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
-                {editingProduct ? "Edit Product Details & Image" : "Add New Product"}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={(e) => handleSubmit(e, !!editingProduct)} className="space-y-4 py-2">
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1">Product Image Selection</label>
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                  {PRODUCT_PRESET_IMAGES.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSelectedImageUrl(preset.url)}
-                      className={`relative h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                        selectedImageUrl === preset.url ? 'border-[#E87A18] ring-2 ring-[#E87A18]/20' : 'border-zinc-200 opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <img src={preset.url} alt={preset.label} className="w-full h-full object-cover" />
-                      <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] truncate px-1 py-0.5 text-center">
-                        {preset.label.split('/')[0]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                <label className="text-[11px] text-[#8C7361] block mb-1">Custom Image URL (Optional)</label>
-                <Input
-                  type="url"
-                  placeholder="https://..."
-                  value={selectedImageUrl}
-                  onChange={(e) => setSelectedImageUrl(e.target.value)}
-                  className="text-xs h-9"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Product Name</label>
-                  <Input name="name" required defaultValue={editingProduct?.name || ""} placeholder="e.g. Special White Bread" className="h-10" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Flavor / Variant (Optional)</label>
-                  <Input name="flavor" defaultValue={editingProduct?.flavor || ""} placeholder="e.g. Chocolate / Sesame" className="h-10" />
-                </div>
-                
-                <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Category</label>
-                  <select name="categoryId" required defaultValue={editingProduct?.categoryId || ""} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
-                    <option value="" disabled>Select Category</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{formatCategoryLabel(c)} ({c.type})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Unit Type</label>
-                  <select name="unitType" required defaultValue={editingProduct?.unitType || "PIECE"} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
-                    <option value="PIECE">Piece</option>
-                    <option value="KG">Kg</option>
-                    <option value="LITER">Liter</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Selling Price (ETB)</label>
-                  <Input
-                    name="basePrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    placeholder="0.00"
-                    defaultValue={editingProduct?.basePrice ?? ""}
-                    onFocus={(e) => e.target.select()}
-                    className="h-10 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Cost Price (ETB) - Optional</label>
-                  <Input
-                    name="buyPrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    defaultValue={editingProduct?.buyPrice ?? ""}
-                    onFocus={(e) => e.target.select()}
-                    className="h-10 font-mono"
-                  />
-                </div>
-                
-                <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Financial Category (Revenue)</label>
-                  <select name="financialCategoryId" defaultValue={editingProduct?.financialCategoryId || ""} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
-                    <option value="">None (No financial tracking)</option>
-                    {financialCategories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {editingProduct && (
-                  <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-[#2C1B10] block mb-1">Status</label>
-                    <select name="isActive" required defaultValue={editingProduct.isActive ? "true" : "false"} className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
-                      <option value="true">Active</option>
-                      <option value="false">Inactive</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-4">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#4A2E1B] text-white hover:bg-[#3D2314] font-bold order-1 sm:order-2 shadow-sm"
-                >
-                  {isSubmitting ? (editingProduct ? "Saving..." : "Creating...") : (editingProduct ? "Save Changes" : "Create Product")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full sm:w-auto h-10 border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
-                  onClick={() => { setIsAddOpen(false); setEditingProduct(null); }}
-                >
-                  Cancel
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
       )}
     </DashboardLayout>
   );

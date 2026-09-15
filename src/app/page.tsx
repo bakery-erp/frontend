@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -70,6 +70,22 @@ export default function Dashboard() {
   // Ledger Filter & Search states
   const [ledgerFilter, setLedgerFilter] = useState<'ALL' | 'REVENUE' | 'EXPENSE'>('ALL');
   const [ledgerSearch, setLedgerSearch] = useState('');
+
+  // Auto-center active ledger tab smoothly like in my-profile
+  const ledgerTabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const btn = ledgerTabRefs.current[ledgerFilter];
+      if (btn) {
+        btn.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest',
+        });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [ledgerFilter]);
 
   useEffect(() => {
     if (user && user.role !== 'OWNER' && user.role !== 'ADMIN') {
@@ -877,33 +893,44 @@ export default function Dashboard() {
           </div>
 
           {/* Controls: Filter Switcher & Search */}
-          {/* Controls: Filter Switcher & Search */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-            <div className="bg-[#F4ECE1] p-1 rounded-xl flex items-center border border-[#EDE4D5] overflow-x-auto no-scrollbar">
-              <button
-                onClick={() => setLedgerFilter('ALL')}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  ledgerFilter === 'ALL' ? 'bg-[#4A2E1B] text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
-                }`}
+            <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
+              {/* Gradient edge fades for mobile */}
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+
+              <div
+                className="bg-[#F4ECE1] p-1 rounded-xl flex items-center gap-1 border border-[#EDE4D5] overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-1"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                {t('common.all')} ({unifiedTransactions.length})
-              </button>
-              <button
-                onClick={() => setLedgerFilter('REVENUE')}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  ledgerFilter === 'REVENUE' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
-                }`}
-              >
-                {t('dashboard.filterRevenueOnly')}
-              </button>
-              <button
-                onClick={() => setLedgerFilter('EXPENSE')}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  ledgerFilter === 'EXPENSE' ? 'bg-rose-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
-                }`}
-              >
-                {t('dashboard.filterExpensesOnly')}
-              </button>
+                <button
+                  ref={(el) => { ledgerTabRefs.current['ALL'] = el; }}
+                  onClick={() => setLedgerFilter('ALL')}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    ledgerFilter === 'ALL' ? 'bg-[#4A2E1B] text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
+                  }`}
+                >
+                  {t('common.all')} ({unifiedTransactions.length})
+                </button>
+                <button
+                  ref={(el) => { ledgerTabRefs.current['REVENUE'] = el; }}
+                  onClick={() => setLedgerFilter('REVENUE')}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    ledgerFilter === 'REVENUE' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
+                  }`}
+                >
+                  {t('dashboard.filterRevenueOnly')}
+                </button>
+                <button
+                  ref={(el) => { ledgerTabRefs.current['EXPENSE'] = el; }}
+                  onClick={() => setLedgerFilter('EXPENSE')}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    ledgerFilter === 'EXPENSE' ? 'bg-rose-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
+                  }`}
+                >
+                  {t('dashboard.filterExpensesOnly')}
+                </button>
+              </div>
             </div>
 
             <Input

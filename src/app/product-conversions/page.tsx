@@ -295,11 +295,14 @@ export default function ProductConversionsPage() {
             )}
 
             {/* Filter Tabs: All, Today, History */}
-            <div className="relative mb-4">
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-3 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-3 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+            <div className="relative mb-4 overflow-hidden">
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
 
-                <div className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5">
+                <div
+                    className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
                     <button
                         ref={(el) => { tabRefs.current["ALL"] = el; }}
                         onClick={() => setFilterTab("ALL")}

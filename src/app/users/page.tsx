@@ -2,6 +2,8 @@
 import { EthDatePicker } from "@/components/EthDatePicker";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
@@ -74,6 +76,7 @@ interface PasswordResetRequest {
 const SHIFTS = ["DAY", "NIGHT"];
 
 export default function UsersPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
@@ -101,10 +104,7 @@ export default function UsersPage() {
   const [copied, setCopied] = useState(false);
   
   // Dialog states
-  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -112,23 +112,24 @@ export default function UsersPage() {
   }, [selectedBranchId]);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
-      const [usersRes, branchesRes, rolesRes] = await Promise.all([
-        api.get<User[]>("/users", { params: selectedBranchId ? { branchId: selectedBranchId } : {} }),
+      const params: Record<string, string> = {};
+      if (selectedBranchId) {
+        params.branchId = selectedBranchId;
+      }
+      const [usersRes, branchesRes, rolesRes, resetRes] = await Promise.all([
+        api.get<User[]>("/users", { params }),
         api.get<Branch[]>("/branches"),
-        api.get<string[]>("/users/roles").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] }))
+        api.get<string[]>("/users/roles/list").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] })),
+        api.get<PasswordResetRequest[]>("/users/password-reset-requests").catch(() => ({ data: [] })),
       ]);
       setUsers(usersRes.data);
       setBranches(branchesRes.data);
       setRoles(rolesRes.data);
-
-      if (user?.role === "OWNER" || user?.role === "ADMIN") {
-        api.get<PasswordResetRequest[]>("/auth/password-reset-requests")
-          .then((res) => setResetRequests(res.data))
-          .catch(() => {});
-      }
+      setResetRequests(resetRes.data || []);
     } catch (error) {
-      toast.error("Failed to fetch data");
+      toast.error("Failed to load users");
       console.error(error);
     } finally {
       setLoading(false);
@@ -192,13 +193,11 @@ export default function UsersPage() {
   );
 
   const openCreate = () => {
-    setEditingUser(null);
-    setIsFormDialogOpen(true);
+    router.push("/users/new");
   };
 
   const openEdit = (u: User) => {
-    setEditingUser(u);
-    setIsFormDialogOpen(true);
+    router.push(`/users/${u.id}/edit`);
   };
 
   const openView = (u: User) => {
@@ -206,60 +205,20 @@ export default function UsersPage() {
     setIsViewDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    try {
-      const formData = new FormData(e.currentTarget);
-      
-      // Clean up empty strings
-      if (!formData.get("salary")) formData.delete("salary");
-      if (!formData.get("startDate")) formData.delete("startDate");
-      if (!formData.get("lastPaidDate")) formData.delete("lastPaidDate");
-      if (!formData.get("branchId")) formData.delete("branchId");
-      if (!formData.get("shift")) formData.delete("shift");
-      
-      // On edit, if password is empty, remove it so it's not changed safely
-      if (editingUser && !formData.get("password")) {
-        formData.delete("password");
-      }
-      
-      const file = formData.get("file") as File;
-      if (file && file.size === 0) {
-        formData.delete("file");
-      }
 
-      if (editingUser) {
-        await api.patch(`/users/${editingUser.id}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("User updated successfully");
-      } else {
-        await api.post("/users", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("User created successfully");
-      }
-      
-      setIsFormDialogOpen(false);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || `Failed to ${editingUser ? "update" : "create"} user`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
   
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      // Direct JSON patch for simple status toggle
       await api.patch(`/users/${userId}`, { isActive: !currentStatus });
-      toast.success(`User ${!currentStatus ? 'activated' : 'deactivated'}`);
+      toast.success("Status updated");
       fetchData();
     } catch (error) {
       toast.error("Failed to update status");
     }
+  };
+
+  const handleToggleActive = async (u: User) => {
+    await handleToggleStatus(u.id, u.isActive);
   };
 
   if (loading) return <DashboardLayout><div className="flex h-full items-center justify-center">Loading...</div></DashboardLayout>;
@@ -272,46 +231,59 @@ export default function UsersPage() {
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('users.subtitle')}</p>
         </div>
         {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-          <Button onClick={openCreate} className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs sm:text-sm h-11 px-5 shadow-sm self-start sm:self-auto">
-            <Plus className="w-4 h-4 mr-1.5" />
-            {t('users.newUser')}
-          </Button>
+          <Link href="/users/new">
+            <Button className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs sm:text-sm h-11 px-5 shadow-sm self-start sm:self-auto flex items-center gap-1.5">
+              <Plus className="w-4 h-4 mr-1" />
+              {t('users.newUser')}
+            </Button>
+          </Link>
         )}
       </div>
 
       <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
+        {/* Centered Segmented Control with Unambiguous Active State */}
         {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-          <div className="flex items-center gap-2 p-3 bg-[#FAF6F0]/60 border-b border-[#EDE4D5] overflow-x-auto no-scrollbar">
-            <button
-              onClick={() => setActiveTab("users")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
-                activeTab === "users"
-                  ? "bg-[#4A2E1B] text-white shadow-xs"
-                  : "bg-white text-[#8C7361] hover:text-[#2C1B10] border border-[#EDE4D5]"
-              }`}
-            >
-              <span>Personnel Directory</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                activeTab === "users" ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
-              }`}>
-                {users.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveTab("requests")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
-                activeTab === "requests"
-                  ? "bg-[#4A2E1B] text-white shadow-xs"
-                  : "bg-white text-[#8C7361] hover:text-[#2C1B10] border border-[#EDE4D5]"
-              }`}
-            >
-              <span>Password Reset Requests</span>
-              {pendingCount > 0 && (
-                <span className="bg-amber-600 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-full animate-pulse">
-                  {pendingCount}
+          <div className="p-3 bg-[#FAF6F0]/70 border-b border-[#EDE4D5] flex justify-center w-full">
+            <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-[#EDE4D5]/70 rounded-2xl w-full max-w-md shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab("users")}
+                className={`py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
+                  activeTab === "users"
+                    ? "bg-[#4A2E1B] text-white shadow-md ring-2 ring-[#4A2E1B]/20"
+                    : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
+                }`}
+              >
+                <span>Personnel Directory</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                  activeTab === "users" ? "bg-white/20 text-white" : "bg-[#4A2E1B]/10 text-[#4A2E1B]"
+                }`}>
+                  {users.length}
                 </span>
-              )}
-            </button>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("requests")}
+                className={`py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
+                  activeTab === "requests"
+                    ? "bg-[#4A2E1B] text-white shadow-md ring-2 ring-[#4A2E1B]/20"
+                    : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
+                }`}
+              >
+                <span>Password Requests</span>
+                {pendingCount > 0 ? (
+                  <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                    {pendingCount}
+                  </span>
+                ) : (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                    activeTab === "requests" ? "bg-white/20 text-white" : "bg-[#4A2E1B]/10 text-[#4A2E1B]"
+                  }`}>
+                    0
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
@@ -657,138 +629,6 @@ export default function UsersPage() {
         )}
       </div>
 
-      {/* CREATE & EDIT DIALOG */}
-      <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <form onSubmit={handleSubmit}>
-            <DialogHeader>
-              <DialogTitle>{editingUser ? "Edit Personnel" : "Add New Personnel"}</DialogTitle>
-              <DialogDescription>
-                {editingUser ? "Update the detail records for this employee." : "Create a new user entirely and assign them a default branch and role."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Full Name *</label>
-                  <Input name="fullName" defaultValue={editingUser?.fullName} placeholder="John Doe" required />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Phone Number *</label>
-                  <Input name="phone" defaultValue={editingUser?.phone} placeholder="0911..." required />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Password {editingUser && <span className="text-xs text-zinc-400 font-normal">(Leave empty to keep current)</span>} {!editingUser && "*"}
-                  </label>
-                  <Input name="password" type="text" placeholder={editingUser ? "********" : "Access code"} required={!editingUser} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Role *</label>
-                  <select
-                    name="role"
-                    required
-                    defaultValue={editingUser?.role || ""}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="">Select Role</option>
-                    {roles
-                      .filter((r) => !(!editingUser && r === "SUPERVISOR")) // Hides supervisor on create
-                      .map((r) => (
-                      <option key={r} value={r}>{r.replace("_", " ")}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Branch Assignment</label>
-                  <select
-                    name="branchId"
-                    defaultValue={editingUser?.branchId || ""}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="">Global / Unassigned</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Shift</label>
-                  <select
-                    name="shift"
-                    defaultValue={editingUser?.shift || ""}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="">No shift</option>
-                    {SHIFTS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Base Salary</label>
-                  <Input
-                    name="salary"
-                    type="number"
-                    defaultValue={editingUser?.salary || ""}
-                    placeholder="0"
-                    onFocus={(e) => e.target.select()}
-                    className="border-[#EDE4D5] rounded-xl text-xs h-10"
-                  />
-                </div>
-                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Start Date</label>
-                  <EthDatePicker name="startDate" defaultValue={editingUser?.startDate ? editingUser.startDate.split('T')[0] : ""} />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Last Paid Date</label>
-                  <EthDatePicker name="lastPaidDate" defaultValue={editingUser?.lastPaidDate ? editingUser.lastPaidDate.split('T')[0] : ""} />
-                </div>
-              </div>
-
-              <div className="space-y-2 mt-2">
-                <label className="text-sm font-medium border-b w-full block pb-2 mb-2">Documentation</label>
-                {editingUser?.filesUrl && (
-                  <div className="mb-2">
-                    <a href={`http://localhost:3001${editingUser.filesUrl}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs bg-blue-50 px-2 py-1 rounded">View Current Upload</a>
-                  </div>
-                )}
-                <div className="text-xs text-zinc-500 mb-2">Upload contract, ID, or other verification files (PDF/Image)</div>
-                <Input name="file" type="file" accept=".pdf,image/*" className="cursor-pointer" />
-              </div>
-            </div>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto h-11 bg-[#4A2E1B] text-white hover:bg-[#382214] font-bold rounded-xl text-xs sm:text-sm order-1 sm:order-2 shadow-sm"
-              >
-                {isSubmitting ? "Saving..." : (editingUser ? "Save Changes" : "Create User")}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFormDialogOpen(false)}
-                className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] font-semibold rounded-xl text-xs sm:text-sm order-2 sm:order-1"
-              >
-                Cancel
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* VIEW DETAILS DIALOG */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>

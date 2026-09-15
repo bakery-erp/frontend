@@ -783,37 +783,45 @@ export default function ExpensesPage() {
         </CardContent>
       </Card>
 
-      {/* Expense View Mode Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 mb-4">
-        {[
-          { id: "ALL", label: t('common.all'), count: expenses.length, color: "bg-[#4A2E1B] text-white" },
-          { id: "COMPANY", label: `💵 ${t('expenses.tabCompany')}`, count: expenses.filter((e) => e.type === "COMPANY").length, color: "bg-blue-600 text-white" },
-          { id: "OWNER", label: `👤 ${t('expenses.tabOwner')}`, count: expenses.filter((e) => e.type === "OWNER").length, color: "bg-purple-600 text-white" },
-        ].map((tab) => {
-          const isActive = typeFilter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              ref={isActive ? activeTypeFilterRef : null}
-              type="button"
-              onClick={() => setTypeFilter(tab.id as "ALL" | "COMPANY" | "OWNER")}
-              className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                isActive
-                  ? `${tab.color} shadow-xs`
-                  : "bg-[#FAF6F0] text-[#8C7361] hover:text-[#2C1B10] hover:bg-[#F3ECE1] border border-[#EDE4D5]"
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                  isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+      {/* Expense View Mode Filter Tabs with Auto-Centering & Edge Fade Hints */}
+      <div className="relative w-full max-w-full overflow-hidden mb-4">
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+
+        <div 
+          className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-1"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {[
+            { id: "ALL", label: t('common.all'), count: expenses.length, color: "bg-[#4A2E1B] text-white" },
+            { id: "COMPANY", label: `💵 ${t('expenses.tabCompany')}`, count: expenses.filter((e) => e.type === "COMPANY").length, color: "bg-blue-600 text-white" },
+            { id: "OWNER", label: `👤 ${t('expenses.tabOwner')}`, count: expenses.filter((e) => e.type === "OWNER").length, color: "bg-purple-600 text-white" },
+          ].map((tab) => {
+            const isActive = typeFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                ref={isActive ? activeTypeFilterRef : null}
+                type="button"
+                onClick={() => setTypeFilter(tab.id as "ALL" | "COMPANY" | "OWNER")}
+                className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
+                  isActive
+                    ? `${tab.color} shadow-xs ring-2 ring-[#4A2E1B]/20`
+                    : "bg-[#FAF6F0] text-[#8C7361] hover:text-[#2C1B10] hover:bg-[#F3ECE1] border border-[#EDE4D5]"
                 }`}
               >
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
+                <span>{tab.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                    isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Expenses Content Card */}
