@@ -862,9 +862,16 @@ export default function SuppliersPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full sm:w-auto h-11 bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs sm:text-sm font-bold rounded-xl order-1 sm:order-2"
+                  className="w-full sm:w-auto min-h-[44px] h-auto py-2.5 px-4 bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs sm:text-sm font-bold rounded-xl order-1 sm:order-2 whitespace-normal text-center leading-snug"
                 >
-                  {isSubmitting ? 'Recording...' : 'Record All Deliveries & Update Stock'}
+                  {isSubmitting ? (
+                    'Recording...'
+                  ) : (
+                    <>
+                      <span className="sm:hidden">Record Deliveries</span>
+                      <span className="hidden sm:inline">Record All Deliveries & Update Stock</span>
+                    </>
+                  )}
                 </Button>
                 <Button
                   type="button"
