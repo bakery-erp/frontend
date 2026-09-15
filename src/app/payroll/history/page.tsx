@@ -114,11 +114,11 @@ export default function PayrollHistoryPage() {
           </div>
         ) : (
           history.map((r) => (
-            <div key={r.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-extrabold text-[#2C1B10] text-base">{r.user?.fullName}</h3>
-                  <div className="flex items-center gap-2 mt-0.5">
+            <div key={r.id} className="bg-white rounded-2xl p-3.5 sm:p-4 border border-[#EDE4D5] shadow-xs space-y-3 overflow-hidden">
+              <div className="flex items-start justify-between gap-2 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-extrabold text-[#2C1B10] text-sm sm:text-base truncate">{r.user?.fullName}</h3>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                     <span className="text-xs text-[#8C7361] font-medium">{r.user?.role}</span>
                     <span className="text-xs text-[#8C7361]">•</span>
                     <span className="text-xs font-bold text-[#E87A18]">
@@ -126,7 +126,7 @@ export default function PayrollHistoryPage() {
                     </span>
                   </div>
                 </div>
-                <Badge className={`text-[10px] font-bold ${
+                <Badge className={`text-[10px] font-bold shrink-0 px-2 py-0.5 ${
                   r.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
                   r.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                   'bg-amber-100 text-amber-800 border-amber-300'
@@ -158,8 +158,8 @@ export default function PayrollHistoryPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs text-[#8C7361]">
-                <span>Paid: {formatEthDate(r.paymentDate, true)}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-100 text-xs text-[#8C7361]">
+                <span className="text-[11px] sm:text-xs">Paid: {formatEthDate(r.paymentDate, true)}</span>
                 {(user?.role === "OWNER" || user?.role === "ADMIN") && (
                   <Button
                     variant="outline"
