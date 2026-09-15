@@ -468,86 +468,101 @@ function ProductionFormContent() {
               <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
                 <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
               </div>
-              <div className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1">
-                <button
-                  ref={(el) => {
-                    parentCatTabRefs.current["ALL"] = el;
-                  }}
-                  type="button"
-                  onClick={() => {
-                    setSelectedParentCatId("ALL");
-                    setSelectedSubCatId("ALL");
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
-                    selectedParentCatId === "ALL"
-                      ? "bg-[#4A2E1B] text-white shadow-xs"
-                      : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                  }`}
+              {/* Main Category Row */}
+              <div className="relative w-full overflow-hidden">
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                <div
+                  className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
-                  All Categories ({products.length})
-                </button>
-                {parentCategories.map((cat) => {
-                  const catCount = products.filter(
-                    (p) => p.category?.parentId === cat.id || p.category?.id === cat.id
-                  ).length;
-                  return (
-                    <button
-                      key={cat.id}
-                      ref={(el) => {
-                        parentCatTabRefs.current[cat.id] = el;
-                      }}
-                      type="button"
-                      onClick={() => {
-                        setSelectedParentCatId(cat.id);
-                        setSelectedSubCatId("ALL");
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
-                        selectedParentCatId === cat.id
-                          ? "bg-[#4A2E1B] text-white shadow-xs"
-                          : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                      }`}
-                    >
-                      {cat.name} ({catCount})
-                    </button>
-                  );
-                })}
+                  <button
+                    ref={(el) => {
+                      parentCatTabRefs.current["ALL"] = el;
+                    }}
+                    type="button"
+                    onClick={() => {
+                      setSelectedParentCatId("ALL");
+                      setSelectedSubCatId("ALL");
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                      selectedParentCatId === "ALL"
+                        ? "bg-[#4A2E1B] text-white shadow-xs"
+                        : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
+                    }`}
+                  >
+                    All Categories ({products.length})
+                  </button>
+                  {parentCategories.map((cat) => {
+                    const catCount = products.filter(
+                      (p) => p.category?.parentId === cat.id || p.category?.id === cat.id
+                    ).length;
+                    return (
+                      <button
+                        key={cat.id}
+                        ref={(el) => {
+                          parentCatTabRefs.current[cat.id] = el;
+                        }}
+                        type="button"
+                        onClick={() => {
+                          setSelectedParentCatId(cat.id);
+                          setSelectedSubCatId("ALL");
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                          selectedParentCatId === cat.id
+                            ? "bg-[#4A2E1B] text-white shadow-xs"
+                            : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
+                        }`}
+                      >
+                        {cat.name} ({catCount})
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Sub-Category Filter Row if applicable */}
               {subCategories.length > 0 && (
-                <div className="pt-2.5 border-t border-[#EDE4D5] flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1">
-                  <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
-                  <button
-                    ref={(el) => {
-                      subCatTabRefs.current["ALL"] = el;
-                    }}
-                    type="button"
-                    onClick={() => setSelectedSubCatId("ALL")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-                      selectedSubCatId === "ALL"
-                        ? "bg-[#E87A18] text-white"
-                        : "bg-white text-[#8C7361] border border-[#EDE4D5]"
-                    }`}
+                <div className="relative w-full overflow-hidden pt-2.5 border-t border-[#EDE4D5]">
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                  <div
+                    className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
-                    All Sub-categories
-                  </button>
-                  {subCategories.map((sub) => (
+                    <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
                     <button
-                      key={sub.id}
                       ref={(el) => {
-                        subCatTabRefs.current[sub.id] = el;
+                        subCatTabRefs.current["ALL"] = el;
                       }}
                       type="button"
-                      onClick={() => setSelectedSubCatId(sub.id)}
+                      onClick={() => setSelectedSubCatId("ALL")}
                       className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-                        selectedSubCatId === sub.id
+                        selectedSubCatId === "ALL"
                           ? "bg-[#E87A18] text-white"
                           : "bg-white text-[#8C7361] border border-[#EDE4D5]"
                       }`}
                     >
-                      {sub.name}
+                      All Sub-categories
                     </button>
-                  ))}
+                    {subCategories.map((sub) => (
+                      <button
+                        key={sub.id}
+                        ref={(el) => {
+                          subCatTabRefs.current[sub.id] = el;
+                        }}
+                        type="button"
+                        onClick={() => setSelectedSubCatId(sub.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
+                          selectedSubCatId === sub.id
+                            ? "bg-[#E87A18] text-white"
+                            : "bg-white text-[#8C7361] border border-[#EDE4D5]"
+                        }`}
+                      >
+                        {sub.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

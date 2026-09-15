@@ -423,32 +423,40 @@ export default function CustomerCreditsPage() {
           ];
 
           return (
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-full">
-              {filterPills.map((pill) => {
-                const isActive = filterTab === pill.id;
-                return (
-                  <button
-                    key={pill.id}
-                    ref={isActive ? activeFilterRef : null}
-                    type="button"
-                    onClick={() => setFilterTab(pill.id as CreditFilterTab)}
-                    className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      isActive
-                        ? "bg-[#4A2E1B] text-white shadow-xs"
-                        : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
-                    }`}
-                  >
-                    <span>{pill.label}</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                        isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+            <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+
+              <div 
+                className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-0.5 max-w-full"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {filterPills.map((pill) => {
+                  const isActive = filterTab === pill.id;
+                  return (
+                    <button
+                      key={pill.id}
+                      ref={isActive ? activeFilterRef : null}
+                      type="button"
+                      onClick={() => setFilterTab(pill.id as CreditFilterTab)}
+                      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
+                        isActive
+                          ? "bg-[#4A2E1B] text-white shadow-xs ring-2 ring-[#4A2E1B]/20"
+                          : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
                       }`}
                     >
-                      {pill.count}
-                    </span>
-                  </button>
-                );
-              })}
+                      <span>{pill.label}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                          isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                        }`}
+                      >
+                        {pill.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           );
         })()}
