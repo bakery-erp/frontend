@@ -70,12 +70,16 @@ export default function ExpensesPage() {
   const [filterFrom, setFilterFrom] = useState(getEthTodayStr());
   const [filterTo, setFilterTo] = useState(getEthTodayStr());
   const [typeFilter, setTypeFilter] = useState<"ALL" | "COMPANY" | "OWNER">("ALL");
-  const activeTypeFilterRef = useRef<HTMLButtonElement | null>(null);
+  const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   useEffect(() => {
-    if (activeTypeFilterRef.current) {
-      activeTypeFilterRef.current.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
-    }
+    const timer = setTimeout(() => {
+      const btn = tabRefs.current[typeFilter];
+      if (btn) {
+        btn.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
   }, [typeFilter]);
 
   // Form state
@@ -419,22 +423,24 @@ export default function ExpensesPage() {
             {t('expenses.subtitle')}
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-col xs:flex-row sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           {isManagement && (
             <Button
               onClick={() => setIsManageCategoriesOpen(true)}
               variant="outline"
-              className="flex items-center gap-1.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl h-11 px-4 text-xs sm:text-sm"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl h-11 px-3 sm:px-4 text-xs sm:text-sm"
             >
-              <Settings className="w-4 h-4 text-[#E87A18]" /> {t('expenses.btnManageCategories')}
+              <Settings className="w-4 h-4 text-[#E87A18] shrink-0" />
+              <span>{t('expenses.btnManageCategories')}</span>
             </Button>
           )}
           <Button
             onClick={openCreateForm}
             disabled={!activeSession}
-            className="flex items-center gap-2 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl h-11 px-5 shadow-sm disabled:opacity-50 text-xs sm:text-sm"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl h-11 px-4 sm:px-5 shadow-sm disabled:opacity-50 text-xs sm:text-sm"
           >
-            <Plus className="w-4 h-4" /> {t('expenses.btnNewExpense')}
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>{t('expenses.btnNewExpense')}</span>
           </Button>
         </div>
       </div>
@@ -801,7 +807,7 @@ export default function ExpensesPage() {
             return (
               <button
                 key={tab.id}
-                ref={isActive ? activeTypeFilterRef : null}
+                ref={(el) => { tabRefs.current[tab.id] = el; }}
                 type="button"
                 onClick={() => setTypeFilter(tab.id as "ALL" | "COMPANY" | "OWNER")}
                 className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
