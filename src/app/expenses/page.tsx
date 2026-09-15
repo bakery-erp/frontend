@@ -423,24 +423,26 @@ export default function ExpensesPage() {
             {t('expenses.subtitle')}
           </p>
         </div>
-        <div className="flex flex-col xs:flex-row sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {isManagement && (
             <Button
               onClick={() => setIsManageCategoriesOpen(true)}
               variant="outline"
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl h-11 px-3 sm:px-4 text-xs sm:text-sm"
+              className="flex items-center gap-1.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-full h-9 sm:h-10 px-3.5 sm:px-4 text-xs shadow-2xs"
             >
-              <Settings className="w-4 h-4 text-[#E87A18] shrink-0" />
-              <span>{t('expenses.btnManageCategories')}</span>
+              <Settings className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+              <span className="hidden xs:inline">{t('expenses.btnManageCategories')}</span>
+              <span className="xs:hidden">Categories</span>
             </Button>
           )}
           <Button
             onClick={openCreateForm}
             disabled={!activeSession}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl h-11 px-4 sm:px-5 shadow-sm disabled:opacity-50 text-xs sm:text-sm"
+            className="flex items-center gap-1.5 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-full h-9 sm:h-10 px-3.5 sm:px-4 shadow-sm disabled:opacity-50 text-xs"
           >
-            <Plus className="w-4 h-4 shrink-0" />
-            <span>{t('expenses.btnNewExpense')}</span>
+            <Plus className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden xs:inline">{t('expenses.btnNewExpense')}</span>
+            <span className="xs:hidden">New Expense</span>
           </Button>
         </div>
       </div>
