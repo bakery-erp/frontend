@@ -122,21 +122,27 @@ export default function PayrollPenaltiesPage() {
     switch (status) {
       case "APPROVED":
         return (
-          <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold text-xs inline-flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> ACKNOWLEDGED / APPROVED
+          <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span className="hidden sm:inline">ACKNOWLEDGED / APPROVED</span>
+            <span className="sm:hidden">Approved</span>
           </Badge>
         );
       case "REJECTED":
         return (
-          <Badge className="bg-rose-100 text-rose-900 border-rose-300 font-extrabold text-xs inline-flex items-center gap-1">
-            <XCircle className="w-3.5 h-3.5 text-rose-600" /> REJECTED BY STAFF
+          <Badge className="bg-rose-100 text-rose-900 border-rose-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
+            <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+            <span className="hidden sm:inline">REJECTED BY STAFF</span>
+            <span className="sm:hidden">Rejected</span>
           </Badge>
         );
       case "PENDING_APPROVAL":
       default:
         return (
-          <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-xs inline-flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-amber-600" /> PENDING STAFF REVIEW
+          <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
+            <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span className="hidden sm:inline">PENDING STAFF REVIEW</span>
+            <span className="sm:hidden">Pending</span>
           </Badge>
         );
     }
@@ -178,16 +184,16 @@ export default function PayrollPenaltiesPage() {
           </div>
         ) : (
           penalties.map((p) => (
-            <div key={p.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-extrabold text-[#2C1B10] text-base">{p.user?.fullName}</h3>
+            <div key={p.id} className="bg-white rounded-2xl p-3.5 sm:p-4 border border-[#EDE4D5] shadow-xs space-y-3 overflow-hidden">
+              <div className="flex items-start justify-between gap-2 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-extrabold text-[#2C1B10] text-sm sm:text-base truncate">{p.user?.fullName}</h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-xs text-[#8C7361]">{formatEthDate(p.date)}</span>
+                    <span className="text-[11px] text-[#8C7361]">{formatEthDate(p.date)}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="font-extrabold text-rose-600 text-base font-mono">-{p.amount} ETB</span>
+                <div className="text-right shrink-0">
+                  <span className="font-extrabold text-rose-600 text-sm sm:text-base font-mono">-{p.amount} ETB</span>
                 </div>
               </div>
 
