@@ -132,6 +132,18 @@ export default function NewCustomerCreditPage() {
           productId: value,
           unitPrice: prod ? Number(prod.basePrice || 0) : updated[index].unitPrice,
         };
+      } else if (field === "quantity") {
+        let cleanVal = value;
+        if (value === "" || value === null || value === undefined) {
+          cleanVal = "";
+        } else {
+          const parsed = parseInt(String(value), 10);
+          cleanVal = isNaN(parsed) ? "" : Math.max(0, parsed);
+        }
+        updated[index] = {
+          ...updated[index],
+          quantity: cleanVal,
+        };
       } else {
         updated[index] = {
           ...updated[index],
@@ -226,19 +238,21 @@ export default function NewCustomerCreditPage() {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6 pb-12">
         {/* Header & Navigation */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="space-y-2">
+          <Button
+            variant="ghost"
+            onClick={() => router.push("/customer-credits")}
+            className="text-[#8C7361] hover:bg-[#F4ECE1] rounded-xl w-fit flex items-center gap-1.5 -ml-2 h-9 px-2.5 font-bold"
+          >
+            <ArrowLeft className="w-4 h-4" /> {t('credits.btnBack')}
+          </Button>
+
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/customer-credits")}
-              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" /> {t('credits.btnBack')}
-            </Button>
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-100 flex items-center justify-center text-[#E87A18] shrink-0 border border-amber-200">
+              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight flex items-center gap-2">
-                <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-[#E87A18]" />
+              <h1 className="text-xl sm:text-2xl font-black text-[#2C1B10] tracking-tight">
                 {t('credits.newCredit')}
               </h1>
               <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
@@ -424,9 +438,10 @@ export default function NewCustomerCreditPage() {
                             type="number"
                             min="1"
                             max={selectedProd ? selectedProd.availableStock : undefined}
-                            value={item.quantity}
+                            value={item.quantity === 0 || item.quantity === "" ? "" : item.quantity}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => handleLineItemChange(idx, "quantity", e.target.value)}
-                            placeholder="Qty"
+                            placeholder="0"
                             className={`text-xs h-10 font-bold text-center font-mono rounded-xl bg-white ${
                               isOverStock
                                 ? "border-rose-500 ring-2 ring-rose-200 text-rose-700 font-extrabold"
@@ -449,8 +464,9 @@ export default function NewCustomerCreditPage() {
                             type="number"
                             step="0.01"
                             value={item.unitPrice}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
-                            placeholder="Price"
+                            placeholder="0.00"
                             className="text-xs h-10 font-bold text-center font-mono rounded-xl bg-white"
                           />
                         </div>
@@ -482,9 +498,10 @@ export default function NewCustomerCreditPage() {
                             type="number"
                             min="1"
                             max={selectedProd ? selectedProd.availableStock : undefined}
-                            value={item.quantity}
+                            value={item.quantity === 0 || item.quantity === "" ? "" : item.quantity}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => handleLineItemChange(idx, "quantity", e.target.value)}
-                            placeholder="Qty"
+                            placeholder="0"
                             className={`text-xs h-10 font-bold text-center font-mono rounded-xl bg-white ${
                               isOverStock
                                 ? "border-rose-500 ring-2 ring-rose-200 text-rose-700 font-extrabold"
@@ -503,8 +520,9 @@ export default function NewCustomerCreditPage() {
                             type="number"
                             step="0.01"
                             value={item.unitPrice}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
-                            placeholder="Amount"
+                            placeholder="0.00"
                             className="text-xs h-10 font-bold text-center font-mono rounded-xl bg-white"
                           />
                         </div>
@@ -557,8 +575,9 @@ export default function NewCustomerCreditPage() {
                     step="0.01"
                     required
                     value={customTotalAmount !== "" ? customTotalAmount : (calculatedBirrTotal > 0 ? String(calculatedBirrTotal) : "")}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setCustomTotalAmount(e.target.value)}
-                    placeholder="Birr Total"
+                    placeholder="0.00"
                     className="bg-white text-[#2C1B10] font-extrabold text-sm font-mono h-9 text-right rounded-lg"
                   />
                 </div>
@@ -580,19 +599,19 @@ export default function NewCustomerCreditPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 sm:gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.push("/customer-credits")}
-              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs sm:text-sm"
+              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs sm:text-sm h-11 sm:h-10 w-full sm:w-auto"
             >
               {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || hasActiveSession === false || hasOverStockError || lineItems.length === 0}
-              className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+              className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs sm:text-sm h-11 sm:h-10 w-full sm:w-auto shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Check className="w-4 h-4" />
               {isSubmitting ? t('common.loading') : t('credits.newCredit')}

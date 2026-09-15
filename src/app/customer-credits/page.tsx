@@ -13,7 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
-import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye, AlertTriangle, Phone, CheckCircle2, Clock } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye, AlertTriangle, Phone, CheckCircle2, Clock, ChevronDown, ChevronUp } from "lucide-react";
 
 interface LoanPayment {
   id: string;
@@ -109,6 +109,14 @@ export default function CustomerCreditsPage() {
   const [filterTab, setFilterTab] = useState<CreditFilterTab>("ALL");
   const activeFilterRef = useRef<HTMLButtonElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedCreditCards, setExpandedCreditCards] = useState<Record<string, boolean>>({});
+
+  const toggleCreditExpand = (id: string) => {
+    setExpandedCreditCards((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   useEffect(() => {
     if (activeFilterRef.current) {
@@ -524,7 +532,7 @@ export default function CustomerCreditsPage() {
                           <TableCell className="max-w-[240px]">
                             {parsed.items.length > 0 ? (
                               <div className="flex flex-wrap gap-1 items-center">
-                                {parsed.items.slice(0, 2).map((itemStr, idx) => (
+                                {(expandedCreditCards[c.id] ? parsed.items : parsed.items.slice(0, 2)).map((itemStr, idx) => (
                                   <span
                                     key={idx}
                                     className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-tight"
@@ -533,9 +541,13 @@ export default function CustomerCreditsPage() {
                                   </span>
                                 ))}
                                 {parsed.items.length > 2 && (
-                                  <span className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#4A2E1B] text-white">
-                                    +{parsed.items.length - 2} more
-                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleCreditExpand(c.id)}
+                                    className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#4A2E1B] text-white hover:bg-[#3D2314] cursor-pointer transition-colors inline-flex items-center gap-0.5"
+                                  >
+                                    {expandedCreditCards[c.id] ? "Show less" : `+${parsed.items.length - 2} more`}
+                                  </button>
                                 )}
                               </div>
                             ) : (
@@ -675,14 +687,33 @@ export default function CustomerCreditsPage() {
                         )}
                       </div>
 
-                      {/* Products Badges */}
+                      {/* Products Badges with max 2 and Show More Toggle */}
                       <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361] block mb-1">
-                          {t('credits.colProducts')}
-                        </span>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361]">
+                            {t('credits.colProducts')}
+                          </span>
+                          {parsed.items.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleCreditExpand(c.id)}
+                              className="text-[11px] font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors px-1 py-0.5 rounded hover:bg-amber-50"
+                            >
+                              {expandedCreditCards[c.id] ? (
+                                <>
+                                  Show Less <ChevronUp className="w-3.5 h-3.5" />
+                                </>
+                              ) : (
+                                <>
+                                  +{parsed.items.length - 2} more <ChevronDown className="w-3.5 h-3.5" />
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
                         {parsed.items.length > 0 ? (
                           <div className="flex flex-wrap gap-1.5 items-center">
-                            {parsed.items.map((itemStr, idx) => (
+                            {(expandedCreditCards[c.id] ? parsed.items : parsed.items.slice(0, 2)).map((itemStr, idx) => (
                               <span
                                 key={idx}
                                 className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
