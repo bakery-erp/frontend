@@ -111,13 +111,13 @@ export default function SuppliersPage() {
   const addDeliveryItemRow = () => {
     const defaultProd = products[0];
     setDeliveryItems((prev) => [
-      ...prev,
       {
         productId: defaultProd ? defaultProd.id : '',
         quantityReceived: '',
         unitBuyPrice: defaultProd ? String(defaultProd.buyPrice || '') : '',
         unitSellPrice: defaultProd ? String(defaultProd.basePrice || '') : '',
       },
+      ...prev,
     ]);
   };
 
@@ -224,6 +224,15 @@ export default function SuppliersPage() {
     .reduce((sum, d) => sum + Number(d.unitBuyPrice) * d.quantityReceived, 0);
 
   const totalDeliveriesThisMonth = deliveries.length;
+
+  const totalBatchCost = deliveryItems.reduce(
+    (sum, item) => sum + Number(item.quantityReceived || 0) * Number(item.unitBuyPrice || 0),
+    0
+  );
+
+  const validDeliveryItemsCount = deliveryItems.filter(
+    (i) => i.productId && Number(i.quantityReceived) > 0
+  ).length;
 
   return (
     <DashboardLayout>
@@ -628,111 +637,242 @@ export default function SuppliersPage() {
               {/* Dynamic Line Items */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-extrabold text-[#4A2E1B] uppercase tracking-wider">
-                    Delivery Line Items ({deliveryItems.length})
-                  </h4>
+                  <div>
+                    <h4 className="text-xs font-extrabold text-[#4A2E1B] uppercase tracking-wider">
+                      Delivery Line Items ({deliveryItems.length})
+                    </h4>
+                    <span className="text-[11px] text-[#8C7361] hidden sm:inline">
+                      Add and adjust quantities and prices for this delivery
+                    </span>
+                  </div>
                   <Button
                     type="button"
                     onClick={addDeliveryItemRow}
                     variant="outline"
-                    className="border-[#E87A18] text-[#E87A18] hover:bg-amber-50 text-xs font-bold rounded-xl h-8 flex items-center gap-1"
+                    className="border-[#E87A18] text-[#E87A18] hover:bg-amber-50 text-xs font-bold rounded-xl h-8 px-3 flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Product
                   </Button>
                 </div>
 
                 {deliveryItems.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-zinc-400 border border-dashed rounded-xl">
-                    No items added. Click "+ Add Product" to begin.
+                  <div className="text-center py-8 text-xs text-zinc-400 border border-dashed border-[#EDE4D5] rounded-2xl bg-[#FAF6F0]/40">
+                    No items added yet. Click <span className="font-bold text-[#E87A18]">"+ Add Product"</span> to begin.
                   </div>
                 ) : (
                   <>
-                    {/* Column Headers */}
-                    <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-1.5 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
-                      <div className="col-span-5">Product Name</div>
+                    {/* Desktop Column Headers (>= sm) */}
+                    <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
+                      <div className="col-span-4">Product Name</div>
                       <div className="col-span-2 text-center">Qty Received</div>
-                      <div className="col-span-2">Unit Buy Price (ETB)</div>
-                      <div className="col-span-2">Unit Sell Price (ETB)</div>
+                      <div className="col-span-2 text-center">Unit Buy Price (ETB)</div>
+                      <div className="col-span-2 text-center">Unit Sell Price (ETB)</div>
+                      <div className="col-span-1 text-right">Subtotal</div>
                       <div className="col-span-1 text-center">Remove</div>
                     </div>
 
-                    {deliveryItems.map((item, index) => (
-                      <div key={index} className="grid grid-cols-12 gap-2 items-center bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
-                        <div className="col-span-12 sm:col-span-5">
-                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Product Name</label>
-                          <select
-                            value={item.productId}
-                            onChange={(e) => updateDeliveryItemRow(index, 'productId', e.target.value)}
-                            className="w-full bg-white border border-zinc-300 rounded-lg h-9 text-xs px-2 font-medium"
+                    {/* Items List */}
+                    <div className="space-y-3">
+                      {deliveryItems.map((item, index) => {
+                        const lineSubtotal = Number(item.quantityReceived || 0) * Number(item.unitBuyPrice || 0);
+                        return (
+                          <div
+                            key={index}
+                            className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 sm:p-2 sm:rounded-xl shadow-2xs space-y-3 sm:space-y-0 hover:border-amber-200 transition-colors"
                           >
-                            {products.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} ({p.unitType})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                            {/* MOBILE VIEW (< sm) */}
+                            <div className="block sm:hidden space-y-3">
+                              {/* Top Bar: Item Index and Remove Button */}
+                              <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-[#FAF6F0] border border-[#EDE4D5] text-[#E87A18] text-[11px] font-extrabold flex items-center justify-center">
+                                    {index + 1}
+                                  </span>
+                                  <span className="text-xs font-bold text-[#4A2E1B]">Product #{index + 1}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeDeliveryItemRow(index)}
+                                  className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-semibold px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                                  title="Remove product"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Remove</span>
+                                </button>
+                              </div>
 
-                        <div className="col-span-4 sm:col-span-2">
-                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Qty Received</label>
-                          <Input
-                            type="number"
-                            placeholder="Qty"
-                            title="Quantity Received"
-                            value={item.quantityReceived}
-                            onChange={(e) => updateDeliveryItemRow(index, 'quantityReceived', e.target.value)}
-                            className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-center"
-                          />
-                        </div>
+                              {/* Product Selection */}
+                              <div>
+                                <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">Product</label>
+                                <select
+                                  value={item.productId}
+                                  onChange={(e) => updateDeliveryItemRow(index, 'productId', e.target.value)}
+                                  className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-1 focus:ring-[#E87A18]"
+                                >
+                                  {products.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name} ({p.unitType})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
 
-                        <div className="col-span-4 sm:col-span-2">
-                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Unit Buy Price (ETB)</label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="Buy Price"
-                            title="Unit Buy Price (ETB)"
-                            value={item.unitBuyPrice}
-                            onChange={(e) => updateDeliveryItemRow(index, 'unitBuyPrice', e.target.value)}
-                            className="bg-white border-zinc-300 h-9 text-xs font-mono"
-                          />
-                        </div>
+                              {/* Qty & Buy Price in 2 Columns */}
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">Qty Received</label>
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    value={item.quantityReceived}
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => updateDeliveryItemRow(index, 'quantityReceived', e.target.value)}
+                                    className="bg-white border-[#EDE4D5] h-10 text-xs font-mono font-bold text-center rounded-xl"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">Buy Price (ETB)</label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={item.unitBuyPrice}
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => updateDeliveryItemRow(index, 'unitBuyPrice', e.target.value)}
+                                    className="bg-white border-[#EDE4D5] h-10 text-xs font-mono text-center rounded-xl"
+                                  />
+                                </div>
+                              </div>
 
-                        <div className="col-span-3 sm:col-span-2">
-                          <label className="text-[10px] font-bold text-[#4A2E1B] block mb-0.5 sm:hidden">Unit Sell Price (ETB)</label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="Sell Price"
-                            title="Unit Sell Price (ETB)"
-                            value={item.unitSellPrice}
-                            onChange={(e) => updateDeliveryItemRow(index, 'unitSellPrice', e.target.value)}
-                            className="bg-white border-zinc-300 h-9 text-xs font-mono font-bold text-[#E87A18]"
-                          />
-                        </div>
+                              {/* Sell Price & Subtotal in 2 Columns */}
+                              <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+                                <div>
+                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">Sell Price (ETB)</label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={item.unitSellPrice}
+                                    onFocus={(e) => e.target.select()}
+                                    onChange={(e) => updateDeliveryItemRow(index, 'unitSellPrice', e.target.value)}
+                                    className="bg-white border-[#EDE4D5] h-10 text-xs font-mono font-bold text-[#E87A18] text-center rounded-xl"
+                                  />
+                                </div>
+                                <div>
+                                  <span className="text-[11px] font-bold text-[#8C7361] block mb-1">Line Subtotal</span>
+                                  <div className="h-10 px-3 bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl flex items-center justify-between font-mono font-bold text-xs text-[#2C1B10]">
+                                    <span className="text-[10px] text-zinc-400 font-sans">ETB</span>
+                                    <span>{lineSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
 
-                        <div className="col-span-1 flex items-center justify-center">
-                          <button
-                            type="button"
-                            onClick={() => removeDeliveryItemRow(index)}
-                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Remove item"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                            {/* DESKTOP VIEW (>= sm) */}
+                            <div className="hidden sm:grid sm:grid-cols-12 gap-2 items-center">
+                              <div className="col-span-4">
+                                <select
+                                  value={item.productId}
+                                  onChange={(e) => updateDeliveryItemRow(index, 'productId', e.target.value)}
+                                  className="w-full bg-white border border-[#EDE4D5] rounded-lg h-9 text-xs px-2 font-medium"
+                                >
+                                  {products.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name} ({p.unitType})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="col-span-2">
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={item.quantityReceived}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => updateDeliveryItemRow(index, 'quantityReceived', e.target.value)}
+                                  className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold text-center"
+                                />
+                              </div>
+
+                              <div className="col-span-2">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={item.unitBuyPrice}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => updateDeliveryItemRow(index, 'unitBuyPrice', e.target.value)}
+                                  className="bg-white border-[#EDE4D5] h-9 text-xs font-mono text-center"
+                                />
+                              </div>
+
+                              <div className="col-span-2">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={item.unitSellPrice}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => updateDeliveryItemRow(index, 'unitSellPrice', e.target.value)}
+                                  className="bg-white border-[#EDE4D5] h-9 text-xs font-mono font-bold text-[#E87A18] text-center"
+                                />
+                              </div>
+
+                              <div className="col-span-1 text-right font-mono font-bold text-xs text-[#2C1B10]">
+                                {lineSubtotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </div>
+
+                              <div className="col-span-1 flex items-center justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => removeDeliveryItemRow(index)}
+                                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Remove item"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </>
                 )}
               </div>
 
-              <DialogFooter className="pt-3 border-t border-[#EDE4D5]">
-                <Button type="button" variant="outline" onClick={() => setIsLogDeliveryOpen(false)} className="border-[#EDE4D5] text-xs">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs font-bold">
+              {/* Total Batch Summary */}
+              <div className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-3.5 sm:p-4 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-bold text-[#8C7361] uppercase tracking-wider block">Total Delivery Batch Cost</span>
+                  <span className="text-xs text-[#A8988B]">
+                    {validDeliveryItemsCount} valid item{validDeliveryItemsCount !== 1 ? 's' : ''} to record & stock
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg sm:text-xl font-black text-[#2C1B10] font-mono">
+                    {totalBatchCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-xs font-bold text-[#8C7361] ml-1.5">ETB</span>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-3 border-t border-[#EDE4D5] flex flex-col sm:flex-row gap-2 w-full">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs sm:text-sm font-bold rounded-xl order-1 sm:order-2"
+                >
                   {isSubmitting ? 'Recording...' : 'Record All Deliveries & Update Stock'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsLogDeliveryOpen(false)}
+                  className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] text-xs sm:text-sm font-semibold rounded-xl order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
