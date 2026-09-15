@@ -877,11 +877,12 @@ export default function Dashboard() {
           </div>
 
           {/* Controls: Filter Switcher & Search */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-[#F4ECE1] p-1 rounded-xl flex items-center border border-[#EDE4D5]">
+          {/* Controls: Filter Switcher & Search */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <div className="bg-[#F4ECE1] p-1 rounded-xl flex items-center border border-[#EDE4D5] overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setLedgerFilter('ALL')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   ledgerFilter === 'ALL' ? 'bg-[#4A2E1B] text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
                 }`}
               >
@@ -889,7 +890,7 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setLedgerFilter('REVENUE')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   ledgerFilter === 'REVENUE' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
                 }`}
               >
@@ -897,7 +898,7 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setLedgerFilter('EXPENSE')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   ledgerFilter === 'EXPENSE' ? 'bg-rose-600 text-white shadow-xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
                 }`}
               >
@@ -910,63 +911,104 @@ export default function Dashboard() {
               placeholder={t('dashboard.searchTransactionsPlaceholder')}
               value={ledgerSearch}
               onChange={(e) => setLedgerSearch(e.target.value)}
-              className="w-48 bg-white border-[#EDE4D5] rounded-xl text-xs h-9"
+              className="w-full sm:w-52 bg-white border-[#EDE4D5] rounded-xl text-xs h-9"
             />
           </div>
         </CardHeader>
 
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-10 text-[#8C7361] text-xs font-medium">
               {t('dashboard.noTransactionsFound')}
             </div>
           ) : (
-            <Table>
-              <TableHeader className="bg-[#FAF6F0]">
-                <TableRow>
-                  <TableHead className="w-32">{t('common.date')}</TableHead>
-                  <TableHead>{t('common.details')}</TableHead>
-                  <TableHead>{t('expenses.category')}</TableHead>
-                  <TableHead className="text-center">{t('expenses.expenseType')}</TableHead>
-                  <TableHead className="text-center">{t('common.status')}</TableHead>
-                  <TableHead className="text-right pr-6">{t('expenses.amount')} ({t('common.currency')})</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* MOBILE TOUCH CARDS (block md:hidden) */}
+              <div className="block md:hidden divide-y divide-[#EDE4D5]/60 p-3 space-y-3">
                 {filteredTransactions.map((tx) => (
-                  <TableRow key={tx.id} className="hover:bg-[#FAF6F0]/60">
-                    <TableCell className="text-xs font-mono font-semibold text-[#8C7361]">
-                      {tx.date ? new Date(tx.date).toLocaleDateString() : '—'}
-                    </TableCell>
-                    <TableCell className="font-bold text-[#2C1B10]">
-                      {tx.title}
-                    </TableCell>
-                    <TableCell>
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                  <div key={tx.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono font-bold text-[#8C7361]">
+                        {tx.date ? new Date(tx.date).toLocaleDateString() : '—'}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                          tx.type === 'REVENUE' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                        }`}>
+                          {tx.type}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700">
+                          {tx.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="font-bold text-xs sm:text-sm text-[#2C1B10] leading-snug">{tx.title}</p>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-[#FAF6F0]">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
                         {tx.category}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                        tx.type === 'REVENUE' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                      <span className={`font-mono font-extrabold text-xs sm:text-sm ${
+                        tx.type === 'REVENUE' ? 'text-emerald-700' : 'text-rose-700'
                       }`}>
-                        {tx.type}
+                        {tx.type === 'REVENUE' ? '+' : '-'}{money(tx.amount)}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700">
-                        {tx.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className={`text-right font-extrabold pr-6 font-mono ${
-                      tx.type === 'REVENUE' ? 'text-emerald-700' : 'text-rose-700'
-                    }`}>
-                      {tx.type === 'REVENUE' ? '+' : '-'}{money(tx.amount)}
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* DESKTOP TABLE (hidden md:block) */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-[#FAF6F0]">
+                    <TableRow>
+                      <TableHead className="w-32">{t('common.date')}</TableHead>
+                      <TableHead>{t('common.details')}</TableHead>
+                      <TableHead>{t('expenses.category')}</TableHead>
+                      <TableHead className="text-center">{t('expenses.expenseType')}</TableHead>
+                      <TableHead className="text-center">{t('common.status')}</TableHead>
+                      <TableHead className="text-right pr-6">{t('expenses.amount')} ({t('common.currency')})</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map((tx) => (
+                      <TableRow key={tx.id} className="hover:bg-[#FAF6F0]/60">
+                        <TableCell className="text-xs font-mono font-semibold text-[#8C7361]">
+                          {tx.date ? new Date(tx.date).toLocaleDateString() : '—'}
+                        </TableCell>
+                        <TableCell className="font-bold text-[#2C1B10]">
+                          {tx.title}
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                            {tx.category}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                            tx.type === 'REVENUE' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                          }`}>
+                            {tx.type}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700">
+                            {tx.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className={`text-right font-extrabold pr-6 font-mono ${
+                          tx.type === 'REVENUE' ? 'text-emerald-700' : 'text-rose-700'
+                        }`}>
+                          {tx.type === 'REVENUE' ? '+' : '-'}{money(tx.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

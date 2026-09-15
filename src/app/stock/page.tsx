@@ -233,36 +233,36 @@ export default function StockPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('stock.title')}</h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('stock.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/stock-movements">
-            <Button variant="outline" className="rounded-xl border-purple-200 text-purple-900 bg-purple-50 hover:bg-purple-100 font-bold text-xs sm:text-sm flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-purple-600" />
-              Stock Loans & Credit
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <Link href="/stock-movements" className="flex-1 sm:flex-initial">
+            <Button variant="outline" className="w-full h-10 rounded-xl border-purple-200 text-purple-900 bg-purple-50 hover:bg-purple-100 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-purple-600 shrink-0" />
+              <span>Stock Loans & Credit</span>
             </Button>
           </Link>
           {user?.role === "OWNER" && (
-            <Button onClick={() => setIsAddOpen(true)} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5">
-              <Plus className="w-4 h-4" />
-              {t('stock.newItem')}
+            <Button onClick={() => setIsAddOpen(true)} className="flex-1 sm:flex-initial h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-sm text-xs sm:text-sm flex items-center justify-center gap-1.5">
+              <Plus className="w-4 h-4 shrink-0" />
+              <span>{t('stock.newItem')}</span>
             </Button>
           )}
         </div>
       </div>
 
       {/* Filter Bar with Today Button */}
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 mb-6 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
           <Button
             type="button"
             variant={filterToday ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterToday(!filterToday)}
-            className={`rounded-xl text-xs font-bold ${filterToday ? 'bg-[#4A2E1B] text-white' : 'border-[#EDE4D5] text-[#4A2E1B]'}`}
+            className={`h-9 rounded-xl text-xs font-bold shrink-0 ${filterToday ? 'bg-[#4A2E1B] text-white' : 'border-[#EDE4D5] text-[#4A2E1B]'}`}
           >
             📅 Daily Stock Today
           </Button>
@@ -272,7 +272,7 @@ export default function StockPage() {
             variant={filterLowStock ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterLowStock(!filterLowStock)}
-            className={`rounded-xl text-xs font-bold ${filterLowStock ? 'bg-rose-600 text-white' : 'border-rose-200 text-rose-700'}`}
+            className={`h-9 rounded-xl text-xs font-bold shrink-0 ${filterLowStock ? 'bg-rose-600 text-white' : 'border-rose-200 text-rose-700'}`}
           >
             ⚠️ {t('stock.stockLow')}
           </Button>
@@ -448,7 +448,7 @@ export default function StockPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`text-lg font-extrabold ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
+                  <div className={`text-lg font-extrabold font-mono ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
                     {Number(item.currentQuantity).toFixed(2)}
                   </div>
                   <div className="text-[10px] text-[#8C7361] font-bold uppercase">On-Hand Qty</div>
@@ -458,18 +458,20 @@ export default function StockPage() {
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs">
                 <div>
                   <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Unit Rate</span>
-                  <span className="font-bold text-[#2C1B10]">{price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}</span>
+                  <span className="font-bold text-[#2C1B10] font-mono">{price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}</span>
                 </div>
                 <div>
                   <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Total Valuation</span>
-                  <span className="font-bold text-amber-900">{totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}</span>
+                  <span className="font-bold text-amber-900 font-mono">{totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-zinc-100">
-                <Link href={`/stock/${item.id}`} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full h-8 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold flex items-center justify-center gap-1">
-                    <History className="w-3.5 h-3.5" /> History
+              {/* Primary Actions Row */}
+              <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-zinc-100">
+                <Link href={`/stock/${item.id}`} className="w-full">
+                  <Button variant="outline" size="sm" className="w-full h-9 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold flex items-center justify-center gap-1 px-1">
+                    <History className="w-3.5 h-3.5 shrink-0" />
+                    <span>History</span>
                   </Button>
                 </Link>
 
@@ -486,9 +488,10 @@ export default function StockPage() {
                         setAddPaidAmount("");
                         setAddSupplierName("");
                       }}
-                      className="h-8 px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-bold flex items-center gap-1"
+                      className="h-9 px-1 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-bold flex items-center justify-center gap-1"
                     >
-                      <PlusCircle className="w-3.5 h-3.5" /> Add
+                      <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Add</span>
                     </Button>
                     <Button 
                       variant="outline" 
@@ -498,13 +501,36 @@ export default function StockPage() {
                         setReduceAmount("");
                         setReduceReason("");
                       }}
-                      className="h-8 px-2.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 font-bold flex items-center gap-1"
+                      className="h-9 px-1 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 font-bold flex items-center justify-center gap-1"
                     >
-                      <MinusCircle className="w-3.5 h-3.5" /> Reduce
+                      <MinusCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Reduce</span>
                     </Button>
                   </>
                 )}
               </div>
+
+              {/* Admin Manage Row (Edit / Delete) */}
+              {isGlobalAdmin && (
+                <div className="flex items-center gap-2 pt-1 border-t border-dashed border-zinc-150">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingItem(item)}
+                    className="flex-1 h-8 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] flex items-center justify-center gap-1"
+                  >
+                    <Edit3 className="w-3 h-3 text-[#8C7361]" /> Edit Item
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setItemToDelete(item)}
+                    className="flex-1 h-8 text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 flex items-center justify-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3 text-rose-500" /> Delete
+                  </Button>
+                </div>
+              )}
             </div>
           );
         })}
@@ -521,14 +547,14 @@ export default function StockPage() {
             setCreateSupplierName("");
           }
         }}>
-          <DialogContent className="max-w-md rounded-2xl">
+          <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
                 {editingItem ? "Edit Stock Item" : "Create New Stock Item"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={(e) => handleSubmit(e, !!editingItem)}>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-3.5 py-3">
                 {isGlobalAdmin && !editingItem && (
                   <div>
                     <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Branch</label>
@@ -543,7 +569,7 @@ export default function StockPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Item Name</label>
-                  <Input name="name" required defaultValue={editingItem?.name || ""} placeholder="e.g. Wheat Flour" className="rounded-xl border-zinc-200" />
+                  <Input name="name" required defaultValue={editingItem?.name || ""} placeholder="e.g. Wheat Flour" className="h-10 rounded-xl border-zinc-200" />
                 </div>
                 
                 <div>
@@ -557,17 +583,43 @@ export default function StockPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Unit Cost / Price (ETB per unit)</label>
-                  <Input name="unitPrice" type="number" step="0.01" min="0" defaultValue={editingItem?.unitPrice ?? ""} placeholder="0.00" className="rounded-xl border-zinc-200" />
+                  <Input
+                    name="unitPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={editingItem?.unitPrice ?? ""}
+                    placeholder="0.00"
+                    onFocus={(e) => e.target.select()}
+                    className="h-10 rounded-xl border-zinc-200 font-mono"
+                  />
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Current Available Quantity</label>
-                  <Input name="currentQuantity" type="number" step="0.001" required defaultValue={editingItem?.currentQuantity ?? ""} placeholder="0.00" className="rounded-xl border-zinc-200" />
+                  <Input
+                    name="currentQuantity"
+                    type="number"
+                    step="0.001"
+                    required
+                    defaultValue={editingItem?.currentQuantity ?? ""}
+                    placeholder="0.00"
+                    onFocus={(e) => e.target.select()}
+                    className="h-10 rounded-xl border-zinc-200 font-mono"
+                  />
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Minimum Stock Threshold (Alert level)</label>
-                  <Input name="minStockLevel" type="number" step="0.001" defaultValue={editingItem?.minStockLevel ?? ""} placeholder="e.g. 10.00" className="rounded-xl border-zinc-200" />
+                  <Input
+                    name="minStockLevel"
+                    type="number"
+                    step="0.001"
+                    defaultValue={editingItem?.minStockLevel ?? ""}
+                    placeholder="e.g. 10.00"
+                    onFocus={(e) => e.target.select()}
+                    className="h-10 rounded-xl border-zinc-200 font-mono"
+                  />
                 </div>
 
                 {!editingItem && (
@@ -590,7 +642,7 @@ export default function StockPage() {
                             value={createSupplierName} 
                             onChange={(e) => setCreateSupplierName(e.target.value)} 
                             placeholder="e.g. Flour Factory PLC" 
-                            className="bg-white rounded-xl border-purple-200 text-xs" 
+                            className="bg-white rounded-xl border-purple-200 text-xs h-9" 
                           />
                         </div>
                         <div>
@@ -601,8 +653,9 @@ export default function StockPage() {
                             min="0" 
                             value={createPaidAmount} 
                             onChange={(e) => setCreatePaidAmount(e.target.value)} 
+                            onFocus={(e) => e.target.select()}
                             placeholder="0.00 (leave 0 if full credit)" 
-                            className="bg-white rounded-xl border-purple-200 text-xs" 
+                            className="bg-white rounded-xl border-purple-200 text-xs h-9 font-mono" 
                           />
                           <p className="text-[10px] text-purple-700 mt-1 font-medium">
                             If unpaid or partial, the remaining balance will be tracked as a credit purchase loan.
@@ -613,10 +666,21 @@ export default function StockPage() {
                   </div>
                 )}
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => { setIsAddOpen(false); setEditingItem(null); }} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-3">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmitting ? "Saving..." : (editingItem ? "Save Changes" : "Create Item")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setIsAddOpen(false); setEditingItem(null); }}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
@@ -627,15 +691,15 @@ export default function StockPage() {
       {/* Manual Stock Addition Dialog */}
       {addingItem && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setAddingItem(null); }}>
-          <DialogContent className="max-w-md rounded-2xl border-emerald-200">
+          <DialogContent className="max-w-md rounded-2xl border-emerald-200 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                <PlusCircle className="w-5 h-5 text-emerald-600" />
+                <PlusCircle className="w-5 h-5 text-emerald-600 shrink-0" />
                 Manual Stock Addition (Restock)
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAddStock}>
-              <div className="grid gap-4 py-3">
+              <div className="grid gap-3.5 py-3">
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900">
                   Adding stock to <strong className="font-bold">{addingItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(addingItem.currentQuantity).toFixed(2)} {addingItem.unitType}</span> (Rate: <span className="font-bold text-emerald-800">{Number(addingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{addingItem.unitType}</span>).
                 </div>
@@ -651,8 +715,9 @@ export default function StockPage() {
                     min="0.001"
                     value={addAmount} 
                     onChange={(e) => setAddAmount(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     placeholder="e.g. 50.00" 
-                    className="rounded-xl border-zinc-200" 
+                    className="h-10 rounded-xl border-zinc-200 font-mono" 
                   />
                 </div>
 
@@ -664,7 +729,7 @@ export default function StockPage() {
                     value={addReason} 
                     onChange={(e) => setAddReason(e.target.value)}
                     placeholder="e.g. Local Purchase, Restock, Inventory Audit" 
-                    className="rounded-xl border-zinc-200" 
+                    className="h-10 rounded-xl border-zinc-200" 
                   />
                 </div>
 
@@ -687,7 +752,7 @@ export default function StockPage() {
                           value={addSupplierName} 
                           onChange={(e) => setAddSupplierName(e.target.value)} 
                           placeholder="e.g. Grain Market Supplier" 
-                          className="bg-white rounded-xl border-purple-200 text-xs" 
+                          className="bg-white rounded-xl border-purple-200 text-xs h-9" 
                         />
                       </div>
                       <div>
@@ -698,8 +763,9 @@ export default function StockPage() {
                           min="0" 
                           value={addPaidAmount} 
                           onChange={(e) => setAddPaidAmount(e.target.value)} 
+                          onFocus={(e) => e.target.select()}
                           placeholder="0.00 (leave 0 if full credit)" 
-                          className="bg-white rounded-xl border-purple-200 text-xs" 
+                          className="bg-white rounded-xl border-purple-200 text-xs h-9 font-mono" 
                         />
                         <p className="text-[10px] text-purple-700 mt-1 font-medium">
                           Total purchase value: {((parseFloat(addAmount) || 0) * Number(addingItem.unitPrice || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
@@ -709,10 +775,21 @@ export default function StockPage() {
                   )}
                 </div>
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setAddingItem(null)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmitting ? "Processing..." : "Confirm Addition"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setAddingItem(null)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
@@ -723,15 +800,15 @@ export default function StockPage() {
       {/* Manual Stock Reduction Dialog */}
       {reducingItem && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setReducingItem(null); }}>
-          <DialogContent className="max-w-md rounded-2xl border-amber-200">
+          <DialogContent className="max-w-md rounded-2xl border-amber-200 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                <MinusCircle className="w-5 h-5 text-amber-600" />
+                <MinusCircle className="w-5 h-5 text-amber-600 shrink-0" />
                 Manual Stock Reduction
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleReduceStock}>
-              <div className="grid gap-4 py-3">
+              <div className="grid gap-3.5 py-3">
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900">
                   Reducing stock for <strong className="font-bold">{reducingItem.name}</strong>. Currently available: <span className="font-bold text-amber-700">{Number(reducingItem.currentQuantity).toFixed(2)} {reducingItem.unitType}</span> (Rate: <span className="font-bold text-amber-800">{Number(reducingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{reducingItem.unitType}</span>).
                 </div>
@@ -748,8 +825,9 @@ export default function StockPage() {
                     max={Number(reducingItem.currentQuantity)}
                     value={reduceAmount} 
                     onChange={(e) => setReduceAmount(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     placeholder={`Max: ${Number(reducingItem.currentQuantity).toFixed(2)}`} 
-                    className="rounded-xl border-zinc-200" 
+                    className="h-10 rounded-xl border-zinc-200 font-mono" 
                   />
                 </div>
 
@@ -761,14 +839,25 @@ export default function StockPage() {
                     value={reduceReason} 
                     onChange={(e) => setReduceReason(e.target.value)}
                     placeholder="e.g. Spoilage, Wastage, Audit Adjustment" 
-                    className="rounded-xl border-zinc-200" 
+                    className="h-10 rounded-xl border-zinc-200" 
                   />
                 </div>
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setReducingItem(null)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmitting ? "Processing..." : "Confirm Reduction"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setReducingItem(null)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>

@@ -266,43 +266,48 @@ export default function UsersPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('users.title')}</h1>
-          <p className="text-zinc-500 mt-1">{t('users.subtitle')}</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">{t('users.title')}</h1>
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('users.subtitle')}</p>
         </div>
         {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-          <Button onClick={openCreate} className="bg-black hover:bg-zinc-800 text-white">
-            <Plus className="w-4 h-4 mr-2" />
+          <Button onClick={openCreate} className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs sm:text-sm h-11 px-5 shadow-sm self-start sm:self-auto">
+            <Plus className="w-4 h-4 mr-1.5" />
             {t('users.newUser')}
           </Button>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
         {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-          <div className="flex border-b border-zinc-200 bg-white px-4 pt-2 gap-4">
+          <div className="flex items-center gap-2 p-3 bg-[#FAF6F0]/60 border-b border-[#EDE4D5] overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab("users")}
-              className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                 activeTab === "users"
-                  ? "border-black text-black"
-                  : "border-transparent text-zinc-500 hover:text-zinc-700"
+                  ? "bg-[#4A2E1B] text-white shadow-xs"
+                  : "bg-white text-[#8C7361] hover:text-[#2C1B10] border border-[#EDE4D5]"
               }`}
             >
-              Personnel Directory ({users.length})
+              <span>Personnel Directory</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                activeTab === "users" ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+              }`}>
+                {users.length}
+              </span>
             </button>
             <button
               onClick={() => setActiveTab("requests")}
-              className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                 activeTab === "requests"
-                  ? "border-black text-black"
-                  : "border-transparent text-zinc-500 hover:text-zinc-700"
+                  ? "bg-[#4A2E1B] text-white shadow-xs"
+                  : "bg-white text-[#8C7361] hover:text-[#2C1B10] border border-[#EDE4D5]"
               }`}
             >
               <span>Password Reset Requests</span>
               {pendingCount > 0 && (
-                <span className="bg-amber-600 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                <span className="bg-amber-600 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-full animate-pulse">
                   {pendingCount}
                 </span>
               )}
@@ -310,74 +315,57 @@ export default function UsersPage() {
           </div>
         )}
 
-        <div className="p-4 border-b border-zinc-200 bg-zinc-50/50 flex items-center justify-between">
-          <div className="relative w-72">
+        <div className="p-3.5 border-b border-[#EDE4D5] bg-[#FAF6F0]/30 flex items-center justify-between">
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <Input
               placeholder={t('common.search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-white"
+              className="pl-9 bg-white border-[#EDE4D5] rounded-xl text-xs h-9 w-full"
             />
           </div>
         </div>
 
         {activeTab === "users" ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('users.colFullName')}</TableHead>
-                <TableHead>{t('users.colRole')}</TableHead>
-                <TableHead>{t('users.colBranch')}</TableHead>
-                <TableHead>{t('common.status')}</TableHead>
-                <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* MOBILE TOUCH CARDS: Personnel Directory (block md:hidden) */}
+            <div className="block md:hidden divide-y divide-[#EDE4D5]/60 p-3 space-y-3">
               {filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
-                    No users found matching your search.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-[#8C7361] text-xs font-medium">
+                  No users found matching your search.
+                </div>
               ) : (
                 filteredUsers.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>
+                  <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
+                    <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
                         {u.filesUrl ? (
                           <img
                             src={getImageUrl(u.filesUrl)!}
                             alt={u.fullName}
-                            className="w-9 h-9 rounded-xl object-cover border border-[#E87A18]/30 shadow-xs"
+                            className="w-10 h-10 rounded-xl object-cover border border-[#E87A18]/30 shadow-xs"
                           />
                         ) : (
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold text-xs shadow-xs">
                             {u.fullName?.charAt(0) || "U"}
                           </div>
                         )}
                         <div>
-                          <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
+                          <p className="font-extrabold text-sm text-[#2C1B10]">{u.fullName}</p>
                           <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
                       <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
                         {u.role.replace("_", " ")}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {u.branch ? (
-                        <div className="flex items-center text-[#2C1B10] font-semibold text-xs">
-                          <Building2 className="w-3.5 h-3.5 mr-1 text-[#8C7361]" />
-                          {u.branch.name}
-                        </div>
-                      ) : (
-                        <span className="text-zinc-400 text-xs italic">Unassigned (Global)</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-[#FAF6F0]">
+                      <div className="flex items-center text-[#2C1B10] font-semibold">
+                        <Building2 className="w-3.5 h-3.5 mr-1 text-[#8C7361]" />
+                        {u.branch ? u.branch.name : <span className="text-zinc-400 italic">Unassigned</span>}
+                      </div>
                       <div className="flex items-center gap-2">
                         <Switch
                           checked={u.isActive}
@@ -388,115 +376,284 @@ export default function UsersPage() {
                           {u.isActive ? 'Active' : 'Disabled'}
                         </span>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <div className="flex justify-end gap-1.5">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openView(u)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Reset Password"
-                              className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                              onClick={() => openResetPassword(u)}
-                            >
-                              <Key className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEdit(u)}>
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#FAF6F0]">
+                      <Button variant="outline" size="sm" className="h-8 text-xs font-bold border-[#EDE4D5] text-[#4A2E1B] rounded-xl flex items-center gap-1" onClick={() => openView(u)}>
+                        <Eye className="w-3.5 h-3.5" /> View
+                      </Button>
+                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs font-bold border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl flex items-center gap-1"
+                            onClick={() => openResetPassword(u)}
+                          >
+                            <Key className="w-3.5 h-3.5" /> Reset Pass
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-8 text-xs font-bold border-[#EDE4D5] text-[#4A2E1B] rounded-xl flex items-center gap-1" onClick={() => openEdit(u)}>
+                            <Edit2 className="w-3.5 h-3.5" /> Edit
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 ))
               )}
-            </TableBody>
-          </Table>
+            </div>
+
+            {/* DESKTOP TABLE: Personnel Directory (hidden md:table) */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('users.colFullName')}</TableHead>
+                    <TableHead>{t('users.colRole')}</TableHead>
+                    <TableHead>{t('users.colBranch')}</TableHead>
+                    <TableHead>{t('common.status')}</TableHead>
+                    <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
+                        No users found matching your search.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredUsers.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            {u.filesUrl ? (
+                              <img
+                                src={getImageUrl(u.filesUrl)!}
+                                alt={u.fullName}
+                                className="w-9 h-9 rounded-xl object-cover border border-[#E87A18]/30 shadow-xs"
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                                {u.fullName?.charAt(0) || "U"}
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
+                              <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
+                            {u.role.replace("_", " ")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {u.branch ? (
+                            <div className="flex items-center text-[#2C1B10] font-semibold text-xs">
+                              <Building2 className="w-3.5 h-3.5 mr-1 text-[#8C7361]" />
+                              {u.branch.name}
+                            </div>
+                          ) : (
+                            <span className="text-zinc-400 text-xs italic">Unassigned (Global)</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={u.isActive}
+                              onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
+                              disabled={user?.role !== "OWNER" && user?.role !== "ADMIN"}
+                            />
+                            <span className={`text-xs font-bold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                              {u.isActive ? 'Active' : 'Disabled'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex justify-end gap-1.5">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openView(u)}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Reset Password"
+                                  className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                  onClick={() => openResetPassword(u)}
+                                >
+                                  <Key className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEdit(u)}>
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Phone Number</TableHead>
-                <TableHead>Requested Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right pr-6">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* MOBILE TOUCH CARDS: Password Reset Requests (block md:hidden) */}
+            <div className="block md:hidden divide-y divide-[#EDE4D5]/60 p-3 space-y-3">
               {resetRequests.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
-                    No password reset requests found.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-[#8C7361] text-xs font-medium">
+                  No password reset requests found.
+                </div>
               ) : (
                 resetRequests.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
+                  <div key={r.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
                           <Key className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="font-bold text-[#2C1B10]">{r.user?.fullName || "Employee"}</p>
+                          <p className="font-extrabold text-sm text-[#2C1B10]">{r.user?.fullName || "Employee"}</p>
                           <p className="text-xs text-[#8C7361]">{r.user?.branch?.name || "Global / Unassigned"}</p>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs font-semibold text-[#2C1B10]">{r.phone}</TableCell>
-                    <TableCell className="text-xs font-medium text-[#8C7361]">
-                      {format(new Date(r.requestedAt), "PPpp")}
-                    </TableCell>
-                    <TableCell>
-                      {r.status === "PENDING" && (
-                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-bold text-xs">
-                          ⏳ Pending Action
-                        </Badge>
-                      )}
-                      {r.status === "RESOLVED" && (
-                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold text-xs">
-                          ✓ Reset Completed
-                        </Badge>
-                      )}
-                      {r.status === "REJECTED" && (
-                        <Badge className="bg-rose-100 text-rose-800 border-rose-200 font-bold text-xs">
-                          ✕ Rejected
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      {r.status === "PENDING" && (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => openResetPassword(r.user, r.id)}
-                            className="bg-[#E87A18] hover:bg-[#d46d13] text-white text-xs font-bold h-8 rounded-lg shadow-xs"
-                          >
-                            <Key className="w-3.5 h-3.5 mr-1" />
-                            Generate Password
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRejectRequest(r.id)}
-                            className="text-xs font-bold h-8 rounded-lg text-rose-600 border-rose-200 hover:bg-rose-50"
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                      <div>
+                        {r.status === "PENDING" && (
+                          <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-bold text-[10px]">
+                            ⏳ Pending Action
+                          </Badge>
+                        )}
+                        {r.status === "RESOLVED" && (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold text-[10px]">
+                            ✓ Completed
+                          </Badge>
+                        )}
+                        {r.status === "REJECTED" && (
+                          <Badge className="bg-rose-100 text-rose-800 border-rose-200 font-bold text-[10px]">
+                            ✕ Rejected
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-[#8C7361] pt-1 border-t border-[#FAF6F0]">
+                      <span className="font-mono font-semibold text-[#2C1B10]">{r.phone}</span>
+                      <span>{format(new Date(r.requestedAt), "MMM d, h:mm a")}</span>
+                    </div>
+
+                    {r.status === "PENDING" && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-[#FAF6F0]">
+                        <Button
+                          size="sm"
+                          onClick={() => openResetPassword(r.user, r.id)}
+                          className="flex-1 bg-[#E87A18] hover:bg-[#d46d13] text-white text-xs font-bold h-9 rounded-xl shadow-xs"
+                        >
+                          <Key className="w-3.5 h-3.5 mr-1" />
+                          Generate Password
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRejectRequest(r.id)}
+                          className="text-xs font-bold h-9 px-3 rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50"
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 ))
               )}
-            </TableBody>
-          </Table>
+            </div>
+
+            {/* DESKTOP TABLE: Password Reset Requests (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Phone Number</TableHead>
+                    <TableHead>Requested Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right pr-6">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resetRequests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
+                        No password reset requests found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    resetRequests.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
+                              <Key className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-[#2C1B10]">{r.user?.fullName || "Employee"}</p>
+                              <p className="text-xs text-[#8C7361]">{r.user?.branch?.name || "Global / Unassigned"}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs font-semibold text-[#2C1B10]">{r.phone}</TableCell>
+                        <TableCell className="text-xs font-medium text-[#8C7361]">
+                          {format(new Date(r.requestedAt), "PPpp")}
+                        </TableCell>
+                        <TableCell>
+                          {r.status === "PENDING" && (
+                            <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-bold text-xs">
+                              ⏳ Pending Action
+                            </Badge>
+                          )}
+                          {r.status === "RESOLVED" && (
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold text-xs">
+                              ✓ Reset Completed
+                            </Badge>
+                          )}
+                          {r.status === "REJECTED" && (
+                            <Badge className="bg-rose-100 text-rose-800 border-rose-200 font-bold text-xs">
+                              ✕ Rejected
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          {r.status === "PENDING" && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => openResetPassword(r.user, r.id)}
+                                className="bg-[#E87A18] hover:bg-[#d46d13] text-white text-xs font-bold h-8 rounded-lg shadow-xs"
+                              >
+                                <Key className="w-3.5 h-3.5 mr-1" />
+                                Generate Password
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRejectRequest(r.id)}
+                                className="text-xs font-bold h-8 rounded-lg text-rose-600 border-rose-200 hover:bg-rose-50"
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
 
@@ -579,7 +736,14 @@ export default function UsersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Base Salary</label>
-                  <Input name="salary" type="number" defaultValue={editingUser?.salary || ""} placeholder="e.g. 5000" />
+                  <Input
+                    name="salary"
+                    type="number"
+                    defaultValue={editingUser?.salary || ""}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select()}
+                    className="border-[#EDE4D5] rounded-xl text-xs h-10"
+                  />
                 </div>
                  <div className="space-y-2">
                   <label className="text-sm font-medium">Start Date</label>
@@ -605,12 +769,21 @@ export default function UsersPage() {
                 <Input name="file" type="file" accept=".pdf,image/*" className="cursor-pointer" />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsFormDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-black text-white hover:bg-zinc-800">
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto h-11 bg-[#4A2E1B] text-white hover:bg-[#382214] font-bold rounded-xl text-xs sm:text-sm order-1 sm:order-2 shadow-sm"
+              >
                 {isSubmitting ? "Saving..." : (editingUser ? "Save Changes" : "Create User")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsFormDialogOpen(false)}
+                className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] font-semibold rounded-xl text-xs sm:text-sm order-2 sm:order-1"
+              >
+                Cancel
               </Button>
             </DialogFooter>
           </form>
@@ -699,13 +872,22 @@ export default function UsersPage() {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>Close</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
+            <Button
+              variant="outline"
+              onClick={() => setIsViewDialogOpen(false)}
+              className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] font-semibold rounded-xl text-xs sm:text-sm order-2 sm:order-1"
+            >
+              Close
+            </Button>
             {(user?.role === "OWNER" || user?.role === "ADMIN") && viewingUser && (
-              <Button onClick={() => {
-                setIsViewDialogOpen(false);
-                openEdit(viewingUser);
-              }} className="bg-black text-white hover:bg-zinc-800">
+              <Button
+                onClick={() => {
+                  setIsViewDialogOpen(false);
+                  openEdit(viewingUser);
+                }}
+                className="w-full sm:w-auto h-11 bg-[#4A2E1B] text-white hover:bg-[#382214] font-bold rounded-xl text-xs sm:text-sm order-1 sm:order-2 shadow-sm"
+              >
                 <Edit2 className="w-4 h-4 mr-2" /> Edit Employee
               </Button>
             )}
@@ -759,16 +941,21 @@ export default function UsersPage() {
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsResetModalOpen(false)}>
-              Cancel
-            </Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
             <Button
               onClick={handleGeneratePassword}
               disabled={isGenerating}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              className="w-full sm:w-auto h-11 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs sm:text-sm order-1 sm:order-2 shadow-sm"
             >
               {isGenerating ? "Generating..." : "Generate & Set Password"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsResetModalOpen(false)}
+              className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] font-semibold rounded-xl text-xs sm:text-sm order-2 sm:order-1"
+            >
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

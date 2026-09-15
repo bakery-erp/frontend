@@ -240,13 +240,14 @@ export default function FinancialReportsPage() {
         </div>
 
         {/* Date Range & Presets Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-[#EDE4D5] shadow-xs">
-          <div className="flex items-center gap-1 bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5]">
+        <div className="flex flex-col md:flex-row md:items-center gap-2.5 bg-white p-2.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+          {/* Scrollable preset pills */}
+          <div className="flex items-center gap-1 bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] overflow-x-auto scrollbar-none shrink-0">
             {(['today', 'yesterday', 'week', 'month'] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => handlePreset(p)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all whitespace-nowrap shrink-0 ${
                   activePreset === p
                     ? 'bg-[#4A2E1B] text-white shadow-xs'
                     : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60'
@@ -257,7 +258,7 @@ export default function FinancialReportsPage() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
             <Input
               type="date"
               value={from}
@@ -265,9 +266,9 @@ export default function FinancialReportsPage() {
                 setFrom(e.target.value);
                 setActivePreset('custom');
               }}
-              className="w-32 h-8 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-lg font-mono"
+              className="flex-1 sm:w-32 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-mono"
             />
-            <span className="text-[#8C7361] font-bold">to</span>
+            <span className="text-[#8C7361] font-bold shrink-0">to</span>
             <Input
               type="date"
               value={to}
@@ -275,19 +276,18 @@ export default function FinancialReportsPage() {
                 setTo(e.target.value);
                 setActivePreset('custom');
               }}
-              className="w-32 h-8 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-lg font-mono"
+              className="flex-1 sm:w-32 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-mono"
             />
+            <Button
+              size="sm"
+              onClick={fetchReportData}
+              variant="outline"
+              className="h-9 border-[#EDE4D5] text-[#4A2E1B] hover:bg-amber-50 rounded-xl px-3 flex items-center gap-1.5 text-xs font-bold shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
           </div>
-
-          <Button
-            size="sm"
-            onClick={fetchReportData}
-            variant="outline"
-            className="h-8 border-[#EDE4D5] text-[#4A2E1B] hover:bg-amber-50 rounded-xl px-3 flex items-center gap-1.5 text-xs font-bold"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -666,13 +666,64 @@ export default function FinancialReportsPage() {
                   </div>
                 </div>
 
-                {/* Day by day breakdown table */}
+                {/* Day by day breakdown */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-emerald-600" />
                     Daily Session Revenue Breakdown
                   </h3>
-                  <div className="rounded-2xl border border-[#EDE4D5] overflow-x-auto">
+
+                  {/* Mobile Touch Cards for Daily Sessions */}
+                  <div className="block md:hidden space-y-2.5">
+                    {dailyBreakdown.length === 0 ? (
+                      <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
+                        No daily sessions found in this date range.
+                      </div>
+                    ) : (
+                      dailyBreakdown.map((d: any, idx: number) => (
+                        <div
+                          key={d.date || idx}
+                          className="bg-[#FAF6F0] rounded-xl p-3 border border-[#EDE4D5] space-y-2 shadow-2xs"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="font-extrabold text-sm text-[#2C1B10]">
+                                {formatEthDate(d.date)}
+                              </span>
+                              <span className="text-[10px] text-[#8C7361] font-mono block">
+                                {d.date}
+                              </span>
+                            </div>
+                            <span className="text-xs font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-mono">
+                              {money(d.dailyTotalRevenue)}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5]">
+                            <div>
+                              <span className="text-[10px] text-[#8C7361] block">Yesterday Leftover:</span>
+                              <span className="font-mono text-zinc-700">{money(d.yesterdayCashLeftover)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[#8C7361] block">POS Sales:</span>
+                              <span className="font-mono font-bold text-[#2C1B10]">{money(d.salesTotal)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[#8C7361] block">Credit Repaid:</span>
+                              <span className="font-mono font-semibold text-emerald-700">+{money(d.creditReceivedFromLoan)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[#8C7361] block">Tomorrow Leftover:</span>
+                              <span className="font-mono text-rose-700">-{money(d.tomorrowCashLeftover)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Desktop Table for Daily Sessions */}
+                  <div className="hidden md:block rounded-2xl border border-[#EDE4D5] overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-[#FAF6F0]">
                         <TableRow>
@@ -732,7 +783,58 @@ export default function FinancialReportsPage() {
                           Total: {money(customerCreditTaken)}
                         </span>
                       </div>
-                      <div className="rounded-2xl border border-sky-200 overflow-hidden">
+
+                      {/* Mobile Touch Cards for Customer Credits */}
+                      <div className="block md:hidden space-y-2">
+                        {customerLoans.map((l: any, idx: number) => {
+                          const cust = cleanCustomerInfo(l.entityId);
+                          return (
+                            <div
+                              key={l.id || idx}
+                              className="bg-sky-50/50 rounded-xl p-3 border border-sky-200 space-y-2"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <span className="font-bold text-xs text-[#2C1B10]">
+                                    {cust.name}
+                                  </span>
+                                  {cust.phone && (
+                                    <span className="block text-[11px] text-[#8C7361]">
+                                      {cust.phone}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] text-[#8C7361] mt-0.5 block">
+                                    {formatEthDate(l.date || l.createdAt)}
+                                  </span>
+                                </div>
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                    l.status === 'PAID'
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                                  }`}
+                                >
+                                  {l.status}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-sky-100 font-mono">
+                                <div>
+                                  <span className="text-[10px] text-[#8C7361] block font-sans">Credited:</span>
+                                  <span className="font-bold text-sky-900">{money(l.totalAmount)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-[#8C7361] block font-sans">Balance Due:</span>
+                                  <span className="font-bold text-rose-700">{money(l.remainingBalance)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Desktop Table for Customer Credits */}
+                      <div className="hidden md:block rounded-2xl border border-sky-200 overflow-hidden">
                         <Table>
                           <TableHeader className="bg-sky-50/60">
                             <TableRow>
@@ -823,12 +925,68 @@ export default function FinancialReportsPage() {
                   <Input
                     placeholder="Search expenses by category, description or payee..."
                     value={searchFilter}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    className="pl-9 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
+                    className="pl-9 h-10 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
                   />
                 </div>
 
-                <div className="rounded-2xl border border-rose-200 overflow-hidden">
+                {/* Mobile Touch Cards for Expenses */}
+                <div className="block md:hidden space-y-2.5">
+                  {companyExpenses
+                    .filter((e: any) => {
+                      if (!searchFilter) return true;
+                      const q = searchFilter.toLowerCase();
+                      return (
+                        (e.category || '').toLowerCase().includes(q) ||
+                        (e.description || '').toLowerCase().includes(q) ||
+                        (e.financialCategory?.name || '').toLowerCase().includes(q)
+                      );
+                    }).length === 0 ? (
+                    <div className="text-center py-6 text-xs text-[#8C7361] bg-rose-50/40 rounded-xl border border-rose-200">
+                      No company daily expenses recorded in this period.
+                    </div>
+                  ) : (
+                    companyExpenses
+                      .filter((e: any) => {
+                        if (!searchFilter) return true;
+                        const q = searchFilter.toLowerCase();
+                        return (
+                          (e.category || '').toLowerCase().includes(q) ||
+                          (e.description || '').toLowerCase().includes(q) ||
+                          (e.financialCategory?.name || '').toLowerCase().includes(q)
+                        );
+                      })
+                      .map((exp: any, idx: number) => (
+                        <div
+                          key={exp.id || idx}
+                          className="bg-rose-50/40 rounded-xl p-3 border border-rose-200 space-y-2"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="font-bold text-xs text-[#2C1B10]">
+                                {exp.financialCategory?.name || exp.category || 'Operational'}
+                              </span>
+                              <span className="text-[10px] text-[#8C7361] block mt-0.5">
+                                {formatEthDate(exp.date || exp.createdAt)}
+                              </span>
+                            </div>
+                            <span className="font-mono font-extrabold text-xs text-rose-700 bg-white border border-rose-200 px-2 py-0.5 rounded-lg">
+                              {money(exp.amount)}
+                            </span>
+                          </div>
+                          {exp.description && (
+                            <p className="text-xs text-zinc-700 bg-white p-2 rounded-lg border border-rose-100">
+                              {exp.description}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                  )}
+                </div>
+
+                {/* Desktop Table for Expenses */}
+                <div className="hidden md:block rounded-2xl border border-rose-200 overflow-hidden">
                   <Table>
                     <TableHeader className="bg-rose-50/60">
                       <TableRow>
@@ -922,7 +1080,58 @@ export default function FinancialReportsPage() {
                 </div>
 
                 {/* Day by Day Comparison */}
-                <div className="rounded-2xl border border-[#EDE4D5] overflow-hidden">
+                {/* Mobile Touch Cards for Daily Net Income */}
+                <div className="block md:hidden space-y-2.5">
+                  {dailyBreakdown.length === 0 ? (
+                    <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
+                      No daily performance logs in this range.
+                    </div>
+                  ) : (
+                    dailyBreakdown.map((d: any, idx: number) => {
+                      const net = Number(d.dailyTotalRevenue || 0) - Number(d.companyExpenseTotal || 0);
+                      return (
+                        <div
+                          key={d.date || idx}
+                          className="bg-[#FAF6F0] rounded-xl p-3 border border-[#EDE4D5] space-y-2"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="font-bold text-xs text-[#2C1B10]">
+                                {formatEthDate(d.date)}
+                              </span>
+                              <span className="text-[10px] text-[#8C7361] block font-mono">
+                                {d.date}
+                              </span>
+                            </div>
+                            <span
+                              className={`font-mono font-extrabold text-xs px-2 py-0.5 rounded-lg border ${
+                                net >= 0
+                                  ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                                  : 'text-rose-700 bg-rose-50 border-rose-200'
+                              }`}
+                            >
+                              {money(net)}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5] font-mono">
+                            <div>
+                              <span className="text-[10px] text-[#8C7361] block font-sans">Day Revenue:</span>
+                              <span className="font-bold text-emerald-800">{money(d.dailyTotalRevenue)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[#8C7361] block font-sans">Company Expense:</span>
+                              <span className="font-bold text-rose-700">-{money(d.companyExpenseTotal)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Desktop Table for Daily Net Income */}
+                <div className="hidden md:block rounded-2xl border border-[#EDE4D5] overflow-hidden">
                   <Table>
                     <TableHeader className="bg-[#FAF6F0]">
                       <TableRow>
@@ -1007,7 +1216,44 @@ export default function FinancialReportsPage() {
                       <Wallet className="w-4 h-4 text-purple-700" />
                       1. Owner Personal Drawings (Cash Taken Out)
                     </h4>
-                    <div className="rounded-2xl border border-purple-200 overflow-hidden">
+
+                    {/* Mobile Touch Cards for Drawings */}
+                    <div className="block md:hidden space-y-2.5">
+                      {ownerExpensesList.length === 0 ? (
+                        <div className="text-center py-4 text-xs text-[#8C7361] bg-purple-50/40 rounded-xl border border-purple-200">
+                          No owner personal cash drawings recorded.
+                        </div>
+                      ) : (
+                        ownerExpensesList.map((exp: any, idx: number) => (
+                          <div
+                            key={exp.id || idx}
+                            className="bg-purple-50/40 rounded-xl p-3 border border-purple-200 space-y-2"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-bold text-xs text-[#2C1B10]">
+                                  {exp.financialCategory?.name || exp.category || 'Owner Drawing'}
+                                </span>
+                                <span className="text-[10px] text-[#8C7361] block mt-0.5">
+                                  {formatEthDate(exp.date || exp.createdAt)}
+                                </span>
+                              </div>
+                              <span className="font-mono font-extrabold text-xs text-purple-900 bg-white border border-purple-200 px-2 py-0.5 rounded-lg">
+                                {money(exp.amount)}
+                              </span>
+                            </div>
+                            {exp.description && (
+                              <p className="text-xs text-zinc-700 bg-white p-2 rounded-lg border border-purple-100">
+                                {exp.description}
+                              </p>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Desktop Table for Drawings */}
+                    <div className="hidden md:block rounded-2xl border border-purple-200 overflow-hidden">
                       <Table>
                         <TableHeader className="bg-purple-50/60">
                           <TableRow>
@@ -1054,7 +1300,80 @@ export default function FinancialReportsPage() {
                     <p className="text-xs text-[#8C7361] mb-2">
                       These are goods and deliveries received on credit that you are obligated to settle with suppliers.
                     </p>
-                    <div className="rounded-2xl border border-rose-200 overflow-hidden">
+
+                    {/* Mobile Touch Cards for Payables */}
+                    <div className="block md:hidden space-y-2.5">
+                      {unpaidDeliveriesList.length === 0 && unpaidStockLoansList.length === 0 ? (
+                        <div className="text-center py-4 text-xs text-[#8C7361] bg-rose-50/40 rounded-xl border border-rose-200">
+                          No pending supplier debts or unpaid stock purchase loans found!
+                        </div>
+                      ) : (
+                        <>
+                          {unpaidDeliveriesList.map((d: any, idx: number) => {
+                            const cost = Number(d.unitBuyPrice) * Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
+                            return (
+                              <div
+                                key={d.id || idx}
+                                className="bg-rose-50/40 rounded-xl p-3 border border-rose-200 space-y-2"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <span className="font-bold text-xs text-[#2C1B10]">
+                                      {d.supplier?.name || 'Supplier'}
+                                    </span>
+                                    <span className="text-[10px] text-[#8C7361] block mt-0.5">
+                                      {formatEthDate(d.createdAt)}
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                                    UNPAID DELIVERY
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-rose-100 text-xs">
+                                  <span className="text-zinc-700">
+                                    {d.product?.name || d.stockItem?.name || 'Resell / Material'} ({d.quantityReceived} pcs)
+                                  </span>
+                                  <span className="font-mono font-extrabold text-rose-700">
+                                    {money(cost)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {unpaidStockLoansList.map((sl: any, idx: number) => (
+                            <div
+                              key={sl.id || idx}
+                              className="bg-amber-50/40 rounded-xl p-3 border border-amber-200 space-y-2"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <span className="font-bold text-xs text-[#2C1B10]">
+                                    {sl.supplierName || 'Ingredient Supplier'}
+                                  </span>
+                                  <span className="text-[10px] text-[#8C7361] block mt-0.5">
+                                    {formatEthDate(sl.createdAt)}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                  PURCHASE LOAN
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-amber-100 text-xs">
+                                <span className="text-zinc-700">
+                                  {sl.stockMovement?.stockItem?.name || 'Stock Material'}
+                                </span>
+                                <span className="font-mono font-extrabold text-rose-700">
+                                  {money(sl.remainingBalance)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Desktop Table for Payables */}
+                    <div className="hidden md:block rounded-2xl border border-rose-200 overflow-hidden">
                       <Table>
                         <TableHeader className="bg-rose-50/60">
                           <TableRow>
@@ -1164,12 +1483,71 @@ export default function FinancialReportsPage() {
                   <Input
                     placeholder="Search raw materials..."
                     value={searchFilter}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    className="pl-9 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
+                    className="pl-9 h-10 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
                   />
                 </div>
 
-                <div className="rounded-2xl border border-[#EDE4D5] overflow-hidden">
+                {/* Mobile Touch Cards for Stock */}
+                <div className="block md:hidden space-y-2.5">
+                  {stockItems
+                    .filter((i) => !searchFilter || i.name.toLowerCase().includes(searchFilter.toLowerCase()))
+                    .length === 0 ? (
+                    <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
+                      No raw materials found.
+                    </div>
+                  ) : (
+                    stockItems
+                      .filter((i) => !searchFilter || i.name.toLowerCase().includes(searchFilter.toLowerCase()))
+                      .map((item) => {
+                        const qty = Number(item.currentQuantity || 0);
+                        const price = Number(item.unitPrice || 0);
+                        const val = qty * price;
+                        const isLow = item.minStockLevel != null && qty <= Number(item.minStockLevel);
+                        return (
+                          <div
+                            key={item.id}
+                            className="bg-[#FAF6F0] rounded-xl p-3 border border-[#EDE4D5] space-y-2 shadow-2xs"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-bold text-xs text-[#2C1B10]">
+                                  {item.name}
+                                </span>
+                                <span className="text-[10px] text-[#8C7361] block">
+                                  Unit: {item.unitType}
+                                </span>
+                              </div>
+                              {isLow && (
+                                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200">
+                                  LOW STOCK
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-1.5 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5] font-mono">
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">Stock Qty:</span>
+                                <span className="font-bold text-[#2C1B10]">{qty.toLocaleString()}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">Unit Price:</span>
+                                <span className="text-zinc-700">{price.toFixed(2)}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-[#8C7361] block font-sans">Valuation:</span>
+                                <span className="font-extrabold text-amber-900">{money(val)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+
+                {/* Desktop Table for Stock */}
+                <div className="hidden md:block rounded-2xl border border-[#EDE4D5] overflow-hidden">
                   <Table>
                     <TableHeader className="bg-[#FAF6F0]">
                       <TableRow>
@@ -1260,12 +1638,64 @@ export default function FinancialReportsPage() {
                   <Input
                     placeholder="Search finished products..."
                     value={searchFilter}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    className="pl-9 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
+                    className="pl-9 h-10 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
                   />
                 </div>
 
-                <div className="rounded-2xl border border-[#EDE4D5] overflow-hidden">
+                {/* Mobile Touch Cards for Products */}
+                <div className="block md:hidden space-y-2.5">
+                  {products
+                    .filter((p) => !searchFilter || p.name.toLowerCase().includes(searchFilter.toLowerCase()))
+                    .length === 0 ? (
+                    <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
+                      No bakery products found.
+                    </div>
+                  ) : (
+                    products
+                      .filter((p) => !searchFilter || p.name.toLowerCase().includes(searchFilter.toLowerCase()))
+                      .map((p) => {
+                        const qty = Number(p.currentHouseStock || 0);
+                        const price = Number(p.buyPrice || p.basePrice || 0);
+                        const val = qty * price;
+                        return (
+                          <div
+                            key={p.id}
+                            className="bg-[#FAF6F0] rounded-xl p-3 border border-[#EDE4D5] space-y-2 shadow-2xs"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-bold text-xs text-[#2C1B10]">
+                                  {p.name}
+                                </span>
+                                <span className="text-[10px] text-[#8C7361] block">
+                                  {p.category?.name || 'General'}
+                                </span>
+                              </div>
+                              <span className="font-mono font-extrabold text-xs text-amber-900 bg-white border border-[#EDE4D5] px-2 py-0.5 rounded-lg">
+                                {money(val)}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5] font-mono">
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">House Stock:</span>
+                                <span className="font-bold text-[#2C1B10]">{qty.toLocaleString()} {p.unitType}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">Unit Price:</span>
+                                <span className="text-zinc-700">{price.toFixed(2)} ETB</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+
+                {/* Desktop Table for Products */}
+                <div className="hidden md:block rounded-2xl border border-[#EDE4D5] overflow-hidden">
                   <Table>
                     <TableHeader className="bg-[#FAF6F0]">
                       <TableRow>
@@ -1443,11 +1873,11 @@ export default function FinancialReportsPage() {
               </div>
             )}
 
-            <DialogFooter className="pt-4 border-t border-[#EDE4D5]">
+            <DialogFooter className="flex flex-col sm:flex-row justify-end w-full pt-4 border-t border-[#EDE4D5]">
               <Button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] rounded-xl text-xs font-bold px-6"
+                className="w-full sm:w-auto h-11 sm:h-10 bg-[#4A2E1B] text-white hover:bg-[#3D2314] rounded-xl text-xs font-bold px-6"
               >
                 Close Breakdown
               </Button>
