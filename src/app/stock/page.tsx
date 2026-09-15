@@ -219,6 +219,10 @@ export default function StockPage() {
     }
   };
 
+  const lowStockCount = items.filter(
+    (item) => item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel)
+  ).length;
+
   const filteredItems = items.filter((item) => {
     if (filterLowStock) {
       const isLow = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
@@ -254,35 +258,62 @@ export default function StockPage() {
         </div>
       </div>
 
-      {/* Filter Bar with Today Button */}
+      {/* Filter Bar with Centered Segmented Control */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-          <Button
-            type="button"
-            variant={filterToday ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterToday(!filterToday)}
-            className={`h-9 rounded-xl text-xs font-bold shrink-0 ${filterToday ? 'bg-[#4A2E1B] text-white' : 'border-[#EDE4D5] text-[#4A2E1B]'}`}
-          >
-            📅 Daily Stock Today
-          </Button>
+        <div className="w-full sm:max-w-md mx-auto sm:mx-0">
+          <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-[#EDE4D5]/70 rounded-2xl w-full shadow-2xs">
+            <button
+              type="button"
+              onClick={() => {
+                setFilterLowStock(false);
+                setFilterToday(false);
+              }}
+              className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
+                !filterLowStock
+                  ? "bg-[#4A2E1B] text-white shadow-md ring-2 ring-[#4A2E1B]/20"
+                  : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
+              }`}
+            >
+              <span>Daily Stock Today</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                !filterLowStock ? "bg-white/20 text-white" : "bg-[#4A2E1B]/10 text-[#4A2E1B]"
+              }`}>
+                {items.length}
+              </span>
+            </button>
 
-          <Button
-            type="button"
-            variant={filterLowStock ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterLowStock(!filterLowStock)}
-            className={`h-9 rounded-xl text-xs font-bold shrink-0 ${filterLowStock ? 'bg-rose-600 text-white' : 'border-rose-200 text-rose-700'}`}
-          >
-            ⚠️ {t('stock.stockLow')}
-          </Button>
+            <button
+              type="button"
+              onClick={() => setFilterLowStock(true)}
+              className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
+                filterLowStock
+                  ? "bg-rose-600 text-white shadow-md ring-2 ring-rose-500/20"
+                  : "text-[#8C7361] hover:text-rose-700 hover:bg-rose-50/50"
+              }`}
+            >
+              <span>⚠️ Low Stock</span>
+              {lowStockCount > 0 ? (
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                  filterLowStock ? "bg-white text-rose-700 font-extrabold" : "bg-rose-600 text-white"
+                }`}>
+                  {lowStockCount}
+                </span>
+              ) : (
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                  filterLowStock ? "bg-white/20 text-white" : "bg-zinc-200 text-zinc-600"
+                }`}>
+                  0
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         <Input
           placeholder={t('common.search')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
+          className="w-full sm:w-64 rounded-xl border-[#EDE4D5] text-xs h-10 bg-[#FAF6F0]/40"
         />
       </div>
 
