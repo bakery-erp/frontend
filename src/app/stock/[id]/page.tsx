@@ -318,57 +318,66 @@ export default function StockItemDetailPage() {
   return (
     <DashboardLayout>
       {/* Top Header */}
-      <div className="mb-6">
-        <Link href="/stock" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8C7361] hover:text-[#2C1B10] transition-colors mb-3">
+      <div className="mb-6 space-y-3">
+        <Link href="/stock" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8C7361] hover:text-[#4A2E1B] transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          Back to Stock Inventory
+          <span>Back to Stock Inventory</span>
         </Link>
+        
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-black text-[#2C1B10] tracking-tight">{stockItem.name}</h1>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{stockItem.name}</h1>
               {isLowStock ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                  <AlertCircle className="w-3.5 h-3.5" /> Low Stock Warning
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600" /> Low Stock Warning
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                   Optimal Stock Level
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-[#8C7361] mt-1.5 font-medium">
-              <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> Branch: <strong className="text-[#2C1B10]">{stockItem.branch?.name || "Global"}</strong></span>
-              <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5" /> Unit: <strong className="text-[#2C1B10]">{stockItem.unitType}</strong></span>
-              <span className="flex items-center gap-1">💵 Unit Price: <strong className="text-emerald-700 font-bold">{unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</strong></span>
-              <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> Min Alert: <strong className="text-[#2C1B10]">{stockItem.minStockLevel != null ? Number(stockItem.minStockLevel).toFixed(2) : "None"}</strong></span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#8C7361] mt-2 font-medium">
+              <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
+                <Building2 className="w-3.5 h-3.5 text-[#8C7361]" /> Branch: <strong className="text-[#2C1B10]">{stockItem.branch?.name || "Global"}</strong>
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
+                <Package className="w-3.5 h-3.5 text-[#8C7361]" /> Unit: <strong className="text-[#2C1B10]">{stockItem.unitType}</strong>
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
+                <span>💵 Unit Price:</span> <strong className="text-emerald-700 font-bold">{unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</strong>
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
+                <Layers className="w-3.5 h-3.5 text-[#8C7361]" /> Min Alert: <strong className="text-[#2C1B10]">{stockItem.minStockLevel != null ? Number(stockItem.minStockLevel).toFixed(2) : "None"}</strong>
+              </span>
             </div>
           </div>
 
           {isGlobalAdmin && (
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-3 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <Button 
                 onClick={() => setIsAddOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-xs"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm h-10 px-2 sm:px-4"
               >
-                <PlusCircle className="w-4 h-4" />
-                Add Stock
+                <PlusCircle className="w-4 h-4 shrink-0" />
+                <span className="truncate">Add Stock</span>
               </Button>
               <Button 
                 onClick={() => setIsReduceOpen(true)}
                 variant="outline"
-                className="text-amber-800 border-amber-300 hover:bg-amber-50 font-bold rounded-xl text-xs sm:text-sm flex items-center gap-1.5"
+                className="text-amber-800 border-amber-300 hover:bg-amber-50 font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-10 px-2 sm:px-4 bg-amber-50/40"
               >
-                <MinusCircle className="w-4 h-4" />
-                Reduce Stock
+                <MinusCircle className="w-4 h-4 shrink-0 text-amber-700" />
+                <span className="truncate">Reduce</span>
               </Button>
               <Button 
                 onClick={() => setIsEditOpen(true)}
                 variant="outline"
-                className="text-zinc-700 border-zinc-300 hover:bg-zinc-100 font-bold rounded-xl text-xs sm:text-sm flex items-center gap-1.5"
+                className="text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-10 px-2 sm:px-4"
               >
-                <Edit3 className="w-4 h-4" />
-                Edit Item
+                <Edit3 className="w-4 h-4 shrink-0 text-[#8C7361]" />
+                <span className="truncate">Edit Item</span>
               </Button>
             </div>
           )}
@@ -376,77 +385,102 @@ export default function StockItemDetailPage() {
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider block">Current Stock Qty</span>
-          <span className={`text-2xl font-black mt-1 block ${isLowStock ? 'text-red-600' : 'text-emerald-700'}`}>
-            {Number(stockItem.currentQuantity).toFixed(2)} <span className="text-sm font-semibold text-zinc-500">{stockItem.unitType}</span>
-          </span>
-        </div>
-
-        <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">Stock Monetary Valuation</span>
-          <span className="text-2xl font-black text-amber-900 mt-1 block">
-            {calculatedValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-bold text-amber-700">ETB</span>
-          </span>
-        </div>
-
-        <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Historical Inflow</span>
-          <span className="text-xl font-black text-emerald-700 mt-1 block">
-            +{Number(totalIn).toFixed(2)} <span className="text-xs font-semibold text-emerald-600">{stockItem.unitType}</span>
-          </span>
-          {totalValueIn != null && (
-            <span className="text-xs font-bold text-emerald-800 block mt-0.5">
-              (+{totalValueIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB)
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3.5 mb-6">
+        {/* Card 1: Current Stock Qty */}
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">Current Stock Qty</span>
+          <div className="mt-1">
+            <span className={`text-xl sm:text-2xl font-black font-mono block ${isLowStock ? 'text-rose-600' : 'text-emerald-700'}`}>
+              {Number(stockItem.currentQuantity).toFixed(2)}
             </span>
-          )}
+            <span className="text-[11px] font-semibold text-[#8C7361]">{stockItem.unitType} in inventory</span>
+          </div>
         </div>
 
-        <div className="bg-red-50/70 border border-red-200 rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-red-800 uppercase tracking-wider block">Historical Outflow</span>
-          <span className="text-xl font-black text-red-700 mt-1 block">
-            -{Number(totalOut).toFixed(2)} <span className="text-xs font-semibold text-red-600">{stockItem.unitType}</span>
-          </span>
-          {totalValueOut != null && (
-            <span className="text-xs font-bold text-red-800 block mt-0.5">
-              (-{totalValueOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB)
+        {/* Card 2: Stock Monetary Valuation */}
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider block">Stock Valuation</span>
+          <div className="mt-1">
+            <span className="text-lg sm:text-2xl font-black text-amber-900 font-mono block truncate">
+              {calculatedValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-          )}
+            <span className="text-[11px] font-bold text-amber-700">ETB (asset value)</span>
+          </div>
         </div>
 
-        <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-4 shadow-xs">
-          <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider block">Audit Movements</span>
-          <span className="text-2xl font-black text-indigo-700 mt-1 block">
-            {data.movements.length} <span className="text-sm font-semibold text-indigo-600">records</span>
-          </span>
+        {/* Card 3: Historical Inflow */}
+        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase tracking-wider block">Total Inflow</span>
+          <div className="mt-1">
+            <span className="text-lg sm:text-xl font-black text-emerald-700 font-mono block">
+              +{Number(totalIn).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
+            </span>
+            {totalValueIn != null && (
+              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 block truncate">
+                +{totalValueIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Card 4: Historical Outflow */}
+        <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">Total Outflow</span>
+          <div className="mt-1">
+            <span className="text-lg sm:text-xl font-black text-rose-700 font-mono block">
+              -{Number(totalOut).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
+            </span>
+            {totalValueOut != null && (
+              <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 block truncate">
+                -{totalValueOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Card 5: Audit Movements */}
+        <div className="col-span-2 lg:col-span-1 bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">Audit Movements</span>
+          <div className="mt-1">
+            <span className="text-xl sm:text-2xl font-black text-[#2C1B10] font-mono block">
+              {data.movements.length}
+            </span>
+            <span className="text-[11px] font-semibold text-[#8C7361]">total log entries</span>
+          </div>
         </div>
       </div>
 
       {/* Movement Audit Trail Section */}
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5">
           <div>
-            <h2 className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-              <History className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+              <History className="w-5 h-5 text-[#E87A18]" />
               Full Item Audit History
             </h2>
-            <p className="text-xs text-[#8C7361] mt-0.5">Chronological record of every stock creation, addition, reduction, edit, and production usage</p>
+            <p className="text-xs text-[#8C7361] mt-0.5">Chronological record of stock additions, reductions, production usage, and adjustments</p>
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
-            {["ALL", "IN", "OUT", "PRODUCTION_USAGE", "ADJUSTMENT"].map((tab) => (
+          <div className="flex items-center gap-1 bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] overflow-x-auto w-full sm:w-auto scrollbar-none">
+            {[
+              { id: "ALL", label: "All Records" },
+              { id: "IN", label: "Restock (+)" },
+              { id: "OUT", label: "Reduced (-)" },
+              { id: "PRODUCTION_USAGE", label: "Production" },
+              { id: "ADJUSTMENT", label: "Adjustment" },
+            ].map((tab) => (
               <button
-                key={tab}
-                onClick={() => setFilterType(tab)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  filterType === tab 
-                    ? "bg-white text-[#2C1B10] shadow-xs" 
-                    : "text-zinc-600 hover:text-zinc-900"
+                key={tab.id}
+                type="button"
+                onClick={() => setFilterType(tab.id)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all flex items-center justify-center flex-1 sm:flex-initial ${
+                  filterType === tab.id 
+                    ? "bg-[#4A2E1B] text-white shadow-xs" 
+                    : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
                 }`}
               >
-                {tab === "PRODUCTION_USAGE" ? "PRODUCTION" : tab}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -552,7 +586,7 @@ export default function StockItemDetailPage() {
         {/* Mobile Audit History Cards */}
         <div className="grid grid-cols-1 gap-3 sm:hidden">
           {filteredMovements.length === 0 ? (
-            <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
+            <div className="bg-[#FAF6F0] p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
               No movement records matching filter &apos;{filterType}&apos;.
             </div>
           ) : (
@@ -563,10 +597,10 @@ export default function StockItemDetailPage() {
               const loan = m.purchaseLoan;
 
               return (
-                <div key={m.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
+                <div key={m.id} className="bg-white rounded-2xl p-3.5 border border-[#EDE4D5] shadow-xs space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {getMovementBadge(m.type)}
                         {loan && (
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
@@ -578,28 +612,28 @@ export default function StockItemDetailPage() {
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] font-semibold text-[#8C7361]">
+                      <span className="text-[10px] font-semibold text-[#8C7361] block">
                         {format(new Date(m.createdAt), "MMM d, yyyy · h:mm a")}
                       </span>
                     </div>
-                    <div className="text-right">
-                      <div className={`text-base font-extrabold ${m.type === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
-                        {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)} {stockItem.unitType}
+                    <div className="text-right shrink-0">
+                      <div className={`text-base font-black font-mono ${m.type === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
+                        {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
                       </div>
-                      <div className={`text-xs font-bold ${isNegative ? "text-rose-700" : "text-emerald-700"}`}>
+                      <div className={`text-[11px] font-bold font-mono ${isNegative ? "text-rose-700" : "text-emerald-700"}`}>
                         {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                       </div>
                     </div>
                   </div>
 
                   {loan && (
-                    <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 text-xs flex items-center justify-between">
-                      <div>
-                        <div className="text-purple-900 font-bold text-[11px]">
+                    <div className="p-2.5 bg-purple-50/80 rounded-xl border border-purple-100 text-xs flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-purple-950 font-bold text-[11px] truncate">
                           Supplier: {loan.supplierName || "—"}
                         </div>
                         <div className="text-[#8C7361] text-[10px]">
-                          Paid: {Number(loan.paidAmount).toFixed(2)} ETB | Remaining: <strong className="text-purple-900">{Number(loan.remainingBalance).toFixed(2)} ETB</strong>
+                          Paid: {Number(loan.paidAmount).toFixed(2)} | Due: <strong className="text-purple-900">{Number(loan.remainingBalance).toFixed(2)} ETB</strong>
                         </div>
                       </div>
                       {isGlobalAdmin && (
@@ -607,7 +641,7 @@ export default function StockItemDetailPage() {
                           variant="outline" 
                           size="sm" 
                           onClick={() => setSelectedLoan(loan)}
-                          className="h-7 text-[11px] font-bold text-purple-700 border-purple-300 hover:bg-purple-100"
+                          className="h-7 px-2.5 text-[10px] font-bold text-purple-700 border-purple-300 hover:bg-purple-100 shrink-0"
                         >
                           {loan.remainingBalance > 0 ? "Pay Loan" : "History"}
                         </Button>
@@ -615,12 +649,12 @@ export default function StockItemDetailPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
-                    <div className="flex items-center gap-1">
-                      <UserCheck className="w-3.5 h-3.5" />
-                      <span>{m.user?.fullName || "System"}</span>
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-[#FAF6F0] text-[#8C7361]">
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <UserCheck className="w-3.5 h-3.5 text-[#8C7361]" />
+                      <span className="font-semibold text-[#2C1B10]">{m.user?.fullName || "System"}</span>
                     </div>
-                    <span>{m.reason || "No note"}</span>
+                    <span className="text-[11px] italic text-[#8C7361] truncate max-w-[150px]">{m.reason || "No note"}</span>
                   </div>
                 </div>
               );
@@ -639,7 +673,7 @@ export default function StockItemDetailPage() {
             setAddSupplierName("");
           } 
         }}>
-          <DialogContent className="max-w-md rounded-2xl border-emerald-200">
+          <DialogContent className="max-w-md rounded-2xl border-[#EDE4D5]">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <PlusCircle className="w-5 h-5 text-emerald-600" />
@@ -663,8 +697,9 @@ export default function StockItemDetailPage() {
                     min="0.001"
                     value={addAmount} 
                     onChange={(e) => setAddAmount(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     placeholder="e.g. 50.00" 
-                    className="rounded-xl border-zinc-200" 
+                    className="rounded-xl border-[#EDE4D5] h-10 font-mono" 
                   />
                 </div>
 
@@ -674,13 +709,13 @@ export default function StockItemDetailPage() {
                   </label>
                   <Input 
                     value={addReason} 
-                    onChange={(e) => setAddReason(e.target.value)}
+                    onChange={(e) => setAddReason(e.target.value)} 
                     placeholder="e.g. Local Purchase, Restock, Inventory Audit" 
-                    className="rounded-xl border-zinc-200" 
+                    className="rounded-xl border-[#EDE4D5] h-10" 
                   />
                 </div>
 
-                <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+                <div className="p-3 bg-purple-50/80 rounded-xl border border-purple-100 space-y-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input 
                       type="checkbox" 
@@ -699,7 +734,7 @@ export default function StockItemDetailPage() {
                           value={addSupplierName} 
                           onChange={(e) => setAddSupplierName(e.target.value)} 
                           placeholder="e.g. Grain Market Supplier" 
-                          className="bg-white rounded-xl border-purple-200 text-xs" 
+                          className="bg-white rounded-xl border-purple-200 text-xs h-10" 
                         />
                       </div>
                       <div>
@@ -710,8 +745,9 @@ export default function StockItemDetailPage() {
                           min="0" 
                           value={addPaidAmount} 
                           onChange={(e) => setAddPaidAmount(e.target.value)} 
+                          onFocus={(e) => e.target.select()}
                           placeholder="0.00 (leave 0 if full credit)" 
-                          className="bg-white rounded-xl border-purple-200 text-xs" 
+                          className="bg-white rounded-xl border-purple-200 text-xs h-10 font-mono" 
                         />
                         <p className="text-[10px] text-purple-700 mt-1 font-medium">
                           Total purchase value: {((parseFloat(addAmount) || 0) * unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
@@ -721,10 +757,12 @@ export default function StockItemDetailPage() {
                   )}
                 </div>
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
+                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm">
                   {isSubmitting ? "Processing..." : "Confirm Addition"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="w-full sm:w-auto h-10 border-[#EDE4D5] font-semibold text-[#8C7361] hover:text-[#2C1B10] rounded-xl order-2 sm:order-1">
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
@@ -778,12 +816,13 @@ export default function StockItemDetailPage() {
                     <Input 
                       type="number" 
                       step="0.01" 
-                      max={selectedLoan.remainingBalance}
+                      max={selectedLoan.remainingBalance} 
                       required 
                       value={payAmount} 
                       onChange={(e) => setPayAmount(e.target.value)} 
+                      onFocus={(e) => e.target.select()}
                       placeholder={`Max: ${Number(selectedLoan.remainingBalance).toFixed(2)} ETB`} 
-                      className="rounded-xl border-purple-200 text-xs" 
+                      className="rounded-xl border-purple-200 text-xs h-10 font-mono" 
                     />
                   </div>
 
@@ -793,11 +832,11 @@ export default function StockItemDetailPage() {
                       value={payNote} 
                       onChange={(e) => setPayNote(e.target.value)} 
                       placeholder="e.g. Bank Transfer, Cash Installment, Receipt #1029" 
-                      className="rounded-xl border-purple-200 text-xs" 
+                      className="rounded-xl border-purple-200 text-xs h-10" 
                     />
                   </div>
 
-                  <Button type="submit" disabled={isPaying} className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs h-9">
+                  <Button type="submit" disabled={isPaying} className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs h-10 shadow-sm">
                     {isPaying ? "Recording..." : "Record Payment"}
                   </Button>
                 </form>
@@ -828,8 +867,8 @@ export default function StockItemDetailPage() {
               </div>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setSelectedLoan(null)} className="w-full rounded-xl">Close</Button>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setSelectedLoan(null)} className="w-full rounded-xl border-[#EDE4D5] h-10">Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -838,7 +877,7 @@ export default function StockItemDetailPage() {
       {/* Manual Stock Reduction Modal */}
       {isReduceOpen && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setIsReduceOpen(false); }}>
-          <DialogContent className="max-w-md rounded-2xl border-amber-200">
+          <DialogContent className="max-w-md rounded-2xl border-[#EDE4D5]">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <MinusCircle className="w-5 h-5 text-amber-600" />
@@ -863,8 +902,9 @@ export default function StockItemDetailPage() {
                     max={Number(stockItem.currentQuantity)}
                     value={reduceAmount} 
                     onChange={(e) => setReduceAmount(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     placeholder={`Max: ${Number(stockItem.currentQuantity).toFixed(2)}`} 
-                    className="rounded-xl border-zinc-200" 
+                    className="rounded-xl border-[#EDE4D5] h-10 font-mono" 
                   />
                 </div>
 
@@ -874,16 +914,18 @@ export default function StockItemDetailPage() {
                   </label>
                   <Input 
                     value={reduceReason} 
-                    onChange={(e) => setReduceReason(e.target.value)}
+                    onChange={(e) => setReduceReason(e.target.value)} 
                     placeholder="e.g. Spoilage, Wastage, Audit Adjustment" 
-                    className="rounded-xl border-zinc-200" 
+                    className="rounded-xl border-[#EDE4D5] h-10" 
                   />
                 </div>
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsReduceOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
+                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto h-11 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm">
                   {isSubmitting ? "Processing..." : "Confirm Reduction"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsReduceOpen(false)} className="w-full sm:w-auto h-10 border-[#EDE4D5] font-semibold text-[#8C7361] hover:text-[#2C1B10] rounded-xl order-2 sm:order-1">
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
@@ -894,7 +936,7 @@ export default function StockItemDetailPage() {
       {/* Edit Item Definition Modal */}
       {isEditOpen && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setIsEditOpen(false); }}>
-          <DialogContent className="max-w-md rounded-2xl">
+          <DialogContent className="max-w-md rounded-2xl border-[#EDE4D5]">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
                 Edit Stock Item Settings
@@ -904,12 +946,12 @@ export default function StockItemDetailPage() {
               <div className="grid gap-4 py-4">
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Item Name</label>
-                  <Input name="name" required defaultValue={stockItem.name} className="rounded-xl border-zinc-200" />
+                  <Input name="name" required defaultValue={stockItem.name} className="rounded-xl border-[#EDE4D5] h-10" />
                 </div>
                 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Unit Type</label>
-                  <select name="unitType" required defaultValue={stockItem.unitType} className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]">
+                  <select name="unitType" required defaultValue={stockItem.unitType} className="w-full border border-[#EDE4D5] rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]">
                     <option value="KG">Kg (Kilogram)</option>
                     <option value="PIECE">Piece</option>
                     <option value="LITER">Liter</option>
@@ -918,23 +960,25 @@ export default function StockItemDetailPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Unit Cost / Price (ETB per unit)</label>
-                  <Input name="unitPrice" type="number" step="0.01" min="0" defaultValue={stockItem.unitPrice ?? ""} placeholder="0.00" className="rounded-xl border-zinc-200" />
+                  <Input name="unitPrice" type="number" step="0.01" min="0" defaultValue={stockItem.unitPrice ?? ""} onFocus={(e) => e.target.select()} placeholder="0.00" className="rounded-xl border-[#EDE4D5] h-10 font-mono" />
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Current Available Quantity</label>
-                  <Input name="currentQuantity" type="number" step="0.001" required defaultValue={stockItem.currentQuantity} className="rounded-xl border-zinc-200" />
+                  <Input name="currentQuantity" type="number" step="0.001" required defaultValue={stockItem.currentQuantity} onFocus={(e) => e.target.select()} className="rounded-xl border-[#EDE4D5] h-10 font-mono" />
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Minimum Stock Threshold (Alert level)</label>
-                  <Input name="minStockLevel" type="number" step="0.001" defaultValue={stockItem.minStockLevel ?? ""} placeholder="e.g. 10.00" className="rounded-xl border-zinc-200" />
+                  <Input name="minStockLevel" type="number" step="0.001" defaultValue={stockItem.minStockLevel ?? ""} onFocus={(e) => e.target.select()} placeholder="e.g. 10.00" className="rounded-xl border-[#EDE4D5] h-10 font-mono" />
                 </div>
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
+                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto h-11 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm">
                   {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto h-10 border-[#EDE4D5] font-semibold text-[#8C7361] hover:text-[#2C1B10] rounded-xl order-2 sm:order-1">
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
