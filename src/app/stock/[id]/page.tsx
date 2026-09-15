@@ -452,37 +452,39 @@ export default function StockItemDetailPage() {
 
       {/* Movement Audit Trail Section */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 sm:p-5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5">
-          <div>
-            <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+          <div className="text-center sm:text-left">
+            <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center justify-center sm:justify-start gap-2">
               <History className="w-5 h-5 text-[#E87A18]" />
               Full Item Audit History
             </h2>
             <p className="text-xs text-[#8C7361] mt-0.5">Chronological record of stock additions, reductions, production usage, and adjustments</p>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1 bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] overflow-x-auto w-full sm:w-auto scrollbar-none">
-            {[
-              { id: "ALL", label: "All Records" },
-              { id: "IN", label: "Restock (+)" },
-              { id: "OUT", label: "Reduced (-)" },
-              { id: "PRODUCTION_USAGE", label: "Production" },
-              { id: "ADJUSTMENT", label: "Adjustment" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilterType(tab.id)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg whitespace-nowrap transition-all flex items-center justify-center flex-1 sm:flex-initial ${
-                  filterType === tab.id 
-                    ? "bg-[#4A2E1B] text-white shadow-xs" 
-                    : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Centered Segmented Filter Tabs */}
+          <div className="w-full sm:w-auto flex justify-center">
+            <div className="grid grid-cols-5 gap-1 p-1 bg-[#EDE4D5]/70 rounded-2xl w-full max-w-md shadow-2xs">
+              {[
+                { id: "ALL", label: "All" },
+                { id: "IN", label: "Restock" },
+                { id: "OUT", label: "Reduce" },
+                { id: "PRODUCTION_USAGE", label: "Usage" },
+                { id: "ADJUSTMENT", label: "Adjust" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setFilterType(tab.id)}
+                  className={`py-2 px-1 text-center text-xs font-bold rounded-xl transition-all truncate ${
+                    filterType === tab.id 
+                      ? "bg-[#4A2E1B] text-white shadow-md ring-2 ring-[#4A2E1B]/20" 
+                      : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
