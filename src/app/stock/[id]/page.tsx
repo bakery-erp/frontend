@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/axios";
@@ -111,6 +111,23 @@ export default function StockItemDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterType, setFilterType] = useState<string>("ALL");
+
+  // Tab auto-centering ref like in profile page
+  const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const btn = tabRefs.current[filterType];
+      if (btn) {
+        btn.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest',
+        });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [filterType]);
 
   // Modals inside detail page
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -461,27 +478,40 @@ export default function StockItemDetailPage() {
             <p className="text-xs text-[#8C7361] mt-0.5">Chronological record of stock additions, reductions, production usage, and adjustments</p>
           </div>
 
-          {/* Centered Segmented Filter Tabs */}
-          <div className="w-full sm:w-auto flex justify-center">
-            <div className="grid grid-cols-5 gap-1 p-1 bg-[#EDE4D5]/70 rounded-2xl w-full max-w-md shadow-2xs">
+          {/* Auto-Centering Tabs with Gradient Edge Hints like in Profile */}
+          <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
+            {/* Subtle scroll edge gradient hints on mobile to indicate scrollability */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+
+            <div 
+              className="bg-[#FAF7EE] p-1.5 rounded-2xl border border-[#EDE4D5] flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem]"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {[
-                { id: "ALL", label: "All" },
-                { id: "IN", label: "Restock" },
-                { id: "OUT", label: "Reduce" },
-                { id: "PRODUCTION_USAGE", label: "Usage" },
-                { id: "ADJUSTMENT", label: "Adjust" },
+                { id: "ALL", label: "All Records", count: data.movements.length },
+                { id: "IN", label: "Restock (+)", count: data.movements.filter(m => m.type === 'IN').length },
+                { id: "OUT", label: "Reduced (-)", count: data.movements.filter(m => m.type === 'OUT').length },
+                { id: "PRODUCTION_USAGE", label: "Production", count: data.movements.filter(m => m.type === 'PRODUCTION_USAGE').length },
+                { id: "ADJUSTMENT", label: "Adjustment", count: data.movements.filter(m => m.type === 'ADJUSTMENT').length },
               ].map((tab) => (
                 <button
                   key={tab.id}
+                  ref={(el) => { tabRefs.current[tab.id] = el; }}
                   type="button"
                   onClick={() => setFilterType(tab.id)}
-                  className={`py-2 px-1 text-center text-xs font-bold rounded-xl transition-all truncate ${
-                    filterType === tab.id 
-                      ? "bg-[#4A2E1B] text-white shadow-md ring-2 ring-[#4A2E1B]/20" 
-                      : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
+                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none ${
+                    filterType === tab.id
+                      ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
+                      : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
                   }`}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
+                    filterType === tab.id ? "bg-white/20 text-white" : "bg-[#4A2E1B]/10 text-[#4A2E1B]"
+                  }`}>
+                    {tab.count}
+                  </span>
                 </button>
               ))}
             </div>
