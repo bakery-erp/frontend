@@ -102,7 +102,85 @@ export default function PayrollHistoryPage() {
         <PayrollNav />
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
+      {/* Mobile Cards View (block md:hidden) */}
+      <div className="block md:hidden space-y-3">
+        {isLoading ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
+            Loading payroll history...
+          </div>
+        ) : history.length === 0 ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
+            No payroll execution records found.
+          </div>
+        ) : (
+          history.map((r) => (
+            <div key={r.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-extrabold text-[#2C1B10] text-base">{r.user?.fullName}</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-[#8C7361] font-medium">{r.user?.role}</span>
+                    <span className="text-xs text-[#8C7361]">•</span>
+                    <span className="text-xs font-bold text-[#E87A18]">
+                      {getEthMonthName(r.month)} {r.year}
+                    </span>
+                  </div>
+                </div>
+                <Badge className={`text-[10px] font-bold ${
+                  r.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                  r.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                  'bg-amber-100 text-amber-800 border-amber-300'
+                }`}>
+                  {r.status === 'APPROVED' ? 'APPROVED' : r.status === 'REJECTED' ? 'REJECTED' : 'PENDING'}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs">
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Base Salary</span>
+                  <span className="font-bold text-[#2C1B10] font-mono">{r.baseSalary} ETB</span>
+                </div>
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Bonus</span>
+                  <span className="font-bold text-emerald-700 font-mono">
+                    {r.bonus > 0 ? `+${r.bonus} ETB` : "0.00 ETB"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Total Deductions</span>
+                  <span className="font-bold text-rose-700 font-mono">
+                    -{Number(r.loanDeductions) + Number(r.penaltyDeductions)} ETB
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Final Net Paid</span>
+                  <span className="font-extrabold text-emerald-700 text-sm font-mono">{r.finalAmount} ETB</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs text-[#8C7361]">
+                <span>Paid: {formatEthDate(r.paymentDate, true)}</span>
+                {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingPayroll(r);
+                      setIsEditOpen(true);
+                    }}
+                    className="h-8 px-3 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View (hidden md:block) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
@@ -155,7 +233,7 @@ export default function PayrollHistoryPage() {
                   <TableCell className="text-rose-700 font-bold">
                     -{Number(r.loanDeductions) + Number(r.penaltyDeductions)} ETB
                   </TableCell>
-                  <TableCell className="font-extrabold text-emerald-700 text-sm">
+                  <TableCell className="font-extrabold text-emerald-700 text-sm font-mono">
                     {r.finalAmount} ETB
                   </TableCell>
                   <TableCell className="text-xs font-semibold text-[#8C7361]">
@@ -195,35 +273,86 @@ export default function PayrollHistoryPage() {
       {/* Edit Payroll Modal */}
       {isEditOpen && editingPayroll && (
         <Dialog open={true} onOpenChange={(open) => !open && setIsEditOpen(false)}>
-          <DialogContent className="max-w-md rounded-2xl">
+          <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Edit Payroll Execution Record</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleUpdatePayroll} className="space-y-4 py-2">
+            <form onSubmit={handleUpdatePayroll} className="space-y-3.5 py-2">
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1">Base Salary (ETB)</label>
-                <Input name="baseSalary" type="number" step="0.01" defaultValue={editingPayroll.baseSalary} required className="rounded-xl border-zinc-200" />
+                <Input
+                  name="baseSalary"
+                  type="number"
+                  step="0.01"
+                  defaultValue={editingPayroll.baseSalary}
+                  onFocus={(e) => e.target.select()}
+                  required
+                  className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1">Bonus (ETB)</label>
-                <Input name="bonus" type="number" step="0.01" defaultValue={editingPayroll.bonus} required className="rounded-xl border-zinc-200" />
+                <Input
+                  name="bonus"
+                  type="number"
+                  step="0.01"
+                  defaultValue={editingPayroll.bonus}
+                  onFocus={(e) => e.target.select()}
+                  required
+                  className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1">Loan Deductions (ETB)</label>
-                <Input name="loanDeductions" type="number" step="0.01" defaultValue={editingPayroll.loanDeductions} required className="rounded-xl border-zinc-200" />
+                <Input
+                  name="loanDeductions"
+                  type="number"
+                  step="0.01"
+                  defaultValue={editingPayroll.loanDeductions}
+                  onFocus={(e) => e.target.select()}
+                  required
+                  className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1">Penalty Deductions (ETB)</label>
-                <Input name="penaltyDeductions" type="number" step="0.01" defaultValue={editingPayroll.penaltyDeductions} required className="rounded-xl border-zinc-200" />
+                <Input
+                  name="penaltyDeductions"
+                  type="number"
+                  step="0.01"
+                  defaultValue={editingPayroll.penaltyDeductions}
+                  onFocus={(e) => e.target.select()}
+                  required
+                  className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1">Final Net Payout (ETB)</label>
-                <Input name="finalAmount" type="number" step="0.01" defaultValue={editingPayroll.finalAmount} required className="rounded-xl border-zinc-200" />
+                <Input
+                  name="finalAmount"
+                  type="number"
+                  step="0.01"
+                  defaultValue={editingPayroll.finalAmount}
+                  onFocus={(e) => e.target.select()}
+                  required
+                  className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-3">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditOpen(false)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>

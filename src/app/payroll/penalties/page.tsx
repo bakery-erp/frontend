@@ -156,7 +156,81 @@ export default function PayrollPenaltiesPage() {
         <PayrollNav />
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
+      {/* Mobile Cards View (block md:hidden) */}
+      <div className="block md:hidden space-y-3">
+        <div className="p-3 bg-[#FAF6F0] rounded-2xl border border-[#EDE4D5] flex items-center justify-between">
+          <div>
+            <h2 className="font-extrabold text-xs text-[#2C1B10] uppercase tracking-wider">Employee Penalties</h2>
+            <p className="text-[11px] text-[#8C7361]">{penalties.length} infraction fines logged</p>
+          </div>
+          <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs h-8 px-3 shadow-xs">
+            <Plus className="w-3.5 h-3.5 mr-1" /> Log Penalty
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
+            Loading workforce penalties...
+          </div>
+        ) : penalties.length === 0 ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
+            No active penalties logged.
+          </div>
+        ) : (
+          penalties.map((p) => (
+            <div key={p.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-extrabold text-[#2C1B10] text-base">{p.user?.fullName}</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs text-[#8C7361]">{formatEthDate(p.date)}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-extrabold text-rose-600 text-base font-mono">-{p.amount} ETB</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-[#FAF6F0] rounded-xl text-xs">
+                <span className="text-[#8C7361] block text-[10px] uppercase font-bold">Violation Reason</span>
+                <p className="font-semibold text-[#2C1B10] mt-0.5">{p.reason}</p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-1.5 pt-2 border-t border-zinc-100">
+                <div className="flex flex-wrap items-center gap-1">
+                  {getApprovalBadge(p.status)}
+                  <Badge
+                    className={`font-bold text-[10px] ${
+                      p.isDeducted
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                        : "bg-rose-100 text-rose-800 border-rose-300"
+                    }`}
+                  >
+                    {p.isDeducted ? "✓ DEDUCTED" : "⚠ PENDING"}
+                  </Badge>
+                </div>
+
+                {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingPenalty(p);
+                      setIsEditPenaltyOpen(true);
+                    }}
+                    className="h-8 px-2.5 text-xs font-bold text-blue-700 border-blue-200 hover:bg-blue-50"
+                  >
+                    <Edit2 className="w-3 h-3 mr-1" /> Edit
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View (hidden md:block) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
         <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
           <div>
             <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Penalties</h2>
@@ -203,7 +277,7 @@ export default function PayrollPenaltiesPage() {
                   <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate" title={p.reason}>
                     {p.reason}
                   </TableCell>
-                  <TableCell className="font-extrabold text-rose-700">
+                  <TableCell className="font-extrabold text-rose-700 font-mono">
                     -{p.amount} ETB
                   </TableCell>
                   <TableCell>
@@ -244,12 +318,12 @@ export default function PayrollPenaltiesPage() {
 
       {/* CREATE PENALTY DIALOG */}
       <Dialog open={isPenaltyOpen} onOpenChange={setIsPenaltyOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleAddPenalty}>
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Log Penalty Fine</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-3.5 py-3">
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Penalized Employee</label>
                 <select name="userId" required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
@@ -263,21 +337,41 @@ export default function PayrollPenaltiesPage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Fine Amount (ETB)</label>
-                <Input name="amount" type="number" step="0.01" min="1" required placeholder="e.g. 200" className="rounded-xl border-zinc-200" />
+                <Input
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  required
+                  placeholder="e.g. 200"
+                  onFocus={(e) => e.target.select()}
+                  className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Infraction Reason</label>
-                <Input name="reason" required placeholder="e.g. Late arrival, Broken inventory item" className="rounded-xl border-zinc-200" />
+                <Input name="reason" required placeholder="e.g. Late arrival, Broken inventory item" className="h-10 rounded-xl border-zinc-200" />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Infraction Date</label>
-                <Input name="date" type="date" required defaultValue={new Date().toISOString().split("T")[0]} className="rounded-xl border-zinc-200" />
+                <Input name="date" type="date" required defaultValue={new Date().toISOString().split("T")[0]} className="h-10 rounded-xl border-zinc-200" />
               </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsPenaltyOpen(false)} className="rounded-xl">Cancel</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+              >
                 {isSubmitting ? "Logging..." : "Log Penalty"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPenaltyOpen(false)}
+                className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+              >
+                Cancel
               </Button>
             </DialogFooter>
           </form>
@@ -287,23 +381,31 @@ export default function PayrollPenaltiesPage() {
       {/* EDIT PENALTY DIALOG */}
       {isEditPenaltyOpen && editingPenalty && (
         <Dialog open={true} onOpenChange={(open) => !open && setIsEditPenaltyOpen(false)}>
-          <DialogContent className="max-w-md rounded-2xl">
+          <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleUpdatePenalty}>
               <DialogHeader>
                 <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Edit Penalty Record</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-3.5 py-3">
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Fine Amount (ETB)</label>
-                  <Input name="amount" type="number" step="0.01" defaultValue={editingPenalty.amount} required className="rounded-xl border-zinc-200" />
+                  <Input
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    defaultValue={editingPenalty.amount}
+                    onFocus={(e) => e.target.select()}
+                    required
+                    className="h-10 rounded-xl border-zinc-200 font-mono"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Reason</label>
-                  <Input name="reason" defaultValue={editingPenalty.reason} required className="rounded-xl border-zinc-200" />
+                  <Input name="reason" defaultValue={editingPenalty.reason} required className="h-10 rounded-xl border-zinc-200" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Date</label>
-                  <Input name="date" type="date" defaultValue={editingPenalty.date.split("T")[0]} required className="rounded-xl border-zinc-200" />
+                  <Input name="date" type="date" defaultValue={editingPenalty.date.split("T")[0]} required className="h-10 rounded-xl border-zinc-200" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Employee Approval Status</label>
@@ -321,10 +423,21 @@ export default function PayrollPenaltiesPage() {
                   </select>
                 </div>
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditPenaltyOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditPenaltyOpen(false)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>

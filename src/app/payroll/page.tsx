@@ -596,8 +596,9 @@ export default function PayrollPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            className="w-36 text-right font-bold"
+                            className="w-36 text-right font-bold font-mono h-10"
                             value={customBaseSalary}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => setCustomBaseSalary(e.target.value)}
                           />
                         </div>
@@ -606,8 +607,9 @@ export default function PayrollPage() {
                           <span className="font-medium text-sm">Add Additional Bonus (ETB)</span>
                           <Input
                             type="number"
-                            className="w-36 text-right font-bold text-emerald-700"
+                            className="w-36 text-right font-bold text-emerald-700 font-mono h-10"
                             value={bonus}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => setBonus(Number(e.target.value) || 0)}
                             min={0}
                           />
@@ -683,8 +685,9 @@ export default function PayrollPage() {
                             min="0"
                             disabled={!deductLoans || !calcData.openLoans || calcData.openLoans.length === 0}
                             placeholder="0.00"
-                            className="w-36 text-right font-bold text-amber-900 bg-white border-amber-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                            className="w-36 text-right font-bold font-mono h-10 text-amber-900 bg-white border-amber-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
                             value={calcData.openLoans && calcData.openLoans.length > 0 ? customLoanDeduction : "0"}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => setCustomLoanDeduction(e.target.value)}
                           />
                         </div>
@@ -753,8 +756,9 @@ export default function PayrollPage() {
                             min="0"
                             disabled={!deductPenalties || !calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
                             placeholder="0.00"
-                            className="w-36 text-right font-bold text-rose-900 bg-white border-rose-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                            className="w-36 text-right font-bold font-mono h-10 text-rose-900 bg-white border-rose-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
                             value={calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0 ? customPenaltyDeduction : "0"}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => setCustomPenaltyDeduction(e.target.value)}
                           />
                         </div>
@@ -767,7 +771,7 @@ export default function PayrollPage() {
                             <span className="text-sm font-bold text-[#2C1B10] block">Calculated Net Payout</span>
                             <span className="text-xs text-[#8C7361]">Base + Bonus - Monthly Loan - Penalty</span>
                           </div>
-                          <span className="text-lg font-extrabold text-[#4A2E1B]">
+                          <span className="text-lg font-extrabold text-[#4A2E1B] font-mono">
                             {calculatedNetPayout.toFixed(2)} ETB
                           </span>
                         </div>
@@ -781,8 +785,9 @@ export default function PayrollPage() {
                             type="number"
                             step="0.01"
                             placeholder="Auto"
-                            className="w-40 text-right font-extrabold text-emerald-700 bg-white border-emerald-300 text-base"
+                            className="w-40 text-right font-extrabold font-mono text-emerald-700 bg-white border-emerald-300 text-base h-10"
                             value={customFinalAmount}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => setCustomFinalAmount(e.target.value)}
                           />
                         </div>
@@ -815,278 +820,507 @@ export default function PayrollPage() {
       {/* HISTORY TAB */}
       {activeTab === "HISTORY" && (
         <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Payroll Term</TableHead>
-                <TableHead>Employee</TableHead>
-                <TableHead>Base Salary</TableHead>
-                <TableHead>Bonus</TableHead>
-                <TableHead className="text-rose-700">Deductions</TableHead>
-                <TableHead className="text-emerald-700">Final Salary Paid</TableHead>
-                <TableHead>Execution Date</TableHead>
-                {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoadingHistory ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={8}
-                    className="text-center py-8 text-[#8C7361] font-medium"
-                  >
-                    Loading payroll history...
-                  </TableCell>
-                </TableRow>
-              ) : history.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
-                    No payroll execution records found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                history.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-extrabold text-[#2C1B10]">
-                      {ETH_MONTHS[r.month - 1]} {r.year}
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-bold text-[#2C1B10]">{r.user?.fullName}</span>{" "}
-                      <span className="text-xs text-[#8C7361] font-semibold">
-                        ({r.user?.role})
+          {/* Mobile Touch Cards */}
+          <div className="block md:hidden p-4 space-y-3">
+            {isLoadingHistory ? (
+              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
+                Loading payroll history...
+              </div>
+            ) : history.length === 0 ? (
+              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
+                No payroll execution records found.
+              </div>
+            ) : (
+              history.map((r) => (
+                <div
+                  key={r.id}
+                  className="bg-[#FAF6F0] rounded-xl p-4 border border-[#EDE4D5] space-y-3 shadow-2xs"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="font-extrabold text-base text-[#2C1B10]">
+                        {ETH_MONTHS[r.month - 1]} {r.year}
                       </span>
-                    </TableCell>
-                    <TableCell className="font-semibold text-[#2C1B10]">
-                      {r.baseSalary} ETB
-                    </TableCell>
-                    <TableCell className="text-emerald-700 font-bold">
-                      {r.bonus > 0 ? (
-                        <Badge
-                          variant="secondary"
-                          className="shrink-0 text-[10px] font-bold bg-emerald-100 text-emerald-800 border-emerald-200"
-                        >
-                          +{r.bonus} ETB
-                        </Badge>
-                      ) : "—"}
-                    </TableCell>
-                    <TableCell className="text-rose-700 font-bold">
-                      -{Number(r.loanDeductions) + Number(r.penaltyDeductions)}{" "}
-                      ETB
-                    </TableCell>
-                    <TableCell className="font-extrabold text-emerald-700 text-sm">
+                      <p className="text-xs text-[#8C7361] mt-0.5">
+                        {r.user?.fullName}{" "}
+                        <span className="font-semibold text-zinc-600">({r.user?.role})</span>
+                      </p>
+                    </div>
+                    <span className="text-sm font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
                       {r.finalAmount} ETB
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-[#EDE4D5]">
+                    <div>
+                      <span className="text-[#8C7361] block">Base Salary:</span>
+                      <span className="font-bold text-[#2C1B10]">{r.baseSalary} ETB</span>
+                    </div>
+                    <div>
+                      <span className="text-[#8C7361] block">Bonus:</span>
+                      <span className="font-bold text-emerald-700">
+                        {r.bonus > 0 ? `+${r.bonus} ETB` : "—"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#8C7361] block">Deductions:</span>
+                      <span className="font-bold text-rose-700">
+                        -{Number(r.loanDeductions) + Number(r.penaltyDeductions)} ETB
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#8C7361] block">Paid Date:</span>
+                      <span className="font-semibold text-zinc-700">
+                        {r.paymentDate
+                          ? format(new Date(r.paymentDate), "MMM dd, yyyy")
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                    <div className="pt-1 flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingPayroll(r);
+                          setIsEditPayrollOpen(true);
+                        }}
+                        className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs hover:bg-[#FAF6F0]"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 mr-1 text-[#E87A18]" /> Edit Payroll Record
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Payroll Term</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Base Salary</TableHead>
+                  <TableHead>Bonus</TableHead>
+                  <TableHead className="text-rose-700">Deductions</TableHead>
+                  <TableHead className="text-emerald-700">Final Salary Paid</TableHead>
+                  <TableHead>Execution Date</TableHead>
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingHistory ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-8 text-[#8C7361] font-medium"
+                    >
+                      Loading payroll history...
                     </TableCell>
-                    <TableCell className="text-xs font-semibold text-[#8C7361]">
-                      {r.paymentDate
-                        ? format(new Date(r.paymentDate), "MMM dd, yyyy · HH:mm")
-                        : "N/A"}
-                    </TableCell>
-                    {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                      <TableCell className="text-right pr-6">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingPayroll(r);
-                            setIsEditPayrollOpen(true);
-                          }}
-                          className="font-bold text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-                        </Button>
-                      </TableCell>
-                    )}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : history.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
+                      No payroll execution records found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  history.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-extrabold text-[#2C1B10]">
+                        {ETH_MONTHS[r.month - 1]} {r.year}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-bold text-[#2C1B10]">{r.user?.fullName}</span>{" "}
+                        <span className="text-xs text-[#8C7361] font-semibold">
+                          ({r.user?.role})
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-semibold text-[#2C1B10]">
+                        {r.baseSalary} ETB
+                      </TableCell>
+                      <TableCell className="text-emerald-700 font-bold">
+                        {r.bonus > 0 ? (
+                          <Badge
+                            variant="secondary"
+                            className="shrink-0 text-[10px] font-bold bg-emerald-100 text-emerald-800 border-emerald-200"
+                          >
+                            +{r.bonus} ETB
+                          </Badge>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className="text-rose-700 font-bold">
+                        -{Number(r.loanDeductions) + Number(r.penaltyDeductions)}{" "}
+                        ETB
+                      </TableCell>
+                      <TableCell className="font-extrabold text-emerald-700 text-sm">
+                        {r.finalAmount} ETB
+                      </TableCell>
+                      <TableCell className="text-xs font-semibold text-[#8C7361]">
+                        {r.paymentDate
+                          ? format(new Date(r.paymentDate), "MMM dd, yyyy · HH:mm")
+                          : "N/A"}
+                      </TableCell>
+                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                        <TableCell className="text-right pr-6">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingPayroll(r);
+                              setIsEditPayrollOpen(true);
+                            }}
+                            className="font-bold text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
       {/* LOANS TAB */}
       {activeTab === "LOANS" && (
         <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
-          <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
+          <div className="p-4 border-b border-[#EDE4D5] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-[#FAF6F0]">
             <div>
               <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Active Employee Loans</h2>
               <p className="text-xs text-[#8C7361] mt-0.5">Track and edit staff micro-loans and salary advances</p>
             </div>
-            <Button onClick={() => setIsLoanOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
+            <Button onClick={() => setIsLoanOpen(true)} size="sm" className="w-full sm:w-auto h-10 sm:h-9 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
               <Plus className="w-4 h-4 mr-1.5" /> Dispatch Loan
             </Button>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date Issued</TableHead>
-                <TableHead>Employee</TableHead>
-                <TableHead>Loan Type</TableHead>
-                <TableHead>Original Amount</TableHead>
-                <TableHead>Remaining Balance</TableHead>
-                <TableHead>Loan Status</TableHead>
-                {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoadingLoans ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
-                    Loading employee loans...
-                  </TableCell>
-                </TableRow>
-              ) : loans.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
-                    No employee loans currently recorded.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                loans.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell className="text-xs font-semibold text-[#8C7361]">
-                      {format(new Date(l.createdAt), "MMM dd, yyyy")}
-                    </TableCell>
-                    <TableCell className="font-bold text-[#2C1B10]">
-                      {l.user?.fullName}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`font-bold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                        {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold text-[#8C7361]">{l.totalAmount} ETB</TableCell>
-                    <TableCell className="font-extrabold text-[#2C1B10]">
-                      {l.remainingBalance} ETB
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={`font-bold text-xs ${
-                          l.status === "PAID"
-                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                            : "bg-amber-100 text-amber-900 border-amber-300"
-                        }`}
+
+          {/* Mobile Touch Cards for Loans */}
+          <div className="block md:hidden p-4 space-y-3">
+            {isLoadingLoans ? (
+              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
+                Loading employee loans...
+              </div>
+            ) : loans.length === 0 ? (
+              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
+                No employee loans currently recorded.
+              </div>
+            ) : (
+              loans.map((l) => (
+                <div
+                  key={l.id}
+                  className="bg-[#FAF6F0] rounded-xl p-4 border border-[#EDE4D5] space-y-3 shadow-2xs"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="font-extrabold text-base text-[#2C1B10]">
+                        {l.user?.fullName}
+                      </span>
+                      <p className="text-xs text-[#8C7361] mt-0.5">
+                        Issued: {format(new Date(l.createdAt), "MMM dd, yyyy")}
+                      </p>
+                    </div>
+                    <Badge
+                      className={`font-bold text-[10px] ${
+                        l.status === "PAID"
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                          : "bg-amber-100 text-amber-900 border-amber-300"
+                      }`}
+                    >
+                      {l.status === "PAID" ? "✓ FULLY PAID" : "⏳ OPEN"}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Badge className={`font-semibold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-50 text-blue-800 border-blue-200" : "bg-purple-50 text-purple-800 border-purple-200"}`}>
+                      {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-[#EDE4D5]">
+                    <div>
+                      <span className="text-[#8C7361] block">Original Amount:</span>
+                      <span className="font-bold text-[#2C1B10]">{l.totalAmount} ETB</span>
+                    </div>
+                    <div>
+                      <span className="text-[#8C7361] block">Remaining Balance:</span>
+                      <span className="font-extrabold text-rose-700">{l.remainingBalance} ETB</span>
+                    </div>
+                  </div>
+
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                    <div className="pt-1 flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingLoan(l);
+                          setIsEditLoanOpen(true);
+                        }}
+                        className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs hover:bg-[#FAF6F0]"
                       >
-                        {l.status === "PAID" ? "✓ FULLY PAID" : "⏳ OPEN BALANCE"}
-                      </Badge>
+                        <Edit2 className="w-3.5 h-3.5 mr-1 text-[#E87A18]" /> Edit Loan
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table for Loans */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date Issued</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Loan Type</TableHead>
+                  <TableHead>Original Amount</TableHead>
+                  <TableHead>Remaining Balance</TableHead>
+                  <TableHead>Loan Status</TableHead>
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingLoans ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                      Loading employee loans...
                     </TableCell>
-                    {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                      <TableCell className="text-right pr-6">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingLoan(l);
-                            setIsEditLoanOpen(true);
-                          }}
-                          className="font-bold text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-                        </Button>
-                      </TableCell>
-                    )}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : loans.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                      No employee loans currently recorded.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  loans.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell className="text-xs font-semibold text-[#8C7361]">
+                        {format(new Date(l.createdAt), "MMM dd, yyyy")}
+                      </TableCell>
+                      <TableCell className="font-bold text-[#2C1B10]">
+                        {l.user?.fullName}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`font-bold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
+                          {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-[#8C7361]">{l.totalAmount} ETB</TableCell>
+                      <TableCell className="font-extrabold text-[#2C1B10]">
+                        {l.remainingBalance} ETB
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={`font-bold text-xs ${
+                            l.status === "PAID"
+                              ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                              : "bg-amber-100 text-amber-900 border-amber-300"
+                          }`}
+                        >
+                          {l.status === "PAID" ? "✓ FULLY PAID" : "⏳ OPEN BALANCE"}
+                        </Badge>
+                      </TableCell>
+                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                        <TableCell className="text-right pr-6">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingLoan(l);
+                              setIsEditLoanOpen(true);
+                            }}
+                            className="font-bold text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
       {/* PENALTIES TAB */}
       {activeTab === "PENALTIES" && (
         <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
-          <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
+          <div className="p-4 border-b border-[#EDE4D5] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-[#FAF6F0]">
             <div>
               <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Workforce Penalties</h2>
               <p className="text-xs text-[#8C7361] mt-0.5">View and edit administrative infraction fines and deductions</p>
             </div>
-            <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
+            <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="w-full sm:w-auto h-10 sm:h-9 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
               <Plus className="w-4 h-4 mr-1.5" /> Log Penalty
             </Button>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date Filed</TableHead>
-                <TableHead>Employee</TableHead>
-                <TableHead>Violation Reason</TableHead>
-                <TableHead className="text-rose-700">Penalty Fine</TableHead>
-                <TableHead>Deduction Status</TableHead>
-                {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoadingPenalties ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
-                    Loading workforce penalties...
-                  </TableCell>
-                </TableRow>
-              ) : penalties.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
-                    No active penalties logged.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                penalties.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="text-xs font-semibold text-[#8C7361]">
-                      {format(new Date(p.date), "MMM dd, yyyy")}
-                    </TableCell>
-                    <TableCell className="font-bold text-[#2C1B10]">
-                      {p.user?.fullName}
-                    </TableCell>
-                    <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate" title={p.reason}>{p.reason}</TableCell>
-                    <TableCell className="font-extrabold text-rose-700">
-                      -{p.amount} ETB
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={`font-bold text-xs ${
-                          p.isDeducted
-                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                            : "bg-rose-100 text-rose-800 border-rose-300"
-                        }`}
+
+          {/* Mobile Touch Cards for Penalties */}
+          <div className="block md:hidden p-4 space-y-3">
+            {isLoadingPenalties ? (
+              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
+                Loading workforce penalties...
+              </div>
+            ) : penalties.length === 0 ? (
+              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
+                No active penalties logged.
+              </div>
+            ) : (
+              penalties.map((p) => (
+                <div
+                  key={p.id}
+                  className="bg-[#FAF6F0] rounded-xl p-4 border border-[#EDE4D5] space-y-3 shadow-2xs"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="font-extrabold text-base text-[#2C1B10]">
+                        {p.user?.fullName}
+                      </span>
+                      <p className="text-xs text-[#8C7361] mt-0.5">
+                        Date: {format(new Date(p.date), "MMM dd, yyyy")}
+                      </p>
+                    </div>
+                    <Badge
+                      className={`font-bold text-[10px] ${
+                        p.isDeducted
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                          : "bg-rose-100 text-rose-800 border-rose-300"
+                      }`}
+                    >
+                      {p.isDeducted ? "✓ SETTLED" : "⚠ PENDING"}
+                    </Badge>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-[#EDE4D5] space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#8C7361]">Fine Amount:</span>
+                      <span className="font-extrabold text-rose-700">-{p.amount} ETB</span>
+                    </div>
+                    <div>
+                      <span className="text-[#8C7361] block">Reason:</span>
+                      <span className="font-medium text-[#2C1B10]">{p.reason}</span>
+                    </div>
+                  </div>
+
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                    <div className="pt-1 flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingPenalty(p);
+                          setIsEditPenaltyOpen(true);
+                        }}
+                        className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs hover:bg-[#FAF6F0]"
                       >
-                        {p.isDeducted ? "✓ DEDUCTED / SETTLED" : "⚠ PENDING DEDUCTION"}
-                      </Badge>
+                        <Edit2 className="w-3.5 h-3.5 mr-1 text-[#E87A18]" /> Edit Penalty
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table for Penalties */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date Filed</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Violation Reason</TableHead>
+                  <TableHead className="text-rose-700">Penalty Fine</TableHead>
+                  <TableHead>Deduction Status</TableHead>
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingPenalties ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
+                      Loading workforce penalties...
                     </TableCell>
-                    {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                      <TableCell className="text-right pr-6">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingPenalty(p);
-                            setIsEditPenaltyOpen(true);
-                          }}
-                          className="font-bold text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-                        </Button>
-                      </TableCell>
-                    )}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : penalties.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
+                      No active penalties logged.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  penalties.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-xs font-semibold text-[#8C7361]">
+                        {format(new Date(p.date), "MMM dd, yyyy")}
+                      </TableCell>
+                      <TableCell className="font-bold text-[#2C1B10]">
+                        {p.user?.fullName}
+                      </TableCell>
+                      <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate" title={p.reason}>{p.reason}</TableCell>
+                      <TableCell className="font-extrabold text-rose-700">
+                        -{p.amount} ETB
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={`font-bold text-xs ${
+                            p.isDeducted
+                              ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                              : "bg-rose-100 text-rose-800 border-rose-300"
+                          }`}
+                        >
+                          {p.isDeducted ? "✓ DEDUCTED / SETTLED" : "⚠ PENDING DEDUCTION"}
+                        </Badge>
+                      </TableCell>
+                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                        <TableCell className="text-right pr-6">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingPenalty(p);
+                              setIsEditPenaltyOpen(true);
+                            }}
+                            className="font-bold text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
       {/* CREATE LOAN DIALOG */}
       <Dialog open={isLoanOpen} onOpenChange={setIsLoanOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <form onSubmit={handleAddLoan}>
             <DialogHeader>
-              <DialogTitle>Dispatch Micro-Loan</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-[#2C1B10]">Dispatch Micro-Loan</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Receiving Employee</label>
-                <select name="userId" required className="w-full h-10 border rounded-md px-3 text-sm">
+                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Receiving Employee</label>
+                <select name="userId" required className="w-full h-11 border border-[#EDE4D5] rounded-xl px-3 text-sm bg-white">
                   <option value="">Select Target...</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -1096,22 +1330,40 @@ export default function PayrollPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Loan Classification / Type</label>
-                <select name="type" required className="w-full h-10 border rounded-md px-3 text-sm">
+                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Loan Classification / Type</label>
+                <select name="type" required className="w-full h-11 border border-[#EDE4D5] rounded-xl px-3 text-sm bg-white">
                   <option value="STAFF_LOAN">Staff Loan (Multi-Month Installment)</option>
                   <option value="SALARY_ADVANCE">Salary Advance (Pre-payment of current month salary)</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Loan Package Amount (ETB)</label>
-                <Input name="amount" type="number" min="0" step="0.01" required />
+                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Loan Package Amount (ETB)</label>
+                <Input
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="h-11 rounded-xl"
+                  onFocus={(e) => e.target.select()}
+                  required
+                />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsLoanOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsLoanOpen(false)}
+                className="order-2 sm:order-1 w-full sm:w-auto h-11 sm:h-10 border-[#EDE4D5] rounded-xl"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-black text-white hover:bg-zinc-800">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="order-1 sm:order-2 w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl"
+              >
                 {isSubmitting ? "Dispersing..." : "Vault & Disperse"}
               </Button>
             </DialogFooter>
@@ -1121,40 +1373,65 @@ export default function PayrollPage() {
 
       {/* EDIT LOAN DIALOG */}
       <Dialog open={isEditLoanOpen} onOpenChange={setIsEditLoanOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <form onSubmit={handleUpdateLoan}>
             <DialogHeader>
-              <DialogTitle>Edit Employee Loan Record</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-[#2C1B10]">Edit Employee Loan Record</DialogTitle>
               <DialogDescription>Modify loan amount, remaining balance, or status for this loan.</DialogDescription>
             </DialogHeader>
             {editingLoan && (
               <div className="space-y-4 py-4">
-                <div className="p-3 bg-zinc-50 rounded-xl text-xs space-y-1 border">
+                <div className="p-3 bg-[#FAF6F0] rounded-xl text-xs space-y-1 border border-[#EDE4D5]">
                   <p><strong>Employee:</strong> {editingLoan.user?.fullName}</p>
                   <p><strong>Issued:</strong> {format(new Date(editingLoan.createdAt), "PPP")}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Total Original Loan Amount (ETB)</label>
-                  <Input name="totalAmount" type="number" step="0.01" defaultValue={editingLoan.totalAmount} required />
+                  <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Total Original Loan Amount (ETB)</label>
+                  <Input
+                    name="totalAmount"
+                    type="number"
+                    step="0.01"
+                    defaultValue={editingLoan.totalAmount}
+                    className="h-11 rounded-xl"
+                    onFocus={(e) => e.target.select()}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Remaining Unpaid Balance (ETB)</label>
-                  <Input name="remainingBalance" type="number" step="0.01" defaultValue={editingLoan.remainingBalance} required />
+                  <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Remaining Unpaid Balance (ETB)</label>
+                  <Input
+                    name="remainingBalance"
+                    type="number"
+                    step="0.01"
+                    defaultValue={editingLoan.remainingBalance}
+                    className="h-11 rounded-xl"
+                    onFocus={(e) => e.target.select()}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Loan Status</label>
-                  <select name="status" defaultValue={editingLoan.status} className="w-full h-10 border rounded-md px-3 text-sm">
+                  <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Loan Status</label>
+                  <select name="status" defaultValue={editingLoan.status} className="w-full h-11 border border-[#EDE4D5] rounded-xl px-3 text-sm bg-white">
                     <option value="OPEN">OPEN (Active Unpaid Loan)</option>
                     <option value="PAID">PAID (Fully Settled)</option>
                   </select>
                 </div>
               </div>
             )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditLoanOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditLoanOpen(false)}
+                className="order-2 sm:order-1 w-full sm:w-auto h-11 sm:h-10 border-[#EDE4D5] rounded-xl"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-black text-white hover:bg-zinc-800">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="order-1 sm:order-2 w-full sm:w-auto h-11 sm:h-10 bg-[#4A2E1B] hover:bg-[#382314] text-white font-bold rounded-xl"
+              >
                 {isSubmitting ? "Saving..." : "Save Loan Changes"}
               </Button>
             </DialogFooter>
@@ -1164,15 +1441,15 @@ export default function PayrollPage() {
 
       {/* CREATE PENALTY DIALOG */}
       <Dialog open={isPenaltyOpen} onOpenChange={setIsPenaltyOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <form onSubmit={handleAddPenalty}>
             <DialogHeader>
-              <DialogTitle>Enforce Administrative Penalty</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-[#2C1B10]">Enforce Administrative Penalty</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Infracting Employee</label>
-                <select name="userId" required className="w-full h-10 border rounded-md px-3 text-sm">
+                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Infracting Employee</label>
+                <select name="userId" required className="w-full h-11 border border-[#EDE4D5] rounded-xl px-3 text-sm bg-white">
                   <option value="">Select Target...</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -1182,23 +1459,47 @@ export default function PayrollPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Fine Evaluation (ETB)</label>
-                <Input name="amount" type="number" min="0" step="0.01" required />
+                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Fine Evaluation (ETB)</label>
+                <Input
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="h-11 rounded-xl"
+                  onFocus={(e) => e.target.select()}
+                  required
+                />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Rule Broken / Reason</label>
-                <Input name="reason" placeholder="e.g. Broken hardware or unexcused absence" required />
+                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Rule Broken / Reason</label>
+                <Input
+                  name="reason"
+                  placeholder="e.g. Broken hardware or unexcused absence"
+                  className="h-11 rounded-xl"
+                  required
+                />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Date of Offense</label>
+                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Date of Offense</label>
                 <EthDatePicker name="date" />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsPenaltyOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPenaltyOpen(false)}
+                className="order-2 sm:order-1 w-full sm:w-auto h-11 sm:h-10 border-[#EDE4D5] rounded-xl"
+              >
                 Cancel
               </Button>
-              <Button type="submit" variant="destructive" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={isSubmitting}
+                className="order-1 sm:order-2 w-full sm:w-auto h-11 sm:h-10 font-bold rounded-xl"
+              >
                 {isSubmitting ? "Submitting..." : "Submit Fine"}
               </Button>
             </DialogFooter>
@@ -1208,43 +1509,65 @@ export default function PayrollPage() {
 
       {/* EDIT PENALTY DIALOG */}
       <Dialog open={isEditPenaltyOpen} onOpenChange={setIsEditPenaltyOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <form onSubmit={handleUpdatePenalty}>
             <DialogHeader>
-              <DialogTitle>Edit Workforce Penalty</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-[#2C1B10]">Edit Workforce Penalty</DialogTitle>
               <DialogDescription>Adjust penalty amount, reason, or settlement status.</DialogDescription>
             </DialogHeader>
             {editingPenalty && (
               <div className="space-y-4 py-4">
-                <div className="p-3 bg-zinc-50 rounded-xl text-xs space-y-1 border">
+                <div className="p-3 bg-[#FAF6F0] rounded-xl text-xs space-y-1 border border-[#EDE4D5]">
                   <p><strong>Employee:</strong> {editingPenalty.user?.fullName}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Fine Amount (ETB)</label>
-                  <Input name="amount" type="number" step="0.01" defaultValue={editingPenalty.amount} required />
+                  <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Fine Amount (ETB)</label>
+                  <Input
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    defaultValue={editingPenalty.amount}
+                    className="h-11 rounded-xl"
+                    onFocus={(e) => e.target.select()}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Reason / Infraction Description</label>
-                  <Input name="reason" defaultValue={editingPenalty.reason} required />
+                  <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Reason / Infraction Description</label>
+                  <Input
+                    name="reason"
+                    defaultValue={editingPenalty.reason}
+                    className="h-11 rounded-xl"
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Date of Offense</label>
+                  <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Date of Offense</label>
                   <EthDatePicker name="date" defaultValue={editingPenalty.date ? editingPenalty.date.split("T")[0] : ""} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Settlement Status</label>
-                  <select name="isDeducted" defaultValue={editingPenalty.isDeducted ? "true" : "false"} className="w-full h-10 border rounded-md px-3 text-sm">
+                  <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Settlement Status</label>
+                  <select name="isDeducted" defaultValue={editingPenalty.isDeducted ? "true" : "false"} className="w-full h-11 border border-[#EDE4D5] rounded-xl px-3 text-sm bg-white">
                     <option value="false">Pending (Not yet deducted from salary)</option>
                     <option value="true">Deducted / Settled</option>
                   </select>
                 </div>
               </div>
             )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditPenaltyOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditPenaltyOpen(false)}
+                className="order-2 sm:order-1 w-full sm:w-auto h-11 sm:h-10 border-[#EDE4D5] rounded-xl"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-black text-white hover:bg-zinc-800">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="order-1 sm:order-2 w-full sm:w-auto h-11 sm:h-10 bg-[#4A2E1B] hover:bg-[#382314] text-white font-bold rounded-xl"
+              >
                 {isSubmitting ? "Saving..." : "Save Penalty Changes"}
               </Button>
             </DialogFooter>
@@ -1257,7 +1580,7 @@ export default function PayrollPage() {
         <DialogContent className="sm:max-w-[500px]">
           <form onSubmit={handleUpdatePayroll}>
             <DialogHeader>
-              <DialogTitle>Edit Payroll Record & Final Salary</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-[#2C1B10]">Edit Payroll Record & Final Salary</DialogTitle>
               <DialogDescription>
                 Modify base salary, bonuses, deductions, or override final payout amount directly.
               </DialogDescription>
@@ -1273,22 +1596,51 @@ export default function PayrollPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-zinc-700 mb-1 block">Base Salary (ETB)</label>
-                    <Input name="baseSalary" type="number" step="0.01" defaultValue={editingPayroll.baseSalary} required />
+                    <Input
+                      name="baseSalary"
+                      type="number"
+                      step="0.01"
+                      defaultValue={editingPayroll.baseSalary}
+                      className="h-11 rounded-xl"
+                      onFocus={(e) => e.target.select()}
+                      required
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-emerald-700 mb-1 block">Bonus (+ ETB)</label>
-                    <Input name="bonus" type="number" step="0.01" defaultValue={editingPayroll.bonus} />
+                    <Input
+                      name="bonus"
+                      type="number"
+                      step="0.01"
+                      defaultValue={editingPayroll.bonus}
+                      className="h-11 rounded-xl"
+                      onFocus={(e) => e.target.select()}
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-rose-700 mb-1 block">Loan Deductions (- ETB)</label>
-                    <Input name="loanDeductions" type="number" step="0.01" defaultValue={editingPayroll.loanDeductions} />
+                    <Input
+                      name="loanDeductions"
+                      type="number"
+                      step="0.01"
+                      defaultValue={editingPayroll.loanDeductions}
+                      className="h-11 rounded-xl"
+                      onFocus={(e) => e.target.select()}
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-rose-700 mb-1 block">Penalty Deductions (- ETB)</label>
-                    <Input name="penaltyDeductions" type="number" step="0.01" defaultValue={editingPayroll.penaltyDeductions} />
+                    <Input
+                      name="penaltyDeductions"
+                      type="number"
+                      step="0.01"
+                      defaultValue={editingPayroll.penaltyDeductions}
+                      className="h-11 rounded-xl"
+                      onFocus={(e) => e.target.select()}
+                    />
                   </div>
                 </div>
 
@@ -1301,7 +1653,8 @@ export default function PayrollPage() {
                     type="number"
                     step="0.01"
                     defaultValue={editingPayroll.finalAmount}
-                    className="font-extrabold text-emerald-800 text-lg bg-white border-emerald-300"
+                    className="font-extrabold text-emerald-800 text-lg bg-white border-emerald-300 h-11 rounded-xl"
+                    onFocus={(e) => e.target.select()}
                     required
                   />
                   <p className="text-[11px] text-emerald-700">
@@ -1318,11 +1671,20 @@ export default function PayrollPage() {
                 </div>
               </div>
             )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditPayrollOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditPayrollOpen(false)}
+                className="order-2 sm:order-1 w-full sm:w-auto h-11 sm:h-10 border-[#EDE4D5] rounded-xl"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-black text-white hover:bg-zinc-800">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="order-1 sm:order-2 w-full sm:w-auto h-11 sm:h-10 bg-[#4A2E1B] hover:bg-[#382314] text-white font-bold rounded-xl"
+              >
                 {isSubmitting ? "Saving..." : "Save Payroll Changes"}
               </Button>
             </DialogFooter>

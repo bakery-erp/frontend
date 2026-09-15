@@ -160,7 +160,75 @@ export default function PayrollLoansPage() {
         <PayrollNav />
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
+      {/* Mobile Cards View (block md:hidden) */}
+      <div className="block md:hidden space-y-3">
+        <div className="p-3 bg-[#FAF6F0] rounded-2xl border border-[#EDE4D5] flex items-center justify-between">
+          <div>
+            <h2 className="font-extrabold text-xs text-[#2C1B10] uppercase tracking-wider">Employee Loans</h2>
+            <p className="text-[11px] text-[#8C7361]">{loans.length} active or recorded loans</p>
+          </div>
+          <Button onClick={() => setIsLoanOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs h-8 px-3 shadow-xs">
+            <Plus className="w-3.5 h-3.5 mr-1" /> Dispatch Loan
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
+            Loading employee loans...
+          </div>
+        ) : loans.length === 0 ? (
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
+            No employee loans currently recorded.
+          </div>
+        ) : (
+          loans.map((l) => (
+            <div key={l.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-extrabold text-[#2C1B10] text-base">{l.user?.fullName}</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Badge className={`font-bold text-[10px] ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
+                      {l.type === "STAFF_LOAN" ? "Staff Loan" : "Salary Advance"}
+                    </Badge>
+                    <span className="text-xs text-[#8C7361]">• {formatEthDate(l.createdAt)}</span>
+                  </div>
+                </div>
+                {getApprovalBadge(l.status)}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs bg-[#FAF6F0] rounded-xl p-2.5">
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Original Amount</span>
+                  <span className="font-bold text-[#2C1B10] font-mono">{l.totalAmount} ETB</span>
+                </div>
+                <div>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Remaining Balance</span>
+                  <span className="font-extrabold text-rose-600 text-sm font-mono">{l.remainingBalance} ETB</span>
+                </div>
+              </div>
+
+              {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                <div className="pt-2 border-t border-zinc-100 flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingLoan(l);
+                      setIsEditLoanOpen(true);
+                    }}
+                    className="w-full h-8 text-xs font-bold text-blue-700 border-blue-200 hover:bg-blue-50"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit Loan Record
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View (hidden md:block) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
         <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
           <div>
             <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Loans</h2>
@@ -209,8 +277,8 @@ export default function PayrollLoansPage() {
                       {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-semibold text-[#8C7361]">{l.totalAmount} ETB</TableCell>
-                  <TableCell className="font-extrabold text-[#2C1B10]">
+                  <TableCell className="font-semibold text-[#8C7361] font-mono">{l.totalAmount} ETB</TableCell>
+                  <TableCell className="font-extrabold text-[#2C1B10] font-mono">
                     {l.remainingBalance} ETB
                   </TableCell>
                   <TableCell>
@@ -240,12 +308,12 @@ export default function PayrollLoansPage() {
 
       {/* CREATE LOAN DIALOG */}
       <Dialog open={isLoanOpen} onOpenChange={setIsLoanOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleAddLoan}>
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Dispatch Micro-Loan / Advance</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-3.5 py-3">
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Receiving Employee</label>
                 <select name="userId" required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
@@ -266,13 +334,33 @@ export default function PayrollLoansPage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Total Dispatched Amount (ETB)</label>
-                <Input name="amount" type="number" step="0.01" min="1" required placeholder="e.g. 1500" className="rounded-xl border-zinc-200" />
+                <Input
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  required
+                  placeholder="e.g. 1500"
+                  onFocus={(e) => e.target.select()}
+                  className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
               </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsLoanOpen(false)} className="rounded-xl">Cancel</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+              >
                 {isSubmitting ? "Dispatching..." : "Dispatch Loan"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsLoanOpen(false)}
+                className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+              >
+                Cancel
               </Button>
             </DialogFooter>
           </form>
@@ -282,19 +370,35 @@ export default function PayrollLoansPage() {
       {/* EDIT LOAN DIALOG */}
       {isEditLoanOpen && editingLoan && (
         <Dialog open={true} onOpenChange={(open) => !open && setIsEditLoanOpen(false)}>
-          <DialogContent className="max-w-md rounded-2xl">
+          <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleUpdateLoan}>
               <DialogHeader>
                 <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Edit Loan Record</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-3.5 py-3">
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Total Original Amount (ETB)</label>
-                  <Input name="totalAmount" type="number" step="0.01" defaultValue={editingLoan.totalAmount} required className="rounded-xl border-zinc-200" />
+                  <Input
+                    name="totalAmount"
+                    type="number"
+                    step="0.01"
+                    defaultValue={editingLoan.totalAmount}
+                    onFocus={(e) => e.target.select()}
+                    required
+                    className="h-10 rounded-xl border-zinc-200 font-mono"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Remaining Unpaid Balance (ETB)</label>
-                  <Input name="remainingBalance" type="number" step="0.01" defaultValue={editingLoan.remainingBalance} required className="rounded-xl border-zinc-200" />
+                  <Input
+                    name="remainingBalance"
+                    type="number"
+                    step="0.01"
+                    defaultValue={editingLoan.remainingBalance}
+                    onFocus={(e) => e.target.select()}
+                    required
+                    className="h-10 rounded-xl border-zinc-200 font-mono"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Loan Approval & Settlement Status</label>
@@ -306,10 +410,21 @@ export default function PayrollLoansPage() {
                   </select>
                 </div>
               </div>
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditLoanOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
                   {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditLoanOpen(false)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  Cancel
                 </Button>
               </DialogFooter>
             </form>
