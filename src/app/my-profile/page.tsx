@@ -150,17 +150,17 @@ export default function MyProfilePage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) {
-      toast.error('Please enter current and new password');
+      toast.error(t('profile.enterBothPasswords'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('New passwords do not match');
+      toast.error(t('profile.passwordsDoNotMatch'));
       return;
     }
     setIsChangingPass(true);
     try {
       await api.post('/users/me/change-password', { currentPassword, newPassword });
-      toast.success('Password changed successfully');
+      toast.success(t('profile.passwordSuccess'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -174,7 +174,7 @@ export default function MyProfilePage() {
   const handleAvatarUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
-      toast.error('Please select an image file first');
+      toast.error(t('profile.selectFilePrompt'));
       return;
     }
     setIsUploadingAvatar(true);
@@ -185,7 +185,7 @@ export default function MyProfilePage() {
       const res = await api.post('/users/me/profile-picture', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      toast.success('Profile picture updated successfully!');
+      toast.success(t('profile.avatarSuccess'));
       setSelectedFile(null);
       setIsAvatarModalOpen(false);
       if (res.data?.filesUrl && updateUser) {
@@ -203,7 +203,7 @@ export default function MyProfilePage() {
   const handleApproveLoan = async (id: string) => {
     try {
       await api.post(`/loans/${id}/approve`);
-      toast.success('Loan approved!');
+      toast.success(t('profile.loanApprovedToast'));
       fetchMyDashboard();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to approve loan');
@@ -213,7 +213,7 @@ export default function MyProfilePage() {
   const handleRejectLoan = async (id: string) => {
     try {
       await api.post(`/loans/${id}/reject`);
-      toast.success('Loan rejected');
+      toast.success(t('profile.loanRejectedToast'));
       fetchMyDashboard();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to reject loan');
@@ -223,7 +223,7 @@ export default function MyProfilePage() {
   const handleApprovePenalty = async (id: string) => {
     try {
       await api.post(`/penalties/${id}/approve`);
-      toast.success('Penalty acknowledged and approved');
+      toast.success(t('profile.penaltyApprovedToast'));
       fetchMyDashboard();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to approve penalty');
@@ -233,7 +233,7 @@ export default function MyProfilePage() {
   const handleRejectPenalty = async (id: string) => {
     try {
       await api.post(`/penalties/${id}/reject`);
-      toast.success('Penalty rejected');
+      toast.success(t('profile.penaltyRejectedToast'));
       fetchMyDashboard();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to reject penalty');
@@ -243,7 +243,7 @@ export default function MyProfilePage() {
   const handleApprovePayroll = async (id: string) => {
     try {
       await api.post(`/payroll/${id}/approve`);
-      toast.success('Payroll approved!');
+      toast.success(t('profile.payrollApprovedToast'));
       fetchMyDashboard();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to approve payroll');
@@ -253,7 +253,7 @@ export default function MyProfilePage() {
   const handleRejectPayroll = async (id: string) => {
     try {
       await api.post(`/payroll/${id}/reject`);
-      toast.success('Payroll rejected');
+      toast.success(t('profile.payrollRejectedToast'));
       fetchMyDashboard();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to reject payroll');
@@ -266,7 +266,7 @@ export default function MyProfilePage() {
         <div className="flex h-64 items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <div className="w-8 h-8 border-4 border-[#E87A18] border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-semibold text-[#8C7361]">Loading your portal profile...</p>
+            <p className="text-sm font-semibold text-[#8C7361]">{t('profile.loadingProfileText')}</p>
           </div>
         </div>
       </DashboardLayout>
@@ -307,7 +307,7 @@ export default function MyProfilePage() {
                 type="button"
                 onClick={() => setIsAvatarModalOpen(true)}
                 className="relative group cursor-pointer rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#E87A18] shrink-0"
-                title="Click to update profile picture"
+                title={t('profile.clickToUpdateAvatar')}
               >
                 {u?.filesUrl && !heroAvatarError ? (
                   <img
@@ -323,18 +323,18 @@ export default function MyProfilePage() {
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[9px] xs:text-[10px] font-bold">
                   <Camera className="w-4 h-4 xs:w-5 xs:h-5 mb-0.5" />
-                  <span>Change</span>
+                  <span>{t('profile.changeAvatarLabel')}</span>
                 </div>
               </button>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mb-1">
                   <Badge className="bg-[#E87A18] text-white text-[10px] xs:text-xs px-2 xs:px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
-                    {u?.role?.replace('_', ' ') || 'EMPLOYEE'}
+                    {u?.role?.replace('_', ' ') || t('common.employee')}
                   </Badge>
                   <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full truncate max-w-[150px] xs:max-w-none">
                     <Building2 className="w-3 h-3 mr-1 shrink-0" />
                     <span className="truncate">
-                      {u?.branch?.name && u.branch.name.trim() !== '.' && u.branch.name.trim() !== '' ? u.branch.name : 'Main Bakery'}
+                      {u?.branch?.name && u.branch.name.trim() !== '.' && u.branch.name.trim() !== '' ? u.branch.name : t('common.mainBakery')}
                     </span>
                   </span>
                 </div>
@@ -347,21 +347,21 @@ export default function MyProfilePage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 xs:gap-3 w-full md:w-auto bg-white/10 p-2.5 xs:p-4 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10">
               <div>
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">Base Salary</span>
+                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.baseSalary')}</span>
                 <span className="text-xs xs:text-sm font-extrabold truncate block">{money(u?.salary)}</span>
               </div>
               <div>
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">Shift</span>
+                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.shiftLabel')}</span>
                 <span className="text-xs xs:text-sm font-extrabold flex items-center truncate">
                   <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
-                  <span className="truncate">{u?.shift || 'Standard'}</span>
+                  <span className="truncate">{u?.shift || t('common.standard')}</span>
                 </span>
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">Start Date</span>
+                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.startDateLabel')}</span>
                 <span className="text-xs xs:text-sm font-extrabold flex items-center">
                   <Calendar className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
-                  <span>{u?.startDate ? formatEthDate(u.startDate) : 'N/A'}</span>
+                  <span>{u?.startDate ? formatEthDate(u.startDate) : t('common.na')}</span>
                 </span>
               </div>
             </div>
@@ -380,7 +380,7 @@ export default function MyProfilePage() {
           </CardHeader>
           <CardContent className="px-4 pb-3.5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(u?.salary)}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">Monthly base rate</p>
+            <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.monthlyBaseRate')}</p>
           </CardContent>
         </Card>
 
@@ -394,7 +394,7 @@ export default function MyProfilePage() {
           <CardContent className="px-4 pb-3.5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(totalLoanBalance)}</div>
             <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              {loans.filter((l) => l.status === 'OPEN').length} active loan(s)
+              {t('profile.activeLoansCount', { count: loans.filter((l) => l.status === 'OPEN').length })}
             </p>
           </CardContent>
         </Card>
@@ -408,20 +408,20 @@ export default function MyProfilePage() {
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{money(totalPenaltyAmount)}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">{penalties.length} logged record(s)</p>
+            <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.loggedPenaltiesCount', { count: penalties.length })}</p>
           </CardContent>
         </Card>
 
         <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">Pending Approvals</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.pendingApprovals')}</CardTitle>
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
               <ShieldCheck className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent className="px-4 pb-3.5 pt-0">
             <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">{pendingCount}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">Requires your review</p>
+            <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.requiresYourReview')}</p>
           </CardContent>
         </Card>
       </div>
@@ -446,7 +446,7 @@ export default function MyProfilePage() {
               }`}
             >
               <Receipt className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
-              <span>Payslips ({payrolls.length})</span>
+              <span>{t('profile.tabPayslips', { count: payrolls.length })}</span>
             </button>
 
             <button
@@ -460,7 +460,7 @@ export default function MyProfilePage() {
               }`}
             >
               <Wallet className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
-              <span>My Loans ({loans.length})</span>
+              <span>{t('profile.tabLoans', { count: loans.length })}</span>
             </button>
 
             <button
@@ -474,7 +474,7 @@ export default function MyProfilePage() {
               }`}
             >
               <AlertTriangle className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
-              <span>My Penalties ({penalties.length})</span>
+              <span>{t('profile.tabPenalties', { count: penalties.length })}</span>
             </button>
 
             <button
@@ -488,7 +488,7 @@ export default function MyProfilePage() {
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
-              <span>Pending Approvals</span>
+              <span>{t('profile.tabApprovals')}</span>
               {pendingCount > 0 && (
                 <span className="bg-amber-600 text-white px-1.5 py-0.5 text-[9px] xs:text-[10px] rounded-full font-bold leading-none">
                   {pendingCount}
@@ -507,7 +507,7 @@ export default function MyProfilePage() {
               }`}
             >
               <Lock className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
-              <span>Security Settings</span>
+              <span>{t('profile.tabSecurity')}</span>
             </button>
           </div>
         </div>
@@ -516,10 +516,10 @@ export default function MyProfilePage() {
           {/* TAB 1: PAYROLL */}
           {activeTab === 'payroll' && (
             <div>
-              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">Salary Payslips & History</h3>
+              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">{t('profile.payslipsHistoryTitle')}</h3>
               {payrolls.length === 0 ? (
                 <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
-                  <p className="text-sm font-bold text-[#4A2E1B]">No Payroll Records Found</p>
+                  <p className="text-sm font-bold text-[#4A2E1B]">{t('profile.noPayslipsFound')}</p>
                 </div>
               ) : (
                 <>
@@ -528,7 +528,7 @@ export default function MyProfilePage() {
                     {payrolls.map((pr) => {
                       const isApproved = pr.status === 'APPROVED';
                       const isRejected = pr.status === 'REJECTED';
-                      const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Review';
+                      const statusLabel = isApproved ? t('common.approved') : isRejected ? t('common.rejected') : t('common.pendingReview');
                       const statusBadgeClass = isApproved
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         : isRejected
@@ -547,24 +547,24 @@ export default function MyProfilePage() {
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Base Salary</span>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.colBaseSalary')}</span>
                               <span className="font-bold text-[#2C1B10]">{money(pr.baseSalary)}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Bonus (+)</span>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.colBonusPlus')}</span>
                               <span className="font-bold text-emerald-600">{Number(pr.bonus) > 0 ? `+${money(pr.bonus)}` : '-'}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Loan Deductions (-)</span>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.colLoanDeductionMinus')}</span>
                               <span className="font-bold text-rose-600">{Number(pr.loanDeductions) > 0 ? `-${money(pr.loanDeductions)}` : '-'}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Penalties (-)</span>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.colPenaltyDeductionMinus')}</span>
                               <span className="font-bold text-rose-600">{Number(pr.penaltyDeductions) > 0 ? `-${money(pr.penaltyDeductions)}` : '-'}</span>
                             </div>
                           </div>
                           <div className="pt-2 border-t border-[#EDE4D5]/70 flex items-center justify-between bg-emerald-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
-                            <span className="text-[11px] xs:text-xs font-extrabold text-emerald-900 uppercase tracking-wide">Final Net Paid</span>
+                            <span className="text-[11px] xs:text-xs font-extrabold text-emerald-900 uppercase tracking-wide">{t('profile.colFinalNetPaid')}</span>
                             <span className="text-sm font-black text-emerald-700">{money(pr.finalAmount)}</span>
                           </div>
                         </div>
@@ -577,20 +577,20 @@ export default function MyProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Period</TableHead>
-                          <TableHead className="text-right">Base Salary</TableHead>
-                          <TableHead className="text-right">Bonus (+)</TableHead>
-                          <TableHead className="text-right">Loan Deduction (-)</TableHead>
-                          <TableHead className="text-right">Penalty Deduction (-)</TableHead>
-                          <TableHead className="text-right">Final Amount Paid</TableHead>
-                          <TableHead className="text-center">Status</TableHead>
+                          <TableHead>{t('profile.colPeriod')}</TableHead>
+                          <TableHead className="text-right">{t('profile.colBaseSalary')}</TableHead>
+                          <TableHead className="text-right">{t('profile.colBonusPlus')}</TableHead>
+                          <TableHead className="text-right">{t('profile.colLoanDeductionMinus')}</TableHead>
+                          <TableHead className="text-right">{t('profile.colPenaltyDeductionMinus')}</TableHead>
+                          <TableHead className="text-right">{t('profile.colFinalNetPaid')}</TableHead>
+                          <TableHead className="text-center">{t('profile.colStatus')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {payrolls.map((pr) => {
                           const isApproved = pr.status === 'APPROVED';
                           const isRejected = pr.status === 'REJECTED';
-                          const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Review';
+                          const statusLabel = isApproved ? t('common.approved') : isRejected ? t('common.rejected') : t('common.pendingReview');
                           const statusBadgeClass = isApproved
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : isRejected
@@ -624,10 +624,10 @@ export default function MyProfilePage() {
           {/* TAB 2: LOANS */}
           {activeTab === 'loans' && (
             <div>
-              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">My Loans & Advances</h3>
+              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">{t('profile.loansAdvancesTitle')}</h3>
               {loans.length === 0 ? (
                 <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
-                  <p className="text-sm font-bold text-[#4A2E1B]">No Loans Logged</p>
+                  <p className="text-sm font-bold text-[#4A2E1B]">{t('profile.noLoansLogged')}</p>
                 </div>
               ) : (
                 <>
@@ -641,7 +641,7 @@ export default function MyProfilePage() {
                       const isPaid = l.status === 'PAID';
                       const isPending = l.status === 'PENDING_APPROVAL';
                       const isRejected = l.status === 'REJECTED';
-                      const statusLabel = isPaid ? 'Paid in Full' : isPending ? 'Pending Approval' : isRejected ? 'Rejected' : 'Active Loan';
+                      const statusLabel = isPaid ? t('common.paidInFull') : isPending ? t('common.pendingApproval') : isRejected ? t('common.rejected') : t('common.active');
                       const statusBadgeClass = isPaid
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         : isPending
@@ -663,18 +663,18 @@ export default function MyProfilePage() {
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total Advance</span>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.totalAdvance')}</span>
                               <span className="font-bold text-[#2C1B10]">{money(l.totalAmount)}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Remaining Balance</span>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.remainingBalance')}</span>
                               <span className="font-black text-indigo-700">{money(l.remainingBalance)}</span>
                             </div>
                           </div>
                           <div className="pt-1">
                             <div className="flex justify-between text-[10px] font-bold text-[#8C7361] mb-1">
-                              <span>Repaid: {percentPaid}%</span>
-                              <span>Paid: {money(paid)}</span>
+                              <span>{t('profile.repaidPercent', { percent: percentPaid })}</span>
+                              <span>{t('profile.paidAmountText', { amount: money(paid) })}</span>
                             </div>
                             <div className="w-full bg-[#EDE4D5] rounded-full h-1.5 overflow-hidden">
                               <div className="bg-[#E87A18] h-1.5 rounded-full transition-all duration-300" style={{ width: `${percentPaid}%` }} />
@@ -690,10 +690,10 @@ export default function MyProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead className="text-right">Original Amount</TableHead>
-                          <TableHead className="text-right">Remaining Balance</TableHead>
-                          <TableHead className="text-center">Status</TableHead>
+                          <TableHead>{t('common.date')}</TableHead>
+                          <TableHead className="text-right">{t('profile.colOriginalAmount')}</TableHead>
+                          <TableHead className="text-right">{t('profile.remainingBalance')}</TableHead>
+                          <TableHead className="text-center">{t('profile.colStatus')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -701,7 +701,7 @@ export default function MyProfilePage() {
                           const isPaid = l.status === 'PAID';
                           const isPending = l.status === 'PENDING_APPROVAL';
                           const isRejected = l.status === 'REJECTED';
-                          const statusLabel = isPaid ? 'Paid in Full' : isPending ? 'Pending Approval' : isRejected ? 'Rejected' : 'Active Loan';
+                          const statusLabel = isPaid ? t('common.paidInFull') : isPending ? t('common.pendingApproval') : isRejected ? t('common.rejected') : t('common.active');
                           const statusBadgeClass = isPaid
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : isPending
@@ -734,12 +734,12 @@ export default function MyProfilePage() {
           {/* TAB 3: PENALTIES */}
           {activeTab === 'penalties' && (
             <div>
-              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">My Penalties & Fine Records</h3>
+              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">{t('profile.penaltiesTitle')}</h3>
               {penalties.length === 0 ? (
                 <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
                   <CheckCircle2 className="w-9 h-9 text-emerald-600 mx-auto mb-2" />
-                  <p className="text-sm font-bold text-[#4A2E1B]">Clean Record — No Penalties!</p>
-                  <p className="text-xs text-[#8C7361] mt-1">You have zero penalty deductions on record.</p>
+                  <p className="text-sm font-bold text-[#4A2E1B]">{t('profile.noPenaltiesClean')}</p>
+                  <p className="text-xs text-[#8C7361] mt-1">{t('profile.noPenaltiesDesc')}</p>
                 </div>
               ) : (
                 <>
@@ -748,7 +748,7 @@ export default function MyProfilePage() {
                     {penalties.map((p) => {
                       const isApproved = p.status === 'APPROVED';
                       const isRejected = p.status === 'REJECTED';
-                      const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Approval';
+                      const statusLabel = isApproved ? t('common.approved') : isRejected ? t('common.rejected') : t('common.pendingApproval');
                       const statusBadgeClass = isApproved
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         : isRejected
@@ -770,23 +770,23 @@ export default function MyProfilePage() {
 
                           {/* Reason */}
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Reason / Notice</span>
-                            <p className="text-xs font-bold text-[#2C1B10] mt-0.5 break-words">{p.reason || 'No description provided'}</p>
+                            <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.reasonNoticeLabel')}</span>
+                            <p className="text-xs font-bold text-[#2C1B10] mt-0.5 break-words">{p.reason || t('profile.noReasonProvided')}</p>
                           </div>
 
                           {/* Deduction Status Row */}
                           <div className="flex items-center justify-between text-xs pt-1">
-                            <span className="text-[10px] uppercase font-bold text-[#8C7361]">Salary Deduction</span>
+                            <span className="text-[10px] uppercase font-bold text-[#8C7361]">{t('profile.salaryDeductionLabel')}</span>
                             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
                               p.isDeducted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                             }`}>
-                              {p.isDeducted ? '✓ Deducted from Salary' : '⏳ Pending next Payroll'}
+                              {p.isDeducted ? t('profile.deductedFromSalary') : t('profile.pendingNextPayroll')}
                             </span>
                           </div>
 
                           {/* Amount Highlight Footer */}
                           <div className="pt-2 border-t border-[#EDE4D5]/70 flex items-center justify-between bg-rose-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
-                            <span className="text-[11px] xs:text-xs font-bold text-rose-900 uppercase tracking-wide">Penalty Amount</span>
+                            <span className="text-[11px] xs:text-xs font-bold text-rose-900 uppercase tracking-wide">{t('profile.penaltyAmountLabel')}</span>
                             <span className="text-sm font-black text-rose-700">{money(p.amount)}</span>
                           </div>
                         </div>
@@ -799,18 +799,18 @@ export default function MyProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date Logged</TableHead>
-                          <TableHead>Reason</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead className="text-center">Approval Status</TableHead>
-                          <TableHead className="text-center">Deduction Status</TableHead>
+                          <TableHead>{t('profile.colDateLogged')}</TableHead>
+                          <TableHead>{t('common.reason')}</TableHead>
+                          <TableHead className="text-right">{t('common.amount')}</TableHead>
+                          <TableHead className="text-center">{t('profile.colApprovalStatus')}</TableHead>
+                          <TableHead className="text-center">{t('profile.colDeductionStatus')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {penalties.map((p) => {
                           const isApproved = p.status === 'APPROVED';
                           const isRejected = p.status === 'REJECTED';
-                          const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Approval';
+                          const statusLabel = isApproved ? t('common.approved') : isRejected ? t('common.rejected') : t('common.pendingApproval');
                           const statusBadgeClass = isApproved
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : isRejected
@@ -829,7 +829,7 @@ export default function MyProfilePage() {
                               </TableCell>
                               <TableCell className="text-center">
                                 <Badge className={`font-bold text-[10px] ${p.isDeducted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                  {p.isDeducted ? 'DEDUCTED' : 'PENDING SALARY'}
+                                  {p.isDeducted ? t('common.deducted') : t('common.pendingSalary')}
                                 </Badge>
                               </TableCell>
                             </TableRow>
@@ -849,17 +849,17 @@ export default function MyProfilePage() {
               <div>
                 <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-1.5 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 xs:w-5 xs:h-5 text-amber-600 shrink-0" />
-                  Pending Payroll, Loans & Penalties Requiring Action
+                  {t('profile.pendingApprovalsTitle')}
                 </h3>
                 <p className="text-[11px] xs:text-xs text-[#8C7361] mb-4">
-                  Payrolls, loans, or penalties issued by management remain in pending status until you acknowledge, approve, or dispute them.
+                  {t('profile.pendingApprovalsDesc')}
                 </p>
 
                 {pendingCount === 0 ? (
                   <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
                     <CheckCircle2 className="w-9 h-9 text-emerald-600 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-[#4A2E1B]">No Pending Approvals</p>
-                    <p className="text-xs text-[#8C7361] mt-1">You have reviewed all assigned items.</p>
+                    <p className="text-sm font-bold text-[#4A2E1B]">{t('profile.noPendingApprovals')}</p>
+                    <p className="text-xs text-[#8C7361] mt-1">{t('profile.allReviewedDesc')}</p>
                   </div>
                 ) : (
                   <div className="space-y-4 xs:space-y-6">
@@ -867,7 +867,7 @@ export default function MyProfilePage() {
                     {pendingPayrolls.length > 0 && (
                       <div className="border border-indigo-200 rounded-2xl p-3 xs:p-4 bg-indigo-50/50">
                         <h4 className="text-xs xs:text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                          <Wallet className="w-4 h-4 text-indigo-600 shrink-0" /> Pending Monthly Salary Payslips
+                          <Wallet className="w-4 h-4 text-indigo-600 shrink-0" /> {t('profile.pendingPayslipsTitle')}
                         </h4>
                         <div className="space-y-2.5">
                           {pendingPayrolls.map((pr) => (
@@ -878,10 +878,10 @@ export default function MyProfilePage() {
                                   <span className="font-mono text-emerald-700 font-black">{money(pr.finalAmount)}</span>
                                 </div>
                                 <div className="text-[11px] xs:text-xs text-[#8C7361] mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5">
-                                  <span>Base: {money(pr.baseSalary)}</span>
-                                  {Number(pr.bonus) > 0 && <span className="text-emerald-700 font-semibold">Bonus: +{money(pr.bonus)}</span>}
-                                  {Number(pr.loanDeductions) > 0 && <span className="text-rose-600 font-semibold">Loans: -{money(pr.loanDeductions)}</span>}
-                                  {Number(pr.penaltyDeductions) > 0 && <span className="text-rose-600 font-semibold">Penalties: -{money(pr.penaltyDeductions)}</span>}
+                                  <span>{t('profile.colBaseSalary')}: {money(pr.baseSalary)}</span>
+                                  {Number(pr.bonus) > 0 && <span className="text-emerald-700 font-semibold">{t('common.bonus')}: +{money(pr.bonus)}</span>}
+                                  {Number(pr.loanDeductions) > 0 && <span className="text-rose-600 font-semibold">{t('profile.colLoanDeductionMinus')}: -{money(pr.loanDeductions)}</span>}
+                                  {Number(pr.penaltyDeductions) > 0 && <span className="text-rose-600 font-semibold">{t('profile.colPenaltyDeductionMinus')}: -{money(pr.penaltyDeductions)}</span>}
                                 </div>
                               </div>
                               <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
@@ -890,7 +890,7 @@ export default function MyProfilePage() {
                                   onClick={() => handleApprovePayroll(pr.id)}
                                   className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 shadow-xs px-3"
                                 >
-                                  <Check className="w-4 h-4 shrink-0" /> Accept Payslip
+                                  <Check className="w-4 h-4 shrink-0" /> {t('profile.acceptPayslip')}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -898,7 +898,7 @@ export default function MyProfilePage() {
                                   onClick={() => handleRejectPayroll(pr.id)}
                                   className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <X className="w-4 h-4 shrink-0" /> Reject
+                                  <X className="w-4 h-4 shrink-0" /> {t('profile.rejectBtn')}
                                 </Button>
                               </div>
                             </div>
@@ -910,13 +910,13 @@ export default function MyProfilePage() {
                     {/* Pending Loans */}
                     {pendingLoans.length > 0 && (
                       <div className="border border-amber-200 rounded-2xl p-3 xs:p-4 bg-amber-50/50">
-                        <h4 className="text-xs xs:text-sm font-bold text-amber-900 mb-3">Pending Salary Advances / Loans</h4>
+                        <h4 className="text-xs xs:text-sm font-bold text-amber-900 mb-3">{t('profile.pendingLoansTitle')}</h4>
                         <div className="space-y-2.5">
                           {pendingLoans.map((l) => (
                             <div key={l.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-3.5 xs:p-4 rounded-xl border border-amber-200 gap-3">
                               <div>
                                 <div className="font-extrabold text-sm xs:text-base text-[#2C1B10]">{money(l.totalAmount)}</div>
-                                <div className="text-xs text-[#8C7361] mt-0.5">Issued: {formatEthDate(l.createdAt)}</div>
+                                <div className="text-xs text-[#8C7361] mt-0.5">{t('common.date')}: {formatEthDate(l.createdAt)}</div>
                               </div>
                               <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
                                 <Button
@@ -924,7 +924,7 @@ export default function MyProfilePage() {
                                   onClick={() => handleApproveLoan(l.id)}
                                   className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <Check className="w-4 h-4 shrink-0" /> Accept Loan
+                                  <Check className="w-4 h-4 shrink-0" /> {t('profile.acceptLoan')}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -932,7 +932,7 @@ export default function MyProfilePage() {
                                   onClick={() => handleRejectLoan(l.id)}
                                   className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <X className="w-4 h-4 shrink-0" /> Reject
+                                  <X className="w-4 h-4 shrink-0" /> {t('profile.rejectBtn')}
                                 </Button>
                               </div>
                             </div>
@@ -944,14 +944,14 @@ export default function MyProfilePage() {
                     {/* Pending Penalties */}
                     {pendingPenalties.length > 0 && (
                       <div className="border border-rose-200 rounded-2xl p-3 xs:p-4 bg-rose-50/50">
-                        <h4 className="text-xs xs:text-sm font-bold text-rose-900 mb-3">Pending Penalties / Fines</h4>
+                        <h4 className="text-xs xs:text-sm font-bold text-rose-900 mb-3">{t('profile.pendingPenaltiesTitle')}</h4>
                         <div className="space-y-2.5">
                           {pendingPenalties.map((p) => (
                             <div key={p.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-3.5 xs:p-4 rounded-xl border border-rose-200 gap-3">
                               <div>
                                 <div className="font-extrabold text-sm xs:text-base text-rose-700">{money(p.amount)}</div>
-                                <div className="text-xs font-semibold text-[#2C1B10] mt-0.5">Reason: {p.reason}</div>
-                                <div className="text-[11px] text-[#8C7361] mt-0.5">Logged: {formatEthDate(p.createdAt)}</div>
+                                <div className="text-xs font-semibold text-[#2C1B10] mt-0.5">{t('common.reason')}: {p.reason}</div>
+                                <div className="text-[11px] text-[#8C7361] mt-0.5">{t('common.date')}: {formatEthDate(p.createdAt)}</div>
                               </div>
                               <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
                                 <Button
@@ -959,7 +959,7 @@ export default function MyProfilePage() {
                                   onClick={() => handleApprovePenalty(p.id)}
                                   className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <Check className="w-4 h-4 shrink-0" /> Acknowledge Fine
+                                  <Check className="w-4 h-4 shrink-0" /> {t('profile.acknowledgeFine')}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -967,7 +967,7 @@ export default function MyProfilePage() {
                                   onClick={() => handleRejectPenalty(p.id)}
                                   className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
                                 >
-                                  <X className="w-4 h-4 shrink-0" /> Reject
+                                  <X className="w-4 h-4 shrink-0" /> {t('profile.rejectBtn')}
                                 </Button>
                               </div>
                             </div>
@@ -986,13 +986,13 @@ export default function MyProfilePage() {
             <div className="max-w-xl">
               <div className="bg-[#FAF7EE] border border-[#EDE4D5] rounded-2xl p-4 xs:p-6 shadow-xs">
                 <h4 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-1 flex items-center gap-2">
-                  <Lock className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" /> Change Account Password
+                  <Lock className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" /> {t('profile.changePasswordTitle')}
                 </h4>
-                <p className="text-[11px] xs:text-xs text-[#8C7361] mb-4 xs:mb-5">Update your account login password.</p>
+                <p className="text-[11px] xs:text-xs text-[#8C7361] mb-4 xs:mb-5">{t('profile.changePasswordDesc')}</p>
 
                 <form onSubmit={handlePasswordChange} className="space-y-3.5 xs:space-y-4">
                   <div>
-                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">Current Password</label>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">{t('profile.currentPasswordLabel')}</label>
                     <Input
                       type="password"
                       required
@@ -1002,7 +1002,7 @@ export default function MyProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">New Password</label>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">{t('profile.newPasswordLabel')}</label>
                     <Input
                       type="password"
                       required
@@ -1012,7 +1012,7 @@ export default function MyProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">Confirm New Password</label>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">{t('profile.confirmNewPasswordLabel')}</label>
                     <Input
                       type="password"
                       required
@@ -1026,7 +1026,7 @@ export default function MyProfilePage() {
                     disabled={isChangingPass}
                     className="min-h-[44px] h-11 w-full xs:w-auto bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs px-6 mt-2"
                   >
-                    {isChangingPass ? 'Updating...' : 'Update Password'}
+                    {isChangingPass ? t('profile.updatingPasswordBtn') : t('profile.updatePasswordBtn')}
                   </Button>
                 </form>
               </div>
@@ -1040,13 +1040,13 @@ export default function MyProfilePage() {
         <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-2xl p-4 xs:p-6 bg-white border-[#EDE4D5]">
           <DialogHeader>
             <DialogTitle className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-              <Camera className="w-5 h-5 text-[#E87A18]" /> Change Profile Picture
+              <Camera className="w-5 h-5 text-[#E87A18]" /> {t('profile.changeProfilePicTitle')}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleAvatarUpload} className="space-y-4 py-2">
             <p className="text-xs text-[#8C7361]">
-              Select a new image from your device to update your ERP avatar.
+              {t('profile.changeProfilePicDesc')}
             </p>
 
             <div className="flex flex-col items-center justify-center p-3 xs:p-4 bg-[#FAF7EE] border border-dashed border-[#EDE4D5] rounded-2xl">
@@ -1065,14 +1065,14 @@ export default function MyProfilePage() {
                 onClick={() => setIsAvatarModalOpen(false)}
                 className="min-h-[44px] h-11 rounded-xl border-[#EDE4D5] text-xs font-bold text-[#4A2E1B] w-full xs:w-auto"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={isUploadingAvatar || !selectedFile}
                 className="min-h-[44px] h-11 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs w-full xs:w-auto"
               >
-                {isUploadingAvatar ? 'Uploading...' : 'Save Avatar Picture'}
+                {isUploadingAvatar ? t('profile.uploadingAvatarBtn') : t('profile.saveAvatarPictureBtn')}
               </Button>
             </DialogFooter>
           </form>

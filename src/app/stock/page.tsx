@@ -274,7 +274,7 @@ export default function StockPage() {
                   : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
               }`}
             >
-              <span>Daily Stock Today</span>
+              <span>{t('stock.filterAllItems')}</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                 !filterLowStock ? "bg-white/20 text-white" : "bg-[#4A2E1B]/10 text-[#4A2E1B]"
               }`}>
@@ -291,7 +291,7 @@ export default function StockPage() {
                   : "text-[#8C7361] hover:text-rose-700 hover:bg-rose-50/50"
               }`}
             >
-              <span>⚠️ Low Stock</span>
+              <span>⚠️ {t('stock.lowStockWarningBadge')}</span>
               {lowStockCount > 0 ? (
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                   filterLowStock ? "bg-white text-rose-700 font-extrabold" : "bg-rose-600 text-white"
@@ -726,18 +726,18 @@ export default function StockPage() {
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <PlusCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-                Manual Stock Addition (Restock)
+                {t('stock.modalAddStockTitle')}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAddStock}>
               <div className="grid gap-3.5 py-3">
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900">
-                  Adding stock to <strong className="font-bold">{addingItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(addingItem.currentQuantity).toFixed(2)} {addingItem.unitType}</span> (Rate: <span className="font-bold text-emerald-800">{Number(addingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{addingItem.unitType}</span>).
+                  Adding stock to <strong className="font-bold">{addingItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(addingItem.currentQuantity).toFixed(2)} {addingItem.unitType}</span> (Rate: <span className="font-bold text-emerald-800">{Number(addingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}/{addingItem.unitType}</span>).
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    Quantity to Add ({addingItem.unitType}) *
+                    {t('stock.quantityToAdd')} ({addingItem.unitType}) *
                   </label>
                   <Input 
                     type="number" 
@@ -754,7 +754,7 @@ export default function StockPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    Reason / Note (Optional)
+                    {t('common.notes')}
                   </label>
                   <Input 
                     value={addReason} 
@@ -787,7 +787,7 @@ export default function StockPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Amount Paid Upfront (Down Payment)</label>
+                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stock.paidAmountLabel')}</label>
                         <Input 
                           type="number" 
                           step="0.01" 
@@ -799,7 +799,7 @@ export default function StockPage() {
                           className="bg-white rounded-xl border-purple-200 text-xs h-9 font-mono" 
                         />
                         <p className="text-[10px] text-purple-700 mt-1 font-medium">
-                          Total purchase value: {((parseFloat(addAmount) || 0) * Number(addingItem.unitPrice || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          {t('stock.unpaidDebtNote')}
                         </p>
                       </div>
                     </div>
@@ -812,7 +812,7 @@ export default function StockPage() {
                   disabled={isSubmitting}
                   className="w-full sm:w-auto h-11 sm:h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
                 >
-                  {isSubmitting ? "Processing..." : "Confirm Addition"}
+                  {isSubmitting ? t('common.loading') : t('stock.recordDeliveryBtn')}
                 </Button>
                 <Button
                   type="button"
@@ -820,7 +820,7 @@ export default function StockPage() {
                   onClick={() => setAddingItem(null)}
                   className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>
@@ -835,18 +835,18 @@ export default function StockPage() {
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <MinusCircle className="w-5 h-5 text-amber-600 shrink-0" />
-                Manual Stock Reduction
+                {t('stock.modalReduceStockTitle')}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleReduceStock}>
               <div className="grid gap-3.5 py-3">
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900">
-                  Reducing stock for <strong className="font-bold">{reducingItem.name}</strong>. Currently available: <span className="font-bold text-amber-700">{Number(reducingItem.currentQuantity).toFixed(2)} {reducingItem.unitType}</span> (Rate: <span className="font-bold text-amber-800">{Number(reducingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{reducingItem.unitType}</span>).
+                  Reducing stock for <strong className="font-bold">{reducingItem.name}</strong>. Currently available: <span className="font-bold text-amber-700">{Number(reducingItem.currentQuantity).toFixed(2)} {reducingItem.unitType}</span> (Rate: <span className="font-bold text-amber-800">{Number(reducingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}/{reducingItem.unitType}</span>).
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    Quantity to Reduce ({reducingItem.unitType}) *
+                    {t('stock.quantityToReduce')} ({reducingItem.unitType}) *
                   </label>
                   <Input 
                     type="number" 
@@ -864,7 +864,7 @@ export default function StockPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    Reason / Note (Optional)
+                    {t('common.notes')}
                   </label>
                   <Input 
                     value={reduceReason} 
@@ -880,7 +880,7 @@ export default function StockPage() {
                   disabled={isSubmitting}
                   className="w-full sm:w-auto h-11 sm:h-10 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
                 >
-                  {isSubmitting ? "Processing..." : "Confirm Reduction"}
+                  {isSubmitting ? t('common.loading') : t('stock.recordUsageBtn')}
                 </Button>
                 <Button
                   type="button"
@@ -888,7 +888,7 @@ export default function StockPage() {
                   onClick={() => setReducingItem(null)}
                   className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>

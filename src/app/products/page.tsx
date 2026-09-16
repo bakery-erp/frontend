@@ -139,7 +139,7 @@ export default function ProductsPage() {
                 viewMode === 'GRID' ? 'bg-[#4A2E1B] text-white shadow-sm' : 'text-[#8C7361] hover:text-[#2C1B10]'
               }`}
             >
-              <LayoutGrid className="w-3.5 h-3.5" /> Visual Cards
+              <LayoutGrid className="w-3.5 h-3.5" /> {t('products.tabVisualCards')}
             </button>
             <button
               onClick={() => setViewMode('TABLE')}
@@ -147,7 +147,7 @@ export default function ProductsPage() {
                 viewMode === 'TABLE' ? 'bg-[#4A2E1B] text-white shadow-sm' : 'text-[#8C7361] hover:text-[#2C1B10]'
               }`}
             >
-              <List className="w-3.5 h-3.5" /> Table List
+              <List className="w-3.5 h-3.5" /> {t('products.tabTableList')}
             </button>
           </div>
 
@@ -168,8 +168,8 @@ export default function ProductsPage() {
             <PackageCheck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">House Stock</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalHouseStock.toLocaleString()} Pcs</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.colStockStatus')}</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalHouseStock.toLocaleString()} {t('common.pcs')}</p>
           </div>
         </div>
 
@@ -178,8 +178,8 @@ export default function ProductsPage() {
             <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">Delivered</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#E87A18] font-mono truncate">{totalDeliveredItems.toLocaleString()} Pcs</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('production.statusDelivered')}</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#E87A18] font-mono truncate">{totalDeliveredItems.toLocaleString()} {t('common.pcs')}</p>
           </div>
         </div>
 
@@ -188,8 +188,8 @@ export default function ProductsPage() {
             <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">Produced</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalProducedItems.toLocaleString()} Pcs</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('production.statusProduced')}</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalProducedItems.toLocaleString()} {t('common.pcs')}</p>
           </div>
         </div>
 
@@ -198,8 +198,8 @@ export default function ProductsPage() {
             <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">Sold at POS</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalSoldItems.toLocaleString()} Pcs</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('dashboard.incomeFromSales')}</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalSoldItems.toLocaleString()} {t('common.pcs')}</p>
           </div>
         </div>
 
@@ -208,8 +208,8 @@ export default function ProductsPage() {
             <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">Catalog</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{products.length} Items</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.title')}</p>
+            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{products.length} {t('common.items')}</p>
           </div>
         </div>
       </div>
@@ -218,7 +218,7 @@ export default function ProductsPage() {
       <div className="mb-6">
         <Input
           type="text"
-          placeholder="Search products by name or flavor..."
+          placeholder={t('products.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full sm:max-w-md bg-white border-[#EDE4D5] rounded-xl text-sm"
@@ -227,10 +227,10 @@ export default function ProductsPage() {
 
       {/* Content Rendering: Visual Grid View vs Table View */}
       {isLoading ? (
-        <div className="text-center py-12 text-[#8C7361] font-medium">Loading product house inventory...</div>
+        <div className="text-center py-12 text-[#8C7361] font-medium">{t('common.loading')}</div>
       ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12 bg-white border border-[#EDE4D5] rounded-2xl text-[#8C7361]">
-          No products match your search.
+          {t('products.noProductsFound')}
         </div>
       ) : viewMode === 'GRID' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
