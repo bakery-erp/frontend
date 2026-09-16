@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw, AlertTriangle, Lock, Clock, User as UserIcon, History } from "lucide-react";
 
@@ -40,6 +41,7 @@ interface ProductConversion {
 export default function ProductConversionsPage() {
     const { user } = useAuth();
     const { selectedBranchId } = useBranch();
+    const { t } = useLanguage();
 
     const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
     const [conversions, setConversions] = useState<ProductConversion[]>([]);
@@ -247,12 +249,12 @@ export default function ProductConversionsPage() {
     const isExceedingStock = Boolean(fromProductId && selectedStock && Number(fromQuantity) > maxAvailableForConversion);
 
     const emptyMessage = isLoading
-        ? "Loading product conversion history..."
+        ? t('conversions.loading')
         : filterTab === "TODAY"
         ? "No product conversions recorded today yet. Click 'New Conversion' to log one."
         : filterTab === "HISTORY"
         ? "No past conversion records found in history."
-        : "No product conversions logged yet.";
+        : t('conversions.noConversions');
 
     return (
         <DashboardLayout>
@@ -260,10 +262,10 @@ export default function ProductConversionsPage() {
                 <div>
                     <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight flex items-center gap-2">
                         <ArrowRightLeft className="w-6 h-6 text-[#E87A18]" />
-                        Product Conversions
+                        {t('conversions.title')}
                     </h1>
                     <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-                        Log and view conversion history (e.g. converting 1 Uncut Bread into 10 Sliced Packages)
+                        {t('conversions.subtitle')}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -273,14 +275,14 @@ export default function ProductConversionsPage() {
                         size="sm"
                         className="border-zinc-300 text-zinc-700 hover:bg-zinc-100 font-bold rounded-xl"
                     >
-                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> {t('common.refresh') || "Refresh"}
                     </Button>
                     <Button
                         onClick={handleOpenAdd}
                         disabled={!isSessionOpen}
                         className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
                     >
-                        <Plus className="w-4 h-4" /> New Conversion
+                        <Plus className="w-4 h-4" /> {t('conversions.btnNewConversion')}
                     </Button>
                 </div>
             </div>
@@ -312,7 +314,7 @@ export default function ProductConversionsPage() {
                                 : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
                         }`}
                     >
-                        All Conversions ({conversions.length})
+                        {t('conversions.tabAll')} ({conversions.length})
                     </button>
                     <button
                         ref={(el) => { tabRefs.current["TODAY"] = el; }}
@@ -324,7 +326,7 @@ export default function ProductConversionsPage() {
                         }`}
                     >
                         <Clock className="w-3.5 h-3.5" />
-                        Today ({todayConversions.length})
+                        {t('conversions.tabToday')} ({todayConversions.length})
                     </button>
                     <button
                         ref={(el) => { tabRefs.current["HISTORY"] = el; }}
@@ -336,7 +338,7 @@ export default function ProductConversionsPage() {
                         }`}
                     >
                         <History className="w-3.5 h-3.5" />
-                        History ({historyConversions.length})
+                        {t('conversions.tabHistory')} ({historyConversions.length})
                     </button>
                 </div>
             </div>
@@ -348,21 +350,21 @@ export default function ProductConversionsPage() {
                         <>
                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                             <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                Today&apos;s Conversions ({todayConversions.length})
+                                {t('conversions.tabToday')} ({todayConversions.length})
                             </h2>
                         </>
                     ) : filterTab === "HISTORY" ? (
                         <>
                             <History className="w-4 h-4 text-amber-700" />
                             <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                Conversion History ({historyConversions.length})
+                                {t('conversions.tabHistory')} ({historyConversions.length})
                             </h2>
                         </>
                     ) : (
                         <>
                             <ArrowRightLeft className="w-4 h-4 text-[#E87A18]" />
                             <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                All Conversions ({conversions.length})
+                                {t('conversions.tabAll')} ({conversions.length})
                             </h2>
                         </>
                     )}
@@ -377,12 +379,12 @@ export default function ProductConversionsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Conversion Date & Time</TableHead>
-                            <TableHead>Source Item (Consumed)</TableHead>
-                            <TableHead>Target Item (Produced)</TableHead>
-                            <TableHead>Conversion Ratio</TableHead>
-                            <TableHead>Logged By</TableHead>
-                            <TableHead className="text-right pr-6">Actions</TableHead>
+                            <TableHead>{t('conversions.colDate')}</TableHead>
+                            <TableHead>{t('conversions.colSource')}</TableHead>
+                            <TableHead>{t('conversions.colTarget')}</TableHead>
+                            <TableHead>{t('conversions.colRatio')}</TableHead>
+                            <TableHead>{t('conversions.colLoggedBy')}</TableHead>
+                            <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -408,7 +410,7 @@ export default function ProductConversionsPage() {
                                             </span>
                                             {isToday(c.createdAt) && (
                                                 <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                    Today
+                                                    {t('conversions.tabToday')}
                                                 </span>
                                             )}
                                         </div>
@@ -450,7 +452,7 @@ export default function ProductConversionsPage() {
                                                 onClick={() => handleOpenEdit(c)}
                                                 className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                                             >
-                                                <Edit className="w-3.5 h-3.5" /> Edit
+                                                <Edit className="w-3.5 h-3.5" /> {t('common.edit')}
                                             </Button>
                                             <Button
                                                 size="sm"
@@ -494,12 +496,12 @@ export default function ProductConversionsPage() {
                                     </span>
                                     {isToday(c.createdAt) && (
                                         <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                            Today
+                                            {t('conversions.tabToday')}
                                         </span>
                                     )}
                                 </div>
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] shrink-0">
-                                    Ratio: {c.fromQuantity} ➔ {c.toQuantity}
+                                    {t('conversions.colRatio')}: {c.fromQuantity} ➔ {c.toQuantity}
                                 </span>
                             </div>
 
@@ -507,7 +509,7 @@ export default function ProductConversionsPage() {
                             <div className="grid grid-cols-2 gap-2 bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5]">
                                 <div className="space-y-0.5">
                                     <span className="text-[10px] font-bold uppercase text-[#8C7361] block">
-                                        Source (Consumed)
+                                        {t('conversions.colSource')}
                                     </span>
                                     <div className="font-extrabold text-sm text-rose-700 font-mono">
                                         -{c.fromQuantity} {c.fromProduct?.unitType || "unit"}
@@ -518,7 +520,7 @@ export default function ProductConversionsPage() {
                                 </div>
                                 <div className="space-y-0.5 text-right border-l border-[#EDE4D5] pl-2">
                                     <span className="text-[10px] font-bold uppercase text-[#8C7361] block">
-                                        Target (Produced)
+                                        {t('conversions.colTarget')}
                                     </span>
                                     <div className="font-extrabold text-sm text-emerald-700 font-mono">
                                         +{c.toQuantity} {c.toProduct?.unitType || "unit"}
@@ -542,7 +544,7 @@ export default function ProductConversionsPage() {
                                         onClick={() => handleOpenEdit(c)}
                                         className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
                                     >
-                                        <Edit className="w-3.5 h-3.5" /> Edit
+                                        <Edit className="w-3.5 h-3.5" /> {t('common.edit')}
                                     </Button>
                                     <Button
                                         size="sm"
@@ -566,13 +568,13 @@ export default function ProductConversionsPage() {
                         <DialogHeader>
                             <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                                 <ArrowRightLeft className="w-5 h-5 text-[#E87A18]" />
-                                Log Product Conversion
+                                {t('conversions.modalTitle')}
                             </DialogTitle>
                         </DialogHeader>
                         <form onSubmit={handleCreate} className="space-y-4 mt-2">
                             <div>
                                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    Source Product (Original)
+                                    {t('conversions.sourceProduct')} (Original)
                                 </label>
                                 <select
                                     required
@@ -606,7 +608,7 @@ export default function ProductConversionsPage() {
 
                             <div>
                                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    Source Quantity
+                                    {t('conversions.sourceQty')}
                                 </label>
                                 <Input
                                     type="number"
@@ -632,7 +634,7 @@ export default function ProductConversionsPage() {
 
                             <div>
                                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    Target Product (Converted)
+                                    {t('conversions.targetProduct')} (Converted)
                                 </label>
                                 <select
                                     required
@@ -651,7 +653,7 @@ export default function ProductConversionsPage() {
 
                             <div>
                                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    Target Quantity Output
+                                    {t('conversions.targetQty')}
                                 </label>
                                 <Input
                                     type="number"
@@ -666,14 +668,14 @@ export default function ProductConversionsPage() {
 
                             <DialogFooter className="gap-2 pt-2">
                                 <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
-                                    Cancel
+                                    {t('common.cancel')}
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={isSubmitting || !isSessionOpen || isExceedingStock}
                                     className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl"
                                 >
-                                    {isSubmitting ? "Saving..." : !isSessionOpen ? `Disabled (${sessionStatusLabel})` : isExceedingStock ? "Exceeds Shop Stock" : "Save Conversion"}
+                                    {isSubmitting ? t('common.loading') : !isSessionOpen ? `Disabled (${sessionStatusLabel})` : isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -688,13 +690,13 @@ export default function ProductConversionsPage() {
                         <DialogHeader>
                             <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                                 <Edit className="w-5 h-5 text-[#E87A18]" />
-                                Edit Product Conversion
+                                {t('common.edit')} {t('conversions.title')}
                             </DialogTitle>
                         </DialogHeader>
                         <form onSubmit={handleUpdate} className="space-y-4 mt-2">
                             <div>
                                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    Source Product (Original)
+                                    {t('conversions.sourceProduct')} (Original)
                                 </label>
                                 <select
                                     required
@@ -728,7 +730,7 @@ export default function ProductConversionsPage() {
 
                             <div>
                                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    Source Quantity
+                                    {t('conversions.sourceQty')}
                                 </label>
                                 <Input
                                     type="number"
@@ -754,7 +756,7 @@ export default function ProductConversionsPage() {
 
                             <div>
                                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    Target Product (Converted)
+                                    {t('conversions.targetProduct')} (Converted)
                                 </label>
                                 <select
                                     required
@@ -773,7 +775,7 @@ export default function ProductConversionsPage() {
 
                             <div>
                                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    Target Quantity Output
+                                    {t('conversions.targetQty')}
                                 </label>
                                 <Input
                                     type="number"
@@ -788,14 +790,14 @@ export default function ProductConversionsPage() {
 
                             <DialogFooter className="gap-2 pt-2">
                                 <Button type="button" variant="outline" onClick={() => setEditingConversion(null)} className="rounded-xl">
-                                    Cancel
+                                    {t('common.cancel')}
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={isSubmitting || isExceedingStock}
                                     className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl"
                                 >
-                                    {isSubmitting ? "Updating..." : isExceedingStock ? "Exceeds Shop Stock" : "Update Conversion"}
+                                    {isSubmitting ? t('common.loading') : isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>

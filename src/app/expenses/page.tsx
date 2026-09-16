@@ -119,7 +119,7 @@ export default function ExpensesPage() {
 
   const handleCreateCategory = async () => {
     if (!newCatName.trim()) {
-      toast.error("Expense reason name is required");
+      toast.error(t('expenses.reasonNameRequired'));
       return;
     }
     setIsSavingCategory(true);
@@ -128,7 +128,7 @@ export default function ExpensesPage() {
         name: newCatName.trim(),
         type: "EXPENSE",
       });
-      toast.success("Expense reason added successfully");
+      toast.success(t('expenses.reasonAdded'));
       setNewCatName("");
       loadCategories();
     } catch (e: any) {
@@ -140,14 +140,14 @@ export default function ExpensesPage() {
 
   const handleUpdateCategory = async (id: string) => {
     if (!editingCatName.trim()) {
-      toast.error("Expense reason name cannot be empty");
+      toast.error(t('expenses.reasonNameEmpty'));
       return;
     }
     try {
       await api.patch(`/financial-categories/${id}`, {
         name: editingCatName.trim(),
       });
-      toast.success("Expense reason updated");
+      toast.success(t('expenses.reasonUpdated'));
       setEditingCatId(null);
       loadCategories();
     } catch (e: any) {
@@ -156,10 +156,10 @@ export default function ExpensesPage() {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this expense reason?")) return;
+    if (!confirm(t('expenses.deleteReasonConfirm'))) return;
     try {
       await api.delete(`/financial-categories/${id}`);
-      toast.success("Expense reason deleted");
+      toast.success(t('expenses.reasonDeleted'));
       loadCategories();
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to delete expense reason");
@@ -334,17 +334,17 @@ export default function ExpensesPage() {
 
   const handleSubmit = async () => {
     if (!editingId && !activeSession) {
-      toast.error("No active open daily session found for this branch. Expenses can only be recorded during an active open session.");
+      toast.error(t('expenses.sessionRequiredError'));
       return;
     }
 
     if (!formAmount || parseFloat(formAmount) <= 0) {
-      toast.error("Valid expense amount is required");
+      toast.error(t('expenses.amountRequiredError'));
       return;
     }
 
     if (!formCategory.trim()) {
-      toast.error("Please select or specify an expense category");
+      toast.error(t('expenses.categoryRequiredError'));
       return;
     }
 
@@ -365,10 +365,10 @@ export default function ExpensesPage() {
 
       if (editingId) {
         await api.patch(`/expenses/${editingId}`, payload);
-        toast.success("Expense updated successfully");
+        toast.success(t('expenses.expenseUpdated'));
       } else {
         await api.post("/expenses", payload);
-        toast.success("Expense recorded against current daily session");
+        toast.success(t('expenses.expenseRecorded'));
       }
       resetForm();
       loadExpenses();
@@ -386,7 +386,7 @@ export default function ExpensesPage() {
     if (!expenseToDelete) return;
     try {
       await api.delete(`/expenses/${expenseToDelete}`);
-      toast.success("Expense deleted");
+      toast.success(t('expenses.expenseDeleted'));
       loadExpenses();
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to delete expense");
@@ -406,7 +406,7 @@ export default function ExpensesPage() {
     return (
       <DashboardLayout>
         <div className="bg-white border rounded-xl p-8 text-center text-zinc-600 shadow-sm">
-          Expenses management is available for Owner, Admin, and Cashier users.
+          {t('expenses.accessRestricted')}
         </div>
       </DashboardLayout>
     );
@@ -432,7 +432,7 @@ export default function ExpensesPage() {
             >
               <Settings className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
               <span className="hidden xs:inline">{t('expenses.btnManageCategories')}</span>
-              <span className="xs:hidden">Categories</span>
+              <span className="xs:hidden">{t('expenses.category')}</span>
             </Button>
           )}
           <Button
@@ -442,7 +442,7 @@ export default function ExpensesPage() {
           >
             <Plus className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden xs:inline">{t('expenses.btnNewExpense')}</span>
-            <span className="xs:hidden">New Expense</span>
+            <span className="xs:hidden">{t('expenses.btnNewExpense')}</span>
           </Button>
         </div>
       </div>
@@ -463,12 +463,12 @@ export default function ExpensesPage() {
                   </span>
                 </div>
                 <p className="text-xs text-emerald-700 mt-0.5">
-                  All recorded expenses will be attached to session <span className="font-mono font-bold">#{activeSession.id.slice(-6)}</span>
+                  {t('expenses.attachedToSession')} <span className="font-mono font-bold">#{activeSession.id.slice(-6)}</span>
                 </p>
               </div>
             </div>
             <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/60 px-3 py-1.5 rounded-xl border border-emerald-200/60">
-              Opened: {new Date(activeSession.createdAt || (activeSession as any).openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {t('expenses.openedAt')} {new Date(activeSession.createdAt || (activeSession as any).openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
         ) : (
@@ -478,9 +478,9 @@ export default function ExpensesPage() {
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-amber-950">No Active Daily Session Open</h4>
+                <h4 className="font-bold text-sm text-amber-950">{t('expenses.noActiveSessionTitle')}</h4>
                 <p className="text-xs text-amber-800 mt-0.5">
-                  Expenses cannot be recorded without an active open session. Please open a session first.
+                  {t('expenses.noActiveSessionDesc')}
                 </p>
               </div>
             </div>
@@ -634,7 +634,7 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-blue-900">{money(companyTotal)}</div>
-            <p className="text-[11px] text-blue-600 mt-1 font-medium">Daily operational costs from session cash</p>
+            <p className="text-[11px] text-blue-600 mt-1 font-medium">{t('expenses.companySubtitle')}</p>
           </CardContent>
         </Card>
 
@@ -646,7 +646,7 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-purple-900">{money(ownerTotal)}</div>
-            <p className="text-[11px] text-purple-600 mt-1 font-medium">Owner withdrawals & non-operating draws</p>
+            <p className="text-[11px] text-purple-600 mt-1 font-medium">{t('expenses.ownerSubtitle')}</p>
           </CardContent>
         </Card>
 
@@ -658,7 +658,7 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-rose-900">{money(grandTotal)}</div>
-            <p className="text-[11px] text-rose-600 mt-1 font-medium">Total recorded expenses for date range</p>
+            <p className="text-[11px] text-rose-600 mt-1 font-medium">{t('expenses.totalSubtitle')}</p>
           </CardContent>
         </Card>
       </div>
@@ -667,7 +667,7 @@ export default function ExpensesPage() {
       <Card className="mb-6 border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
         <div className="bg-[#FAF6F0] px-4 py-3 border-b border-[#EDE4D5] flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold uppercase text-[#8C7361] tracking-wider">Mode:</span>
+            <span className="text-xs font-extrabold uppercase text-[#8C7361] tracking-wider">{t('expenses.modeLabel')}</span>
             <div className="flex items-center bg-white p-1 rounded-xl border border-[#EDE4D5] shadow-2xs">
               <button
                 type="button"
@@ -678,7 +678,7 @@ export default function ExpensesPage() {
                     : "text-[#8C7361] hover:text-[#4A2E1B]"
                 }`}
               >
-                <CalendarDays className="w-3.5 h-3.5" /> 📅 Daily Expenses
+                <CalendarDays className="w-3.5 h-3.5" /> 📅 {t('expenses.filterDailyMode')}
               </button>
               <button
                 type="button"
@@ -689,7 +689,7 @@ export default function ExpensesPage() {
                     : "text-[#8C7361] hover:text-[#4A2E1B]"
                 }`}
               >
-                <Tag className="w-3.5 h-3.5" /> 📆 Date Range
+                <Tag className="w-3.5 h-3.5" /> 📆 {t('expenses.filterRangeMode')}
               </button>
             </div>
           </div>
@@ -707,7 +707,7 @@ export default function ExpensesPage() {
                     : "bg-white text-[#4A2E1B] hover:bg-[#FAF6F0]"
                 }`}
               >
-                Today {isTodayActive && "✓"}
+                {t('expenses.filterToday')} {isTodayActive && "✓"}
               </Button>
             </div>
           ) : (
@@ -719,7 +719,7 @@ export default function ExpensesPage() {
                 onClick={() => handleQuickRange(7)}
                 className="h-8 border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs"
               >
-                Last 7 Days
+                {t('expenses.last7Days')}
               </Button>
               <Button
                 type="button"
@@ -728,7 +728,7 @@ export default function ExpensesPage() {
                 onClick={() => handleQuickRange(30)}
                 className="h-8 border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs"
               >
-                Last 30 Days
+                {t('expenses.last30Days')}
               </Button>
             </div>
           )}
@@ -738,7 +738,7 @@ export default function ExpensesPage() {
           {filterMode === "DAILY" ? (
             <div className="flex items-end gap-3 flex-wrap">
               <div>
-                <label className="text-xs font-bold text-[#8C7361] block mb-1">Select Day</label>
+                <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.selectDay')}</label>
                 <Input
                   type="date"
                   value={dailyDate}
@@ -751,13 +751,13 @@ export default function ExpensesPage() {
                 variant="outline"
                 className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
               >
-                Refresh Day Expenses
+                {t('expenses.refreshDayExpenses')}
               </Button>
             </div>
           ) : (
             <div className="flex items-end gap-3 flex-wrap">
               <div>
-                <label className="text-xs font-bold text-[#8C7361] block mb-1">From Date</label>
+                <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.fromDate')}</label>
                 <Input
                   type="date"
                   value={filterFrom}
@@ -766,7 +766,7 @@ export default function ExpensesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#8C7361] block mb-1">To Date</label>
+                <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.toDate')}</label>
                 <Input
                   type="date"
                   value={filterTo}
@@ -779,7 +779,7 @@ export default function ExpensesPage() {
                 variant="outline"
                 className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
               >
-                Filter Range
+                {t('expenses.filterRange')}
               </Button>
             </div>
           )}
@@ -832,7 +832,7 @@ export default function ExpensesPage() {
         <CardHeader className="bg-[#FAF6F0]/60 border-b border-[#EDE4D5] py-4">
           <CardTitle className="text-base font-extrabold text-[#2C1B10]">{t('expenses.title')}</CardTitle>
           <CardDescription className="text-xs text-[#8C7361]">
-            Showing {displayExpenses.length} record(s)
+            {t('expenses.showingRecords').replace('{count}', String(displayExpenses.length))}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -871,7 +871,7 @@ export default function ExpensesPage() {
                               ? "bg-purple-100 text-purple-800 border-purple-200"
                               : "bg-blue-100 text-blue-800 border-blue-200"
                           }`}>
-                            {expense.type === "OWNER" ? "👤 OWNER" : "💵 DAILY"}
+                            {expense.type === "OWNER" ? `👤 ${t('expenses.badgeOwner')}` : `💵 ${t('expenses.badgeDaily')}`}
                           </span>
                         </TableCell>
                         <TableCell className="font-bold text-[#2C1B10]">{expense.financialCategory?.name || expense.category}</TableCell>
@@ -941,7 +941,7 @@ export default function ExpensesPage() {
                               : "bg-blue-100 text-blue-800 border-blue-200"
                           }`}
                         >
-                          {isOwner ? "👤 OWNER" : "💵 DAILY"}
+                          {isOwner ? `👤 ${t('expenses.badgeOwner')}` : `💵 ${t('expenses.badgeDaily')}`}
                         </span>
                       </div>
 
@@ -968,7 +968,7 @@ export default function ExpensesPage() {
                       {/* Description if present */}
                       {expense.description && (
                         <div className="bg-[#FAF6F0] p-2.5 rounded-xl border border-[#EDE4D5] text-xs text-[#4A2E1B]">
-                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block mb-0.5">Note:</span>
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block mb-0.5">{t('expenses.description')}:</span>
                           <p className="leading-relaxed">{expense.description}</p>
                         </div>
                       )}
@@ -977,7 +977,7 @@ export default function ExpensesPage() {
                       <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#F4ECE1]">
                         <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
                           <UserIcon className="w-3.5 h-3.5 text-[#8C7361]" />
-                          <span className="font-medium text-[#4A2E1B]">{expense.user?.fullName || "Staff"}</span>
+                          <span className="font-medium text-[#4A2E1B]">{expense.user?.fullName || t('expenses.staff')}</span>
                         </div>
 
                         {isManagement && (
@@ -988,7 +988,7 @@ export default function ExpensesPage() {
                               onClick={() => openEditForm(expense)}
                               className="h-8 px-2.5 rounded-xl border-[#EDE4D5] text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] flex items-center gap-1"
                             >
-                              <Pencil className="w-3.5 h-3.5" /> Edit
+                              <Pencil className="w-3.5 h-3.5" /> {t('common.edit')}
                             </Button>
                             <Button
                               variant="ghost"
@@ -1015,9 +1015,9 @@ export default function ExpensesPage() {
         isOpen={!!expenseToDelete}
         onClose={() => setExpenseToDelete(null)}
         onConfirm={confirmDeleteExpense}
-        title="Delete Expense Record"
-        description="Are you sure you want to delete this expense record? This action cannot be undone."
-        confirmText="Delete Expense"
+        title={t('expenses.deleteTitle')}
+        description={t('expenses.deleteConfirm')}
+        confirmText={t('expenses.deleteBtn')}
         variant="danger"
       />
 
@@ -1042,7 +1042,7 @@ export default function ExpensesPage() {
                 <label className="text-xs font-bold text-[#4A2E1B] block uppercase">{t('expenses.addNewExpenseReason')}</label>
                 <div className="flex items-center gap-2">
                   <Input
-                    placeholder="e.g. Electricity / Utilities"
+                    placeholder={t('expenses.placeholderReason')}
                     value={newCatName}
                     onChange={(e) => setNewCatName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCreateCategory(); } }}

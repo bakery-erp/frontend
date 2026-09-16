@@ -254,7 +254,7 @@ export default function SuppliersPage() {
             </Button>
           )}
           <Button onClick={openLogDeliveryModal} className="bg-[#E87A18] hover:bg-[#D66B0F] text-white rounded-xl text-xs font-bold flex items-center gap-1">
-            <Plus className="w-4 h-4" /> Log Delivery Receipt
+            <Plus className="w-4 h-4" /> {t('suppliers.logDeliveryReceipt')}
           </Button>
         </div>
       </div>
@@ -263,7 +263,7 @@ export default function SuppliersPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
           <div className="min-w-0">
-            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">Active Suppliers</p>
+            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">{t('suppliers.activeSuppliers')}</p>
             <h3 className="text-xl sm:text-2xl font-black text-[#2C1B10] mt-1">{suppliers.length}</h3>
           </div>
           <div className="p-3 bg-[#FAF6F0] rounded-xl shrink-0"><PackageCheck className="w-6 h-6 text-[#E87A18]" /></div>
@@ -271,7 +271,7 @@ export default function SuppliersPage() {
 
         <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
           <div className="min-w-0">
-            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">Total Receipts</p>
+            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">{t('suppliers.totalReceipts')}</p>
             <h3 className="text-xl sm:text-2xl font-black text-[#2C1B10] mt-1">{totalDeliveriesThisMonth}</h3>
           </div>
           <div className="p-3 bg-[#FAF6F0] rounded-xl shrink-0"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
@@ -279,8 +279,8 @@ export default function SuppliersPage() {
 
         <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
           <div className="min-w-0">
-            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">Accounts Payable (Unpaid)</p>
-            <h3 className="text-xl sm:text-2xl font-black text-amber-700 mt-1 truncate">{totalUnpaidAmount.toFixed(2)} ETB</h3>
+            <p className="text-xs font-bold text-[#8C7361] uppercase truncate">{t('suppliers.accountsPayable')}</p>
+            <h3 className="text-xl sm:text-2xl font-black text-amber-700 mt-1 truncate">{totalUnpaidAmount.toFixed(2)} {t('common.currency')}</h3>
           </div>
           <div className="p-3 bg-amber-50 rounded-xl shrink-0"><DollarSign className="w-6 h-6 text-amber-600" /></div>
         </div>
@@ -292,7 +292,7 @@ export default function SuppliersPage() {
           <h2 className="font-extrabold text-[#2C1B10] text-sm flex items-center gap-2">
             <Truck className="w-4 h-4 text-[#E87A18]" /> {t('suppliers.title')} ({suppliers.length})
           </h2>
-          <span className="text-xs text-[#8C7361]">All active suppliers by branch</span>
+          <span className="text-xs text-[#8C7361]">{t('suppliers.subtitle')}</span>
         </div>
 
         {/* Desktop Suppliers Table */}
@@ -309,15 +309,15 @@ export default function SuppliersPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">Loading suppliers directory...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">{t('suppliers.loading')}</TableCell></TableRow>
               ) : suppliers.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">No registered suppliers found. Click "+ Add Supplier" to register one.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">{t('suppliers.noSuppliers')}</TableCell></TableRow>
               ) : suppliers.map((sup: any) => {
                 const assignedBranch = branches.find((b) => b.id === sup.branchId)?.name || sup.branch?.name || 'Main Branch';
                 return (
                   <TableRow key={sup.id}>
                     <TableCell className="font-bold text-[#2C1B10]">{sup.name}</TableCell>
-                    <TableCell className="text-xs font-semibold text-[#8C7361]">{sup.phone || 'N/A'}</TableCell>
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">{sup.phone || '—'}</TableCell>
                     <TableCell>
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
                         {sup.type}
@@ -335,9 +335,9 @@ export default function SuppliersPage() {
         {/* Mobile Suppliers Directory Cards */}
         <div className="block md:hidden p-3 space-y-3">
           {isLoading ? (
-            <p className="text-center py-6 text-xs text-[#8C7361]">Loading suppliers directory...</p>
+            <p className="text-center py-6 text-xs text-[#8C7361]">{t('suppliers.loading')}</p>
           ) : suppliers.length === 0 ? (
-            <p className="text-center py-6 text-xs text-[#8C7361]">No registered suppliers found.</p>
+            <p className="text-center py-6 text-xs text-[#8C7361]">{t('suppliers.noSuppliers')}</p>
           ) : (
             suppliers.map((sup: any) => {
               const assignedBranch = branches.find((b) => b.id === sup.branchId)?.name || sup.branch?.name || 'Main Branch';
@@ -356,11 +356,11 @@ export default function SuppliersPage() {
                         <Phone className="w-3 h-3" /> {sup.phone}
                       </a>
                     ) : (
-                      <span className="text-zinc-400">No phone</span>
+                      <span className="text-zinc-400">—</span>
                     )}
                   </div>
                   <div className="text-xs text-[#8C7361] flex items-center justify-between pt-1 border-t border-[#F4ECE1]">
-                    <span>Deliveries Received:</span>
+                    <span>{t('suppliers.totalReceipts')}:</span>
                     <span className="font-extrabold text-[#2C1B10] font-mono">{sup._count?.deliveries ?? 0}</span>
                   </div>
                 </div>
@@ -373,8 +373,8 @@ export default function SuppliersPage() {
       {/* Delivery Logs: Desktop Table & Mobile Cards */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm mb-8">
         <div className="p-4 bg-[#FAF6F0] border-b border-[#EDE4D5] flex items-center justify-between">
-          <h2 className="font-extrabold text-[#2C1B10] text-sm">Recent Supplier Deliveries</h2>
-          <span className="text-xs text-[#8C7361]">Auto-increments stock quantity</span>
+          <h2 className="font-extrabold text-[#2C1B10] text-sm">{t('suppliers.recentDeliveries')}</h2>
+          <span className="text-xs text-[#8C7361]">{t('stock.subtitle')}</span>
         </div>
 
         {/* Desktop Deliveries Table */}
@@ -382,21 +382,21 @@ export default function SuppliersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Delivery Date</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Stock Material / Item</TableHead>
-                <TableHead>Qty Received</TableHead>
-                <TableHead>Unit Cost</TableHead>
-                <TableHead>Total Cost</TableHead>
-                <TableHead>Paid From</TableHead>
-                <TableHead className="text-right pr-6">Payment Status</TableHead>
+                <TableHead>{t('suppliers.colDeliveryDate')}</TableHead>
+                <TableHead>{t('suppliers.colSupplierName')}</TableHead>
+                <TableHead>{t('stockMovements.colMaterial')}</TableHead>
+                <TableHead>{t('suppliers.colQtyReceived')}</TableHead>
+                <TableHead>{t('suppliers.colUnitCost')}</TableHead>
+                <TableHead>{t('suppliers.colTotalCost')}</TableHead>
+                <TableHead>{t('suppliers.colPaidFrom')}</TableHead>
+                <TableHead className="text-right pr-6">{t('suppliers.colPaymentStatus')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">Loading delivery logs...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">{t('stockMovements.loading')}</TableCell></TableRow>
               ) : deliveries.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">No delivery receipts recorded.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
               ) : deliveries.map((d) => {
                 const totalCost = Number(d.unitBuyPrice) * d.quantityReceived;
                 return (
@@ -404,20 +404,20 @@ export default function SuppliersPage() {
                     <TableCell className="text-xs font-semibold text-[#8C7361]">
                       {new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     </TableCell>
-                    <TableCell className="font-bold text-[#2C1B10]">{d.supplier?.name || 'Supplier'}</TableCell>
-                    <TableCell className="font-semibold text-[#4A2E1B]">{d.stockItem?.name || d.product?.name || 'Raw Material'}</TableCell>
+                    <TableCell className="font-bold text-[#2C1B10]">{d.supplier?.name || t('stockMovements.unspecifiedSupplier')}</TableCell>
+                    <TableCell className="font-semibold text-[#4A2E1B]">{d.stockItem?.name || d.product?.name || t('stockMovements.colMaterial')}</TableCell>
                     <TableCell className="font-bold text-[#2C1B10]">
                       {d.quantityReceived} <span className="text-xs text-[#8C7361] font-normal">{d.stockItem?.unitType || ''}</span>
                     </TableCell>
-                    <TableCell className="text-xs font-semibold text-[#8C7361]">{Number(d.unitBuyPrice).toFixed(2)} ETB</TableCell>
-                    <TableCell className="font-extrabold text-[#2C1B10]">{totalCost.toFixed(2)} ETB</TableCell>
+                    <TableCell className="text-xs font-semibold text-[#8C7361]">{Number(d.unitBuyPrice).toFixed(2)} {t('common.currency')}</TableCell>
+                    <TableCell className="font-extrabold text-[#2C1B10]">{totalCost.toFixed(2)} {t('common.currency')}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
                         d.paymentSource === 'OWNER'
                           ? 'bg-purple-100 text-purple-800 border-purple-200'
                           : 'bg-blue-100 text-blue-800 border-blue-200'
                       }`}>
-                        {d.paymentSource === 'OWNER' ? 'Owner' : 'Daily Cash'}
+                        {d.paymentSource === 'OWNER' ? t('suppliers.paidSourceOwner') : t('suppliers.paidSourceDailyCash')}
                       </span>
                     </TableCell>
                     <TableCell className="text-right pr-6">
@@ -432,7 +432,7 @@ export default function SuppliersPage() {
                             : 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
                         } ${!(user?.role === 'OWNER' || user?.role === 'ADMIN') ? 'opacity-80 cursor-not-allowed' : ''}`}
                       >
-                        {d.isPaid ? '✓ PAID' : '⚠ UNPAID'}
+                        {d.isPaid ? `✓ ${t('suppliers.paidBadge')}` : `⚠ ${t('suppliers.unpaidBadge')}`}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -445,9 +445,9 @@ export default function SuppliersPage() {
         {/* Mobile Deliveries View Cards */}
         <div className="block md:hidden p-3 space-y-3">
           {isLoading ? (
-            <p className="text-center py-6 text-xs text-[#8C7361]">Loading delivery logs...</p>
+            <p className="text-center py-6 text-xs text-[#8C7361]">{t('stockMovements.loading')}</p>
           ) : deliveries.length === 0 ? (
-            <p className="text-center py-6 text-xs text-[#8C7361]">No delivery receipts recorded.</p>
+            <p className="text-center py-6 text-xs text-[#8C7361]">{t('stockMovements.noMovements')}</p>
           ) : (
             deliveries.map((d) => {
               const totalCost = Number(d.unitBuyPrice) * d.quantityReceived;
@@ -472,22 +472,22 @@ export default function SuppliersPage() {
                           : 'bg-amber-100 text-amber-900 border border-amber-300'
                       } ${!(user?.role === 'OWNER' || user?.role === 'ADMIN') ? 'opacity-80 cursor-not-allowed' : ''}`}
                     >
-                      {d.isPaid ? '✓ PAID' : '⚠ UNPAID'}
+                      {d.isPaid ? `✓ ${t('suppliers.paidBadge')}` : `⚠ ${t('suppliers.unpaidBadge')}`}
                     </button>
                   </div>
 
                   {/* Supplier & Item */}
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Supplier</span>
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('suppliers.colSupplierName')}</span>
                       <h4 className="font-extrabold text-[#2C1B10] text-sm leading-tight mt-0.5">
-                        {d.supplier?.name || 'Supplier'}
+                        {d.supplier?.name || t('stockMovements.unspecifiedSupplier')}
                       </h4>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Stock Item</span>
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('stockMovements.colMaterial')}</span>
                       <span className="font-semibold text-xs text-[#4A2E1B] block mt-0.5">
-                        {d.stockItem?.name || d.product?.name || 'Raw Material'}
+                        {d.stockItem?.name || d.product?.name || t('stockMovements.colMaterial')}
                       </span>
                     </div>
                   </div>
@@ -495,34 +495,34 @@ export default function SuppliersPage() {
                   {/* Quantity, Unit cost, Total Cost in 3-column box */}
                   <div className="grid grid-cols-3 gap-2 bg-[#FAF6F0] p-2.5 rounded-xl border border-[#EDE4D5] text-xs">
                     <div>
-                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Qty</span>
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('suppliers.colQtyReceived')}</span>
                       <span className="font-extrabold text-[#2C1B10] font-mono text-xs">
                         {d.quantityReceived} {d.stockItem?.unitType || ''}
                       </span>
                     </div>
                     <div className="text-center">
-                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Unit Cost</span>
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('suppliers.colUnitCost')}</span>
                       <span className="font-semibold text-[#8C7361] font-mono text-xs">
                         {Number(d.unitBuyPrice).toFixed(2)}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">Total</span>
+                      <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('suppliers.colTotalCost')}</span>
                       <span className="font-extrabold text-[#2C1B10] font-mono text-xs">
-                        {totalCost.toFixed(2)} ETB
+                        {totalCost.toFixed(2)} {t('common.currency')}
                       </span>
                     </div>
                   </div>
 
                   {/* Paid From */}
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-[#F4ECE1]">
-                    <span className="text-[#8C7361]">Paid From:</span>
+                    <span className="text-[#8C7361]">{t('suppliers.colPaidFrom')}:</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                       isOwner
                         ? 'bg-purple-100 text-purple-800 border-purple-200'
                         : 'bg-blue-100 text-blue-800 border-blue-200'
                     }`}>
-                      {isOwner ? '👤 Owner' : '💵 Daily Cash'}
+                      {isOwner ? `👤 ${t('suppliers.paidSourceOwner')}` : `💵 ${t('suppliers.paidSourceDailyCash')}`}
                     </span>
                   </div>
                 </div>
@@ -537,11 +537,11 @@ export default function SuppliersPage() {
         <Dialog open={true} onOpenChange={() => setIsAddSupplierOpen(false)}>
           <DialogContent className="max-w-md bg-white border-[#EDE4D5]">
             <DialogHeader>
-              <DialogTitle className="text-[#2C1B10] font-extrabold">Register New Supplier</DialogTitle>
+              <DialogTitle className="text-[#2C1B10] font-extrabold">{t('suppliers.modalRegisterTitle')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateSupplier} className="space-y-4 py-2">
               <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Assigned Branch</label>
+                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('common.branch')}</label>
                 <select
                   name="branchId"
                   defaultValue={selectedBranchId || user?.branchId || (branches[0]?.id ?? '')}
@@ -555,15 +555,15 @@ export default function SuppliersPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Supplier Name</label>
+                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colSupplierName')}</label>
                 <Input name="name" required placeholder="e.g. Flour Factory / Milk Dairy" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Phone Number</label>
+                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colPhone')}</label>
                 <Input name="phone" placeholder="e.g. 0911223344" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Supplier Type</label>
+                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colType')}</label>
                 <select name="type" required className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs">
                   <option value="GENERAL">GENERAL SUPPLIER</option>
                   <option value="MILK">MILK SUPPLIER</option>
@@ -571,9 +571,9 @@ export default function SuppliersPage() {
                 </select>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)} className="border-[#EDE4D5] text-xs">Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)} className="border-[#EDE4D5] text-xs">{t('common.cancel')}</Button>
                 <Button type="submit" disabled={isSubmitting} className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs font-bold">
-                  {isSubmitting ? 'Registering...' : 'Register Supplier'}
+                  {isSubmitting ? t('common.loading') : t('suppliers.btnRegister')}
                 </Button>
               </DialogFooter>
             </form>
@@ -588,14 +588,14 @@ export default function SuppliersPage() {
             <DialogHeader>
               <DialogTitle className="text-[#2C1B10] font-extrabold text-lg flex items-center gap-2">
                 <Truck className="w-5 h-5 text-[#E87A18]" />
-                Log Multi-Product Delivery Receipt
+                {t('suppliers.modalMultiDeliveryTitle')}
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleLogDelivery} className="space-y-4 py-2">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#FAF6F0] p-3 rounded-2xl border border-[#EDE4D5]">
                 <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Select Supplier</label>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">{t('suppliers.colSupplierName')}</label>
                   <select
                     value={deliverySupplierId}
                     onChange={(e) => setDeliverySupplierId(e.target.value)}
@@ -610,26 +610,26 @@ export default function SuppliersPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Paid From</label>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">{t('suppliers.colPaidFrom')}</label>
                   <select
                     value={deliveryPaymentSource}
                     onChange={(e) => setDeliveryPaymentSource(e.target.value as 'DAILY_CASH' | 'OWNER')}
                     className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
                   >
-                    <option value="DAILY_CASH">Daily Money (Cashier Register)</option>
-                    <option value="OWNER">Paid by Owner (Out-of-Pocket)</option>
+                    <option value="DAILY_CASH">{t('suppliers.paidSourceDailyCash')}</option>
+                    <option value="OWNER">{t('suppliers.paidSourceOwner')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Payment Status</label>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">{t('suppliers.colPaymentStatus')}</label>
                   <select
                     value={deliveryIsPaid ? 'true' : 'false'}
                     onChange={(e) => setDeliveryIsPaid(e.target.value === 'true')}
                     className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium"
                   >
-                    <option value="true">PAID Immediately</option>
-                    <option value="false">UNPAID (Add to Accounts Payable)</option>
+                    <option value="true">{t('suppliers.paidBadge')}</option>
+                    <option value="false">{t('suppliers.unpaidBadge')}</option>
                   </select>
                 </div>
               </div>
@@ -639,11 +639,8 @@ export default function SuppliersPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-extrabold text-[#4A2E1B] uppercase tracking-wider">
-                      Delivery Line Items ({deliveryItems.length})
+                      {t('suppliers.deliveryLineItems')} ({deliveryItems.length})
                     </h4>
-                    <span className="text-[11px] text-[#8C7361] hidden sm:inline">
-                      Add and adjust quantities and prices for this delivery
-                    </span>
                   </div>
                   <Button
                     type="button"
@@ -651,24 +648,24 @@ export default function SuppliersPage() {
                     variant="outline"
                     className="border-[#E87A18] text-[#E87A18] hover:bg-amber-50 text-xs font-bold rounded-xl h-8 px-3 flex items-center gap-1.5"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Add Product
+                    <Plus className="w-3.5 h-3.5" /> {t('suppliers.btnAddProduct')}
                   </Button>
                 </div>
 
                 {deliveryItems.length === 0 ? (
                   <div className="text-center py-8 text-xs text-zinc-400 border border-dashed border-[#EDE4D5] rounded-2xl bg-[#FAF6F0]/40">
-                    No items added yet. Click <span className="font-bold text-[#E87A18]">"+ Add Product"</span> to begin.
+                    {t('stockMovements.noMovements')}
                   </div>
                 ) : (
                   <>
                     {/* Desktop Column Headers (>= sm) */}
                     <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
-                      <div className="col-span-4">Product Name</div>
-                      <div className="col-span-2 text-center">Qty Received</div>
-                      <div className="col-span-2 text-center">Unit Buy Price (ETB)</div>
-                      <div className="col-span-2 text-center">Unit Sell Price (ETB)</div>
-                      <div className="col-span-1 text-right">Subtotal</div>
-                      <div className="col-span-1 text-center">Remove</div>
+                      <div className="col-span-4">{t('production.product')}</div>
+                      <div className="col-span-2 text-center">{t('suppliers.colQtyReceived')}</div>
+                      <div className="col-span-2 text-center">{t('suppliers.colUnitCost')} ({t('common.currency')})</div>
+                      <div className="col-span-2 text-center">{t('stock.unitPriceLabel')}</div>
+                      <div className="col-span-1 text-right">{t('common.total')}</div>
+                      <div className="col-span-1 text-center">{t('common.delete')}</div>
                     </div>
 
                     {/* Items List */}
@@ -688,22 +685,22 @@ export default function SuppliersPage() {
                                   <span className="w-5 h-5 rounded-full bg-[#FAF6F0] border border-[#EDE4D5] text-[#E87A18] text-[11px] font-extrabold flex items-center justify-center">
                                     {index + 1}
                                   </span>
-                                  <span className="text-xs font-bold text-[#4A2E1B]">Product #{index + 1}</span>
+                                  <span className="text-xs font-bold text-[#4A2E1B]">{t('production.product')} #{index + 1}</span>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => removeDeliveryItemRow(index)}
                                   className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-semibold px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
-                                  title="Remove product"
+                                  title={t('common.delete')}
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Remove</span>
+                                  <span>{t('common.delete')}</span>
                                 </button>
                               </div>
 
                               {/* Product Selection */}
                               <div>
-                                <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">Product</label>
+                                <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">{t('production.product')}</label>
                                 <select
                                   value={item.productId}
                                   onChange={(e) => updateDeliveryItemRow(index, 'productId', e.target.value)}
@@ -720,7 +717,7 @@ export default function SuppliersPage() {
                               {/* Qty & Buy Price in 2 Columns */}
                               <div className="grid grid-cols-2 gap-2.5">
                                 <div>
-                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">Qty Received</label>
+                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">{t('suppliers.colQtyReceived')}</label>
                                   <Input
                                     type="number"
                                     placeholder="0"
@@ -731,7 +728,7 @@ export default function SuppliersPage() {
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">Buy Price (ETB)</label>
+                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">{t('suppliers.colUnitCost')} ({t('common.currency')})</label>
                                   <Input
                                     type="number"
                                     step="0.01"
@@ -747,7 +744,7 @@ export default function SuppliersPage() {
                               {/* Sell Price & Subtotal in 2 Columns */}
                               <div className="grid grid-cols-2 gap-2.5 pt-0.5">
                                 <div>
-                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">Sell Price (ETB)</label>
+                                  <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">{t('stock.unitPriceLabel')}</label>
                                   <Input
                                     type="number"
                                     step="0.01"
@@ -759,9 +756,9 @@ export default function SuppliersPage() {
                                   />
                                 </div>
                                 <div>
-                                  <span className="text-[11px] font-bold text-[#8C7361] block mb-1">Line Subtotal</span>
+                                  <span className="text-[11px] font-bold text-[#8C7361] block mb-1">{t('common.total')}</span>
                                   <div className="h-10 px-3 bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl flex items-center justify-between font-mono font-bold text-xs text-[#2C1B10]">
-                                    <span className="text-[10px] text-zinc-400 font-sans">ETB</span>
+                                    <span className="text-[10px] text-zinc-400 font-sans">{t('common.currency')}</span>
                                     <span>{lineSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                   </div>
                                 </div>
@@ -828,7 +825,7 @@ export default function SuppliersPage() {
                                   type="button"
                                   onClick={() => removeDeliveryItemRow(index)}
                                   className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Remove item"
+                                  title={t('common.delete')}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -845,16 +842,16 @@ export default function SuppliersPage() {
               {/* Total Batch Summary */}
               <div className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-3.5 sm:p-4 flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-[#8C7361] uppercase tracking-wider block">Total Delivery Batch Cost</span>
+                  <span className="text-[11px] font-bold text-[#8C7361] uppercase tracking-wider block">{t('suppliers.totalDeliveryBatchCost')}</span>
                   <span className="text-xs text-[#A8988B]">
-                    {validDeliveryItemsCount} valid item{validDeliveryItemsCount !== 1 ? 's' : ''} to record & stock
+                    {validDeliveryItemsCount} {t('common.items')}
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="text-lg sm:text-xl font-black text-[#2C1B10] font-mono">
                     {totalBatchCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="text-xs font-bold text-[#8C7361] ml-1.5">ETB</span>
+                  <span className="text-xs font-bold text-[#8C7361] ml-1.5">{t('common.currency')}</span>
                 </div>
               </div>
 
@@ -864,14 +861,7 @@ export default function SuppliersPage() {
                   disabled={isSubmitting}
                   className="w-full sm:w-auto min-h-[44px] h-auto py-2.5 px-4 bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs sm:text-sm font-bold rounded-xl order-1 sm:order-2 whitespace-normal text-center leading-snug"
                 >
-                  {isSubmitting ? (
-                    'Recording...'
-                  ) : (
-                    <>
-                      <span className="sm:hidden">Record Deliveries</span>
-                      <span className="hidden sm:inline">Record All Deliveries & Update Stock</span>
-                    </>
-                  )}
+                  {isSubmitting ? t('common.loading') : t('suppliers.btnRecordDeliveries')}
                 </Button>
                 <Button
                   type="button"
@@ -879,7 +869,7 @@ export default function SuppliersPage() {
                   onClick={() => setIsLogDeliveryOpen(false)}
                   className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] text-xs sm:text-sm font-semibold rounded-xl order-2 sm:order-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>

@@ -280,22 +280,22 @@ export default function DailySessionsPage() {
                   </h3>
                   {todaySession.status === 'OPEN' && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Session Open
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('sessions.liveSessionOpen')}
                     </span>
                   )}
                   {todaySession.status === 'PAUSED' && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                      <PauseCircle className="w-3.5 h-3.5 text-amber-600" /> Paused
+                      <PauseCircle className="w-3.5 h-3.5 text-amber-600" /> {t('sessions.statusPaused')}
                     </span>
                   )}
                   {todaySession.status === 'CLOSE_PENDING' && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-900 border border-purple-300 animate-pulse">
-                      <AlertTriangle className="w-3.5 h-3.5 text-purple-600" /> Close Pending
+                      <AlertTriangle className="w-3.5 h-3.5 text-purple-600" /> {t('sessions.statusPending')}
                     </span>
                   )}
                   {todaySession.status === 'CLOSED' && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
-                      Closed
+                      {t('sessions.statusClosed')}
                     </span>
                   )}
                 </div>
@@ -304,7 +304,7 @@ export default function DailySessionsPage() {
                   <span>•</span>
                   <span>🏢 {branches.find((b) => b.id === todaySession.branchId)?.name || 'Main Branch'}</span>
                   <span>•</span>
-                  <span>🛍️ {todaySession._count?.sales || 0} items sold</span>
+                  <span>🛍️ {todaySession._count?.sales || 0} {t('sessions.itemsSold')}</span>
                 </div>
               </div>
             </div>
@@ -319,7 +319,7 @@ export default function DailySessionsPage() {
                       onClick={() => handlePauseSession(todaySession)}
                       className="border-amber-300 text-amber-800 hover:bg-amber-50 font-bold rounded-xl text-xs h-9 flex-1 sm:flex-initial"
                     >
-                      <PauseCircle className="w-3.5 h-3.5 mr-1" /> Pause
+                      <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.pause')}
                     </Button>
                   )}
                   <Button
@@ -327,7 +327,7 @@ export default function DailySessionsPage() {
                     onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
                     className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-9 shadow-xs flex-1 sm:flex-initial"
                   >
-                    <Lock className="w-3.5 h-3.5 mr-1" /> Finalize Session
+                    <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
                   </Button>
                 </>
               )}
@@ -339,7 +339,7 @@ export default function DailySessionsPage() {
                       onClick={() => handleReopenSession(todaySession)}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs flex-1 sm:flex-initial"
                     >
-                      <PlayCircle className="w-3.5 h-3.5 mr-1" /> Reopen Session
+                      <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen')}
                     </Button>
                   )}
                   <Button
@@ -347,7 +347,7 @@ export default function DailySessionsPage() {
                     onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
                     className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-9 shadow-xs flex-1 sm:flex-initial"
                   >
-                    <Lock className="w-3.5 h-3.5 mr-1" /> Finalize Session
+                    <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
                   </Button>
                 </>
               )}
@@ -357,7 +357,7 @@ export default function DailySessionsPage() {
                   onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
                   className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs w-full sm:w-auto"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? "Review & Approve Close" : "View Close Report"}
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? t('sessions.reviewApproveClose') : t('sessions.viewCloseReport')}
                 </Button>
               )}
               {todaySession.status === 'CLOSED' && (
@@ -367,7 +367,7 @@ export default function DailySessionsPage() {
                   onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=view`)}
                   className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs h-9 w-full sm:w-auto"
                 >
-                  <Eye className="w-3.5 h-3.5 mr-1" /> View Close Report
+                  <Eye className="w-3.5 h-3.5 mr-1" /> {t('sessions.viewCloseReport')}
                 </Button>
               )}
             </div>
@@ -379,9 +379,9 @@ export default function DailySessionsPage() {
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-extrabold text-sm text-amber-950">No Business Session Started for Today</h3>
+                <h3 className="font-extrabold text-sm text-amber-950">{t('sessions.noActiveSession')}</h3>
                 <p className="text-xs text-amber-800 mt-0.5">
-                  An active daily session is required for cashiers to register in-shop sales, customer credits, and daily expenses.
+                  {t('sessions.noActiveSessionDesc')}
                 </p>
               </div>
             </div>
@@ -390,7 +390,7 @@ export default function DailySessionsPage() {
                 onClick={handleOpenNewSession}
                 className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs h-9 px-4 shrink-0 shadow-sm w-full sm:w-auto"
               >
-                <Plus className="w-4 h-4 mr-1.5" /> Start Today's Session
+                <Plus className="w-4 h-4 mr-1.5" /> {t('sessions.startTodaysSession')}
               </Button>
             )}
           </div>
@@ -402,10 +402,10 @@ export default function DailySessionsPage() {
         <div>
           <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-[#E87A18]" />
-            Session History
+            {t('sessions.sessionHistory')}
           </h2>
           <p className="text-xs text-[#8C7361] mt-0.5">
-            Previous closed sessions and past business days ({historySessions.length})
+            {t('sessions.sessionHistorySubtitle').replace('{count}', String(historySessions.length))}
           </p>
         </div>
       </div>
@@ -468,13 +468,13 @@ export default function DailySessionsPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-xs bg-[#FAF6F0] p-2.5 rounded-xl">
                   <div>
-                    <span className="text-[10px] font-bold text-[#8C7361] uppercase block">Starter Float</span>
+                    <span className="text-[10px] font-bold text-[#8C7361] uppercase block">{t('sessions.colTomorrowLeftover')}</span>
                     <span className="font-mono font-bold text-[#2C1B10]">
                       {sess.cashLeftoverAmount != null ? `${Number(sess.cashLeftoverAmount).toFixed(2)} ${t('common.currency')}` : "—"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-[#8C7361] uppercase block">Sales Volume</span>
+                    <span className="text-[10px] font-bold text-[#8C7361] uppercase block">{t('sessions.colSalesVolume')}</span>
                     <span className="font-bold text-[#2C1B10]">
                       {sess._count?.sales || 0} {t('common.items')}
                     </span>
@@ -491,7 +491,7 @@ export default function DailySessionsPage() {
                           onClick={() => handlePauseSession(sess)}
                           className="border-amber-300 text-amber-800 hover:bg-amber-50 font-bold rounded-xl text-xs h-8 flex-1"
                         >
-                          <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('common.hide')}
+                          <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.pause')}
                         </Button>
                       )}
                       <Button
@@ -499,7 +499,7 @@ export default function DailySessionsPage() {
                         onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                         className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 shadow-xs flex-1"
                       >
-                        <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalizeSession')}
+                        <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
                       </Button>
                     </>
                   )}
@@ -513,7 +513,7 @@ export default function DailySessionsPage() {
                           onClick={() => handleReopenSession(sess)}
                           className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold rounded-xl text-xs h-8 flex-1"
                         >
-                          <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopenSession')}
+                          <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen')}
                         </Button>
                       )}
                       <Button
@@ -521,7 +521,7 @@ export default function DailySessionsPage() {
                         onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                         className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 shadow-xs flex-1"
                       >
-                        <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalizeSession')}
+                        <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
                       </Button>
                     </>
                   )}
@@ -532,7 +532,7 @@ export default function DailySessionsPage() {
                       onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                       className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-8 shadow-xs w-full"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? "Review & Approve" : "View Close Report"}
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? t('sessions.reviewApproveClose') : t('sessions.viewCloseReport')}
                     </Button>
                   )}
 
@@ -621,7 +621,7 @@ export default function DailySessionsPage() {
                         <>
                           {canManageSessions && (
                             <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-50 font-bold rounded-xl text-xs" onClick={() => handlePauseSession(sess)}>
-                              <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('common.hide')}
+                              <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.pause')}
                             </Button>
                           )}
                           <Button
@@ -629,7 +629,7 @@ export default function DailySessionsPage() {
                             className="bg-rose-700 text-white hover:bg-rose-800 font-bold rounded-xl text-xs shadow-xs"
                             onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                           >
-                            <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalizeSession')}
+                            <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
                           </Button>
                         </>
                       )}
@@ -638,7 +638,7 @@ export default function DailySessionsPage() {
                         <>
                           {canManageSessions && (
                             <Button size="sm" variant="outline" className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold rounded-xl text-xs" onClick={() => handleReopenSession(sess)}>
-                              <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopenSession')}
+                              <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen')}
                             </Button>
                           )}
                           <Button
@@ -646,7 +646,7 @@ export default function DailySessionsPage() {
                             className="bg-rose-700 text-white hover:bg-rose-800 font-bold rounded-xl text-xs shadow-xs"
                             onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                           >
-                            <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalizeSession')}
+                            <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
                           </Button>
                         </>
                       )}
@@ -657,7 +657,7 @@ export default function DailySessionsPage() {
                           className="bg-amber-600 text-white hover:bg-amber-700 font-bold rounded-xl text-xs shadow-xs"
                           onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? "Review & Approve" : "View Close Report"}
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? t('sessions.reviewApproveClose') : t('sessions.viewCloseReport')}
                         </Button>
                       )}
 
@@ -751,16 +751,16 @@ export default function DailySessionsPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <Lock className="w-5 h-5 text-emerald-600" />
-                <span>Finalize Business Session ({new Date(activeSession.date).toISOString().slice(0, 10)})</span>
+                <span>{t('sessions.finalizeModalTitle').replace('{date}', new Date(activeSession.date).toISOString().slice(0, 10))}</span>
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleFinalizeSubmit} className="space-y-6 py-2">
               {/* Step 1: Cash Drawer Float */}
               <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-1">
-                <label className="text-sm font-extrabold text-amber-950 block">Leftover Cash for Tomorrow (ETB)</label>
+                <label className="text-sm font-extrabold text-amber-950 block">{t('sessions.stepCashFloat')}</label>
                 <p className="text-xs text-amber-800">
-                  Cash retained in the drawer for tomorrow&apos;s starter float (deducted from today&apos;s revenue calculation).
+                  {t('sessions.stepCashFloatHelp')}
                 </p>
                 <Input
                   type="number"
@@ -775,10 +775,10 @@ export default function DailySessionsPage() {
               {/* Step 2: Fresh Leftovers (Adari) vs Damaged Stock */}
               <div>
                 <h3 className="text-sm font-semibold text-zinc-900 mb-1 flex items-center">
-                  <Utensils className="w-4 h-4 mr-1.5 text-zinc-500" /> End-of-Day Food Leftovers & Spoilage
+                  <Utensils className="w-4 h-4 mr-1.5 text-zinc-500" /> {t('sessions.stepLeftoversTitle')}
                 </h3>
                 <p className="text-xs text-zinc-500 mb-3">
-                  Log <strong>Fresh Adari</strong> (carried over for tomorrow) vs <strong>Spoiled / Rotten Stock</strong> (losses).
+                  {t('sessions.stepLeftoversHelp')}
                 </p>
 
                 <div className="space-y-3 max-h-72 overflow-y-auto border border-zinc-200 rounded-md p-3">
@@ -793,7 +793,7 @@ export default function DailySessionsPage() {
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[11px] font-medium text-emerald-700 block mb-0.5">Fresh Leftover (Adari)</label>
+                            <label className="text-[11px] font-medium text-emerald-700 block mb-0.5">{t('sessions.freshAdariLabel')}</label>
                             <Input
                               type="number"
                               min="0"
@@ -814,7 +814,7 @@ export default function DailySessionsPage() {
 
                           <div>
                             <label className="text-[11px] font-medium text-rose-700 block mb-0.5 flex items-center">
-                              <AlertTriangle className="w-3 h-3 mr-1 text-rose-500" /> Spoiled / Rotten
+                              <AlertTriangle className="w-3 h-3 mr-1 text-rose-500" /> {t('sessions.spoiledRottenLabel')}
                             </label>
                             <Input
                               type="number"
@@ -841,9 +841,9 @@ export default function DailySessionsPage() {
               </div>
 
               <DialogFooter className="pt-4 border-t border-zinc-100">
-                <Button type="button" variant="outline" onClick={() => setActiveSession(null)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setActiveSession(null)}>{t('common.cancel')}</Button>
                 <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 text-white hover:bg-emerald-700">
-                  {isSubmitting ? 'Finalizing...' : 'Calculate Sales & Close Session'}
+                  {isSubmitting ? t('sessions.finalizingInProgress') : t('sessions.executeFinalizeButton')}
                 </Button>
               </DialogFooter>
             </form>

@@ -244,14 +244,14 @@ export default function FinancialReportsPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-black text-[#2C1B10] tracking-tight font-heading">
-              Financial Analysis & Wealth Report
+              {t('reports.title')}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[#E87A18]/15 text-[#E87A18] border border-[#E87A18]/30">
-              Executive
+              {t('reports.executiveBadge')}
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#8C7361] font-medium mt-1">
-            Comprehensive business revenue, operational expenses, inventory valuations, and grand net wealth.
+            {t('reports.subtitle')}
           </p>
         </div>
 
@@ -276,7 +276,7 @@ export default function FinancialReportsPage() {
                       : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60'
                   }`}
                 >
-                  {p === 'week' ? 'Last 7 Days' : p === 'month' ? 'This Month' : p}
+                  {p === 'today' ? t('reports.presetToday') : p === 'yesterday' ? t('reports.presetYesterday') : p === 'week' ? t('reports.presetWeek') : t('reports.presetMonth')}
                 </button>
               ))}
             </div>
@@ -292,7 +292,7 @@ export default function FinancialReportsPage() {
               }}
               className="flex-1 sm:w-32 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-mono"
             />
-            <span className="text-[#8C7361] font-bold shrink-0">to</span>
+            <span className="text-[#8C7361] font-bold shrink-0">{t('reports.to')}</span>
             <Input
               type="date"
               value={to}
@@ -309,7 +309,7 @@ export default function FinancialReportsPage() {
               className="h-9 border-[#EDE4D5] text-[#4A2E1B] hover:bg-amber-50 rounded-xl px-3 flex items-center gap-1.5 text-xs font-bold shrink-0"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
+              <span className="hidden sm:inline">{t('common.refresh')}</span>
             </Button>
           </div>
         </div>
@@ -334,19 +334,19 @@ export default function FinancialReportsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <CardTitle className="text-lg sm:text-2xl font-black tracking-tight text-white font-heading leading-tight">
-                      Total Net Wealth of the Business
+                      {t('reports.totalNetWealth')}
                     </CardTitle>
                     <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0 whitespace-nowrap">
-                      Balance Sheet
+                      {t('reports.balanceSheet')}
                     </span>
                   </div>
                   <CardDescription className="text-xs text-amber-200/80 font-medium leading-relaxed">
-                    Calculated from Clean Liquid Cash + Customer Credits + Warehouse Stock + Finished Products - Debts to Pay
+                    {t('reports.netWealthDesc')}
                   </CardDescription>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-xs font-bold text-amber-300 group-hover:translate-x-1 transition-transform self-start sm:self-auto bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-xs shrink-0 mt-1 sm:mt-0">
-                <span>View Full Balance Sheet</span>
+                <span>{t('reports.viewFullBalanceSheet')}</span>
                 <ChevronRight className="w-4 h-4" />
               </div>
             </div>
@@ -356,29 +356,29 @@ export default function FinancialReportsPage() {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
               <div>
                 <div className="text-3xl sm:text-5xl font-black font-mono tracking-tight text-white mb-2">
-                  {isLoading ? 'Loading...' : money(totalNetWealth)}
+                  {isLoading ? t('common.loading') : money(totalNetWealth)}
                 </div>
                 <p className="text-xs text-amber-100/70 max-w-xl">
-                  Sum of clean money in hand, customer credit sales, raw ingredients, and shop stock minus pending supplier liabilities.
+                  {t('reports.netWealthFormulaDesc')}
                 </p>
               </div>
 
               {/* Composition Quick Chips */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                 <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2.5 border border-white/10">
-                  <div className="text-[10px] uppercase font-bold text-emerald-300">Clean Money in Hand</div>
+                  <div className="text-[10px] uppercase font-bold text-emerald-300">{t('reports.cleanMoneyInHand')}</div>
                   <div className="font-mono font-bold text-white text-sm mt-0.5">{money(cleanMoneyInHand)}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2.5 border border-white/10">
-                  <div className="text-[10px] uppercase font-bold text-sky-300">Customer Credits</div>
+                  <div className="text-[10px] uppercase font-bold text-sky-300">{t('reports.customerCredits')}</div>
                   <div className="font-mono font-bold text-white text-sm mt-0.5">+{money(customerCreditTaken)}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2.5 border border-white/10">
-                  <div className="text-[10px] uppercase font-bold text-amber-300">Stock & Products</div>
+                  <div className="text-[10px] uppercase font-bold text-amber-300">{t('reports.stockAndProducts')}</div>
                   <div className="font-mono font-bold text-white text-sm mt-0.5">+{money(stockValuation + productValuation)}</div>
                 </div>
                 <div className="col-span-2 sm:col-span-3 bg-rose-500/15 backdrop-blur-xs rounded-xl p-2 border border-rose-500/30 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-rose-200">Pending Debts & Supplier Payables to Pay:</span>
+                  <span className="text-[11px] font-bold text-rose-200">{t('reports.pendingDebtsToPay')}</span>
                   <span className="font-mono font-extrabold text-rose-300">-{money(unpaidPayablesTotal)}</span>
                 </div>
               </div>
@@ -401,10 +401,10 @@ export default function FinancialReportsPage() {
             <div>
               <CardTitle className="text-xs uppercase font-extrabold text-emerald-800 tracking-wider flex items-center gap-1.5">
                 <Coins className="w-4 h-4 text-emerald-600" />
-                Daily Money Revenue
+                {t('reports.cardDailyRevenueTitle')}
               </CardTitle>
               <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
-                Session revenues + customer credit taken
+                {t('reports.cardDailyRevenueSubtitle')}
               </CardDescription>
             </div>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
@@ -417,16 +417,16 @@ export default function FinancialReportsPage() {
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
-                <span>Cash Realized:</span>
+                <span>{t('reports.cashRealized')}</span>
                 <span className="font-bold text-[#2C1B10] font-mono">{money(dailyCashRevenue)}</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>Customer Taken in Credit:</span>
+                <span>{t('reports.customerCreditTaken')}</span>
                 <span className="font-bold text-sky-700 font-mono">+{money(customerCreditTaken)}</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-emerald-700 flex items-center gap-1 group-hover:underline">
-              <span>Click for daily & credit breakdown</span>
+              <span>{t('reports.clickRevenueBreakdown')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </CardContent>
@@ -444,10 +444,10 @@ export default function FinancialReportsPage() {
             <div>
               <CardTitle className="text-xs uppercase font-extrabold text-rose-800 tracking-wider flex items-center gap-1.5">
                 <DollarSign className="w-4 h-4 text-rose-600" />
-                Company Daily Expenses
+                {t('reports.cardCompanyExpensesTitle')}
               </CardTitle>
               <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
-                Paid from cashier daily money
+                {t('reports.cardCompanyExpensesSubtitle')}
               </CardDescription>
             </div>
             <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
@@ -460,16 +460,16 @@ export default function FinancialReportsPage() {
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
-                <span>Operating Expenses:</span>
+                <span>{t('reports.operatingExpenses')}</span>
                 <span className="font-bold text-rose-900 font-mono">{money(companyExpenseTotal)}</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>Source:</span>
-                <span className="font-bold text-[#4A2E1B]">Cashier Daily Register</span>
+                <span>{t('reports.sourceLabel')}</span>
+                <span className="font-bold text-[#4A2E1B]">{t('reports.cashierDailyRegister')}</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-rose-700 flex items-center gap-1 group-hover:underline">
-              <span>Click for itemized expense logs</span>
+              <span>{t('reports.clickExpenseLogs')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </CardContent>
@@ -487,10 +487,10 @@ export default function FinancialReportsPage() {
             <div>
               <CardTitle className="text-xs uppercase font-extrabold text-amber-900 tracking-wider flex items-center gap-1.5">
                 <TrendingUp className="w-4 h-4 text-amber-700" />
-                Daily Net Income
+                {t('reports.cardNetIncomeTitle')}
               </CardTitle>
               <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
-                Net operational profit (Revenue - Expense)
+                {t('reports.cardNetIncomeSubtitle')}
               </CardDescription>
             </div>
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${dailyNetIncome >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
@@ -503,18 +503,18 @@ export default function FinancialReportsPage() {
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
-                <span>Operating Margin:</span>
+                <span>{t('reports.operatingMargin')}</span>
                 <span className="font-bold text-[#2C1B10] font-mono">{netIncomeMargin.toFixed(1)}%</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>Net Status:</span>
+                <span>{t('reports.netStatus')}</span>
                 <span className={`font-bold ${dailyNetIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                  {dailyNetIncome >= 0 ? 'Profitable' : 'Deficit'}
+                  {dailyNetIncome >= 0 ? t('reports.statusProfitable') : t('reports.statusDeficit')}
                 </span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-amber-800 flex items-center gap-1 group-hover:underline">
-              <span>Click for daily profitability trend</span>
+              <span>{t('reports.clickNetTrend')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </CardContent>
@@ -532,10 +532,10 @@ export default function FinancialReportsPage() {
             <div>
               <CardTitle className="text-xs uppercase font-extrabold text-purple-900 tracking-wider flex items-center gap-1.5">
                 <Wallet className="w-4 h-4 text-purple-700" />
-                Owner Expenses & Payables
+                {t('reports.cardOwnerExpensesTitle')}
               </CardTitle>
               <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
-                Drawings + debts owner has to pay
+                {t('reports.cardOwnerExpensesSubtitle')}
               </CardDescription>
             </div>
             <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
@@ -548,16 +548,16 @@ export default function FinancialReportsPage() {
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
-                <span>Cash Drawn (Already Out):</span>
+                <span>{t('reports.cashDrawnOut')}</span>
                 <span className="font-bold text-purple-800 font-mono">{money(ownerCashDrawings)}</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>Debts / Credits to Pay (Not Out Yet):</span>
+                <span>{t('reports.debtsCreditsToPay')}</span>
                 <span className="font-bold text-rose-700 font-mono">{money(unpaidPayablesTotal)}</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-purple-800 flex items-center gap-1 group-hover:underline">
-              <span>Click for drawings & unpaid debts</span>
+              <span>{t('reports.clickOwnerDrawingsDebts')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </CardContent>
@@ -575,10 +575,10 @@ export default function FinancialReportsPage() {
             <div>
               <CardTitle className="text-xs uppercase font-extrabold text-amber-900 tracking-wider flex items-center gap-1.5">
                 <Package className="w-4 h-4 text-[#E87A18]" />
-                Warehouse Stock Valuation
+                {t('reports.cardStockValuationTitle')}
               </CardTitle>
               <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
-                Total money value of raw ingredients
+                {t('reports.cardStockValuationSubtitle')}
               </CardDescription>
             </div>
             <div className="w-9 h-9 rounded-xl bg-amber-50 text-[#E87A18] flex items-center justify-center group-hover:bg-amber-100 transition-colors">
@@ -591,16 +591,16 @@ export default function FinancialReportsPage() {
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
-                <span>Tracked Stock Items:</span>
-                <span className="font-bold text-[#2C1B10]">{stockItems.length} materials</span>
+                <span>{t('reports.trackedStockItems')}</span>
+                <span className="font-bold text-[#2C1B10]">{t('reports.materialsCount').replace('{count}', String(stockItems.length))}</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>Valuation Formula:</span>
-                <span className="font-semibold text-[#8C7361]">Qty × Unit Buy Price</span>
+                <span>{t('reports.valuationFormula')}</span>
+                <span className="font-semibold text-[#8C7361]">{t('reports.qtyTimesPrice')}</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-[#E87A18] flex items-center gap-1 group-hover:underline">
-              <span>Click for itemized stock details</span>
+              <span>{t('reports.clickStockDetails')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </CardContent>
@@ -618,10 +618,10 @@ export default function FinancialReportsPage() {
             <div>
               <CardTitle className="text-xs uppercase font-extrabold text-amber-900 tracking-wider flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-amber-700" />
-                Products in House Valuation
+                {t('reports.cardProductsValuationTitle')}
               </CardTitle>
               <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
-                Bakery goods & resell stock in store
+                {t('reports.cardProductsValuationSubtitle')}
               </CardDescription>
             </div>
             <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
@@ -634,16 +634,16 @@ export default function FinancialReportsPage() {
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
-                <span>Active Products:</span>
-                <span className="font-bold text-[#2C1B10]">{products.length} products</span>
+                <span>{t('reports.activeProducts')}</span>
+                <span className="font-bold text-[#2C1B10]">{t('reports.productsCount').replace('{count}', String(products.length))}</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>Stock Anchoring:</span>
-                <span className="font-semibold text-emerald-700">Closed Session Leftovers</span>
+                <span>{t('reports.stockAnchoring')}</span>
+                <span className="font-semibold text-emerald-700">{t('reports.closedSessionLeftovers')}</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-amber-800 flex items-center gap-1 group-hover:underline">
-              <span>Click for house product inventory list</span>
+              <span>{t('reports.clickProductList')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </CardContent>
@@ -666,10 +666,10 @@ export default function FinancialReportsPage() {
                     </div>
                     <div>
                       <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
-                        Daily Money Revenue Breakdown
+                        {t('reports.cardDailyRevenueTitle')}
                       </DialogTitle>
                       <DialogDescription className="text-xs text-[#8C7361]">
-                        Sum of daily revenues in range plus customer credit sales
+                        {t('reports.cardDailyRevenueSubtitle')}
                       </DialogDescription>
                     </div>
                   </div>
@@ -678,17 +678,17 @@ export default function FinancialReportsPage() {
                 {/* Subtotal metric cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                   <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">Total Combined Revenue</div>
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.totalRevenue')}</div>
                     <div className="text-xl font-extrabold text-[#2C1B10] font-mono mt-1">{money(revenueTotalWithCredit)}</div>
                   </div>
                   <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200">
-                    <div className="text-xs text-emerald-800 font-bold">Cash Realized (Sessions)</div>
+                    <div className="text-xs text-emerald-800 font-bold">{t('reports.cashRealized')}</div>
                     <div className="text-xl font-extrabold text-emerald-900 font-mono mt-1">{money(dailyCashRevenue)}</div>
                   </div>
                   <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200">
-                    <div className="text-xs text-sky-800 font-bold">Customer Credit Taken</div>
+                    <div className="text-xs text-sky-800 font-bold">{t('reports.customerCreditTaken')}</div>
                     <div className="text-xl font-extrabold text-sky-900 font-mono mt-1">{money(customerCreditTaken)}</div>
-                    <div className="text-[10px] text-sky-700 font-semibold mt-0.5">Uncollected debt receivable</div>
+                    <div className="text-[10px] text-sky-700 font-semibold mt-0.5">{t('reports.uncollectedDebtReceivable')}</div>
                   </div>
                 </div>
 
@@ -696,14 +696,14 @@ export default function FinancialReportsPage() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-emerald-600" />
-                    Daily Session Revenue Breakdown
+                    {t('reports.dailyBreakdownTitle')}
                   </h3>
 
                   {/* Mobile Touch Cards for Daily Sessions */}
                   <div className="block md:hidden space-y-2.5">
                     {dailyBreakdown.length === 0 ? (
                       <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
-                        No daily sessions found in this date range.
+                        {t('reports.noSessionsInRange')}
                       </div>
                     ) : (
                       dailyBreakdown.map((d: any, idx: number) => (
@@ -727,19 +727,19 @@ export default function FinancialReportsPage() {
 
                           <div className="grid grid-cols-2 gap-1.5 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5]">
                             <div>
-                              <span className="text-[10px] text-[#8C7361] block">Yesterday Leftover:</span>
+                              <span className="text-[10px] text-[#8C7361] block">{t('reports.yesterdayLeftoverLabel')}</span>
                               <span className="font-mono text-zinc-700">{money(d.yesterdayCashLeftover)}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] text-[#8C7361] block">POS Sales:</span>
+                              <span className="text-[10px] text-[#8C7361] block">{t('reports.posSalesLabel')}</span>
                               <span className="font-mono font-bold text-[#2C1B10]">{money(d.salesTotal)}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] text-[#8C7361] block">Credit Repaid:</span>
+                              <span className="text-[10px] text-[#8C7361] block">{t('reports.creditRepaidLabel')}</span>
                               <span className="font-mono font-semibold text-emerald-700">+{money(d.creditReceivedFromLoan)}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] text-[#8C7361] block">Tomorrow Leftover:</span>
+                              <span className="text-[10px] text-[#8C7361] block">{t('reports.tomorrowLeftoverLabel')}</span>
                               <span className="font-mono text-rose-700">-{money(d.tomorrowCashLeftover)}</span>
                             </div>
                           </div>
@@ -753,19 +753,19 @@ export default function FinancialReportsPage() {
                     <Table>
                       <TableHeader className="bg-[#FAF6F0]">
                         <TableRow>
-                          <TableHead className="whitespace-nowrap min-w-[130px]">Date</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">Yesterday Leftover</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">POS Sales</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">Credit Repaid</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">Tomorrow Leftover</TableHead>
-                          <TableHead className="text-right font-extrabold text-[#2C1B10] pr-4 whitespace-nowrap">Daily Revenue</TableHead>
+                          <TableHead className="whitespace-nowrap min-w-[130px]">{t('common.date')}</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">{t('reports.colYesterdayLeftover')}</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">{t('reports.colSalesIncome')}</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">{t('reports.colCreditRepaid')}</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">{t('reports.colTomorrowLeftover')}</TableHead>
+                          <TableHead className="text-right font-extrabold text-[#2C1B10] pr-4 whitespace-nowrap">{t('reports.colDailyRevenue')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {dailyBreakdown.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={6} className="text-center py-6 text-xs text-[#8C7361]">
-                              No daily sessions found in this date range.
+                              {t('reports.noSessionsInRange')}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -803,10 +803,10 @@ export default function FinancialReportsPage() {
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-extrabold text-sky-950 uppercase tracking-wider flex items-center gap-1.5">
                           <CreditCard className="w-4 h-4 text-sky-700" />
-                          Customer Credits Given in Period ({customerLoans.length})
+                          {t('reports.customerCreditsPeriod').replace('{count}', String(customerLoans.length))}
                         </h4>
                         <span className="text-[11px] font-bold text-sky-800">
-                          Total: {money(customerCreditTaken)}
+                          {t('common.total')}: {money(customerCreditTaken)}
                         </span>
                       </div>
 
@@ -846,11 +846,11 @@ export default function FinancialReportsPage() {
 
                               <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-sky-100 font-mono">
                                 <div>
-                                  <span className="text-[10px] text-[#8C7361] block font-sans">Credited:</span>
+                                  <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.creditedLabel')}</span>
                                   <span className="font-bold text-sky-900">{money(l.totalAmount)}</span>
                                 </div>
                                 <div>
-                                  <span className="text-[10px] text-[#8C7361] block font-sans">Balance Due:</span>
+                                  <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.balanceDueLabel')}</span>
                                   <span className="font-bold text-rose-700">{money(l.remainingBalance)}</span>
                                 </div>
                               </div>
@@ -864,11 +864,11 @@ export default function FinancialReportsPage() {
                         <Table>
                           <TableHeader className="bg-sky-50/60">
                             <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Customer Name</TableHead>
-                              <TableHead className="text-right">Credited Amount</TableHead>
-                              <TableHead className="text-right">Balance Due</TableHead>
-                              <TableHead className="text-center pr-4">Status</TableHead>
+                              <TableHead>{t('common.date')}</TableHead>
+                              <TableHead>{t('reports.customerNameCol')}</TableHead>
+                              <TableHead className="text-right">{t('reports.creditedAmountCol')}</TableHead>
+                              <TableHead className="text-right">{t('reports.balanceDueCol')}</TableHead>
+                              <TableHead className="text-center pr-4">{t('reports.statusCol')}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -926,10 +926,10 @@ export default function FinancialReportsPage() {
                     </div>
                     <div>
                       <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
-                        Company Daily Expenses (From Daily Money)
+                        {t('reports.cardCompanyExpensesTitle')}
                       </DialogTitle>
                       <DialogDescription className="text-xs text-[#8C7361]">
-                        Operational costs and cashier supplier deliveries paid out of store daily cash
+                        {t('reports.cardCompanyExpensesSubtitle')}
                       </DialogDescription>
                     </div>
                   </div>
@@ -937,11 +937,11 @@ export default function FinancialReportsPage() {
 
                 <div className="bg-rose-50/70 p-4 rounded-2xl border border-rose-200 mb-6 flex justify-between items-center">
                   <div>
-                    <div className="text-xs text-rose-900 font-bold uppercase">Total Company Expenses in Range</div>
+                    <div className="text-xs text-rose-900 font-bold uppercase">{t('reports.cardCompanyExpensesTitle')}</div>
                     <div className="text-2xl font-black text-rose-700 font-mono mt-0.5">{money(companyExpenseTotal)}</div>
                   </div>
                   <div className="text-right text-xs text-[#8C7361]">
-                    <span className="font-bold text-[#2C1B10]">{companyExpenses.length}</span> individual expense entries
+                    <span className="font-bold text-[#2C1B10]">{t('reports.individualExpenseEntries').replace('{count}', String(companyExpenses.length))}</span>
                   </div>
                 </div>
 
@@ -949,7 +949,7 @@ export default function FinancialReportsPage() {
                 <div className="mb-4 relative">
                   <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
                   <Input
-                    placeholder="Search expenses by category, description or payee..."
+                    placeholder={t('reports.searchFilterExpensesPlaceholder')}
                     value={searchFilter}
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => setSearchFilter(e.target.value)}
@@ -970,7 +970,7 @@ export default function FinancialReportsPage() {
                       );
                     }).length === 0 ? (
                     <div className="text-center py-6 text-xs text-[#8C7361] bg-rose-50/40 rounded-xl border border-rose-200">
-                      No company daily expenses recorded in this period.
+                      {t('reports.noCompanyExpensesInRange')}
                     </div>
                   ) : (
                     companyExpenses
@@ -991,7 +991,7 @@ export default function FinancialReportsPage() {
                           <div className="flex justify-between items-start">
                             <div>
                               <span className="font-bold text-xs text-[#2C1B10]">
-                                {exp.financialCategory?.name || exp.category || 'Operational'}
+                                {exp.financialCategory?.name || exp.category || t('reports.operatingExpenses')}
                               </span>
                               <span className="text-[10px] text-[#8C7361] block mt-0.5">
                                 {formatEthDate(exp.date || exp.createdAt)}
@@ -1016,18 +1016,18 @@ export default function FinancialReportsPage() {
                   <Table>
                     <TableHeader className="bg-rose-50/60">
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Description / Payee</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead className="text-right pr-4">Amount</TableHead>
+                        <TableHead>{t('common.date')}</TableHead>
+                        <TableHead>{t('expenses.category')}</TableHead>
+                        <TableHead>{t('expenses.description')}</TableHead>
+                        <TableHead>{t('expenses.colType')}</TableHead>
+                        <TableHead className="text-right pr-4">{t('expenses.amount')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {companyExpenses.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-6 text-xs text-[#8C7361]">
-                            No company daily expenses recorded in this period.
+                            {t('reports.noCompanyExpensesInRange')}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -1047,14 +1047,14 @@ export default function FinancialReportsPage() {
                                 {formatEthDate(exp.date || exp.createdAt)}
                               </TableCell>
                               <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                {exp.financialCategory?.name || exp.category || 'Operational'}
+                                {exp.financialCategory?.name || exp.category || t('reports.operatingExpenses')}
                               </TableCell>
                               <TableCell className="text-xs text-[#8C7361]">
                                 {exp.description || '—'}
                               </TableCell>
                               <TableCell>
                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                                  COMPANY
+                                  {t('expenses.badgeDaily')}
                                 </span>
                               </TableCell>
                               <TableCell className="text-right font-mono text-xs font-extrabold text-rose-700 pr-4">
@@ -1079,10 +1079,10 @@ export default function FinancialReportsPage() {
                     </div>
                     <div>
                       <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
-                        Daily Net Income & Profitability
+                        {t('reports.cardNetIncomeTitle')}
                       </DialogTitle>
                       <DialogDescription className="text-xs text-[#8C7361]">
-                        Net operating results calculated as Company Revenue minus Company Expenses
+                        {t('reports.cardNetIncomeSubtitle')}
                       </DialogDescription>
                     </div>
                   </div>
@@ -1090,18 +1090,18 @@ export default function FinancialReportsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                   <div className={`p-4 rounded-2xl border ${dailyNetIncome >= 0 ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'}`}>
-                    <div className="text-xs font-bold text-[#8C7361]">Grand Net Income</div>
+                    <div className="text-xs font-bold text-[#8C7361]">{t('reports.grandNetIncome')}</div>
                     <div className={`text-2xl font-black font-mono mt-0.5 ${dailyNetIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                       {money(dailyNetIncome)}
                     </div>
                   </div>
                   <div className="bg-[#FAF6F0] p-4 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs font-bold text-[#8C7361]">Operating Margin</div>
+                    <div className="text-xs font-bold text-[#8C7361]">{t('reports.operatingMargin')}</div>
                     <div className="text-2xl font-black font-mono text-[#2C1B10] mt-0.5">{netIncomeMargin.toFixed(1)}%</div>
                   </div>
                   <div className="bg-[#FAF6F0] p-4 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs font-bold text-[#8C7361]">Days Active</div>
-                    <div className="text-2xl font-black font-mono text-[#2C1B10] mt-0.5">{dailyBreakdown.length} days</div>
+                    <div className="text-xs font-bold text-[#8C7361]">{t('reports.daysActive')}</div>
+                    <div className="text-2xl font-black font-mono text-[#2C1B10] mt-0.5">{t('reports.daysCount').replace('{count}', String(dailyBreakdown.length))}</div>
                   </div>
                 </div>
 
@@ -1110,7 +1110,7 @@ export default function FinancialReportsPage() {
                 <div className="block md:hidden space-y-2.5">
                   {dailyBreakdown.length === 0 ? (
                     <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
-                      No daily performance logs in this range.
+                      {t('reports.noDailyPerformanceLogs')}
                     </div>
                   ) : (
                     dailyBreakdown.map((d: any, idx: number) => {
@@ -1132,7 +1132,7 @@ export default function FinancialReportsPage() {
                             <span
                               className={`font-mono font-extrabold text-xs px-2 py-0.5 rounded-lg border ${
                                 net >= 0
-                                  ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
                                   : 'text-rose-700 bg-rose-50 border-rose-200'
                               }`}
                             >
@@ -1142,11 +1142,11 @@ export default function FinancialReportsPage() {
 
                           <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5] font-mono">
                             <div>
-                              <span className="text-[10px] text-[#8C7361] block font-sans">Day Revenue:</span>
+                              <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.dayRevenueLabel')}</span>
                               <span className="font-bold text-emerald-800">{money(d.dailyTotalRevenue)}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] text-[#8C7361] block font-sans">Company Expense:</span>
+                              <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.companyExpenseLabel')}</span>
                               <span className="font-bold text-rose-700">-{money(d.companyExpenseTotal)}</span>
                             </div>
                           </div>
@@ -1161,17 +1161,17 @@ export default function FinancialReportsPage() {
                   <Table>
                     <TableHeader className="bg-[#FAF6F0]">
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">Day Revenue</TableHead>
-                        <TableHead className="text-right">Company Expense</TableHead>
-                        <TableHead className="text-right font-bold pr-4">Net Income</TableHead>
+                        <TableHead>{t('common.date')}</TableHead>
+                        <TableHead className="text-right">{t('reports.colDailyRevenue')}</TableHead>
+                        <TableHead className="text-right">{t('reports.colCompanyExpenses')}</TableHead>
+                        <TableHead className="text-right font-bold pr-4">{t('reports.colDailyNetIncome')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {dailyBreakdown.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center py-6 text-xs text-[#8C7361]">
-                            No daily performance logs in this range.
+                            {t('reports.noDailyPerformanceLogs')}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -1211,10 +1211,10 @@ export default function FinancialReportsPage() {
                     </div>
                     <div>
                       <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
-                        Owner Expenses, Drawings & Pending Payables
+                        {t('reports.cardOwnerExpensesTitle')}
                       </DialogTitle>
                       <DialogDescription className="text-xs text-[#8C7361]">
-                        Actual owner cash withdrawals plus debts/supplier credits you still have to pay
+                        {t('reports.cardOwnerExpensesSubtitle')}
                       </DialogDescription>
                     </div>
                   </div>
@@ -1222,15 +1222,15 @@ export default function FinancialReportsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                   <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200">
-                    <div className="text-xs text-purple-900 font-bold uppercase">Total Owner Sum</div>
+                    <div className="text-xs text-purple-900 font-bold uppercase">{t('reports.totalOwnerSum')}</div>
                     <div className="text-xl font-black text-purple-950 font-mono mt-1">{money(ownerExpenseTotalWithLiabilities)}</div>
                   </div>
                   <div className="bg-white p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">Cash Drawings (Taken Out)</div>
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.ownerDrawingsTakenOut')}</div>
                     <div className="text-xl font-extrabold text-purple-800 font-mono mt-1">{money(ownerCashDrawings)}</div>
                   </div>
                   <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
-                    <div className="text-xs text-rose-900 font-bold">Credits to Pay (Not Out Yet)</div>
+                    <div className="text-xs text-rose-900 font-bold">{t('reports.creditsToPayNotOut')}</div>
                     <div className="text-xl font-extrabold text-rose-700 font-mono mt-1">{money(unpaidPayablesTotal)}</div>
                   </div>
                 </div>
@@ -1240,14 +1240,14 @@ export default function FinancialReportsPage() {
                   <div>
                     <h4 className="text-xs font-extrabold text-purple-950 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Wallet className="w-4 h-4 text-purple-700" />
-                      1. Owner Personal Drawings (Cash Taken Out)
+                      {t('reports.ownerPersonalDrawingsTitle')}
                     </h4>
 
                     {/* Mobile Touch Cards for Drawings */}
                     <div className="block md:hidden space-y-2.5">
                       {ownerExpensesList.length === 0 ? (
                         <div className="text-center py-4 text-xs text-[#8C7361] bg-purple-50/40 rounded-xl border border-purple-200">
-                          No owner personal cash drawings recorded.
+                          {t('reports.noOwnerDrawingsRecorded')}
                         </div>
                       ) : (
                         ownerExpensesList.map((exp: any, idx: number) => (
@@ -1258,7 +1258,7 @@ export default function FinancialReportsPage() {
                             <div className="flex justify-between items-start">
                               <div>
                                 <span className="font-bold text-xs text-[#2C1B10]">
-                                  {exp.financialCategory?.name || exp.category || 'Owner Drawing'}
+                                  {exp.financialCategory?.name || exp.category || t('reports.colOwnerDrawings')}
                                 </span>
                                 <span className="text-[10px] text-[#8C7361] block mt-0.5">
                                   {formatEthDate(exp.date || exp.createdAt)}
@@ -1283,17 +1283,17 @@ export default function FinancialReportsPage() {
                       <Table>
                         <TableHeader className="bg-purple-50/60">
                           <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Category / Purpose</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead className="text-right pr-4">Amount</TableHead>
+                            <TableHead>{t('common.date')}</TableHead>
+                            <TableHead>{t('expenses.category')}</TableHead>
+                            <TableHead>{t('expenses.description')}</TableHead>
+                            <TableHead className="text-right pr-4">{t('expenses.amount')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {ownerExpensesList.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={4} className="text-center py-4 text-xs text-[#8C7361]">
-                                No owner personal cash drawings recorded.
+                                {t('reports.noOwnerDrawingsRecorded')}
                               </TableCell>
                             </TableRow>
                           ) : (
@@ -1303,7 +1303,7 @@ export default function FinancialReportsPage() {
                                   {formatEthDate(exp.date || exp.createdAt)}
                                 </TableCell>
                                 <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                  {exp.financialCategory?.name || exp.category || 'Owner Drawing'}
+                                  {exp.financialCategory?.name || exp.category || t('reports.colOwnerDrawings')}
                                 </TableCell>
                                 <TableCell className="text-xs text-[#8C7361]">{exp.description || '—'}</TableCell>
                                 <TableCell className="text-right font-mono text-xs font-extrabold text-purple-900 pr-4">
@@ -1321,17 +1321,17 @@ export default function FinancialReportsPage() {
                   <div>
                     <h4 className="text-xs font-extrabold text-rose-950 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                       <AlertCircle className="w-4 h-4 text-rose-600" />
-                      2. Unpaid Supplier Bills & Stock Loans (Not Actually Out Yet)
+                      {t('reports.unpaidBillsTitle')}
                     </h4>
                     <p className="text-xs text-[#8C7361] mb-2">
-                      These are goods and deliveries received on credit that you are obligated to settle with suppliers.
+                      {t('reports.unpaidBillsSubtitle')}
                     </p>
 
                     {/* Mobile Touch Cards for Payables */}
                     <div className="block md:hidden space-y-2.5">
                       {unpaidDeliveriesList.length === 0 && unpaidStockLoansList.length === 0 ? (
                         <div className="text-center py-4 text-xs text-[#8C7361] bg-rose-50/40 rounded-xl border border-rose-200">
-                          No pending supplier debts or unpaid stock purchase loans found!
+                          {t('reports.noPendingDebtsFound')}
                         </div>
                       ) : (
                         <>
@@ -1345,19 +1345,19 @@ export default function FinancialReportsPage() {
                                 <div className="flex justify-between items-start">
                                   <div>
                                     <span className="font-bold text-xs text-[#2C1B10]">
-                                      {d.supplier?.name || 'Supplier'}
+                                      {d.supplier?.name || t('suppliers.title')}
                                     </span>
                                     <span className="text-[10px] text-[#8C7361] block mt-0.5">
                                       {formatEthDate(d.createdAt)}
                                     </span>
                                   </div>
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
-                                    UNPAID DELIVERY
+                                    {t('reports.unpaidDeliveryBadge')}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-rose-100 text-xs">
                                   <span className="text-zinc-700">
-                                    {d.product?.name || d.stockItem?.name || 'Resell / Material'} ({d.quantityReceived} pcs)
+                                    {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
                                   </span>
                                   <span className="font-mono font-extrabold text-rose-700">
                                     {money(cost)}
@@ -1374,19 +1374,19 @@ export default function FinancialReportsPage() {
                               <div className="flex justify-between items-start">
                                 <div>
                                   <span className="font-bold text-xs text-[#2C1B10]">
-                                    {sl.supplierName || 'Ingredient Supplier'}
+                                    {sl.supplierName || t('suppliers.title')}
                                   </span>
                                   <span className="text-[10px] text-[#8C7361] block mt-0.5">
                                     {formatEthDate(sl.createdAt)}
                                   </span>
                                 </div>
                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                  PURCHASE LOAN
+                                  {t('reports.purchaseLoanBadge')}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-amber-100 text-xs">
                                 <span className="text-zinc-700">
-                                  {sl.stockMovement?.stockItem?.name || 'Stock Material'}
+                                  {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
                                 </span>
                                 <span className="font-mono font-extrabold text-rose-700">
                                   {money(sl.remainingBalance)}
@@ -1403,18 +1403,18 @@ export default function FinancialReportsPage() {
                       <Table>
                         <TableHeader className="bg-rose-50/60">
                           <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Supplier / Creditor</TableHead>
-                            <TableHead>Product / Material</TableHead>
-                            <TableHead className="text-right">Total Cost</TableHead>
-                            <TableHead className="text-center pr-4">Payable Status</TableHead>
+                            <TableHead>{t('common.date')}</TableHead>
+                            <TableHead>{t('reports.supplierCreditorCol')}</TableHead>
+                            <TableHead>{t('reports.productMaterialCol')}</TableHead>
+                            <TableHead className="text-right">{t('reports.totalCostCol')}</TableHead>
+                            <TableHead className="text-center pr-4">{t('reports.payableStatusCol')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {unpaidDeliveriesList.length === 0 && unpaidStockLoansList.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={5} className="text-center py-4 text-xs text-[#8C7361]">
-                                No pending supplier debts or unpaid stock purchase loans found!
+                                {t('reports.noPendingDebtsFound')}
                               </TableCell>
                             </TableRow>
                           ) : (
@@ -1427,17 +1427,17 @@ export default function FinancialReportsPage() {
                                       {formatEthDate(d.createdAt)}
                                     </TableCell>
                                     <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                      {d.supplier?.name || 'Supplier'}
+                                      {d.supplier?.name || t('suppliers.title')}
                                     </TableCell>
                                     <TableCell className="text-xs text-[#8C7361]">
-                                      {d.product?.name || d.stockItem?.name || 'Resell / Material'} ({d.quantityReceived} pcs)
+                                      {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
                                       {money(cost)}
                                     </TableCell>
                                     <TableCell className="text-center pr-4">
                                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
-                                        UNPAID DELIVERY
+                                        {t('reports.unpaidDeliveryBadge')}
                                       </span>
                                     </TableCell>
                                   </TableRow>
@@ -1449,17 +1449,17 @@ export default function FinancialReportsPage() {
                                     {formatEthDate(sl.createdAt)}
                                   </TableCell>
                                   <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                    {sl.supplierName || 'Ingredient Supplier'}
+                                    {sl.supplierName || t('suppliers.title')}
                                   </TableCell>
                                   <TableCell className="text-xs text-[#8C7361]">
-                                    {sl.stockMovement?.stockItem?.name || 'Stock Material'}
+                                    {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
                                   </TableCell>
                                   <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
                                     {money(sl.remainingBalance)}
                                   </TableCell>
                                   <TableCell className="text-center pr-4">
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                      PURCHASE LOAN
+                                      {t('reports.purchaseLoanBadge')}
                                     </span>
                                   </TableCell>
                                 </TableRow>
@@ -1484,10 +1484,10 @@ export default function FinancialReportsPage() {
                     </div>
                     <div>
                       <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
-                        Warehouse Stock / Raw Materials Valuation
+                        {t('reports.cardStockValuationTitle')}
                       </DialogTitle>
                       <DialogDescription className="text-xs text-[#8C7361]">
-                        Current physical quantities of baking ingredients and inventory monetary values
+                        {t('reports.cardStockValuationSubtitle')}
                       </DialogDescription>
                     </div>
                   </div>
@@ -1495,19 +1495,19 @@ export default function FinancialReportsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">Total Stock Monetary Valuation</div>
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.totalStockValuationModal')}</div>
                     <div className="text-2xl font-black text-[#2C1B10] font-mono mt-0.5">{money(stockValuation)}</div>
                   </div>
                   <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">Tracked Ingredients</div>
-                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-0.5">{stockItems.length} items</div>
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.trackedIngredientsModal')}</div>
+                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-0.5">{t('reports.materialsCount').replace('{count}', String(stockItems.length))}</div>
                   </div>
                 </div>
 
                 <div className="mb-4 relative">
                   <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
                   <Input
-                    placeholder="Search raw materials..."
+                    placeholder={t('reports.searchFilterStockPlaceholder')}
                     value={searchFilter}
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => setSearchFilter(e.target.value)}
@@ -1521,7 +1521,7 @@ export default function FinancialReportsPage() {
                     .filter((i) => !searchFilter || i.name.toLowerCase().includes(searchFilter.toLowerCase()))
                     .length === 0 ? (
                     <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
-                      No raw materials found.
+                      {t('reports.noRawMaterialsFound')}
                     </div>
                   ) : (
                     stockItems
@@ -1542,27 +1542,27 @@ export default function FinancialReportsPage() {
                                   {item.name}
                                 </span>
                                 <span className="text-[10px] text-[#8C7361] block">
-                                  Unit: {item.unitType}
+                                  {t('reports.unitCol')}: {item.unitType}
                                 </span>
                               </div>
                               {isLow && (
                                 <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200">
-                                  LOW STOCK
+                                  {t('reports.lowStockBadge')}
                                 </span>
                               )}
                             </div>
 
                             <div className="grid grid-cols-3 gap-1.5 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5] font-mono">
                               <div>
-                                <span className="text-[10px] text-[#8C7361] block font-sans">Stock Qty:</span>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('stock.stockQuantity')}:</span>
                                 <span className="font-bold text-[#2C1B10]">{qty.toLocaleString()}</span>
                               </div>
                               <div>
-                                <span className="text-[10px] text-[#8C7361] block font-sans">Unit Price:</span>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('stock.unitPrice')}:</span>
                                 <span className="text-zinc-700">{price.toFixed(2)}</span>
                               </div>
                               <div className="text-right">
-                                <span className="text-[10px] text-[#8C7361] block font-sans">Valuation:</span>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.totalValueCol')}:</span>
                                 <span className="font-extrabold text-amber-900">{money(val)}</span>
                               </div>
                             </div>
@@ -1577,18 +1577,18 @@ export default function FinancialReportsPage() {
                   <Table>
                     <TableHeader className="bg-[#FAF6F0]">
                       <TableRow>
-                        <TableHead>Material / Stock Item</TableHead>
-                        <TableHead>Unit</TableHead>
-                        <TableHead className="text-right">In Stock Quantity</TableHead>
-                        <TableHead className="text-right">Unit Price (ETB)</TableHead>
-                        <TableHead className="text-right font-extrabold pr-4">Total Monetary Value</TableHead>
+                        <TableHead>{t('reports.materialStockItemCol')}</TableHead>
+                        <TableHead>{t('reports.unitCol')}</TableHead>
+                        <TableHead className="text-right">{t('reports.inStockQtyCol')}</TableHead>
+                        <TableHead className="text-right">{t('reports.unitPriceEtbCol')}</TableHead>
+                        <TableHead className="text-right font-extrabold pr-4">{t('reports.totalMonetaryValueCol')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {stockItems.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-6 text-xs text-[#8C7361]">
-                            No raw materials registered for this branch.
+                            {t('reports.noRawMaterialsRegistered')}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -1605,7 +1605,7 @@ export default function FinancialReportsPage() {
                                   {item.name}
                                   {isLow && (
                                     <span className="ml-2 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200">
-                                      LOW STOCK
+                                      {t('reports.lowStockBadge')}
                                     </span>
                                   )}
                                 </TableCell>
@@ -1639,10 +1639,10 @@ export default function FinancialReportsPage() {
                     </div>
                     <div>
                       <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
-                        Bakery Products In-House Inventory Valuation
+                        {t('reports.totalProductValuationModal')}
                       </DialogTitle>
                       <DialogDescription className="text-xs text-[#8C7361]">
-                        Physical products currently ready in house anchored to closed session counts
+                        {t('reports.cardProductsValuationSubtitle')}
                       </DialogDescription>
                     </div>
                   </div>
@@ -1650,19 +1650,19 @@ export default function FinancialReportsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">Total Finished Product Valuation</div>
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.totalProductValuationModal')}</div>
                     <div className="text-2xl font-black text-[#2C1B10] font-mono mt-0.5">{money(productValuation)}</div>
                   </div>
                   <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">Bakery Product Types</div>
-                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-0.5">{products.length} items</div>
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.bakeryProductTypesModal')}</div>
+                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-0.5">{t('reports.productsCount').replace('{count}', String(products.length))}</div>
                   </div>
                 </div>
 
                 <div className="mb-4 relative">
                   <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
                   <Input
-                    placeholder="Search finished products..."
+                    placeholder={t('reports.searchFilterProductsPlaceholder')}
                     value={searchFilter}
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => setSearchFilter(e.target.value)}
@@ -1676,7 +1676,7 @@ export default function FinancialReportsPage() {
                     .filter((p) => !searchFilter || p.name.toLowerCase().includes(searchFilter.toLowerCase()))
                     .length === 0 ? (
                     <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
-                      No bakery products found.
+                      {t('reports.noBakeryProductsFound')}
                     </div>
                   ) : (
                     products
@@ -1706,11 +1706,11 @@ export default function FinancialReportsPage() {
 
                             <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5] font-mono">
                               <div>
-                                <span className="text-[10px] text-[#8C7361] block font-sans">House Stock:</span>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.houseStockLabel')}</span>
                                 <span className="font-bold text-[#2C1B10]">{qty.toLocaleString()} {p.unitType}</span>
                               </div>
                               <div>
-                                <span className="text-[10px] text-[#8C7361] block font-sans">Unit Price:</span>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.unitPriceLabel')}</span>
                                 <span className="text-zinc-700">{price.toFixed(2)} ETB</span>
                               </div>
                             </div>
@@ -1725,18 +1725,18 @@ export default function FinancialReportsPage() {
                   <Table>
                     <TableHeader className="bg-[#FAF6F0]">
                       <TableRow>
-                        <TableHead>Product Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead className="text-right">House Stock</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right font-extrabold pr-4">Total Value</TableHead>
+                        <TableHead>{t('reports.productNameCol')}</TableHead>
+                        <TableHead>{t('expenses.category')}</TableHead>
+                        <TableHead className="text-right">{t('reports.houseStockCol')}</TableHead>
+                        <TableHead className="text-right">{t('reports.unitPriceLabel')}</TableHead>
+                        <TableHead className="text-right font-extrabold pr-4">{t('reports.totalValueCol')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {products.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-6 text-xs text-[#8C7361]">
-                            No bakery products found.
+                            {t('reports.noBakeryProductsFound')}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -1783,10 +1783,10 @@ export default function FinancialReportsPage() {
                     </div>
                     <div>
                       <DialogTitle className="text-lg sm:text-xl font-black text-[#2C1B10] font-heading">
-                        Complete Wealth Composition & Clean Cash Audit
+                        {t('reports.cleanLiquidCashAuditTitle')}
                       </DialogTitle>
                       <DialogDescription className="text-xs text-[#8C7361]">
-                        Financial reconciliation: Cash in hand, customer debts, physical inventories and supplier liabilities
+                        {t('reports.wealthReconciliationDesc')}
                       </DialogDescription>
                     </div>
                   </div>
@@ -1795,11 +1795,11 @@ export default function FinancialReportsPage() {
                 <div className="bg-[#FAF6F0] p-4 rounded-2xl border border-[#EDE4D5] mb-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <div className="text-xs uppercase font-extrabold text-amber-900">Grand Total Net Wealth</div>
+                      <div className="text-xs uppercase font-extrabold text-amber-900">{t('reports.grandTotalNetWealthTitle')}</div>
                       <div className="text-3xl font-black text-[#2C1B10] font-mono mt-0.5">{money(totalNetWealth)}</div>
                     </div>
                     <div className="text-xs text-[#8C7361] max-w-sm">
-                      This represents your complete financial position across all cash, receivables, assets, and liabilities.
+                      {t('reports.fullFinancialPositionDesc')}
                     </div>
                   </div>
                 </div>
@@ -1813,9 +1813,12 @@ export default function FinancialReportsPage() {
                         1
                       </div>
                       <div>
-                        <div className="font-extrabold text-emerald-950 text-sm">Clean Liquid Money in Hand / Bank</div>
+                        <div className="font-extrabold text-emerald-950 text-sm">{t('reports.wealthItem1Title')}</div>
                         <div className="text-xs text-emerald-800">
-                          Cash collected ({money(totalCashCollected)}) minus daily company expenses ({money(companyExpenseTotal)}) and owner cash drawings ({money(ownerCashDrawings)}).
+                          {t('reports.wealthItem1Desc')
+                            .replace('{collected}', money(totalCashCollected))
+                            .replace('{expenses}', money(companyExpenseTotal))
+                            .replace('{drawings}', money(ownerCashDrawings))}
                         </div>
                       </div>
                     </div>
@@ -1831,9 +1834,9 @@ export default function FinancialReportsPage() {
                         2
                       </div>
                       <div>
-                        <div className="font-extrabold text-sky-950 text-sm">Customer Credit Receivables</div>
+                        <div className="font-extrabold text-sky-950 text-sm">{t('reports.wealthItem2Title')}</div>
                         <div className="text-xs text-sky-800">
-                          Products sold on credit to customers awaiting debt recovery ({customerLoans.length} active records).
+                          {t('reports.wealthItem2Desc').replace('{count}', String(customerLoans.length))}
                         </div>
                       </div>
                     </div>
@@ -1849,9 +1852,9 @@ export default function FinancialReportsPage() {
                         3
                       </div>
                       <div>
-                        <div className="font-extrabold text-amber-950 text-sm">Raw Materials Inventory Asset Value</div>
+                        <div className="font-extrabold text-amber-950 text-sm">{t('reports.wealthItem3Title')}</div>
                         <div className="text-xs text-amber-800">
-                          Physical raw ingredients in warehouse ({stockItems.length} items valued at unit purchase cost).
+                          {t('reports.wealthItem3Desc').replace('{count}', String(stockItems.length))}
                         </div>
                       </div>
                     </div>
@@ -1867,9 +1870,9 @@ export default function FinancialReportsPage() {
                         4
                       </div>
                       <div>
-                        <div className="font-extrabold text-amber-950 text-sm">In-House Finished Bakery Goods Asset Value</div>
+                        <div className="font-extrabold text-amber-950 text-sm">{t('reports.wealthItem4Title')}</div>
                         <div className="text-xs text-amber-800">
-                          Bakery items and resell inventory currently on store shelves ({products.length} product lines).
+                          {t('reports.wealthItem4Desc').replace('{count}', String(products.length))}
                         </div>
                       </div>
                     </div>
@@ -1885,9 +1888,11 @@ export default function FinancialReportsPage() {
                         5
                       </div>
                       <div>
-                        <div className="font-extrabold text-rose-950 text-sm">Expenses / Credits You Have to Give Yet (Payables)</div>
+                        <div className="font-extrabold text-rose-950 text-sm">{t('reports.wealthItem5Title')}</div>
                         <div className="text-xs text-rose-800">
-                          Unpaid supplier deliveries ({money(unpaidSupplierDeliveriesTotal)}) and unpaid stock loans ({money(unpaidStockLoansTotal)}) awaiting settlement.
+                          {t('reports.wealthItem5Desc')
+                            .replace('{deliveries}', money(unpaidSupplierDeliveriesTotal))
+                            .replace('{loans}', money(unpaidStockLoansTotal))}
                         </div>
                       </div>
                     </div>
@@ -1905,7 +1910,7 @@ export default function FinancialReportsPage() {
                 onClick={() => setActiveModal(null)}
                 className="w-full sm:w-auto h-11 sm:h-10 bg-[#4A2E1B] text-white hover:bg-[#3D2314] rounded-xl text-xs font-bold px-6"
               >
-                Close Breakdown
+                {t('reports.closeBreakdown')}
               </Button>
             </DialogFooter>
           </DialogContent>
