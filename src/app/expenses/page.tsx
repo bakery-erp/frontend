@@ -502,10 +502,10 @@ export default function ExpensesPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-zinc-100">
               <div>
                 <CardTitle className="text-base font-extrabold text-[#2C1B10]">
-                  {editingId ? "Edit Expense Record" : "Record New Expense"}
+                  {editingId ? t('expenses.editExpenseRecord') : t('expenses.recordNewExpense')}
                 </CardTitle>
                 <CardDescription className="text-xs text-zinc-500 mt-0.5">
-                  Expense will be logged under active session <span className="font-mono font-bold text-emerald-700">#{activeSession?.id.slice(-6)}</span>
+                  {t('expenses.modalRecordDesc')} <span className="font-mono font-bold text-emerald-700">#{activeSession?.id.slice(-6)}</span>
                 </CardDescription>
               </div>
               <Button variant="ghost" size="sm" onClick={resetForm} className="rounded-xl">
@@ -518,27 +518,22 @@ export default function ExpensesPage() {
                 {/* Requirement 1: Expense Type Choice (Company vs Owner) */}
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                    Expense Type <span className="text-rose-500">*</span>
+                    {t('expenses.expenseType')} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={formType}
                     onChange={(e) => setFormType(e.target.value)}
                     className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
                   >
-                    <option value="COMPANY">🏢 Company Operational Expense (Operating Cash)</option>
-                    <option value="OWNER">👤 Owner Expense / Drawing</option>
+                    <option value="COMPANY">🏢 {t('expenses.typeCompanyOption')}</option>
+                    <option value="OWNER">👤 {t('expenses.typeOwnerOption')}</option>
                   </select>
-                  <p className="text-[11px] text-zinc-500 mt-1">
-                    {formType === "COMPANY"
-                      ? "Deducted from daily session cash as operating business expense."
-                      : "Logged as owner withdrawal / personal draw."}
-                  </p>
                 </div>
 
                 {/* Amount Input with Auto-Focus and Selection */}
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                    Amount (ETB) <span className="text-rose-500">*</span>
+                    {t('expenses.fieldAmount')} <span className="text-rose-500">*</span>
                   </label>
                   <Input
                     ref={amountInputRef}
@@ -557,26 +552,26 @@ export default function ExpensesPage() {
                 {/* Requirement 2: Category Dropdown & Others Option */}
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                    Category <span className="text-rose-500">*</span>
+                    {t('expenses.category')} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={selectedCategoryValue}
                     onChange={(e) => handleCategorySelect(e.target.value)}
                     className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
                   >
-                    <option value="">-- Select Category --</option>
+                    <option value="">{t('expenses.selectCategory')}</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
-                    <option value="OTHER">Others</option>
+                    <option value="OTHER">{t('expenses.othersCategory')}</option>
                   </select>
 
                   {selectedCategoryValue === "OTHER" && (
                     <div className="mt-2">
                       <Input
-                        placeholder="Specify custom category name (e.g. Ekub, Cleaning)"
+                        placeholder={t('expenses.customCategoryPlaceholder')}
                         value={customCategoryName}
                         onChange={(e) => handleCustomCategoryChange(e.target.value)}
                         className="bg-white border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
@@ -587,7 +582,7 @@ export default function ExpensesPage() {
 
                 {/* Date Input */}
                 <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Expense Date</label>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">{t('expenses.fieldDate')}</label>
                   <Input
                     type="date"
                     value={formDate}
@@ -598,9 +593,9 @@ export default function ExpensesPage() {
 
                 {/* Description Input */}
                 <div className="md:col-span-2">
-                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">Description / Reason</label>
+                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">{t('expenses.description')}</label>
                   <Input
-                    placeholder="Additional note (e.g. Lunch for bakery staff, Transport fee for flour)"
+                    placeholder={t('expenses.fieldDescription')}
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
@@ -614,14 +609,14 @@ export default function ExpensesPage() {
                   disabled={isSaving}
                   className="w-full sm:w-auto h-11 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs sm:text-sm px-6 shadow-sm"
                 >
-                  {isSaving ? "Saving..." : editingId ? "Update Expense" : "Record Expense"}
+                  {isSaving ? t('common.loading') : editingId ? t('common.update') : t('expenses.saveExpenseButton')}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={resetForm}
                   className="w-full sm:w-auto h-10 border-[#EDE4D5] rounded-xl text-xs sm:text-sm font-semibold text-[#8C7361] hover:text-[#4A2E1B]"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </div>
             </CardContent>
@@ -1033,18 +1028,18 @@ export default function ExpensesPage() {
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <Tag className="w-5 h-5 text-[#E87A18]" />
-                Manage Pre-defined Expense Reasons
+                {t('expenses.managePredefinedReasons')}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 mt-2">
               <p className="text-xs text-[#8C7361]">
-                Configure standard expense categories/reasons (e.g. Flour Purchase, Electricity, Transport, Worker Lunch, Ekub, Rent). Staff will select from this dropdown when logging expenses.
+                {t('expenses.subtitle')}
               </p>
 
               {/* Add New Expense Reason Form */}
               <div className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] space-y-2">
-                <label className="text-xs font-bold text-[#4A2E1B] block uppercase">Add New Expense Reason</label>
+                <label className="text-xs font-bold text-[#4A2E1B] block uppercase">{t('expenses.addNewExpenseReason')}</label>
                 <div className="flex items-center gap-2">
                   <Input
                     placeholder="e.g. Electricity / Utilities"
@@ -1058,17 +1053,17 @@ export default function ExpensesPage() {
                     disabled={isSavingCategory}
                     className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold text-xs h-9 px-3 rounded-xl flex-shrink-0"
                   >
-                    <Plus className="w-4 h-4 mr-1" /> Add Reason
+                    <Plus className="w-4 h-4 mr-1" /> {t('expenses.addReasonBtn')}
                   </Button>
                 </div>
               </div>
 
               {/* Pre-defined Expense Reasons List */}
               <div className="space-y-2">
-                <span className="text-xs font-extrabold uppercase text-[#2C1B10] block">Existing Expense Reasons ({categories.length})</span>
+                <span className="text-xs font-extrabold uppercase text-[#2C1B10] block">{t('expenses.existingReasons')} ({categories.length})</span>
                 {categories.length === 0 ? (
                   <p className="text-xs text-[#8C7361] italic text-center py-4 bg-zinc-50 rounded-xl border border-zinc-200">
-                    No pre-defined reasons configured yet. Add your first reason above!
+                    {t('expenses.noPredefinedReasons')}
                   </p>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -1086,7 +1081,7 @@ export default function ExpensesPage() {
                               onClick={() => handleUpdateCategory(cat.id)}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-8 px-2.5 rounded-lg"
                             >
-                              <Check className="w-3.5 h-3.5" /> Save
+                              <Check className="w-3.5 h-3.5" /> {t('common.save')}
                             </Button>
                             <Button
                               size="sm"
@@ -1094,7 +1089,7 @@ export default function ExpensesPage() {
                               onClick={() => setEditingCatId(null)}
                               className="h-8 px-2 rounded-lg"
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                           </div>
                         ) : (
@@ -1129,7 +1124,7 @@ export default function ExpensesPage() {
 
             <DialogFooter className="pt-2">
               <Button onClick={() => setIsManageCategoriesOpen(false)} className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs">
-                Done
+                {t('common.close')}
               </Button>
             </DialogFooter>
           </DialogContent>

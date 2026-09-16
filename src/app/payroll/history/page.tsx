@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
 import { formatEthDate, getEthMonthName } from "@/lib/ethiopianDate";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface User {
   id: string;
@@ -40,6 +41,7 @@ interface PayrollRecord {
 export default function PayrollHistoryPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const [history, setHistory] = useState<PayrollRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingPayroll, setEditingPayroll] = useState<PayrollRecord | null>(null);
@@ -93,10 +95,10 @@ export default function PayrollHistoryPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Payroll Execution History
+            {t('payroll.historyTitle')}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            Audit history of all processed monthly salary payouts & payslips
+            {t('payroll.historySubtitle')}
           </p>
         </div>
         <PayrollNav />
@@ -106,11 +108,11 @@ export default function PayrollHistoryPage() {
       <div className="block md:hidden space-y-3">
         {isLoading ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            Loading payroll history...
+            {t('common.loading')}
           </div>
         ) : history.length === 0 ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            No payroll execution records found.
+            {t('profile.noPayslipsFound')}
           </div>
         ) : (
           history.map((r) => (
@@ -131,35 +133,35 @@ export default function PayrollHistoryPage() {
                   r.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                   'bg-amber-100 text-amber-800 border-amber-300'
                 }`}>
-                  {r.status === 'APPROVED' ? 'APPROVED' : r.status === 'REJECTED' ? 'REJECTED' : 'PENDING'}
+                  {r.status === 'APPROVED' ? t('common.approved') : r.status === 'REJECTED' ? t('common.rejected') : t('common.pendingReview')}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs">
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Base Salary</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('payroll.colBaseSalary')}</span>
                   <span className="font-bold text-[#2C1B10] font-mono">{r.baseSalary} ETB</span>
                 </div>
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Bonus</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('payroll.colBonuses')}</span>
                   <span className="font-bold text-emerald-700 font-mono">
                     {r.bonus > 0 ? `+${r.bonus} ETB` : "0.00 ETB"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Total Deductions</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('profile.colLoanDeductionMinus')}</span>
                   <span className="font-bold text-rose-700 font-mono">
                     -{Number(r.loanDeductions) + Number(r.penaltyDeductions)} ETB
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Final Net Paid</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('payroll.colNetSalary')}</span>
                   <span className="font-extrabold text-emerald-700 text-sm font-mono">{r.finalAmount} ETB</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-100 text-xs text-[#8C7361]">
-                <span className="text-[11px] sm:text-xs">Paid: {formatEthDate(r.paymentDate, true)}</span>
+                <span className="text-[11px] sm:text-xs">{t('common.paid')}: {formatEthDate(r.paymentDate, true)}</span>
                 {(user?.role === "OWNER" || user?.role === "ADMIN") && (
                   <Button
                     variant="outline"
@@ -170,7 +172,7 @@ export default function PayrollHistoryPage() {
                     }}
                     className="h-8 px-3 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
                   >
-                    <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                    <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('common.edit')}
                   </Button>
                 )}
               </div>
@@ -184,28 +186,28 @@ export default function PayrollHistoryPage() {
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead className="font-extrabold text-[#2C1B10]">Payroll Term (Ethiopian)</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Employee</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Base Salary</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Bonus</TableHead>
-              <TableHead className="font-extrabold text-rose-700">Deductions</TableHead>
-              <TableHead className="font-extrabold text-emerald-700">Final Net Paid</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Payment Date (Eth)</TableHead>
-              <TableHead className="font-extrabold text-center text-[#2C1B10]">Worker Approval</TableHead>
-              {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Action</TableHead>}
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('profile.colPeriod')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colStaffMember')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colBaseSalary')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colBonuses')}</TableHead>
+              <TableHead className="font-extrabold text-rose-700">{t('profile.colLoanDeductionMinus')}</TableHead>
+              <TableHead className="font-extrabold text-emerald-700">{t('payroll.colNetSalary')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('common.date')}</TableHead>
+              <TableHead className="font-extrabold text-center text-[#2C1B10]">{t('common.status')}</TableHead>
+              {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-10 text-[#8C7361] font-medium">
-                  Loading payroll history...
+                  {t('common.loading')}
                 </TableCell>
               </TableRow>
             ) : history.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-10 text-[#8C7361] font-medium">
-                  No payroll execution records found.
+                  {t('profile.noPayslipsFound')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -245,7 +247,7 @@ export default function PayrollHistoryPage() {
                       r.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                       'bg-amber-100 text-amber-800 border-amber-300'
                     }`}>
-                      {r.status === 'APPROVED' ? 'APPROVED' : r.status === 'REJECTED' ? 'REJECTED' : 'PENDING'}
+                      {r.status === 'APPROVED' ? t('common.approved') : r.status === 'REJECTED' ? t('common.rejected') : t('common.pendingReview')}
                     </Badge>
                   </TableCell>
                   {(user?.role === "OWNER" || user?.role === "ADMIN") && (

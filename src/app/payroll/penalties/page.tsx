@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface User {
   id: string;
@@ -36,6 +37,7 @@ interface Penalty {
 export default function PayrollPenaltiesPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
 
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -67,7 +69,7 @@ export default function PayrollPenaltiesPage() {
       const { data } = await api.get("/penalties", { params });
       setPenalties(data);
     } catch {
-      toast.error("Failed to load penalties");
+      toast.error(t('common.error'));
     } finally {
       setIsLoading(false);
     }
@@ -84,11 +86,11 @@ export default function PayrollPenaltiesPage() {
         reason: fd.get("reason"),
         date: fd.get("date"),
       });
-      toast.success("Penalty logged successfully. Awaiting employee review.");
+      toast.success(t('common.success'));
       setIsPenaltyOpen(false);
       fetchPenalties();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to add penalty");
+      toast.error(error.response?.data?.error || t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -107,12 +109,12 @@ export default function PayrollPenaltiesPage() {
         isDeducted: fd.get("isDeducted") === "true",
         status: fd.get("status"),
       });
-      toast.success("Penalty updated successfully");
+      toast.success(t('common.success'));
       setIsEditPenaltyOpen(false);
       setEditingPenalty(null);
       fetchPenalties();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to update penalty");
+      toast.error(error.response?.data?.error || t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -124,16 +126,16 @@ export default function PayrollPenaltiesPage() {
         return (
           <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="hidden sm:inline">ACKNOWLEDGED / APPROVED</span>
-            <span className="sm:hidden">Approved</span>
+            <span className="hidden sm:inline">{t('payroll.acknowledgedApproved')}</span>
+            <span className="sm:hidden">{t('common.approved')}</span>
           </Badge>
         );
       case "REJECTED":
         return (
           <Badge className="bg-rose-100 text-rose-900 border-rose-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-            <span className="hidden sm:inline">REJECTED BY STAFF</span>
-            <span className="sm:hidden">Rejected</span>
+            <span className="hidden sm:inline">{t('payroll.rejectedByStaff')}</span>
+            <span className="sm:hidden">{t('common.rejected')}</span>
           </Badge>
         );
       case "PENDING_APPROVAL":
@@ -141,8 +143,8 @@ export default function PayrollPenaltiesPage() {
         return (
           <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span className="hidden sm:inline">PENDING STAFF REVIEW</span>
-            <span className="sm:hidden">Pending</span>
+            <span className="hidden sm:inline">{t('payroll.pendingReview')}</span>
+            <span className="sm:hidden">{t('common.pending')}</span>
           </Badge>
         );
     }
@@ -153,10 +155,10 @@ export default function PayrollPenaltiesPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Penalties & Fines
+            {t('payroll.penaltiesTitle')}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            Log infraction fines, salary deductions, and employee approval responses
+            {t('payroll.penaltiesSubtitle')}
           </p>
         </div>
         <PayrollNav />
@@ -166,21 +168,21 @@ export default function PayrollPenaltiesPage() {
       <div className="block md:hidden space-y-3">
         <div className="p-3 bg-[#FAF6F0] rounded-2xl border border-[#EDE4D5] flex items-center justify-between">
           <div>
-            <h2 className="font-extrabold text-xs text-[#2C1B10] uppercase tracking-wider">Employee Penalties</h2>
-            <p className="text-[11px] text-[#8C7361]">{penalties.length} infraction fines logged</p>
+            <h2 className="font-extrabold text-xs text-[#2C1B10] uppercase tracking-wider">{t('payroll.penaltiesTitle')}</h2>
+            <p className="text-[11px] text-[#8C7361]">{t('payroll.allRecordedPenalties', { count: penalties.length })}</p>
           </div>
           <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs h-8 px-3 shadow-xs">
-            <Plus className="w-3.5 h-3.5 mr-1" /> Log Penalty
+            <Plus className="w-3.5 h-3.5 mr-1" /> {t('payroll.logPenalty')}
           </Button>
         </div>
 
         {isLoading ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            Loading workforce penalties...
+            {t('payroll.loadingPenalties')}
           </div>
         ) : penalties.length === 0 ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            No active penalties logged.
+            {t('payroll.emptyPenalties')}
           </div>
         ) : (
           penalties.map((p) => (
@@ -193,12 +195,12 @@ export default function PayrollPenaltiesPage() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="font-extrabold text-rose-600 text-sm sm:text-base font-mono">-{p.amount} ETB</span>
+                  <span className="font-extrabold text-rose-600 text-sm sm:text-base font-mono">-{p.amount} {t('common.currency')}</span>
                 </div>
               </div>
 
               <div className="p-2.5 bg-[#FAF6F0] rounded-xl text-xs">
-                <span className="text-[#8C7361] block text-[10px] uppercase font-bold">Violation Reason</span>
+                <span className="text-[#8C7361] block text-[10px] uppercase font-bold">{t('common.reason')}</span>
                 <p className="font-semibold text-[#2C1B10] mt-0.5">{p.reason}</p>
               </div>
 
@@ -212,7 +214,7 @@ export default function PayrollPenaltiesPage() {
                         : "bg-rose-100 text-rose-800 border-rose-300"
                     }`}
                   >
-                    {p.isDeducted ? "✓ DEDUCTED" : "⚠ PENDING"}
+                    {p.isDeducted ? `✓ ${t('common.deducted')}` : `⚠ ${t('common.pendingSalary')}`}
                   </Badge>
                 </div>
 
@@ -226,7 +228,7 @@ export default function PayrollPenaltiesPage() {
                     }}
                     className="h-8 px-2.5 text-xs font-bold text-blue-700 border-blue-200 hover:bg-blue-50"
                   >
-                    <Edit2 className="w-3 h-3 mr-1" /> Edit
+                    <Edit2 className="w-3 h-3 mr-1" /> {t('common.edit')}
                   </Button>
                 )}
               </div>
@@ -239,36 +241,36 @@ export default function PayrollPenaltiesPage() {
       <div className="hidden md:block bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
         <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
           <div>
-            <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Penalties</h2>
-            <p className="text-xs text-[#8C7361] mt-0.5">View and edit administrative infraction fines and employee response status</p>
+            <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">{t('payroll.penaltiesTitle')}</h2>
+            <p className="text-xs text-[#8C7361] mt-0.5">{t('payroll.penaltiesSubtitle')}</p>
           </div>
           <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
-            <Plus className="w-4 h-4 mr-1.5" /> Log Penalty
+            <Plus className="w-4 h-4 mr-1.5" /> {t('payroll.logPenalty')}
           </Button>
         </div>
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead className="font-extrabold text-[#2C1B10]">Date Filed (Eth)</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Employee</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Violation Reason</TableHead>
-              <TableHead className="font-extrabold text-rose-700">Penalty Fine</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Employee Approval Status</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Deduction Status</TableHead>
-              {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Actions</TableHead>}
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('common.date')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colStaffMember')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('common.reason')}</TableHead>
+              <TableHead className="font-extrabold text-rose-700">{t('payroll.colPenaltyAmount')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('common.status')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('profile.deductions')}</TableHead>
+              {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
-                  Loading workforce penalties...
+                  {t('payroll.loadingPenalties')}
                 </TableCell>
               </TableRow>
             ) : penalties.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
-                  No active penalties logged.
+                  {t('payroll.emptyPenalties')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -284,7 +286,7 @@ export default function PayrollPenaltiesPage() {
                     {p.reason}
                   </TableCell>
                   <TableCell className="font-extrabold text-rose-700 font-mono">
-                    -{p.amount} ETB
+                    -{p.amount} {t('common.currency')}
                   </TableCell>
                   <TableCell>
                     {getApprovalBadge(p.status)}
@@ -297,7 +299,7 @@ export default function PayrollPenaltiesPage() {
                           : "bg-rose-100 text-rose-800 border-rose-300"
                       }`}
                     >
-                      {p.isDeducted ? "✓ DEDUCTED / SETTLED" : "⚠ PENDING DEDUCTION"}
+                      {p.isDeducted ? `✓ ${t('common.deducted')}` : `⚠ ${t('common.pendingSalary')}`}
                     </Badge>
                   </TableCell>
                   {(user?.role === "OWNER" || user?.role === "ADMIN") && (
@@ -311,7 +313,7 @@ export default function PayrollPenaltiesPage() {
                         }}
                         className="font-bold text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50"
                       >
-                        <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                        <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('common.edit')}
                       </Button>
                     </TableCell>
                   )}
@@ -327,13 +329,13 @@ export default function PayrollPenaltiesPage() {
         <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleAddPenalty}>
             <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Log Penalty Fine</DialogTitle>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">{t('payroll.logPenalty')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3.5 py-3">
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Penalized Employee</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.targetEmployee')}</label>
                 <select name="userId" required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                  <option value="">Select Employee...</option>
+                  <option value="">{t('payroll.selectEmployeePlaceholder')}</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.fullName} ({u.role})
@@ -342,7 +344,7 @@ export default function PayrollPenaltiesPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Fine Amount (ETB)</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.colPenaltyAmount')} ({t('common.currency')})</label>
                 <Input
                   name="amount"
                   type="number"
@@ -355,11 +357,11 @@ export default function PayrollPenaltiesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Infraction Reason</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.reason')}</label>
                 <Input name="reason" required placeholder="e.g. Late arrival, Broken inventory item" className="h-10 rounded-xl border-zinc-200" />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Infraction Date</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date')}</label>
                 <Input name="date" type="date" required defaultValue={new Date().toISOString().split("T")[0]} className="h-10 rounded-xl border-zinc-200" />
               </div>
             </div>
@@ -369,7 +371,7 @@ export default function PayrollPenaltiesPage() {
                 disabled={isSubmitting}
                 className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
               >
-                {isSubmitting ? "Logging..." : "Log Penalty"}
+                {isSubmitting ? t('common.loading') : t('payroll.logPenalty')}
               </Button>
               <Button
                 type="button"
@@ -377,7 +379,7 @@ export default function PayrollPenaltiesPage() {
                 onClick={() => setIsPenaltyOpen(false)}
                 className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
             </DialogFooter>
           </form>
@@ -390,11 +392,11 @@ export default function PayrollPenaltiesPage() {
           <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleUpdatePenalty}>
               <DialogHeader>
-                <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Edit Penalty Record</DialogTitle>
+                <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">{t('payroll.editPenalty')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3.5 py-3">
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Fine Amount (ETB)</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.colPenaltyAmount')} ({t('common.currency')})</label>
                   <Input
                     name="amount"
                     type="number"
@@ -406,26 +408,26 @@ export default function PayrollPenaltiesPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Reason</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.reason')}</label>
                   <Input name="reason" defaultValue={editingPenalty.reason} required className="h-10 rounded-xl border-zinc-200" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Date</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date')}</label>
                   <Input name="date" type="date" defaultValue={editingPenalty.date.split("T")[0]} required className="h-10 rounded-xl border-zinc-200" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Employee Approval Status</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.status')}</label>
                   <select name="status" defaultValue={editingPenalty.status || "PENDING_APPROVAL"} required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                    <option value="PENDING_APPROVAL">⏳ PENDING_APPROVAL (Awaiting Employee Review)</option>
-                    <option value="APPROVED">✓ APPROVED (Employee Acknowledged)</option>
-                    <option value="REJECTED">✕ REJECTED (Rejected by Staff Member)</option>
+                    <option value="PENDING_APPROVAL">⏳ {t('payroll.pendingReview')}</option>
+                    <option value="APPROVED">✓ {t('payroll.acknowledgedApproved')}</option>
+                    <option value="REJECTED">✕ {t('payroll.rejectedByStaff')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Deduction Status</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('profile.deductions')}</label>
                   <select name="isDeducted" defaultValue={editingPenalty.isDeducted ? "true" : "false"} required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                    <option value="false">⚠ PENDING DEDUCTION</option>
-                    <option value="true">✓ DEDUCTED / SETTLED</option>
+                    <option value="false">⚠ {t('common.pendingSalary')}</option>
+                    <option value="true">✓ {t('common.deducted')}</option>
                   </select>
                 </div>
               </div>
@@ -435,7 +437,7 @@ export default function PayrollPenaltiesPage() {
                   disabled={isSubmitting}
                   className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
                 >
-                  {isSubmitting ? "Saving..." : "Save Changes"}
+                  {isSubmitting ? t('common.loading') : t('common.save')}
                 </Button>
                 <Button
                   type="button"
@@ -443,7 +445,7 @@ export default function PayrollPenaltiesPage() {
                   onClick={() => setIsEditPenaltyOpen(false)}
                   className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>

@@ -5,16 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wallet, FileText, DollarSign, FileWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function PayrollNav() {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const tabRefs = useRef<{ [key: string]: HTMLAnchorElement | null }>({});
 
   const tabs = [
-    { label: "Payroll", href: "/payroll", icon: Wallet },
-    { label: "History", href: "/payroll/history", icon: FileText },
-    { label: "Loans", href: "/payroll/loans", icon: DollarSign },
-    { label: "Penalties", href: "/payroll/penalties", icon: FileWarning },
+    { label: t('payroll.navPayroll'), href: "/payroll", icon: Wallet },
+    { label: t('payroll.navHistory'), href: "/payroll/history", icon: FileText },
+    { label: t('payroll.navLoans'), href: "/payroll/loans", icon: DollarSign },
+    { label: t('payroll.navPenalties'), href: "/payroll/penalties", icon: FileWarning },
   ];
 
   // Auto-center active tab like profile page

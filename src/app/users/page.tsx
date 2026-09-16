@@ -254,7 +254,7 @@ export default function UsersPage() {
                     : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
                 }`}
               >
-                <span>Personnel Directory</span>
+                <span>{t('users.tabStaffDirectory')}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                   activeTab === "users" ? "bg-white/20 text-white" : "bg-[#4A2E1B]/10 text-[#4A2E1B]"
                 }`}>
@@ -270,7 +270,7 @@ export default function UsersPage() {
                     : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50"
                 }`}
               >
-                <span>Password Requests</span>
+                <span>{t('users.tabPasswordResets')}</span>
                 {pendingCount > 0 ? (
                   <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
                     {pendingCount}

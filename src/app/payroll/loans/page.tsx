@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface User {
   id: string;
@@ -36,6 +37,7 @@ interface Loan {
 export default function PayrollLoansPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -122,24 +124,24 @@ export default function PayrollLoansPage() {
         return (
           <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="hidden sm:inline">APPROVED BY STAFF</span>
-            <span className="sm:hidden">Approved</span>
+            <span className="hidden sm:inline">{t('payroll.approvedByStaff')}</span>
+            <span className="sm:hidden">{t('common.approved')}</span>
           </Badge>
         );
       case "REJECTED":
         return (
           <Badge className="bg-rose-100 text-rose-900 border-rose-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-            <span className="hidden sm:inline">REJECTED BY STAFF</span>
-            <span className="sm:hidden">Rejected</span>
+            <span className="hidden sm:inline">{t('payroll.rejectedByStaff')}</span>
+            <span className="sm:hidden">{t('common.rejected')}</span>
           </Badge>
         );
       case "PAID":
         return (
           <Badge className="bg-blue-100 text-blue-900 border-blue-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span className="hidden sm:inline">FULLY PAID</span>
-            <span className="sm:hidden">Paid</span>
+            <span className="hidden sm:inline">{t('common.paidInFull')}</span>
+            <span className="sm:hidden">{t('common.paid')}</span>
           </Badge>
         );
       case "PENDING_APPROVAL":
@@ -147,8 +149,8 @@ export default function PayrollLoansPage() {
         return (
           <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span className="hidden sm:inline">PENDING STAFF REVIEW</span>
-            <span className="sm:hidden">Pending</span>
+            <span className="hidden sm:inline">{t('payroll.pendingReview')}</span>
+            <span className="sm:hidden">{t('common.pending')}</span>
           </Badge>
         );
     }
@@ -159,10 +161,10 @@ export default function PayrollLoansPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-            Loans & Advances
+            {t('payroll.loansTitle')}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            Track multi-month staff loans, salary advances, and employee approval status
+            {t('payroll.loansSubtitle')}
           </p>
         </div>
         <PayrollNav />
@@ -172,21 +174,21 @@ export default function PayrollLoansPage() {
       <div className="block md:hidden space-y-3">
         <div className="p-3 bg-[#FAF6F0] rounded-2xl border border-[#EDE4D5] flex items-center justify-between">
           <div>
-            <h2 className="font-extrabold text-xs text-[#2C1B10] uppercase tracking-wider">Employee Loans</h2>
-            <p className="text-[11px] text-[#8C7361]">{loans.length} active or recorded loans</p>
+            <h2 className="font-extrabold text-xs text-[#2C1B10] uppercase tracking-wider">{t('payroll.loansTitle')}</h2>
+            <p className="text-[11px] text-[#8C7361]">{t('payroll.allRecordedLoans', { count: loans.length })}</p>
           </div>
           <Button onClick={() => setIsLoanOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs h-8 px-3 shadow-xs">
-            <Plus className="w-3.5 h-3.5 mr-1" /> Dispatch Loan
+            <Plus className="w-3.5 h-3.5 mr-1" /> {t('payroll.dispatchLoan')}
           </Button>
         </div>
 
         {isLoading ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            Loading employee loans...
+            {t('payroll.loadingLoans')}
           </div>
         ) : loans.length === 0 ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            No employee loans currently recorded.
+            {t('payroll.emptyLoans')}
           </div>
         ) : (
           loans.map((l) => (
@@ -196,7 +198,7 @@ export default function PayrollLoansPage() {
                   <h3 className="font-extrabold text-[#2C1B10] text-sm sm:text-base truncate">{l.user?.fullName}</h3>
                   <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                     <Badge className={`font-bold text-[10px] shrink-0 ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                      {l.type === "STAFF_LOAN" ? "Staff Loan" : "Salary Advance"}
+                      {l.type === "STAFF_LOAN" ? t('payroll.staffLoan') : t('payroll.salaryAdvance')}
                     </Badge>
                     <span className="text-[11px] text-[#8C7361] whitespace-nowrap">• {formatEthDate(l.createdAt)}</span>
                   </div>
@@ -206,12 +208,12 @@ export default function PayrollLoansPage() {
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs bg-[#FAF6F0] rounded-xl p-2.5">
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Original Amount</span>
-                  <span className="font-bold text-[#2C1B10] font-mono">{l.totalAmount} ETB</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('payroll.colLoanAmount')}</span>
+                  <span className="font-bold text-[#2C1B10] font-mono">{l.totalAmount} {t('common.currency')}</span>
                 </div>
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Remaining Balance</span>
-                  <span className="font-extrabold text-rose-600 text-sm font-mono">{l.remainingBalance} ETB</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('payroll.colRemainingBalance')}</span>
+                  <span className="font-extrabold text-rose-600 text-sm font-mono">{l.remainingBalance} {t('common.currency')}</span>
                 </div>
               </div>
 
@@ -226,7 +228,7 @@ export default function PayrollLoansPage() {
                     }}
                     className="w-full h-8 text-xs font-bold text-blue-700 border-blue-200 hover:bg-blue-50"
                   >
-                    <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit Loan Record
+                    <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('payroll.editLoan')}
                   </Button>
                 </div>
               )}
@@ -239,36 +241,36 @@ export default function PayrollLoansPage() {
       <div className="hidden md:block bg-white rounded-2xl border border-[#EDE4D5] shadow-xs overflow-hidden">
         <div className="p-4 border-b border-[#EDE4D5] flex justify-between items-center bg-[#FAF6F0]">
           <div>
-            <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Loans</h2>
-            <p className="text-xs text-[#8C7361] mt-0.5">Track and edit staff micro-loans, advances, and employee approval status</p>
+            <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">{t('payroll.loansTitle')}</h2>
+            <p className="text-xs text-[#8C7361] mt-0.5">{t('payroll.loansSubtitle')}</p>
           </div>
           <Button onClick={() => setIsLoanOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
-            <Plus className="w-4 h-4 mr-1.5" /> Dispatch Loan
+            <Plus className="w-4 h-4 mr-1.5" /> {t('payroll.dispatchLoan')}
           </Button>
         </div>
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead className="font-extrabold text-[#2C1B10]">Date Issued (Eth)</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Employee</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Loan Type</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Original Amount</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Remaining Balance</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Employee Approval Status</TableHead>
-              {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">Actions</TableHead>}
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('common.date')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colStaffMember')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('profile.type')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colLoanAmount')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colRemainingBalance')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('common.status')}</TableHead>
+              {(user?.role === "OWNER" || user?.role === "ADMIN") && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
-                  Loading employee loans...
+                  {t('payroll.loadingLoans')}
                 </TableCell>
               </TableRow>
             ) : loans.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
-                  No employee loans currently recorded.
+                  {t('payroll.emptyLoans')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -282,12 +284,12 @@ export default function PayrollLoansPage() {
                   </TableCell>
                   <TableCell>
                     <Badge className={`font-bold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                      {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
+                      {l.type === "STAFF_LOAN" ? t('payroll.staffLoan') : t('payroll.salaryAdvance')}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-semibold text-[#8C7361] font-mono">{l.totalAmount} ETB</TableCell>
+                  <TableCell className="font-semibold text-[#8C7361] font-mono">{l.totalAmount} {t('common.currency')}</TableCell>
                   <TableCell className="font-extrabold text-[#2C1B10] font-mono">
-                    {l.remainingBalance} ETB
+                    {l.remainingBalance} {t('common.currency')}
                   </TableCell>
                   <TableCell>
                     {getApprovalBadge(l.status)}
@@ -303,7 +305,7 @@ export default function PayrollLoansPage() {
                         }}
                         className="font-bold text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50"
                       >
-                        <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                        <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('common.edit')}
                       </Button>
                     </TableCell>
                   )}
@@ -319,13 +321,13 @@ export default function PayrollLoansPage() {
         <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleAddLoan}>
             <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Dispatch Micro-Loan / Advance</DialogTitle>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">{t('payroll.dispatchLoan')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3.5 py-3">
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Receiving Employee</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.targetEmployee')}</label>
                 <select name="userId" required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                  <option value="">Select Target Employee...</option>
+                  <option value="">{t('payroll.selectEmployeePlaceholder')}</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.fullName} ({u.role})
@@ -334,14 +336,14 @@ export default function PayrollLoansPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Loan Classification</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('profile.type')}</label>
                 <select name="type" required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                  <option value="STAFF_LOAN">Staff Loan (Multi-Month Installment)</option>
-                  <option value="SALARY_ADVANCE">Salary Advance</option>
+                  <option value="STAFF_LOAN">{t('payroll.staffLoan')}</option>
+                  <option value="SALARY_ADVANCE">{t('payroll.salaryAdvance')}</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Total Dispatched Amount (ETB)</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.colLoanAmount')} ({t('common.currency')})</label>
                 <Input
                   name="amount"
                   type="number"
@@ -360,7 +362,7 @@ export default function PayrollLoansPage() {
                 disabled={isSubmitting}
                 className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
               >
-                {isSubmitting ? "Dispatching..." : "Dispatch Loan"}
+                {isSubmitting ? t('common.loading') : t('payroll.dispatchLoan')}
               </Button>
               <Button
                 type="button"
@@ -368,7 +370,7 @@ export default function PayrollLoansPage() {
                 onClick={() => setIsLoanOpen(false)}
                 className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
             </DialogFooter>
           </form>
@@ -381,11 +383,11 @@ export default function PayrollLoansPage() {
           <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleUpdateLoan}>
               <DialogHeader>
-                <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Edit Loan Record</DialogTitle>
+                <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">{t('payroll.editLoan')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3.5 py-3">
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Total Original Amount (ETB)</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.colLoanAmount')} ({t('common.currency')})</label>
                   <Input
                     name="totalAmount"
                     type="number"
@@ -397,7 +399,7 @@ export default function PayrollLoansPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Remaining Unpaid Balance (ETB)</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.colRemainingBalance')} ({t('common.currency')})</label>
                   <Input
                     name="remainingBalance"
                     type="number"
@@ -409,12 +411,12 @@ export default function PayrollLoansPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Loan Approval & Settlement Status</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.status')}</label>
                   <select name="status" defaultValue={editingLoan.status} required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                    <option value="PENDING_APPROVAL">⏳ PENDING_APPROVAL (Awaiting Employee Review)</option>
-                    <option value="OPEN">✓ OPEN / APPROVED (Active Monthly Deduction)</option>
-                    <option value="REJECTED">✕ REJECTED (Rejected by Staff Member)</option>
-                    <option value="PAID">✓ PAID (Fully Settled)</option>
+                    <option value="PENDING_APPROVAL">⏳ {t('payroll.pendingReview')}</option>
+                    <option value="OPEN">✓ {t('payroll.approvedByStaff')}</option>
+                    <option value="REJECTED">✕ {t('payroll.rejectedByStaff')}</option>
+                    <option value="PAID">✓ {t('common.paidInFull')}</option>
                   </select>
                 </div>
               </div>
@@ -424,7 +426,7 @@ export default function PayrollLoansPage() {
                   disabled={isSubmitting}
                   className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
                 >
-                  {isSubmitting ? "Saving..." : "Save Changes"}
+                  {isSubmitting ? t('common.loading') : t('common.save')}
                 </Button>
                 <Button
                   type="button"
@@ -432,7 +434,7 @@ export default function PayrollLoansPage() {
                   onClick={() => setIsEditLoanOpen(false)}
                   className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>
