@@ -18,6 +18,7 @@ import {
   Layers,
   Boxes
 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ProductHistoryRecord {
   id: string;
@@ -60,6 +61,7 @@ interface ProductItem {
 export default function DailyProductHistoryPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
 
   const [records, setRecords] = useState<ProductHistoryRecord[]>([]);
@@ -187,10 +189,10 @@ export default function DailyProductHistoryPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
             <History className="w-7 h-7 text-[#E87A18]" />
-            Daily Production History
+            {t('productionHistory.title')}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-1">
-            Production audit records formatted by user and timestamp.
+            {t('productionHistory.subtitle')}
           </p>
         </div>
 
@@ -200,7 +202,7 @@ export default function DailyProductHistoryPage() {
             onClick={fetchHistory}
             className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs"
           >
-            Refresh Logs
+            {t('productionHistory.refreshLogs')}
           </Button>
         </div>
       </div>
@@ -210,11 +212,11 @@ export default function DailyProductHistoryPage() {
         <div className="bg-white border border-emerald-100 rounded-2xl p-3.5 xs:p-4 shadow-xs flex items-center justify-between min-w-0">
           <div className="min-w-0 pr-2">
             <p className="text-[11px] xs:text-xs font-bold text-emerald-800 uppercase tracking-wider truncate">
-              Total Quantity Produced
+              {t('productionHistory.totalQuantityProduced')}
             </p>
             <h3 className="text-xl xs:text-2xl font-extrabold text-emerald-900 font-mono mt-0.5 xs:mt-1">
               {filteredRoleSummary.totalProducedQuantity.toLocaleString()}{" "}
-              <span className="text-xs text-emerald-700 font-normal">Pcs</span>
+              <span className="text-xs text-emerald-700 font-normal">{t('productionHistory.pcs')}</span>
             </h3>
           </div>
           <div className="p-2.5 xs:p-3 bg-emerald-50 rounded-xl shrink-0">
@@ -226,14 +228,14 @@ export default function DailyProductHistoryPage() {
           <div className="bg-white border border-amber-100 rounded-2xl p-3.5 xs:p-4 shadow-xs flex items-center justify-between min-w-0">
             <div className="min-w-0 pr-2">
               <p className="text-[11px] xs:text-xs font-bold text-amber-800 uppercase tracking-wider truncate">
-                Est. Production Valuation
+                {t('productionHistory.estValuation')}
               </p>
               <h3 className="text-xl xs:text-2xl font-extrabold text-amber-900 font-mono mt-0.5 xs:mt-1 truncate">
                 {filteredRoleSummary.totalValuation.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}{" "}
-                <span className="text-xs text-amber-700 font-normal">ETB</span>
+                <span className="text-xs text-amber-700 font-normal">{t('productionHistory.etb')}</span>
               </h3>
             </div>
             <div className="p-2.5 xs:p-3 bg-amber-50 rounded-xl shrink-0">
@@ -244,11 +246,11 @@ export default function DailyProductHistoryPage() {
           <div className="bg-white border border-indigo-100 rounded-2xl p-3.5 xs:p-4 shadow-xs flex items-center justify-between min-w-0">
             <div className="min-w-0 pr-2">
               <p className="text-[11px] xs:text-xs font-bold text-indigo-800 uppercase tracking-wider truncate">
-                Product Varieties Logged
+                {t('productionHistory.varietiesLogged')}
               </p>
               <h3 className="text-xl xs:text-2xl font-extrabold text-indigo-900 font-mono mt-0.5 xs:mt-1">
                 {uniqueProductsCount.toLocaleString()}{" "}
-                <span className="text-xs text-indigo-700 font-normal">Types</span>
+                <span className="text-xs text-indigo-700 font-normal">{t('productionHistory.types')}</span>
               </h3>
             </div>
             <div className="p-2.5 xs:p-3 bg-indigo-50 rounded-xl shrink-0">
@@ -260,11 +262,11 @@ export default function DailyProductHistoryPage() {
         <div className="bg-white border border-purple-100 rounded-2xl p-3.5 xs:p-4 shadow-xs flex items-center justify-between min-w-0">
           <div className="min-w-0 pr-2">
             <p className="text-[11px] xs:text-xs font-bold text-purple-800 uppercase tracking-wider truncate">
-              Production Batches Logged
+              {t('productionHistory.batchesLogged')}
             </p>
             <h3 className="text-xl xs:text-2xl font-extrabold text-purple-900 font-mono mt-0.5 xs:mt-1">
               {filteredRoleSummary.count.toLocaleString()}{" "}
-              <span className="text-xs text-purple-700 font-normal">Batches</span>
+              <span className="text-xs text-purple-700 font-normal">{t('productionHistory.batches')}</span>
             </h3>
           </div>
           <div className="p-2.5 xs:p-3 bg-purple-50 rounded-xl shrink-0">
@@ -289,7 +291,7 @@ export default function DailyProductHistoryPage() {
                     : "border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]"
                 }`}
               >
-                📅 Today Only
+                📅 {t('productionHistory.todayOnly')}
               </Button>
 
               <select
@@ -297,7 +299,7 @@ export default function DailyProductHistoryPage() {
                 onChange={(e) => setProductFilter(e.target.value)}
                 className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 text-xs px-2.5 font-semibold text-[#2C1B10] focus:outline-none flex-1 lg:flex-initial lg:w-48 truncate"
               >
-                <option value="">All Products</option>
+                <option value="">{t('productionHistory.allProducts')}</option>
                 {allProducts.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -332,7 +334,7 @@ export default function DailyProductHistoryPage() {
                   <Search className="w-3.5 h-3.5 text-[#8C7361] absolute left-3 top-2.5 pointer-events-none" />
                   <Input
                     type="text"
-                    placeholder="Search..."
+                    placeholder={t('common.search') || "Search..."}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-8 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl w-full"
@@ -344,7 +346,7 @@ export default function DailyProductHistoryPage() {
                   size="sm"
                   className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] rounded-xl text-xs font-bold h-9 px-4 shrink-0 shadow-xs"
                 >
-                  Filter
+                  {t('common.filter') || "Filter"}
                 </Button>
               </div>
             </div>
@@ -356,11 +358,11 @@ export default function DailyProductHistoryPage() {
       <div className="space-y-3 block md:hidden mb-6">
         {isLoading ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            Loading daily production history...
+            {t('productionHistory.loading')}
           </div>
         ) : filteredRoleRecords.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            No daily production history records found.
+            {t('productionHistory.noRecords')}
           </div>
         ) : (
           filteredRoleRecords.map((row) => (
@@ -371,26 +373,26 @@ export default function DailyProductHistoryPage() {
               <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2">
                 <div>
                   <span className="font-extrabold text-sm text-[#2C1B10] block">{row.productName}</span>
-                  <span className="text-[11px] text-[#8C7361] font-medium">Unit: {row.unitType}</span>
+                  <span className="text-[11px] text-[#8C7361] font-medium">{t('common.unit')}: {row.unitType}</span>
                 </div>
                 <span className="px-2.5 py-1 bg-amber-100/70 border border-amber-200 rounded-lg text-xs font-bold text-amber-900 shrink-0">
-                  {row.shift || "DAY"} Shift
+                  {row.shift === "NIGHT" ? t('production.nightShift') : t('production.dayShift')}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Produced Qty</span>
+                  <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('productionHistory.colProducedQty')}</span>
                   <span className="font-mono text-base font-extrabold text-emerald-800">
-                    {row.quantity.toLocaleString()} <span className="text-xs font-normal">Pcs</span>
+                    {row.quantity.toLocaleString()} <span className="text-xs font-normal">{t('productionHistory.pcs')}</span>
                   </span>
                 </div>
 
                 {isGlobalAdmin && (
                   <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Subtotal</span>
+                    <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('common.subtotal')}</span>
                     <span className="font-mono text-xs font-bold text-[#E87A18]">
-                      {row.subtotal.toFixed(2)} ETB
+                      {row.subtotal.toFixed(2)} {t('productionHistory.etb')}
                     </span>
                   </div>
                 )}
@@ -410,31 +412,31 @@ export default function DailyProductHistoryPage() {
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead className="font-extrabold text-[#2C1B10]">Date & Time (Eth Calendar)</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Product Name</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">Produced Qty</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('productionHistory.colDateTime')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('productionHistory.colProductName')}</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('productionHistory.colProducedQty')}</TableHead>
               {isGlobalAdmin ? (
                 <>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Unit Base Price</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Total Value</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('productionHistory.colUnitBasePrice')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('productionHistory.colTotalValue')}</TableHead>
                 </>
               ) : (
-                <TableHead className="font-extrabold text-[#2C1B10]">Work Shift</TableHead>
+                <TableHead className="font-extrabold text-[#2C1B10]">{t('productionHistory.colWorkShift')}</TableHead>
               )}
-              <TableHead className="font-extrabold text-[#2C1B10]">Source / Station</TableHead>
+              <TableHead className="font-extrabold text-[#2C1B10]">{t('productionHistory.colSourceStation')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={isGlobalAdmin ? 6 : 5} className="text-center py-10 text-[#8C7361]">
-                  Loading daily production history...
+                  {t('productionHistory.loading')}
                 </TableCell>
               </TableRow>
             ) : filteredRoleRecords.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={isGlobalAdmin ? 6 : 5} className="text-center py-10 text-[#8C7361]">
-                  No daily production history records found.
+                  {t('productionHistory.noRecords')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -446,28 +448,28 @@ export default function DailyProductHistoryPage() {
 
                   <TableCell className="font-bold text-sm text-[#2C1B10]">
                     {row.productName}
-                    <span className="text-[10px] text-zinc-400 block font-normal">Unit: {row.unitType}</span>
+                    <span className="text-[10px] text-zinc-400 block font-normal">{t('common.unit')}: {row.unitType}</span>
                   </TableCell>
 
                   <TableCell className="font-mono text-xs">
                     <div className="font-extrabold text-emerald-800">
-                      {row.quantity.toLocaleString()} Pcs
+                      {row.quantity.toLocaleString()} {t('productionHistory.pcs')}
                     </div>
                   </TableCell>
 
                   {isGlobalAdmin ? (
                     <>
                       <TableCell className="font-mono text-xs text-zinc-700">
-                        {row.basePrice.toFixed(2)} ETB
+                        {row.basePrice.toFixed(2)} {t('productionHistory.etb')}
                       </TableCell>
                       <TableCell className="font-mono font-bold text-xs text-[#E87A18]">
-                        {row.subtotal.toFixed(2)} ETB
+                        {row.subtotal.toFixed(2)} {t('productionHistory.etb')}
                       </TableCell>
                     </>
                   ) : (
                     <TableCell className="font-semibold text-xs text-amber-900">
                       <span className="px-2.5 py-1 bg-amber-100/70 border border-amber-200 rounded-lg">
-                        {row.shift || "DAY"} Shift
+                        {row.shift === "NIGHT" ? t('production.nightShift') : t('production.dayShift')}
                       </span>
                     </TableCell>
                   )}

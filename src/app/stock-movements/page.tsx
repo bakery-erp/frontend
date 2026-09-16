@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { 
   CreditCard, Coins, CheckCircle2, AlertCircle, History, 
@@ -92,6 +93,7 @@ interface StockPurchaseLoan {
 export default function StockMovementsPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
   useEffect(() => {
@@ -338,14 +340,24 @@ export default function StockMovementsPage() {
     }
   };
 
+  const getMovementTypeLabel = (type: string) => {
+    switch (type) {
+      case "IN": return t('stockMovements.typeIn');
+      case "OUT": return t('stockMovements.typeOut');
+      case "ADJUSTMENT": return t('stockMovements.typeAdjustment');
+      case "PRODUCTION_USAGE": return t('stockMovements.typeProductionUsage');
+      default: return type.replace('_', ' ');
+    }
+  };
+
   const getLoanStatusBadge = (status: string) => {
     switch (status) {
       case "UNPAID":
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 flex items-center gap-1 w-fit"><AlertCircle className="w-3.5 h-3.5" /> Unpaid</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 flex items-center gap-1 w-fit"><AlertCircle className="w-3.5 h-3.5" /> {t('stockMovements.statusUnpaid')}</span>;
       case "PARTIAL":
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 w-fit"><Coins className="w-3.5 h-3.5" /> Partial</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 w-fit"><Coins className="w-3.5 h-3.5" /> {t('stockMovements.statusPartial')}</span>;
       case "PAID":
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1 w-fit"><CheckCircle2 className="w-3.5 h-3.5" /> Settled</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1 w-fit"><CheckCircle2 className="w-3.5 h-3.5" /> {t('stockMovements.statusSettled')}</span>;
       default:
         return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-700">{status}</span>;
     }
@@ -359,12 +371,12 @@ export default function StockMovementsPage() {
     <DashboardLayout>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#2C1B10]">Stock Movements & Credit Purchases</h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">Track material inventory entries, usage, and stock loans acquired from suppliers</p>
+          <h1 className="text-2xl font-extrabold text-[#2C1B10]">{t('stockMovements.title')}</h1>
+          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('stockMovements.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-sm text-xs sm:text-sm">
-            + Record Movement
+            {t('stockMovements.recordMovement')}
           </Button>
         </div>
       </div>
@@ -388,7 +400,7 @@ export default function StockMovementsPage() {
             }`}
           >
             <ArrowRightLeft className={`w-4 h-4 shrink-0 ${activeTab === "movements" ? "text-amber-300" : "text-[#E87A18]"}`} />
-            <span>Movements Ledger ({movements.length})</span>
+            <span>{t('stockMovements.movementsLedger')} ({movements.length})</span>
           </button>
 
           <button
@@ -401,7 +413,7 @@ export default function StockMovementsPage() {
             }`}
           >
             <CreditCard className={`w-4 h-4 shrink-0 ${activeTab === "loans" ? "text-purple-300" : "text-purple-600"}`} />
-            <span>Stock Loans & Credit ({loans.length})</span>
+            <span>{t('stockMovements.loansAndCredit')} ({loans.length})</span>
             {loanStats.activeLoansCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-bold">
                 {loanStats.activeLoansCount}
@@ -419,20 +431,20 @@ export default function StockMovementsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-[#FAF7EE]/50">
-                  <TableHead className="font-extrabold text-[#2C1B10]">Date & Time</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Stock Material Item</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Movement Type</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Quantity Delta</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Monetary Delta (ETB)</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Reason / Notes</TableHead>
-                  <TableHead className="pr-6 font-extrabold text-[#2C1B10]">Recorded By</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colDateTime')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMaterial')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMovementType')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colQtyDelta')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMonetaryDelta')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colReason')}</TableHead>
+                  <TableHead className="pr-6 font-extrabold text-[#2C1B10]">{t('stockMovements.colRecordedBy')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingMovements ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">Loading stock movements...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.loading')}</TableCell></TableRow>
                 ) : movements.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">No movements recorded yet.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
                 ) : movements.map(mov => {
                   const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
                   const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
@@ -446,7 +458,7 @@ export default function StockMovementsPage() {
                       <TableCell className="font-bold text-[#2C1B10]">{mov.stockItem?.name}</TableCell>
                       <TableCell>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getMovementColor(mov.type)}`}>
-                          {mov.type.replace('_', ' ')}
+                          {getMovementTypeLabel(mov.type)}
                         </span>
                       </TableCell>
                       <TableCell className="font-bold text-sm">
@@ -458,11 +470,11 @@ export default function StockMovementsPage() {
                       </TableCell>
                       <TableCell className="font-extrabold text-xs">
                         <span className={isNegative ? "text-rose-600" : "text-emerald-700"}>
-                          {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
                         </span>
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={mov.reason || "—"}>
-                        {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, 'Production Usage') : "—"}
+                        {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, t('stockMovements.typeProductionUsage')) : "—"}
                       </TableCell>
                       <TableCell className="text-xs font-bold text-[#2C1B10] pr-6">{mov.user?.fullName || "System"}</TableCell>
                     </TableRow>
@@ -475,9 +487,9 @@ export default function StockMovementsPage() {
           {/* Mobile Cards View */}
           <div className="grid grid-cols-1 gap-3 sm:hidden">
             {isLoadingMovements ? (
-              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">Loading stock movements...</div>
+              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stockMovements.loading')}</div>
             ) : movements.length === 0 ? (
-              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">No movements recorded yet.</div>
+              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stockMovements.noMovements')}</div>
             ) : movements.map(mov => {
               const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
               const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
@@ -491,28 +503,28 @@ export default function StockMovementsPage() {
                       <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</div>
                     </div>
                     <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${getMovementColor(mov.type)}`}>
-                      {mov.type.replace('_', ' ')}
+                      {getMovementTypeLabel(mov.type)}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1">
                     <div>
-                      <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Quantity Delta</span>
+                      <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colQtyDelta')}</span>
                       <span className={`font-bold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
                         {isNegative ? "-" : "+"}{Number(mov.quantity).toFixed(2)} {mov.stockItem?.unitType}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Monetary Value</span>
+                      <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colTotalValue')}</span>
                       <span className={`font-extrabold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
-                        {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
-                    <span>By: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
-                    <span className="truncate max-w-[150px]">{mov.reason || "No note"}</span>
+                    <span>{t('stockMovements.colRecordedBy')}: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
+                    <span className="truncate max-w-[150px]">{mov.reason || "—"}</span>
                   </div>
                 </div>
               );
@@ -528,54 +540,54 @@ export default function StockMovementsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">Total Credit</span>
+                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiTotalCredit')}</span>
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
                   <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
               <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] mt-1.5 sm:mt-2 font-mono truncate">
-                {loanStats.totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                {loanStats.totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
               </p>
-              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">Total stock bought on credit</span>
+              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiTotalCreditDesc')}</span>
             </div>
 
             <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">Total Paid</span>
+                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiTotalPaid')}</span>
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
                   <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
               <p className="text-base sm:text-xl font-extrabold text-emerald-700 mt-1.5 sm:mt-2 font-mono truncate">
-                {loanStats.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                {loanStats.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
               </p>
-              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">Paid to suppliers so far</span>
+              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiTotalPaidDesc')}</span>
             </div>
 
             <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">Remaining Debt</span>
+                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiRemainingDebt')}</span>
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
                   <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
               <p className="text-base sm:text-xl font-extrabold text-rose-600 mt-1.5 sm:mt-2 font-mono truncate">
-                {loanStats.totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                {loanStats.totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
               </p>
-              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">Remaining balance due</span>
+              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiRemainingDebtDesc')}</span>
             </div>
 
             <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">Active Loans</span>
+                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiActiveLoans')}</span>
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
               <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] mt-1.5 sm:mt-2 font-mono truncate">
-                {loanStats.activeLoansCount} <span className="text-xs font-normal text-[#8C7361]">unsettled</span>
+                {loanStats.activeLoansCount} <span className="text-xs font-normal text-[#8C7361]">{t('stockMovements.unsettled')}</span>
               </p>
-              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">Pending full payment</span>
+              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiActiveLoansDesc')}</span>
             </div>
           </div>
 
@@ -600,7 +612,13 @@ export default function StockMovementsPage() {
                         : "bg-[#FAF7EE] text-[#8C7361] hover:text-[#2C1B10]"
                     }`}
                   >
-                    {st === "ALL" ? "All Credit Purchases" : st}
+                    {st === "ALL" 
+                      ? t('stockMovements.filterAllCredit') 
+                      : (st === "UNPAID" 
+                          ? t('stockMovements.statusUnpaid') 
+                          : (st === "PARTIAL" 
+                              ? t('stockMovements.statusPartial') 
+                              : t('stockMovements.statusSettled')))}
                   </button>
                 ))}
               </div>
@@ -610,7 +628,7 @@ export default function StockMovementsPage() {
             <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#8C7361]" />
               <Input
-                placeholder="Search supplier or item..."
+                placeholder={t('stockMovements.searchPlaceholder')}
                 value={loanSearch}
                 onChange={(e) => setLoanSearch(e.target.value)}
                 className="pl-9 text-xs rounded-xl bg-[#FAF7EE] border-[#EDE4D5] h-9 w-full"
@@ -623,20 +641,20 @@ export default function StockMovementsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-[#FAF7EE]/50">
-                  <TableHead className="font-extrabold text-[#2C1B10]">Date & Supplier</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Stock Item Purchased</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Total Value (ETB)</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Paid Amount</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Remaining Balance</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">Status</TableHead>
-                  <TableHead className="pr-6 font-extrabold text-[#2C1B10] text-right">Actions</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colDateSupplier')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colStockItemPurchased')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colTotalValue')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colPaidAmount')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colRemainingBalance')}</TableHead>
+                  <TableHead className="font-extrabold text-[#2C1B10]">{t('common.status')}</TableHead>
+                  <TableHead className="pr-6 font-extrabold text-[#2C1B10] text-right">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingLoans ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">Loading stock loan records...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.loadingLoans')}</TableCell></TableRow>
                 ) : filteredLoans.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">No stock credit loans found matching criteria.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noLoansFound')}</TableCell></TableRow>
                 ) : filteredLoans.map(loan => {
                   const item = loan.stockMovement?.stockItem;
                   const qty = Number(loan.stockMovement?.quantity || 0);
@@ -647,23 +665,23 @@ export default function StockMovementsPage() {
                   return (
                     <TableRow key={loan.id}>
                       <TableCell>
-                        <div className="font-bold text-[#2C1B10]">{loan.supplierName || "Unspecified Supplier"}</div>
+                        <div className="font-bold text-[#2C1B10]">{loan.supplierName || t('stockMovements.unspecifiedSupplier')}</div>
                         <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(loan.createdAt, true)}</div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-bold text-[#2C1B10]">{item?.name || "Stock Item"}</div>
+                        <div className="font-bold text-[#2C1B10]">{item?.name || t('stockMovements.colMaterial')}</div>
                         <div className="text-xs text-[#8C7361]">
-                          Quantity: <strong className="text-[#2C1B10]">{qty.toFixed(2)} {item?.unitType}</strong>
+                          {t('stock.colCurrentQty')}: <strong className="text-[#2C1B10]">{qty.toFixed(2)} {item?.unitType}</strong>
                         </div>
                       </TableCell>
                       <TableCell className="font-extrabold text-xs text-[#2C1B10]">
-                        {tot.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        {tot.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
                       </TableCell>
                       <TableCell className="font-bold text-xs text-emerald-700">
-                        {paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        {paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
                       </TableCell>
                       <TableCell className="font-extrabold text-xs text-rose-600">
-                        {rem.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        {rem.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
                       </TableCell>
                       <TableCell>{getLoanStatusBadge(loan.status)}</TableCell>
                       <TableCell className="text-right pr-6">
@@ -678,7 +696,7 @@ export default function StockMovementsPage() {
                               }}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl h-8 px-3"
                             >
-                              <Coins className="w-3.5 h-3.5 mr-1" /> Pay Loan
+                              <Coins className="w-3.5 h-3.5 mr-1" /> {t('stockMovements.payLoanBtn')}
                             </Button>
                           )}
 
@@ -687,7 +705,7 @@ export default function StockMovementsPage() {
                             variant="outline"
                             onClick={() => setSelectedLoanForHistory(loan)}
                             className="text-xs font-bold rounded-xl h-8 px-2.5 border-[#EDE4D5]"
-                            title="View Installment Payment Logs"
+                            title={t('stockMovements.historyModalTitle')}
                           >
                             <History className="w-3.5 h-3.5 text-[#8C7361]" />
                             {loan.payments && loan.payments.length > 0 && (
@@ -708,9 +726,9 @@ export default function StockMovementsPage() {
           {/* Mobile Loans Card View */}
           <div className="grid grid-cols-1 gap-3 sm:hidden">
             {isLoadingLoans ? (
-              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">Loading stock loan records...</div>
+              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stockMovements.loadingLoans')}</div>
             ) : filteredLoans.length === 0 ? (
-              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">No stock credit loans found matching criteria.</div>
+              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stockMovements.noLoansFound')}</div>
             ) : filteredLoans.map(loan => {
               const item = loan.stockMovement?.stockItem;
               const qty = Number(loan.stockMovement?.quantity || 0);
@@ -722,29 +740,29 @@ export default function StockMovementsPage() {
                 <div key={loan.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="font-extrabold text-[#2C1B10] text-base">{loan.supplierName || "Unspecified Supplier"}</div>
+                      <div className="font-extrabold text-[#2C1B10] text-base">{loan.supplierName || t('stockMovements.unspecifiedSupplier')}</div>
                       <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(loan.createdAt, true)}</div>
                     </div>
                     {getLoanStatusBadge(loan.status)}
                   </div>
 
                   <div className="p-3 bg-[#FAF7EE] rounded-xl text-xs space-y-1">
-                    <div className="font-bold text-[#2C1B10]">Stock Item: {item?.name}</div>
-                    <div className="text-[#8C7361]">Quantity: <strong className="text-[#2C1B10]">{qty.toFixed(2)} {item?.unitType}</strong></div>
+                    <div className="font-bold text-[#2C1B10]">{t('stockMovements.colMaterial')}: {item?.name}</div>
+                    <div className="text-[#8C7361]">{t('stock.colCurrentQty')}: <strong className="text-[#2C1B10]">{qty.toFixed(2)} {item?.unitType}</strong></div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 text-center text-xs bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total</span>
-                      <span className="font-bold text-[#2C1B10] font-mono">{tot.toLocaleString()} ETB</span>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('common.total')}</span>
+                      <span className="font-bold text-[#2C1B10] font-mono">{tot.toLocaleString()} {t('common.currency')}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Paid</span>
-                      <span className="font-bold text-emerald-700 font-mono">{paid.toLocaleString()} ETB</span>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('stockMovements.colPaidAmount')}</span>
+                      <span className="font-bold text-emerald-700 font-mono">{paid.toLocaleString()} {t('common.currency')}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Remaining</span>
-                      <span className="font-extrabold text-rose-600 font-mono">{rem.toLocaleString()} ETB</span>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('stockMovements.colRemainingBalance')}</span>
+                      <span className="font-extrabold text-rose-600 font-mono">{rem.toLocaleString()} {t('common.currency')}</span>
                     </div>
                   </div>
 
@@ -759,7 +777,7 @@ export default function StockMovementsPage() {
                         }}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl h-9 px-3 flex-1 shadow-sm"
                       >
-                        <Coins className="w-3.5 h-3.5 mr-1" /> Pay Installment
+                        <Coins className="w-3.5 h-3.5 mr-1" /> {t('stockMovements.payInstallmentBtn')}
                       </Button>
                     )}
                     <Button
@@ -768,7 +786,7 @@ export default function StockMovementsPage() {
                       onClick={() => setSelectedLoanForHistory(loan)}
                       className="text-xs font-bold rounded-xl h-9 px-3 border-[#EDE4D5] hover:bg-[#FAF6F0]"
                     >
-                      <History className="w-3.5 h-3.5 mr-1 text-[#8C7361]" /> History ({loan.payments?.length || 0})
+                      <History className="w-3.5 h-3.5 mr-1 text-[#8C7361]" /> {t('stockMovements.historyBtn')} ({loan.payments?.length || 0})
                     </Button>
                   </div>
                 </div>
@@ -790,36 +808,36 @@ export default function StockMovementsPage() {
         }}>
           <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-[#2C1B10]">Record Stock Movement</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-[#2C1B10]">{t('stockMovements.modalRecordTitle')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit}>
               <div className="grid gap-3.5 py-3">
                 
                 <div>
-                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">Movement Type</label>
+                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">{t('stockMovements.colMovementType')}</label>
                   <select 
                     value={movementType} 
                     onChange={(e) => setMovementType(e.target.value as any)}
                     className="w-full border rounded-xl h-10 px-3 bg-background text-sm font-semibold"
                   >
-                    <option value="IN">IN (Add Stock Purchased/Delivered)</option>
-                    <option value="OUT">OUT (Manual Stock Removal)</option>
-                    <option value="ADJUSTMENT">ADJUSTMENT (Set Exact Quantity Count)</option>
+                    <option value="IN">{t('stockMovements.optionIn')}</option>
+                    <option value="OUT">{t('stockMovements.optionOut')}</option>
+                    <option value="ADJUSTMENT">{t('stockMovements.optionAdjustment')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">Stock Material Item</label>
+                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">{t('stockMovements.colMaterial')}</label>
                   <select 
                     required 
                     value={selectedStockItem}
                     onChange={(e) => setSelectedStockItem(e.target.value)}
                     className="w-full border rounded-xl h-10 px-3 bg-background text-sm font-semibold"
                   >
-                    <option value="" disabled>Select Item</option>
+                    <option value="" disabled>{t('stockMovements.selectItem')}</option>
                     {stockItems.map(item => (
                       <option key={item.id} value={item.id}>
-                        {item.name} (Current: {Number(item.currentQuantity).toFixed(2)} {item.unitType})
+                        {item.name} ({t('stock.colCurrentQty')}: {Number(item.currentQuantity).toFixed(2)} {item.unitType})
                       </option>
                     ))}
                   </select>
@@ -827,13 +845,13 @@ export default function StockMovementsPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">
-                    {movementType === "ADJUSTMENT" ? "New Total Quantity" : "Quantity to Transfer"}
+                    {movementType === "ADJUSTMENT" ? t('stockMovements.newTotalQty') : t('stockMovements.qtyToTransfer')}
                   </label>
                   <Input 
                     name="quantity" 
                     type="number" 
                     step="0.001" 
-                    min="0"
+                    min="0" 
                     required 
                     onFocus={(e) => e.target.select()}
                     placeholder={movementType === "ADJUSTMENT" ? "e.g. 50" : "e.g. 10"} 
@@ -842,7 +860,7 @@ export default function StockMovementsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">Reason / Reference Notes (Optional)</label>
+                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">{t('stockMovements.reasonNotesOptional')}</label>
                   <Input name="reason" placeholder="e.g. Supplier delivery, Recount, Spilled" className="h-10 rounded-xl text-xs" />
                 </div>
 
@@ -855,13 +873,13 @@ export default function StockMovementsPage() {
                         onChange={(e) => setIsLoan(e.target.checked)} 
                         className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
                       />
-                      <span className="text-xs font-extrabold text-purple-950">Stock Acquired on Credit / Loan from Supplier?</span>
+                      <span className="text-xs font-extrabold text-purple-950">{t('stockMovements.creditLoanPrompt')}</span>
                     </label>
 
                     {isLoan && (
                       <div className="space-y-3 pt-1">
                         <div>
-                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Supplier / Vendor Name</label>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stockMovements.colSupplier')}</label>
                           <Input 
                             value={supplierName} 
                             onChange={(e) => setSupplierName(e.target.value)} 
@@ -870,7 +888,7 @@ export default function StockMovementsPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Amount Paid Upfront / Down Payment (ETB)</label>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stockMovements.downPaymentLabel')}</label>
                           <Input 
                             type="number" 
                             step="0.01" 
@@ -881,7 +899,7 @@ export default function StockMovementsPage() {
                             placeholder="0.00 (leave 0 if 100% credit)" 
                             className="bg-white rounded-xl border-purple-200 text-xs font-mono h-9" 
                           />
-                          <p className="text-[10px] text-purple-700 mt-1">The remaining amount will be logged under company credit loans.</p>
+                          <p className="text-[10px] text-purple-700 mt-1">{t('stockMovements.creditLoanNote')}</p>
                         </div>
                       </div>
                     )}
@@ -895,7 +913,7 @@ export default function StockMovementsPage() {
                   disabled={isSubmitting}
                   className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
                 >
-                  {isSubmitting ? "Saving..." : "Record Movement"}
+                  {isSubmitting ? t('common.loading') : t('stockMovements.recordMovement')}
                 </Button>
                 <Button
                   type="button"
@@ -903,7 +921,7 @@ export default function StockMovementsPage() {
                   onClick={() => setIsAddOpen(false)}
                   className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>
@@ -918,45 +936,45 @@ export default function StockMovementsPage() {
             <DialogHeader>
               <DialogTitle className="text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <Coins className="w-5 h-5 text-emerald-600 shrink-0" />
-                Record Stock Loan Payment
+                {t('stockMovements.payModalTitle')}
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handlePayLoanSubmit} className="space-y-4 py-2">
               <div className="bg-[#FAF7EE] p-3.5 sm:p-4 rounded-2xl border border-[#EDE4D5] space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-[#8C7361] font-semibold">Supplier Name:</span>
-                  <span className="font-extrabold text-[#2C1B10]">{selectedLoanForPay.supplierName || "Unspecified"}</span>
+                  <span className="text-[#8C7361] font-semibold">{t('stockMovements.colSupplier')}:</span>
+                  <span className="font-extrabold text-[#2C1B10]">{selectedLoanForPay.supplierName || t('stockMovements.unspecifiedSupplier')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#8C7361] font-semibold">Stock Purchased:</span>
+                  <span className="text-[#8C7361] font-semibold">{t('stockMovements.colStockItemPurchased')}:</span>
                   <span className="font-bold text-[#2C1B10]">
                     {selectedLoanForPay.stockMovement?.stockItem?.name} ({Number(selectedLoanForPay.stockMovement?.quantity || 0)} {selectedLoanForPay.stockMovement?.stockItem?.unitType})
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#8C7361] font-semibold">Total Purchase Value:</span>
-                  <span className="font-bold text-[#2C1B10] font-mono">{Number(selectedLoanForPay.totalAmount).toLocaleString()} ETB</span>
+                  <span className="text-[#8C7361] font-semibold">{t('stockMovements.colTotalValue')}:</span>
+                  <span className="font-bold text-[#2C1B10] font-mono">{Number(selectedLoanForPay.totalAmount).toLocaleString()} {t('common.currency')}</span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-[#EDE4D5]">
-                  <span className="text-[#8C7361] font-semibold">Paid to Date:</span>
-                  <span className="font-bold text-emerald-700 font-mono">{Number(selectedLoanForPay.paidAmount).toLocaleString()} ETB</span>
+                  <span className="text-[#8C7361] font-semibold">{t('stockMovements.colPaidAmount')}:</span>
+                  <span className="font-bold text-emerald-700 font-mono">{Number(selectedLoanForPay.paidAmount).toLocaleString()} {t('common.currency')}</span>
                 </div>
                 <div className="flex justify-between text-sm pt-1 border-t border-[#EDE4D5]">
-                  <span className="font-bold text-rose-700">Remaining Balance:</span>
-                  <span className="font-extrabold text-rose-600 font-mono">{Number(selectedLoanForPay.remainingBalance).toLocaleString()} ETB</span>
+                  <span className="font-bold text-rose-700">{t('stockMovements.colRemainingBalance')}:</span>
+                  <span className="font-extrabold text-rose-600 font-mono">{Number(selectedLoanForPay.remainingBalance).toLocaleString()} {t('common.currency')}</span>
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-extrabold text-[#2C1B10] uppercase">Payment Amount (ETB)</label>
+                  <label className="text-xs font-extrabold text-[#2C1B10] uppercase">{t('stockMovements.payAmountLabel')}</label>
                   <button
                     type="button"
                     onClick={() => setPayAmount(String(Number(selectedLoanForPay.remainingBalance)))}
                     className="text-[11px] font-bold text-emerald-700 hover:underline"
                   >
-                    Pay Full Balance ({Number(selectedLoanForPay.remainingBalance).toLocaleString()} ETB)
+                    {t('stockMovements.payFullBalance')} ({Number(selectedLoanForPay.remainingBalance).toLocaleString()} {t('common.currency')})
                   </button>
                 </div>
                 <Input
@@ -968,13 +986,13 @@ export default function StockMovementsPage() {
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
                   onFocus={(e) => e.target.select()}
-                  placeholder="Enter amount to pay"
+                  placeholder="0.00"
                   className="h-10 rounded-xl font-mono font-bold text-base"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">Payment Note / Reference (Optional)</label>
+                <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">{t('stockMovements.payNoteLabel')}</label>
                 <Input
                   value={payNote}
                   onChange={(e) => setPayNote(e.target.value)}
@@ -989,7 +1007,7 @@ export default function StockMovementsPage() {
                   disabled={isSubmittingPay}
                   className="w-full sm:w-auto h-11 sm:h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
                 >
-                  {isSubmittingPay ? "Saving..." : "Confirm Payment"}
+                  {isSubmittingPay ? t('common.loading') : t('stockMovements.confirmPayment')}
                 </Button>
                 <Button
                   type="button"
@@ -997,7 +1015,7 @@ export default function StockMovementsPage() {
                   onClick={() => setSelectedLoanForPay(null)}
                   className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>
@@ -1012,20 +1030,20 @@ export default function StockMovementsPage() {
             <DialogHeader>
               <DialogTitle className="text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <History className="w-5 h-5 text-purple-600" />
-                Loan Installments Log
+                {t('stockMovements.historyModalTitle')}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
               <div className="bg-[#FAF7EE] p-3.5 rounded-2xl border border-[#EDE4D5] text-xs flex items-center justify-between">
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-bold">Supplier</span>
-                  <span className="font-extrabold text-[#2C1B10] text-sm">{selectedLoanForHistory.supplierName || "Unspecified"}</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-bold">{t('stockMovements.colSupplier')}</span>
+                  <span className="font-extrabold text-[#2C1B10] text-sm">{selectedLoanForHistory.supplierName || t('stockMovements.unspecifiedSupplier')}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-bold">Remaining Due</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-bold">{t('stockMovements.colRemainingBalance')}</span>
                   <span className="font-extrabold text-rose-600 text-sm">
-                    {Number(selectedLoanForHistory.remainingBalance).toLocaleString()} ETB
+                    {Number(selectedLoanForHistory.remainingBalance).toLocaleString()} {t('common.currency')}
                   </span>
                 </div>
               </div>
@@ -1033,18 +1051,18 @@ export default function StockMovementsPage() {
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                 {!selectedLoanForHistory.payments || selectedLoanForHistory.payments.length === 0 ? (
                   <div className="text-center py-6 text-[#8C7361] text-xs">
-                    No installment payments recorded yet.
+                    {t('stockMovements.noPaymentsLogged')}
                   </div>
                 ) : (
                   selectedLoanForHistory.payments.map((pmt, idx) => (
                     <div key={pmt.id || idx} className="p-3 bg-white rounded-xl border border-[#EDE4D5] text-xs flex items-center justify-between space-y-1">
                       <div>
-                        <div className="font-extrabold text-emerald-700 text-sm">+ {Number(pmt.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB</div>
+                        <div className="font-extrabold text-emerald-700 text-sm">+ {Number(pmt.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} {t('common.currency')}</div>
                         <div className="text-[11px] text-[#8C7361]">{formatEthDate(pmt.createdAt, true)}</div>
                         {pmt.note && <div className="text-[11px] text-zinc-600 italic mt-0.5">&quot;{pmt.note}&quot;</div>}
                       </div>
                       <div className="text-right text-[11px] text-[#8C7361]">
-                        Recorded by:<br />
+                        {t('stockMovements.colRecordedBy')}:<br />
                         <strong className="text-[#2C1B10]">{pmt.user?.fullName || "Staff"}</strong>
                       </div>
                     </div>
@@ -1053,7 +1071,7 @@ export default function StockMovementsPage() {
               </div>
 
               <DialogFooter>
-                <Button onClick={() => setSelectedLoanForHistory(null)} className="w-full rounded-xl">Close</Button>
+                <Button onClick={() => setSelectedLoanForHistory(null)} className="w-full rounded-xl">{t('common.close')}</Button>
               </DialogFooter>
             </div>
           </DialogContent>

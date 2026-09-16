@@ -189,25 +189,25 @@ export default function ProductionPage() {
       case "PENDING_APPROVAL":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-            <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" /> Pending Approval
+            <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" /> {t('production.statusPendingApproval')}
           </span>
         );
       case "COMPLETED":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Completed
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> {t('production.statusCompleted')}
           </span>
         );
       case "STARTED":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
-            Started
+            {t('production.statusStarted')}
           </span>
         );
       case "REJECTED":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
-            <XCircle className="w-3.5 h-3.5 text-red-600" /> Rejected
+            <XCircle className="w-3.5 h-3.5 text-red-600" /> {t('production.statusRejected')}
           </span>
         );
       default:
@@ -261,7 +261,7 @@ export default function ProductionPage() {
               variant="outline"
               className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 flex-1 sm:flex-initial h-10 xs:h-11"
             >
-              <History className="w-4 h-4 text-[#E87A18]" /> {t('nav.dailyProductHistory')}
+              <History className="w-4 h-4 text-[#E87A18]" /> {t('productionHistory.title')}
             </Button>
           )}
           <Button
@@ -278,7 +278,7 @@ export default function ProductionPage() {
         <div className="mb-4 xs:mb-6 p-3.5 xs:p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
           <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
           <span>
-            Daily business session is currently <strong>{sessionStatusLabel}</strong>. Logging new production batches is disabled until the session is reopened.
+            {t('production.sessionClosedWarning', { status: sessionStatusLabel })}
           </span>
         </div>
       )}
@@ -303,7 +303,7 @@ export default function ProductionPage() {
                   : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
               }`}
             >
-              All Batches ({roleBatches.length})
+              {t('production.allBatches')} ({roleBatches.length})
             </button>
             <button
               ref={(el) => { tabRefs.current["TODAY"] = el; }}
@@ -314,7 +314,7 @@ export default function ProductionPage() {
                   : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
               }`}
             >
-              📅 Today ({todayCount})
+              📅 {t('production.todayBatches')} ({todayCount})
             </button>
             <button
               ref={(el) => { tabRefs.current["PENDING"] = el; }}
@@ -326,7 +326,7 @@ export default function ProductionPage() {
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
-              Pending Approvals
+              {t('production.pendingApprovals')}
               {pendingCount > 0 && (
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
                   filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
@@ -347,7 +347,7 @@ export default function ProductionPage() {
                 shiftFilter === "ALL" ? "bg-[#4A2E1B] text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
               }`}
             >
-              All Shifts
+              {t('production.allShifts')}
             </button>
             <button
               onClick={() => setShiftFilter("DAY")}
@@ -355,7 +355,7 @@ export default function ProductionPage() {
                 shiftFilter === "DAY" ? "bg-amber-500 text-zinc-950 shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
               }`}
             >
-              ☀️ Day
+              ☀️ {t('production.dayShift')}
             </button>
             <button
               onClick={() => setShiftFilter("NIGHT")}
@@ -363,7 +363,7 @@ export default function ProductionPage() {
                 shiftFilter === "NIGHT" ? "bg-indigo-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
               }`}
             >
-              🌙 Night
+              🌙 {t('production.nightShift')}
             </button>
           </div>
         )}
@@ -373,11 +373,11 @@ export default function ProductionPage() {
       <div className="space-y-3 block md:hidden mb-6">
         {isLoading ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            Loading production logs...
+            {t('production.loadingLogs')}
           </div>
         ) : filteredBatches.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            {filterTab === "PENDING" ? "No pending batch approvals found." : "No production batches recorded."}
+            {filterTab === "PENDING" ? t('production.noPendingBatches') : t('production.noBatches')}
           </div>
         ) : (
           filteredBatches.map((batch) => (
@@ -390,7 +390,7 @@ export default function ProductionPage() {
                 <div>
                   <div className="font-extrabold text-sm text-[#2C1B10]">{formatEthDate(batch.date)}</div>
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#8C7361] mt-0.5">
-                    {batch.shift === "NIGHT" ? "🌙 Night Shift" : "☀️ Day Shift"}
+                    {batch.shift === "NIGHT" ? `🌙 ${t('production.nightShiftFull')}` : `☀️ ${t('production.dayShiftFull')}`}
                   </span>
                 </div>
                 <div>{getStatusBadge(batch.status)}</div>
@@ -399,7 +399,7 @@ export default function ProductionPage() {
               {/* Items Produced */}
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7361] block mb-1.5">
-                  Products Baked / Produced ({batch.items.length})
+                  {t('production.colProductsBaked')} ({batch.items.length})
                 </span>
                 {(() => {
                   const isExpanded = !!expandedBatches[batch.id];
@@ -429,9 +429,9 @@ export default function ProductionPage() {
                           className="mt-2 text-xs font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors"
                         >
                           {isExpanded ? (
-                            <>Show less</>
+                            <>{t('production.showLess')}</>
                           ) : (
-                            <>+ Show {batch.items.length - 5} more products</>
+                            <>{t('production.showMoreProducts', { count: String(batch.items.length - 5) })}</>
                           )}
                         </button>
                       )}
@@ -443,10 +443,10 @@ export default function ProductionPage() {
               {/* Raw Materials Deducted */}
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7361] block mb-1">
-                  Raw Materials Consumed{batch.materialUsages.length > 0 ? ` (${batch.materialUsages.length})` : ""}
+                  {t('production.colRawMaterialsConsumed')}{batch.materialUsages.length > 0 ? ` (${batch.materialUsages.length})` : ""}
                 </span>
                 {batch.materialUsages.length === 0 ? (
-                  <span className="text-xs text-zinc-400 italic">No materials deducted</span>
+                  <span className="text-xs text-zinc-400 italic">{t('production.noMaterialsDeducted')}</span>
                 ) : (() => {
                   const isMatExpanded = !!expandedMaterialsBatches[batch.id];
                   const visibleMaterials = isMatExpanded
@@ -474,9 +474,9 @@ export default function ProductionPage() {
                           className="mt-2 text-xs font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors"
                         >
                           {isMatExpanded ? (
-                            <>Show less</>
+                            <>{t('production.showLess')}</>
                           ) : (
-                            <>+ Show {batch.materialUsages.length - 5} more materials</>
+                            <>{t('production.showMoreMaterials', { count: String(batch.materialUsages.length - 5) })}</>
                           )}
                         </button>
                       )}
@@ -488,7 +488,7 @@ export default function ProductionPage() {
               {/* Card Footer: Logged by & Action Buttons */}
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F4ECE1]">
                 <span className="text-[11px] text-[#8C7361] font-semibold truncate">
-                  By: <strong className="text-[#2C1B10]">{batch.user.fullName}</strong>
+                  {t('production.colLoggedBy')}: <strong className="text-[#2C1B10]">{batch.user.fullName}</strong>
                 </span>
 
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -499,7 +499,7 @@ export default function ProductionPage() {
                       onClick={() => router.push(`/production/new?edit=${batch.id}`)}
                       className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
                     >
-                      Edit
+                      {t('common.edit')}
                     </Button>
                   )}
                   {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
@@ -510,7 +510,7 @@ export default function ProductionPage() {
                         onClick={() => handleApprove(batch.id)}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-xs"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                        <CheckCircle2 className="w-3.5 h-3.5" /> {t('common.approve')}
                       </Button>
                       <Button
                         size="sm"
@@ -519,7 +519,7 @@ export default function ProductionPage() {
                         onClick={() => handleReject(batch.id)}
                         className="border-red-300 text-red-700 hover:bg-red-50 font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
                       >
-                        <XCircle className="w-3.5 h-3.5" /> Reject
+                        <XCircle className="w-3.5 h-3.5" /> {t('common.reject')}
                       </Button>
                     </>
                   )}
@@ -535,28 +535,28 @@ export default function ProductionPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date & Shift</TableHead>
-              <TableHead>Products Baked & Quantity</TableHead>
-              <TableHead>Raw Materials Consumed</TableHead>
-              <TableHead>Batch Status</TableHead>
-              <TableHead>Logged By</TableHead>
-              <TableHead className="text-right pr-6">Batch Actions</TableHead>
+              <TableHead>{t('production.colDateShift')}</TableHead>
+              <TableHead>{t('production.colProductsBaked')}</TableHead>
+              <TableHead>{t('production.colRawMaterialsConsumed')}</TableHead>
+              <TableHead>{t('production.colBatchStatus')}</TableHead>
+              <TableHead>{t('production.colLoggedBy')}</TableHead>
+              <TableHead className="text-right pr-6">{t('production.colBatchActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">Loading production logs...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">{t('production.loadingLogs')}</TableCell></TableRow>
             ) : filteredBatches.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
-                  {filterTab === "PENDING" ? "No pending batch approvals found." : "No production batches recorded."}
+                  {filterTab === "PENDING" ? t('production.noPendingBatches') : t('production.noBatches')}
                 </TableCell>
               </TableRow>
             ) : filteredBatches.map(batch => (
               <TableRow key={batch.id}>
                 <TableCell>
                   <div className="font-bold text-[#2C1B10]">{formatEthDate(batch.date)}</div>
-                  <div className="text-xs font-semibold text-[#8C7361] mt-0.5">{batch.shift} Shift</div>
+                  <div className="text-xs font-semibold text-[#8C7361] mt-0.5">{batch.shift === "NIGHT" ? t('production.nightShiftFull') : t('production.dayShiftFull')}</div>
                 </TableCell>
                 <TableCell>
                   <ul className="text-sm space-y-1">
@@ -572,7 +572,7 @@ export default function ProductionPage() {
                 </TableCell>
                 <TableCell>
                   <ul className="text-sm space-y-1 text-[#8C7361]">
-                    {batch.materialUsages.length === 0 ? <span className="text-zinc-400 italic text-xs">No materials deducted</span> : null}
+                    {batch.materialUsages.length === 0 ? <span className="text-zinc-400 italic text-xs">{t('production.noMaterialsDeducted')}</span> : null}
                     {batch.materialUsages.map(mat => (
                       <li key={mat.id}>
                         {mat.stockItem.name}: <span className="font-bold text-rose-700">-{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}</span>
@@ -595,7 +595,7 @@ export default function ProductionPage() {
                         onClick={() => router.push(`/production/new?edit=${batch.id}`)}
                         className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                       >
-                        Edit
+                        {t('common.edit')}
                       </Button>
                     )}
                     {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
@@ -606,7 +606,7 @@ export default function ProductionPage() {
                           onClick={() => handleApprove(batch.id)}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1 shadow-sm"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                          <CheckCircle2 className="w-3.5 h-3.5" /> {t('common.approve')}
                         </Button>
                         <Button
                           size="sm"
@@ -615,7 +615,7 @@ export default function ProductionPage() {
                           onClick={() => handleReject(batch.id)}
                           className="border-red-300 text-red-700 hover:bg-red-50 font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1"
                         >
-                          <XCircle className="w-3.5 h-3.5" /> Reject
+                          <XCircle className="w-3.5 h-3.5" /> {t('common.reject')}
                         </Button>
                       </>
                     )}

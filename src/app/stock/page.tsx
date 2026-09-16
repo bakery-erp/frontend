@@ -246,7 +246,7 @@ export default function StockPage() {
           <Link href="/stock-movements" className="flex-1 sm:flex-initial">
             <Button variant="outline" className="w-full h-10 rounded-xl border-purple-200 text-purple-900 bg-purple-50 hover:bg-purple-100 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
               <CreditCard className="w-4 h-4 text-purple-600 shrink-0" />
-              <span>Stock Loans & Credit</span>
+              <span>{t('stock.stockLoansAndCredit')}</span>
             </Button>
           </Link>
           {user?.role === "OWNER" && (
@@ -342,9 +342,9 @@ export default function StockPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">Loading stock inventory...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{t('stock.loading')}</TableCell></TableRow>
             ) : filteredItems.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">No matching stock items found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{t('stock.noItems')}</TableCell></TableRow>
             ) : filteredItems.map(item => {
               const isLowStock = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
               const price = Number(item.unitPrice || 0);
@@ -361,7 +361,7 @@ export default function StockPage() {
                       </Link>
                       {isLowStock && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
-                          <AlertCircle className="w-3 h-3" /> Low Stock
+                          <AlertCircle className="w-3 h-3" /> {t('stock.lowStockWarningBadge')}
                         </span>
                       )}
                     </div>
@@ -388,7 +388,7 @@ export default function StockPage() {
                           className="h-8 px-2.5 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] hover:text-[#E87A18] flex items-center gap-1 font-bold"
                         >
                           <History className="w-3.5 h-3.5" />
-                          View History
+                          {t('stock.viewHistory')}
                         </Button>
                       </Link>
 
@@ -408,7 +408,7 @@ export default function StockPage() {
                             className="h-8 px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex items-center gap-1 font-semibold"
                           >
                             <PlusCircle className="w-3.5 h-3.5" />
-                            Add
+                            {t('stock.addStock')}
                           </Button>
                           <Button 
                             variant="outline" 
@@ -421,7 +421,7 @@ export default function StockPage() {
                             className="h-8 px-2.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 flex items-center gap-1 font-semibold"
                           >
                             <MinusCircle className="w-3.5 h-3.5" />
-                            Reduce
+                            {t('stock.reduceStock')}
                           </Button>
                           <Button 
                             variant="ghost" 
@@ -453,9 +453,9 @@ export default function StockPage() {
       {/* Mobile Cards View */}
       <div className="grid grid-cols-1 gap-3 sm:hidden">
         {isLoading ? (
-          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">Loading stock inventory...</div>
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stock.loading')}</div>
         ) : filteredItems.length === 0 ? (
-          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">No matching stock items found.</div>
+          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stock.noItems')}</div>
         ) : filteredItems.map(item => {
           const isLowStock = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
           const price = Number(item.unitPrice || 0);
@@ -473,7 +473,7 @@ export default function StockPage() {
                     </span>
                     {isLowStock && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
-                        <AlertCircle className="w-3 h-3" /> Low Stock
+                        <AlertCircle className="w-3 h-3" /> {t('stock.lowStockWarningBadge')}
                       </span>
                     )}
                   </div>
@@ -482,18 +482,18 @@ export default function StockPage() {
                   <div className={`text-lg font-extrabold font-mono ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
                     {Number(item.currentQuantity).toFixed(2)}
                   </div>
-                  <div className="text-[10px] text-[#8C7361] font-bold uppercase">On-Hand Qty</div>
+                  <div className="text-[10px] text-[#8C7361] font-bold uppercase">{t('stock.colCurrentQty')}</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs">
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Unit Rate</span>
-                  <span className="font-bold text-[#2C1B10] font-mono">{price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stock.colUnitPrice')}</span>
+                  <span className="font-bold text-[#2C1B10] font-mono">{price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('common.currency')}` : `0.00 ${t('common.currency')}`}</span>
                 </div>
                 <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">Total Valuation</span>
-                  <span className="font-bold text-amber-900 font-mono">{totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}</span>
+                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stock.colStockValue')}</span>
+                  <span className="font-bold text-amber-900 font-mono">{totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('common.currency')}` : `0.00 ${t('common.currency')}`}</span>
                 </div>
               </div>
 
@@ -502,7 +502,7 @@ export default function StockPage() {
                 <Link href={`/stock/${item.id}`} className="w-full">
                   <Button variant="outline" size="sm" className="w-full h-9 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold flex items-center justify-center gap-1 px-1">
                     <History className="w-3.5 h-3.5 shrink-0" />
-                    <span>History</span>
+                    <span>{t('stock.viewHistory')}</span>
                   </Button>
                 </Link>
 
@@ -522,7 +522,7 @@ export default function StockPage() {
                       className="h-9 px-1 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-bold flex items-center justify-center gap-1"
                     >
                       <PlusCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>Add</span>
+                      <span>{t('stock.addStock')}</span>
                     </Button>
                     <Button 
                       variant="outline" 
@@ -535,7 +535,7 @@ export default function StockPage() {
                       className="h-9 px-1 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 font-bold flex items-center justify-center gap-1"
                     >
                       <MinusCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>Reduce</span>
+                      <span>{t('stock.reduceStock')}</span>
                     </Button>
                   </>
                 )}
@@ -550,7 +550,7 @@ export default function StockPage() {
                     onClick={() => setEditingItem(item)}
                     className="flex-1 h-8 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] flex items-center justify-center gap-1"
                   >
-                    <Edit3 className="w-3 h-3 text-[#8C7361]" /> Edit Item
+                    <Edit3 className="w-3 h-3 text-[#8C7361]" /> {t('common.edit')}
                   </Button>
                   <Button
                     variant="outline"
@@ -558,7 +558,7 @@ export default function StockPage() {
                     onClick={() => setItemToDelete(item)}
                     className="flex-1 h-8 text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 flex items-center justify-center gap-1"
                   >
-                    <Trash2 className="w-3 h-3 text-rose-500" /> Delete
+                    <Trash2 className="w-3 h-3 text-rose-500" /> {t('common.delete')}
                   </Button>
                 </div>
               )}
@@ -581,16 +581,16 @@ export default function StockPage() {
           <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
-                {editingItem ? "Edit Stock Item" : "Create New Stock Item"}
+                {editingItem ? t('stock.modalEditTitle') : t('stock.modalCreateTitle')}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={(e) => handleSubmit(e, !!editingItem)}>
               <div className="grid gap-3.5 py-3">
                 {isGlobalAdmin && !editingItem && (
                   <div>
-                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Branch</label>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.branch')}</label>
                     <select name="branchId" required defaultValue={selectedBranchId || ""} className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]">
-                      <option value="" disabled>Select Branch</option>
+                      <option value="" disabled>{t('common.selectBranch')}</option>
                       {branches.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
@@ -599,12 +599,12 @@ export default function StockPage() {
                 )}
 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Item Name</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('stock.colItemName')}</label>
                   <Input name="name" required defaultValue={editingItem?.name || ""} placeholder="e.g. Wheat Flour" className="h-10 rounded-xl border-zinc-200" />
                 </div>
                 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Unit Type</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('production.unit')}</label>
                   <select name="unitType" required defaultValue={editingItem?.unitType || "KG"} className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]">
                     <option value="KG">Kg (Kilogram)</option>
                     <option value="PIECE">Piece</option>
@@ -613,7 +613,7 @@ export default function StockPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Unit Cost / Price (ETB per unit)</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('stock.unitPriceLabel')}</label>
                   <Input
                     name="unitPrice"
                     type="number"
@@ -627,7 +627,7 @@ export default function StockPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Current Available Quantity</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('stock.currentAvailableQty')}</label>
                   <Input
                     name="currentQuantity"
                     type="number"
@@ -641,7 +641,7 @@ export default function StockPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Minimum Stock Threshold (Alert level)</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('stock.minThresholdAlert')}</label>
                   <Input
                     name="minStockLevel"
                     type="number"
@@ -662,13 +662,13 @@ export default function StockPage() {
                         onChange={(e) => setIsCreateLoan(e.target.checked)} 
                         className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
                       />
-                      <span className="text-xs font-bold text-purple-900">Purchased on Credit / Loan?</span>
+                      <span className="text-xs font-bold text-purple-900">{t('stock.creditPurchase')}</span>
                     </label>
 
                     {isCreateLoan && (
                       <div className="space-y-3 pt-1">
                         <div>
-                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Supplier / Vendor Name (Optional)</label>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stock.supplierOptional')}</label>
                           <Input 
                             value={createSupplierName} 
                             onChange={(e) => setCreateSupplierName(e.target.value)} 
@@ -677,7 +677,7 @@ export default function StockPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Amount Paid Upfront (Down Payment)</label>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stock.downPayment')}</label>
                           <Input 
                             type="number" 
                             step="0.01" 
@@ -689,7 +689,7 @@ export default function StockPage() {
                             className="bg-white rounded-xl border-purple-200 text-xs h-9 font-mono" 
                           />
                           <p className="text-[10px] text-purple-700 mt-1 font-medium">
-                            If unpaid or partial, the remaining balance will be tracked as a credit purchase loan.
+                            {t('stock.creditNote')}
                           </p>
                         </div>
                       </div>
@@ -703,7 +703,7 @@ export default function StockPage() {
                   disabled={isSubmitting}
                   className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
                 >
-                  {isSubmitting ? "Saving..." : (editingItem ? "Save Changes" : "Create Item")}
+                  {isSubmitting ? t('common.loading') : (editingItem ? t('common.saveChanges') : t('stock.modalCreateTitle'))}
                 </Button>
                 <Button
                   type="button"
@@ -711,7 +711,7 @@ export default function StockPage() {
                   onClick={() => { setIsAddOpen(false); setEditingItem(null); }}
                   className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>
@@ -772,13 +772,13 @@ export default function StockPage() {
                       onChange={(e) => setIsAddLoan(e.target.checked)} 
                       className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
                     />
-                    <span className="text-xs font-bold text-purple-900">Purchased on Credit / Loan?</span>
+                    <span className="text-xs font-bold text-purple-900">{t('stock.creditPurchase')}</span>
                   </label>
 
                   {isAddLoan && (
                     <div className="space-y-3 pt-1">
                       <div>
-                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">Supplier / Vendor Name (Optional)</label>
+                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stock.supplierOptional')}</label>
                         <Input 
                           value={addSupplierName} 
                           onChange={(e) => setAddSupplierName(e.target.value)} 
@@ -901,9 +901,9 @@ export default function StockPage() {
         isOpen={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete Stock Item"
-        description={`Are you sure you want to delete '${itemToDelete?.name}'? This action cannot be undone.`}
-        confirmText="Delete Item"
+        title={t('stock.deleteModalTitle')}
+        description={`${t('stock.deleteModalDesc')} (${itemToDelete?.name})`}
+        confirmText={t('common.delete')}
         variant="danger"
       />
     </DashboardLayout>
