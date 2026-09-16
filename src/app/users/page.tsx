@@ -676,7 +676,13 @@ export default function UsersPage() {
                 
                 <div>
                   <p className="text-zinc-500 font-medium mb-1">Shift</p>
-                  <p className="font-semibold text-zinc-900">{viewingUser.shift || "N/A"}</p>
+                  <p className="font-semibold text-zinc-900">
+                    {viewingUser.shift === "DAY"
+                      ? "Day Shift (DAY)"
+                      : viewingUser.shift === "NIGHT"
+                      ? "Night Shift (NIGHT)"
+                      : viewingUser.shift || "N/A"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-zinc-500 font-medium mb-1">Base Salary</p>
