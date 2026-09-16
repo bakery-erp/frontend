@@ -419,9 +419,9 @@ export default function PayrollPage() {
 
       {/* CALCULATOR / DRAFT TAB */}
       {activeTab === "RUN" && (
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-6 min-w-0 w-full">
           {/* Settings Picker */}
-          <div className="col-span-1 bg-white p-5 rounded-xl border border-zinc-200 shadow-sm self-start">
+          <div className="col-span-1 bg-white p-4 sm:p-5 rounded-xl border border-zinc-200 shadow-sm self-start min-w-0 w-full overflow-hidden">
             <h2 className="font-semibold mb-4 border-b pb-2 flex items-center">
               <Calendar className="w-4 h-4 mr-2" /> Term Details
             </h2>
@@ -547,7 +547,7 @@ export default function PayrollPage() {
           </div>
 
           {/* Calculator Output */}
-          <div className="col-span-2">
+          <div className="col-span-1 md:col-span-2 min-w-0 w-full">
             {!calcData ? (
               <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-zinc-400 bg-zinc-50 border border-dashed rounded-xl border-zinc-200">
                 <Wallet className="w-10 h-10 mb-2 opacity-50" />
@@ -560,7 +560,7 @@ export default function PayrollPage() {
                 );
 
                 return (
-                  <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+                  <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden min-w-0 w-full">
                     <div className="bg-[#2C1B10] text-white p-4 flex justify-between items-center">
                       <div>
                         <h3 className="font-semibold text-lg">Payroll Drafting Phase</h3>
@@ -583,31 +583,31 @@ export default function PayrollPage() {
                         <h4 className="text-xs font-bold uppercase text-zinc-500 tracking-wide">
                           Base Earnings & Adjustments
                         </h4>
-                        <div className="flex justify-between items-center py-2 border-b">
+                        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 py-2 border-b">
                           <span className="text-sm font-medium">Original Agreement Salary</span>
-                          <span className="font-semibold text-zinc-800">{calcData.baseSalary.toFixed(2)} ETB</span>
+                          <span className="font-semibold text-zinc-800 font-mono">{calcData.baseSalary.toFixed(2)} ETB</span>
                         </div>
 
-                        <div className="flex justify-between items-center py-2 border-b">
-                          <div>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b">
+                          <div className="min-w-0 flex-1">
                             <span className="text-sm font-medium block">Editable Base Salary (For this run)</span>
                             <span className="text-xs text-zinc-500">Defaults to calculated prorated amount</span>
                           </div>
                           <Input
                             type="number"
                             step="0.01"
-                            className="w-36 text-right font-bold font-mono h-10"
+                            className="w-full sm:w-36 text-left sm:text-right font-bold font-mono h-10 shrink-0"
                             value={customBaseSalary}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => setCustomBaseSalary(e.target.value)}
                           />
                         </div>
 
-                        <div className="flex justify-between items-center py-2 border-b">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b">
                           <span className="font-medium text-sm">Add Additional Bonus (ETB)</span>
                           <Input
                             type="number"
-                            className="w-36 text-right font-bold text-emerald-700 font-mono h-10"
+                            className="w-full sm:w-36 text-left sm:text-right font-bold text-emerald-700 font-mono h-10 shrink-0"
                             value={bonus}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => setBonus(Number(e.target.value) || 0)}
@@ -617,17 +617,17 @@ export default function PayrollPage() {
                       </div>
 
                       {/* Active Monthly Loans Breakdown */}
-                      <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-3">
-                        <div className="flex justify-between items-center border-b border-amber-200/80 pb-2">
+                      <div className="bg-amber-50/60 p-3.5 sm:p-4 rounded-xl border border-amber-200 space-y-3 min-w-0 overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-2">
                           <div>
                             <h4 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center">
-                              <DollarSign className="w-4 h-4 mr-1 text-amber-700" /> Active Employee Loans ({calcData.openLoans.length})
+                              <DollarSign className="w-4 h-4 mr-1 text-amber-700 shrink-0" /> Active Employee Loans ({calcData.openLoans.length})
                             </h4>
                             <p className="text-xs text-amber-800 mt-0.5">
                               Multi-month long-term loans & salary advances
                             </p>
                           </div>
-                          <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300">
+                          <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300 shrink-0 self-start sm:self-auto">
                             Total Balance: {calcData.loanDeductions.toFixed(2)} ETB
                           </span>
                         </div>
@@ -637,9 +637,9 @@ export default function PayrollPage() {
                         ) : (
                           <div className="space-y-2">
                             {calcData.openLoans.map((loan) => (
-                              <div key={loan.id} className="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border border-amber-200">
-                                <div>
-                                  <span className="font-semibold text-zinc-800">
+                              <div key={loan.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-white p-2.5 rounded-lg border border-amber-200">
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-semibold text-zinc-800 block truncate">
                                     {loan.type === "STAFF_LOAN"
                                       ? "Staff Loan (Multi-Month Installment)"
                                       : loan.type === "SALARY_ADVANCE"
@@ -650,7 +650,7 @@ export default function PayrollPage() {
                                     Unpaid Balance: <strong className="text-amber-800">{loan.remainingBalance} ETB</strong> (Original: {loan.totalAmount} ETB)
                                   </span>
                                 </div>
-                                <Badge className={loan.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"}>
+                                <Badge className={`shrink-0 self-start sm:self-auto ${loan.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"}`}>
                                   {loan.type === "STAFF_LOAN" ? "Long-Term Monthly Loan" : "Salary Advance"}
                                 </Badge>
                               </div>
@@ -658,7 +658,7 @@ export default function PayrollPage() {
                           </div>
                         )}
 
-                        <div className="pt-2 flex justify-between items-center border-t border-amber-200/80">
+                        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-amber-200/80">
                           <div className="flex items-center">
                             <input
                               type="checkbox"
@@ -666,11 +666,11 @@ export default function PayrollPage() {
                               disabled={!calcData.openLoans || calcData.openLoans.length === 0}
                               checked={deductLoans && calcData.openLoans && calcData.openLoans.length > 0}
                               onChange={(e) => setDeductLoans(e.target.checked)}
-                              className="mr-2 w-4 h-4 accent-amber-800 rounded border-amber-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="mr-2 w-4 h-4 accent-amber-800 rounded border-amber-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                             />
                             <label
                               htmlFor="deductLoansCheck"
-                              className={`text-sm font-semibold cursor-pointer ${
+                              className={`text-xs sm:text-sm font-semibold cursor-pointer ${
                                 calcData.openLoans && calcData.openLoans.length > 0
                                   ? "text-amber-950"
                                   : "text-zinc-400 cursor-not-allowed"
@@ -685,7 +685,7 @@ export default function PayrollPage() {
                             min="0"
                             disabled={!deductLoans || !calcData.openLoans || calcData.openLoans.length === 0}
                             placeholder="0.00"
-                            className="w-36 text-right font-bold font-mono h-10 text-amber-900 bg-white border-amber-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                            className="w-full sm:w-36 text-left sm:text-right font-bold font-mono h-10 text-amber-900 bg-white border-amber-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed shrink-0"
                             value={calcData.openLoans && calcData.openLoans.length > 0 ? customLoanDeduction : "0"}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => setCustomLoanDeduction(e.target.value)}
@@ -694,17 +694,17 @@ export default function PayrollPage() {
                       </div>
 
                       {/* Active Penalties Section */}
-                      <div className="bg-rose-50/60 p-4 rounded-xl border border-rose-200 space-y-3">
-                        <div className="flex justify-between items-center border-b border-rose-200/80 pb-2">
+                      <div className="bg-rose-50/60 p-3.5 sm:p-4 rounded-xl border border-rose-200 space-y-3 min-w-0 overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-200/80 pb-2">
                           <div>
                             <h4 className="text-xs font-bold uppercase tracking-wider text-rose-950 flex items-center">
-                              <FileWarning className="w-4 h-4 mr-1 text-rose-700" /> Pending Penalties ({calcData.undeductedPenalties.length})
+                              <FileWarning className="w-4 h-4 mr-1 text-rose-700 shrink-0" /> Pending Penalties ({calcData.undeductedPenalties.length})
                             </h4>
                             <p className="text-xs text-rose-800 mt-0.5">
                               Fines for broken rules or attendance infractions
                             </p>
                           </div>
-                          <span className="text-xs font-bold text-rose-900 bg-rose-100 px-2.5 py-1 rounded-full border border-rose-300">
+                          <span className="text-xs font-bold text-rose-900 bg-rose-100 px-2.5 py-1 rounded-full border border-rose-300 shrink-0 self-start sm:self-auto">
                             Total Fines: {calcData.penaltyDeductions.toFixed(2)} ETB
                           </span>
                         </div>
@@ -714,14 +714,14 @@ export default function PayrollPage() {
                         ) : (
                           <div className="space-y-2">
                             {calcData.undeductedPenalties.map((p) => (
-                              <div key={p.id} className="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border border-rose-200">
-                                <div>
-                                  <span className="font-semibold text-zinc-800">{p.reason}</span>
+                              <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-white p-2.5 rounded-lg border border-rose-200">
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-semibold text-zinc-800 block truncate">{p.reason}</span>
                                   <span className="text-rose-700 font-bold block text-[11px] mt-0.5">
                                     Fine: -{p.amount} ETB
                                   </span>
                                 </div>
-                                <span className="text-[11px] text-zinc-500">
+                                <span className="text-[11px] text-zinc-500 shrink-0">
                                   {p.date ? formatEthDate(p.date) : ""}
                                 </span>
                               </div>
@@ -729,7 +729,7 @@ export default function PayrollPage() {
                           </div>
                         )}
 
-                        <div className="pt-2 flex justify-between items-center border-t border-rose-200/80">
+                        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-rose-200/80">
                           <div className="flex items-center">
                             <input
                               type="checkbox"
@@ -737,11 +737,11 @@ export default function PayrollPage() {
                               disabled={!calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
                               checked={deductPenalties && calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0}
                               onChange={(e) => setDeductPenalties(e.target.checked)}
-                              className="mr-2 w-4 h-4 accent-rose-800 rounded border-rose-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="mr-2 w-4 h-4 accent-rose-800 rounded border-rose-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                             />
                             <label
                               htmlFor="deductPenaltiesCheck"
-                              className={`text-sm font-semibold cursor-pointer ${
+                              className={`text-xs sm:text-sm font-semibold cursor-pointer ${
                                 calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0
                                   ? "text-rose-950"
                                   : "text-zinc-400 cursor-not-allowed"
@@ -756,7 +756,7 @@ export default function PayrollPage() {
                             min="0"
                             disabled={!deductPenalties || !calcData.undeductedPenalties || calcData.undeductedPenalties.length === 0}
                             placeholder="0.00"
-                            className="w-36 text-right font-bold font-mono h-10 text-rose-900 bg-white border-rose-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                            className="w-full sm:w-36 text-left sm:text-right font-bold font-mono h-10 text-rose-900 bg-white border-rose-300 disabled:opacity-40 disabled:bg-zinc-100 disabled:cursor-not-allowed shrink-0"
                             value={calcData.undeductedPenalties && calcData.undeductedPenalties.length > 0 ? customPenaltyDeduction : "0"}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => setCustomPenaltyDeduction(e.target.value)}
@@ -765,8 +765,8 @@ export default function PayrollPage() {
                       </div>
 
                       {/* Totals & Manual Final Net Payout Override */}
-                      <div className="bg-[#FAF7EE] p-4 rounded-xl border border-[#EDE4D5] space-y-3">
-                        <div className="flex justify-between items-center">
+                      <div className="bg-[#FAF7EE] p-3.5 sm:p-4 rounded-xl border border-[#EDE4D5] space-y-3 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                           <div>
                             <span className="text-sm font-bold text-[#2C1B10] block">Calculated Net Payout</span>
                             <span className="text-xs text-[#8C7361]">Base + Bonus - Monthly Loan - Penalty</span>
@@ -776,7 +776,7 @@ export default function PayrollPage() {
                           </span>
                         </div>
 
-                        <div className="pt-2 border-t border-[#EDE4D5] flex justify-between items-center">
+                        <div className="pt-2 border-t border-[#EDE4D5] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <div>
                             <label className="text-sm font-bold text-emerald-950 block">Final Net Payout (Override)</label>
                             <span className="text-xs text-emerald-800 font-medium">Leave empty to use calculated net payout</span>
@@ -785,7 +785,7 @@ export default function PayrollPage() {
                             type="number"
                             step="0.01"
                             placeholder="Auto"
-                            className="w-40 text-right font-extrabold font-mono text-emerald-700 bg-white border-emerald-300 text-base h-10"
+                            className="w-full sm:w-40 text-left sm:text-right font-extrabold font-mono text-emerald-700 bg-white border-emerald-300 text-base h-10 shrink-0"
                             value={customFinalAmount}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => setCustomFinalAmount(e.target.value)}
