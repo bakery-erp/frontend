@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save, Loader2 } from "lucide-react";
 
-const ROLES = ["OWNER", "ADMIN", "SUPERVISOR", "CASHIER", "PRODUCTION", "SALES", "CALL_CENTER", "GUEST"];
-const SHIFTS = ["Morning", "Afternoon", "Night", "Full Day", "Custom"];
+const ROLES = ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] as const;
+const SHIFTS = ["DAY", "NIGHT"] as const;
 
 interface UserData {
   id: string;
@@ -252,7 +252,7 @@ export default function EditUserPage() {
                   <option value="">No shift assigned</option>
                   {SHIFTS.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {s === "DAY" ? "Day Shift (DAY)" : s === "NIGHT" ? "Night Shift (NIGHT)" : s}
                     </option>
                   ))}
                 </select>

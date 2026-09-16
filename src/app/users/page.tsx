@@ -121,7 +121,7 @@ export default function UsersPage() {
       const [usersRes, branchesRes, rolesRes, resetRes] = await Promise.all([
         api.get<User[]>("/users", { params }),
         api.get<Branch[]>("/branches"),
-        api.get<string[]>("/users/roles/list").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] })),
+        api.get<string[]>("/users/roles").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] })),
         api.get<PasswordResetRequest[]>("/users/password-reset-requests").catch(() => ({ data: [] })),
       ]);
       setUsers(usersRes.data);
@@ -676,7 +676,13 @@ export default function UsersPage() {
                 
                 <div>
                   <p className="text-zinc-500 font-medium mb-1">Shift</p>
-                  <p className="font-semibold text-zinc-900">{viewingUser.shift || "N/A"}</p>
+                  <p className="font-semibold text-zinc-900">
+                    {viewingUser.shift === "DAY"
+                      ? "Day Shift (DAY)"
+                      : viewingUser.shift === "NIGHT"
+                      ? "Night Shift (NIGHT)"
+                      : viewingUser.shift || "N/A"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-zinc-500 font-medium mb-1">Base Salary</p>
