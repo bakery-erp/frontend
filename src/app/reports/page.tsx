@@ -326,24 +326,26 @@ export default function FinancialReportsPage() {
         >
           <div className="absolute -right-12 -top-12 w-64 h-64 bg-[#E87A18]/15 rounded-full blur-3xl group-hover:bg-[#E87A18]/25 transition-all" />
           <CardHeader className="relative pb-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#E87A18] to-[#FF9E40] flex items-center justify-center text-white shadow-lg">
-                  <Sparkles className="w-6 h-6" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-2">
+              <div className="flex items-start sm:items-center gap-3 min-w-0">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#E87A18] to-[#FF9E40] flex items-center justify-center text-white shadow-lg shrink-0">
+                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <CardTitle className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 font-heading">
-                    Total Net Wealth of the Business
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <CardTitle className="text-lg sm:text-2xl font-black tracking-tight text-white font-heading leading-tight">
+                      Total Net Wealth of the Business
+                    </CardTitle>
+                    <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0 whitespace-nowrap">
                       Balance Sheet
                     </span>
-                  </CardTitle>
-                  <CardDescription className="text-xs text-amber-200/80 font-medium">
+                  </div>
+                  <CardDescription className="text-xs text-amber-200/80 font-medium leading-relaxed">
                     Calculated from Clean Liquid Cash + Customer Credits + Warehouse Stock + Finished Products - Debts to Pay
                   </CardDescription>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-xs font-bold text-amber-300 group-hover:translate-x-1 transition-transform self-start sm:self-auto bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-xs">
+              <div className="flex items-center gap-1 text-xs font-bold text-amber-300 group-hover:translate-x-1 transition-transform self-start sm:self-auto bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-xs shrink-0 mt-1 sm:mt-0">
                 <span>View Full Balance Sheet</span>
                 <ChevronRight className="w-4 h-4" />
               </div>
