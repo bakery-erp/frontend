@@ -161,11 +161,11 @@ export default function NewCustomerCreditPage() {
       return;
     }
     if (!customerName.trim()) {
-      toast.error("Customer or Business name is required");
+      toast.error(t('credits.toastEnterCustomerName'));
       return;
     }
     if (lineItems.length === 0) {
-      toast.error("Please add at least one product item to lend on credit");
+      toast.error(t('credits.toastAddProduct'));
       return;
     }
 
@@ -174,17 +174,17 @@ export default function NewCustomerCreditPage() {
       const prod = products.find((p) => p.id === item.productId);
       const qty = Number(item.quantity || 0);
       if (qty <= 0) {
-        toast.error(`Please enter a valid quantity greater than 0 for ${prod?.name || "all items"}`);
+        toast.error(t('credits.toastValidQuantity').replace('{name}', prod?.name || ""));
         return;
       }
       if (prod && qty > prod.availableStock) {
-        toast.error(`Cannot lend ${qty} of "${prod.name}". Only ${prod.availableStock} ${prod.unitType} available in shop.`);
+        toast.error(t('credits.toastOverStock'));
         return;
       }
     }
 
     if (effectiveTotalBirr <= 0) {
-      toast.error("Total credit amount in Birr must be greater than zero");
+      toast.error(t('credits.toastValidQuantity').replace('{name}', ""));
       return;
     }
 
@@ -224,7 +224,7 @@ export default function NewCustomerCreditPage() {
         date: creditDate,
         items: itemsPayload,
       });
-      toast.success("Customer product credit logged successfully!");
+      toast.success(t('credits.toastCreditLogged'));
       router.push("/customer-credits");
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to log customer credit");
@@ -289,16 +289,16 @@ export default function NewCustomerCreditPage() {
           {/* Customer Details Card */}
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-5 shadow-sm space-y-4">
             <h2 className="text-sm font-extrabold uppercase tracking-wider text-[#4A2E1B] border-b border-[#F4ECE1] pb-2">
-              1. Customer & Delivery Information
+              {t('credits.customerDeliveryInfo')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">
-                  Customer / Business Name <span className="text-rose-500">*</span>
+                  {t('credits.customerNameLabel')} <span className="text-rose-500">*</span>
                 </label>
                 <Input
                   required
-                  placeholder="e.g. Abyssinia Cafe / Central Hotel"
+                  placeholder={t('credits.customerNamePlaceholder')}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="rounded-xl border-zinc-200"
@@ -306,9 +306,11 @@ export default function NewCustomerCreditPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">Phone Number</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">
+                  {t('credits.phoneNumberLabel')}
+                </label>
                 <Input
-                  placeholder="e.g. 0911223344"
+                  placeholder={t('credits.phonePlaceholder')}
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   className="rounded-xl border-zinc-200"
@@ -317,7 +319,7 @@ export default function NewCustomerCreditPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">
-                  Credit Issue Date <span className="text-rose-500">*</span>
+                  {t('credits.creditIssueDateLabel')} <span className="text-rose-500">*</span>
                 </label>
                 <Input
                   type="date"
@@ -336,10 +338,10 @@ export default function NewCustomerCreditPage() {
               <div>
                 <h2 className="text-sm font-extrabold uppercase tracking-wider text-[#4A2E1B] flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-[#E87A18]" />
-                  2. Products Issued on Credit
+                  {t('credits.productsIssuedOnCredit')}
                 </h2>
                 <p className="text-[11px] text-[#8C7361] mt-0.5">
-                  Stock balances reflect live in-shop inventory for the active session.
+                  {t('credits.stockBalancesHelp')}
                 </p>
               </div>
               <Button
@@ -349,15 +351,17 @@ export default function NewCustomerCreditPage() {
                 size="sm"
                 className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-50"
               >
-                <Plus className="w-4 h-4" /> Add Product Line
+                <Plus className="w-4 h-4" /> {t('credits.addProductLine')}
               </Button>
             </div>
 
             {isLoading ? (
-              <div className="text-center py-6 text-xs text-[#8C7361] font-medium">Checking live in-shop product inventory...</div>
+              <div className="text-center py-6 text-xs text-[#8C7361] font-medium">
+                {t('credits.checkingInventory')}
+              </div>
             ) : lineItems.length === 0 ? (
               <div className="text-center py-8 bg-[#FAF6F0] rounded-xl border border-dashed border-[#EDE4D5] text-[#8C7361] text-xs space-y-2">
-                <p>No products added to this credit invoice yet.</p>
+                <p>{t('credits.noProductsAdded')}</p>
                 <Button
                   type="button"
                   onClick={handleAddLineItem}
@@ -366,17 +370,17 @@ export default function NewCustomerCreditPage() {
                   size="sm"
                   className="rounded-xl border-[#E87A18] text-[#E87A18] font-bold text-xs disabled:opacity-50"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1" /> Add First Product
+                  <Plus className="w-3.5 h-3.5 mr-1" /> {t('credits.addFirstProduct')}
                 </Button>
               </div>
             ) : (
               <div className="space-y-3">
                 {/* Desktop Column Header Bar */}
                 <div className="hidden md:flex items-center gap-3 px-3 py-2 bg-[#FAF6F0] rounded-xl border border-[#EDE4D5] text-[11px] font-extrabold uppercase text-[#4A2E1B]">
-                  <div className="flex-1">Product Item & Live Stock</div>
-                  <div className="w-32 text-center">Qty to Lend</div>
-                  <div className="w-32 text-center">Unit Price / Amount</div>
-                  <div className="w-32 text-right pr-2">Subtotal</div>
+                  <div className="flex-1">{t('credits.colProductStock')}</div>
+                  <div className="w-32 text-center">{t('credits.colQtyToLend')}</div>
+                  <div className="w-32 text-center">{t('credits.colUnitPriceAmount')}</div>
+                  <div className="w-32 text-right pr-2">{t('credits.subtotal')}</div>
                   <div className="w-9"></div>
                 </div>
 
@@ -398,7 +402,7 @@ export default function NewCustomerCreditPage() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                           <label className="text-[10px] font-bold uppercase text-[#8C7361]">
-                            Product Item
+                            {t('credits.productItemLabel')}
                           </label>
                           {selectedProd && (
                             <span
@@ -410,7 +414,9 @@ export default function NewCustomerCreditPage() {
                                   : "bg-rose-50 text-rose-700 border border-rose-200"
                               }`}
                             >
-                              In Shop: {selectedProd.availableStock} {selectedProd.unitType}
+                              {t('credits.inShopCountBadge')
+                                .replace('{count}', String(selectedProd.availableStock))
+                                .replace('{unit}', selectedProd.unitType)}
                             </span>
                           )}
                         </div>
@@ -421,7 +427,7 @@ export default function NewCustomerCreditPage() {
                         >
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.name} ({p.availableStock} {p.unitType} in shop) - {Number(p.basePrice).toFixed(2)} ETB {p.availableStock <= 0 ? " [OUT OF STOCK]" : ""}
+                              {p.name} ({p.availableStock} {p.unitType} {t('credits.inShopOption')}) - {Number(p.basePrice).toFixed(2)} ETB {p.availableStock <= 0 ? ` [${t('credits.outOfStock')}]` : ""}
                             </option>
                           ))}
                         </select>
@@ -432,7 +438,7 @@ export default function NewCustomerCreditPage() {
                         {/* Quantity */}
                         <div>
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block">
-                            Qty
+                            {t('credits.qtyLabel')}
                           </label>
                           <Input
                             type="number"
@@ -450,7 +456,9 @@ export default function NewCustomerCreditPage() {
                           />
                           {isOverStock && selectedProd && (
                             <p className="text-[9px] font-extrabold text-rose-600 mt-0.5 text-center leading-tight">
-                              Max: {selectedProd.availableStock} {selectedProd.unitType}
+                              {t('credits.maxLimit')
+                                .replace('{max}', String(selectedProd.availableStock))
+                                .replace('{unit}', selectedProd.unitType)}
                             </p>
                           )}
                         </div>
@@ -458,7 +466,7 @@ export default function NewCustomerCreditPage() {
                         {/* Editable Unit Price / Amount Input */}
                         <div>
                           <label className="text-[10px] font-bold uppercase text-[#8C7361] mb-1 block">
-                            Price / Unit
+                            {t('credits.pricePerUnit')}
                           </label>
                           <Input
                             type="number"
@@ -475,7 +483,7 @@ export default function NewCustomerCreditPage() {
                       {/* Mobile Subtotal and Delete Row */}
                       <div className="flex items-center justify-between pt-2 border-t border-[#EDE4D5]/60 md:hidden">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-bold uppercase text-[#8C7361]">Subtotal:</span>
+                          <span className="text-[10px] font-bold uppercase text-[#8C7361]">{t('credits.subtotal')}:</span>
                           <span className="text-xs font-extrabold text-[#E87A18] font-mono">
                             {itemSubtotal.toFixed(2)} ETB
                           </span>
@@ -487,7 +495,7 @@ export default function NewCustomerCreditPage() {
                           onClick={() => handleRemoveLineItem(idx)}
                           className="h-8 px-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs flex items-center gap-1"
                         >
-                          <X className="w-3.5 h-3.5" /> Remove
+                          <X className="w-3.5 h-3.5" /> {t('credits.remove')}
                         </Button>
                       </div>
 
@@ -510,7 +518,9 @@ export default function NewCustomerCreditPage() {
                           />
                           {isOverStock && selectedProd && (
                             <p className="text-[9px] font-extrabold text-rose-600 mt-0.5 text-center leading-tight">
-                              Max: {selectedProd.availableStock} {selectedProd.unitType}
+                              {t('credits.maxLimit')
+                                .replace('{max}', String(selectedProd.availableStock))
+                                .replace('{unit}', selectedProd.unitType)}
                             </p>
                           )}
                         </div>
@@ -555,16 +565,16 @@ export default function NewCustomerCreditPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <div className="space-y-1">
                 <span className="text-xs font-extrabold uppercase text-amber-200 tracking-wider flex items-center gap-1.5">
-                  <Calculator className="w-4 h-4 text-[#E87A18]" /> 3. Automated Birr Total Summary
+                  <Calculator className="w-4 h-4 text-[#E87A18]" /> {t('credits.summaryCardTitle')}
                 </span>
                 <p className="text-xs text-zinc-300">
-                  Total Birr calculated automatically based on product quantities and prices.
+                  {t('credits.summaryCardDesc')}
                 </p>
               </div>
 
               <div className="flex items-center justify-between sm:justify-end gap-3 bg-black/30 p-3 rounded-xl border border-white/10">
                 <div className="text-left sm:text-right">
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase block">Total Credit Amount</span>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase block">{t('credits.totalCreditAmount')}</span>
                   <span className="text-lg sm:text-xl font-extrabold text-amber-400 font-mono">
                     {effectiveTotalBirr.toFixed(2)} ETB
                   </span>
@@ -588,10 +598,10 @@ export default function NewCustomerCreditPage() {
           {/* Notes & Additional Details */}
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-5 shadow-sm space-y-3">
             <label className="text-xs font-bold text-[#2C1B10] block uppercase">
-              4. Additional Notes / Delivery References
+              {t('credits.notesCardTitle')}
             </label>
             <Input
-              placeholder="e.g. Delivered by morning truck shift; signed by storekeeper"
+              placeholder={t('credits.notesPlaceholder')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="rounded-xl border-zinc-200 text-xs sm:text-sm"
