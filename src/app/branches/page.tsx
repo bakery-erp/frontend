@@ -62,7 +62,7 @@ export default function BranchesPage() {
       toast.error("Unauthorized access to Branch Management.");
       return;
     }
-    fetchBranches();
+      fetchBranches();
   }, [user, router]);
 
   const fetchBranches = async () => {
@@ -71,7 +71,7 @@ export default function BranchesPage() {
       const res = await api.get("/branches");
       setBranches(res.data);
     } catch (error) {
-      toast.error("Failed to load branches.");
+      toast.error(t('branches.toastFailedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -82,12 +82,12 @@ export default function BranchesPage() {
     try {
       setToggleLoading(id);
       await api.patch(`/branches/${id}`, { isActive: !currentStatus });
-      toast.success(currentStatus ? "Branch deactivated." : "Branch activated.");
+      toast.success(currentStatus ? t('branches.toastBranchDeactivated') : t('branches.toastBranchActivated'));
       setBranches((prev) =>
         prev.map((b) => (b.id === id ? { ...b, isActive: !currentStatus } : b))
       );
     } catch (error) {
-      toast.error("Failed to update branch status.");
+      toast.error(t('branches.toastFailedToUpdate'));
     } finally {
       setToggleLoading(null);
     }
@@ -96,7 +96,7 @@ export default function BranchesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isOwner) return;
-    if (!formData.name.trim()) return toast.error("Branch name is required.");
+    if (!formData.name.trim()) return toast.error(t('branches.toastNameRequired'));
     
     setSubmitting(true);
     try {
@@ -106,16 +106,16 @@ export default function BranchesPage() {
         setBranches((prev) =>
           prev.map((b) => (b.id === res.data.id ? res.data : b))
         );
-        toast.success("Branch updated fully.");
+        toast.success(t('branches.toastBranchUpdated'));
       } else {
         // Create
         const res = await api.post("/branches", formData);
         setBranches((prev) => [...prev, res.data]);
-        toast.success("Branch created successfully.");
+        toast.success(t('branches.toastBranchCreated'));
       }
       handleCloseDialog();
     } catch (error) {
-      toast.error(editingBranch ? "Failed to update branch." : "Failed to create branch.");
+      toast.error(editingBranch ? t('branches.toastFailedToUpdate') : t('branches.toastFailedToCreate'));
     } finally {
       setSubmitting(false);
     }
@@ -149,14 +149,14 @@ export default function BranchesPage() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">{t('branches.title')}</h1>
-            <p className="text-gray-500 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">{t('branches.title')}</h1>
+            <p className="text-xs sm:text-sm text-[#8C7361] mt-1">
               {t('branches.subtitle')}
             </p>
           </div>
 
           {isOwner && (
-            <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2">
+            <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2 bg-[#4A2E1B] hover:bg-[#382214] text-white rounded-xl shadow-xs font-bold text-xs sm:text-sm h-10 px-4">
               <Plus className="w-4 h-4" />
               {t('branches.newBranch')}
             </Button>
@@ -164,42 +164,44 @@ export default function BranchesPage() {
 
           {isOwner && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[425px] rounded-2xl">
                 <DialogHeader>
-                  <DialogTitle>{editingBranch ? t('common.edit') : t('branches.newBranch')}</DialogTitle>
+                  <DialogTitle>{editingBranch ? t('branches.editBranch') : t('branches.newBranch')}</DialogTitle>
                   <DialogDescription>
                     {t('branches.subtitle')}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm font-medium">
-                      {t('branches.colBranchName')} <span className="text-red-500">*</span>
+                    <label htmlFor="name" className="text-xs font-bold text-[#2C1B10]">
+                      {t('branches.colBranchName')} <span className="text-rose-600">*</span>
                     </label>
                     <Input
                       id="name"
-                      placeholder="e.g., Downtown Bakery"
+                      placeholder={t('branches.branchNamePlaceholder')}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
+                      className="rounded-xl border-[#EDE4D5]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="address" className="text-sm font-medium">
+                    <label htmlFor="address" className="text-xs font-bold text-[#2C1B10]">
                       {t('branches.colAddress')}
                     </label>
                     <Input
                       id="address"
-                      placeholder="e.g., 123 Main St, Cityville"
+                      placeholder={t('branches.addressPlaceholder')}
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      className="rounded-xl border-[#EDE4D5]"
                     />
                   </div>
-                  <DialogFooter className="pt-4">
-                    <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                  <DialogFooter className="pt-4 gap-2">
+                    <Button type="button" variant="outline" onClick={handleCloseDialog} className="rounded-xl border-[#EDE4D5]">
                       {t('common.cancel')}
                     </Button>
-                    <Button type="submit" disabled={submitting}>
+                    <Button type="submit" disabled={submitting} className="rounded-xl bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold">
                       {submitting ? t('common.loading') : t('common.save')}
                     </Button>
                   </DialogFooter>
@@ -210,46 +212,46 @@ export default function BranchesPage() {
         </div>
 
         {/* Filters and Search */}
-        <div className="flex items-center py-4">
+        <div className="flex items-center">
           <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-[#8C7361]" />
             <Input
               placeholder={t('common.search')}
-              className="pl-9"
+              className="pl-9 h-10 rounded-xl border-[#EDE4D5] bg-white text-xs sm:text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Data Table */}
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
+        {/* Desktop Data Table (hidden on mobile, visible on md+) */}
+        <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>{t('branches.colBranchName')}</TableHead>
-                <TableHead>{t('branches.colAddress')}</TableHead>
-                <TableHead>{t('branches.colStatus')}</TableHead>
-                <TableHead>{t('common.date')}</TableHead>
-                <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
+              <TableRow className="bg-[#FAF6F0]/60 border-b border-[#EDE4D5]">
+                <TableHead className="font-bold text-[#2C1B10]">{t('branches.colBranchName')}</TableHead>
+                <TableHead className="font-bold text-[#2C1B10]">{t('branches.colAddress')}</TableHead>
+                <TableHead className="font-bold text-[#2C1B10]">{t('branches.colStatus')}</TableHead>
+                <TableHead className="font-bold text-[#2C1B10]">{t('common.date')}</TableHead>
+                <TableHead className="text-right pr-6 font-bold text-[#2C1B10]">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-[#8C7361]">
-                    Loading branches...
+                    {t('branches.loadingBranches')}
                   </TableCell>
                 </TableRow>
               ) : filteredBranches.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-[#8C7361]">
-                    No branches found.
+                    {t('branches.noBranchesFound')}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredBranches.map((branch) => (
-                  <TableRow key={branch.id}>
+                  <TableRow key={branch.id} className="border-b border-[#F4ECE1] hover:bg-[#FAF6F0]/40">
                     <TableCell className="font-bold text-[#2C1B10]">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-[#8C7361]" />
@@ -263,7 +265,7 @@ export default function BranchesPage() {
                           {branch.address}
                         </span>
                       ) : (
-                        <span className="text-zinc-400 italic text-xs">No address provided</span>
+                        <span className="text-zinc-400 italic text-xs">{t('branches.noAddress')}</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -274,7 +276,7 @@ export default function BranchesPage() {
                           : "bg-zinc-100 text-zinc-600 hover:bg-zinc-100 border border-zinc-200 font-bold text-xs"
                         }
                       >
-                        {branch.isActive ? "✓ Active" : "Inactive"}
+                        {branch.isActive ? `✓ ${t('branches.activeStatus')}` : t('branches.inactiveStatus')}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs font-medium text-[#8C7361]">
@@ -285,7 +287,7 @@ export default function BranchesPage() {
                         <div className="flex justify-end items-center gap-4">
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-semibold text-[#8C7361]" htmlFor={`switch-${branch.id}`}>
-                              {toggleLoading === branch.id ? "Updating..." : branch.isActive ? "Disable" : "Enable"}
+                              {toggleLoading === branch.id ? t('common.updating') : branch.isActive ? t('branches.disableBranch') : t('branches.enableBranch')}
                             </label>
                             <Switch
                               id={`switch-${branch.id}`}
@@ -298,13 +300,13 @@ export default function BranchesPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleOpenDialog(branch)}
-                            className="h-8 w-8 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]"
+                            className="h-8 w-8 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0] rounded-lg"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-xs text-zinc-400 font-medium">Read-Only</span>
+                        <span className="text-xs text-zinc-400 font-medium">{t('branches.readOnly')}</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -312,6 +314,81 @@ export default function BranchesPage() {
               )}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Mobile Cards (visible on mobile < md, hidden on desktop) */}
+        <div className="md:hidden space-y-3">
+          {loading ? (
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-8 text-center text-[#8C7361] text-xs font-semibold">
+              {t('branches.loadingBranches')}
+            </div>
+          ) : filteredBranches.length === 0 ? (
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-8 text-center text-[#8C7361] text-xs font-semibold">
+              {t('branches.noBranchesFound')}
+            </div>
+          ) : (
+            filteredBranches.map((branch) => (
+              <div key={branch.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3">
+                {/* Header: Name + Badge */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-center shrink-0">
+                      <Building2 className="w-4 h-4 text-[#E87A18]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-sm text-[#2C1B10] truncate">{branch.name}</h3>
+                      <p className="text-[11px] text-[#8C7361]">
+                        {new Date(branch.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant={branch.isActive ? "default" : "secondary"}
+                    className={branch.isActive
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] shrink-0"
+                      : "bg-zinc-100 text-zinc-600 border border-zinc-200 font-bold text-[11px] shrink-0"
+                    }
+                  >
+                    {branch.isActive ? `✓ ${t('branches.activeStatus')}` : t('branches.inactiveStatus')}
+                  </Badge>
+                </div>
+
+                {/* Address Row */}
+                <div className="bg-[#FAF6F0]/60 rounded-xl px-3 py-2 text-xs flex items-center gap-2 text-[#4A2E1B]">
+                  <MapPin className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
+                  <span className="truncate">
+                    {branch.address ? branch.address : <span className="text-zinc-400 italic">{t('branches.noAddress')}</span>}
+                  </span>
+                </div>
+
+                {/* Actions Row */}
+                {isOwner && (
+                  <div className="flex items-center justify-between pt-2 border-t border-[#F4ECE1]">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id={`switch-mob-${branch.id}`}
+                        checked={branch.isActive}
+                        disabled={toggleLoading === branch.id}
+                        onCheckedChange={() => handleToggleStatus(branch.id, branch.isActive)}
+                      />
+                      <label className="text-xs font-semibold text-[#8C7361]" htmlFor={`switch-mob-${branch.id}`}>
+                        {toggleLoading === branch.id ? t('common.updating') : branch.isActive ? t('branches.disableBranch') : t('branches.enableBranch')}
+                      </label>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenDialog(branch)}
+                      className="h-8 px-3 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] flex items-center gap-1.5 text-xs font-bold"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-[#E87A18]" />
+                      {t('common.edit')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </DashboardLayout>

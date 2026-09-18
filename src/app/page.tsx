@@ -41,7 +41,31 @@ interface StockSummary {
 }
 
 function money(value: number | undefined | null) {
-  return `${Number(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`;
+  return `${Number(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0ETB`;
+}
+
+function MoneyDisplay({
+  value,
+  prefix = "",
+  className = "",
+  currencyClassName = "text-[10px] sm:text-xs font-semibold opacity-75 ml-1",
+}: {
+  value: number | undefined | null;
+  prefix?: string;
+  className?: string;
+  currencyClassName?: string;
+}) {
+  const formatted = Number(value ?? 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return (
+    <span className={`inline-flex items-baseline whitespace-nowrap font-mono tabular-nums ${className}`}>
+      {prefix}
+      <span>{formatted}</span>
+      <span className={currencyClassName}>ETB</span>
+    </span>
+  );
 }
 
 export default function Dashboard() {
@@ -388,38 +412,48 @@ export default function Dashboard() {
                 {/* 4-Part Formula Grid */}
                 <div className="p-4 bg-emerald-50/30 border-b border-emerald-100 space-y-2.5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
-                      <div>
-                        <span className="font-extrabold text-emerald-900 block">➕ {t('dashboard.yesterdayLeftoverCash')}</span>
-                        <span className="text-[11px] text-[#8C7361]">{t('dashboard.yesterdayLeftoverCashSub')}</span>
+                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between gap-2.5">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-extrabold text-emerald-900 block truncate">➕ {t('dashboard.yesterdayLeftoverCash')}</span>
+                        <span className="text-[11px] text-[#8C7361] line-clamp-1">{t('dashboard.yesterdayLeftoverCashSub')}</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-900 text-sm">{money(yesterdayCash)}</span>
+                      <div className="shrink-0 text-right">
+                        <MoneyDisplay value={yesterdayCash} className="text-xs sm:text-sm font-bold text-emerald-900" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
-                      <div>
-                        <span className="font-extrabold text-emerald-900 block">➕ {t('dashboard.incomeFromSales')}</span>
-                        <span className="text-[11px] text-[#8C7361]">{t('dashboard.incomeFromSalesSub')}</span>
+                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between gap-2.5">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-extrabold text-emerald-900 block truncate">➕ {t('dashboard.incomeFromSales')}</span>
+                        <span className="text-[11px] text-[#8C7361] line-clamp-1">{t('dashboard.incomeFromSalesSub')}</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-900 text-sm">{money(salesIncome)}</span>
+                      <div className="shrink-0 text-right">
+                        <MoneyDisplay value={salesIncome} className="text-xs sm:text-sm font-bold text-emerald-900" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
-                      <div>
-                        <span className="font-extrabold text-emerald-900 block">➕ {t('dashboard.creditReceivedLoans')}</span>
-                        <span className="text-[11px] text-[#8C7361]">{t('dashboard.creditReceivedLoansSub')}</span>
+                    <div className="p-3 bg-white rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between gap-2.5">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-extrabold text-emerald-900 block truncate">➕ {t('dashboard.creditReceivedLoans')}</span>
+                        <span className="text-[11px] text-[#8C7361] line-clamp-1">{t('dashboard.creditReceivedLoansSub')}</span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-900 text-sm">{money(creditReceived)}</span>
+                      <div className="shrink-0 text-right">
+                        <MoneyDisplay value={creditReceived} className="text-xs sm:text-sm font-bold text-emerald-900" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-white rounded-2xl border border-rose-200 shadow-xs flex items-center justify-between">
-                      <div>
-                        <span className="font-extrabold text-rose-900 block">➖ {t('dashboard.tomorrowLeftoverCash')}</span>
-                        <span className="text-[11px] text-[#8C7361]">{t('dashboard.tomorrowLeftoverCashSub')}</span>
+                    <div className="p-3 bg-white rounded-2xl border border-rose-200 shadow-xs flex items-center justify-between gap-2.5">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-extrabold text-rose-900 block truncate">➖ {t('dashboard.tomorrowLeftoverCash')}</span>
+                        <span className="text-[11px] text-[#8C7361] line-clamp-1">{t('dashboard.tomorrowLeftoverCashSub')}</span>
                       </div>
-                      <span className="font-mono font-bold text-rose-900 text-sm">{money(tomorrowCash)}</span>
+                      <div className="shrink-0 text-right">
+                        <MoneyDisplay value={tomorrowCash} className="text-xs sm:text-sm font-bold text-rose-900" />
+                      </div>
                     </div>
                   </div>
-                  <div className="p-3.5 bg-emerald-900 text-white rounded-2xl flex items-center justify-between font-extrabold text-sm shadow-sm">
+                  <div className="p-3.5 bg-emerald-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 font-extrabold text-sm shadow-sm">
                     <span className="uppercase tracking-wider text-xs sm:text-sm">🟰 {t('dashboard.totalDailyRevenue')}:</span>
-                    <span className="font-mono text-emerald-300 text-base sm:text-lg">{money(todayGain)}</span>
+                    <div className="shrink-0 text-left sm:text-right">
+                      <MoneyDisplay value={todayGain} className="text-base sm:text-lg font-black text-emerald-300" currencyClassName="text-xs font-bold text-emerald-400 ml-1" />
+                    </div>
                   </div>
                 </div>
 
@@ -795,46 +829,95 @@ export default function Dashboard() {
             <CardTitle className="text-base font-extrabold text-[#2C1B10]">{t('dashboard.pnlStatementTitle')}</CardTitle>
             <CardDescription className="text-xs text-[#8C7361]">{t('dashboard.pnlStatementDesc')}</CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="space-y-3">
-              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">{t('dashboard.plusYesterdayLeftover')}</span>
-                <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(yesterdayCash)}</span>
+              <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-[#F4ECE1]">
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B] min-w-0 flex-1 leading-snug">
+                  {t('dashboard.plusYesterdayLeftover')}
+                </span>
+                <div className="shrink-0 text-right">
+                  <MoneyDisplay value={yesterdayCash} prefix="+" className="text-xs sm:text-sm font-bold text-emerald-700" />
+                </div>
               </div>
-              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">{t('dashboard.plusProductSales')}</span>
-                <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(salesIncome)}</span>
+              <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-[#F4ECE1]">
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B] min-w-0 flex-1 leading-snug">
+                  {t('dashboard.plusProductSales')}
+                </span>
+                <div className="shrink-0 text-right">
+                  <MoneyDisplay value={salesIncome} prefix="+" className="text-xs sm:text-sm font-bold text-emerald-700" />
+                </div>
               </div>
-              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">{t('dashboard.plusCreditReceived')}</span>
-                <span className="text-xs sm:text-sm font-extrabold text-emerald-700 font-mono">+{money(creditReceived)}</span>
+              <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-[#F4ECE1]">
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B] min-w-0 flex-1 leading-snug">
+                  {t('dashboard.plusCreditReceived')}
+                </span>
+                <div className="shrink-0 text-right">
+                  <MoneyDisplay value={creditReceived} prefix="+" className="text-xs sm:text-sm font-bold text-emerald-700" />
+                </div>
               </div>
-              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
-                <span className="text-xs sm:text-sm font-semibold text-rose-800">{t('dashboard.minusTomorrowLeftover')}</span>
-                <span className="text-xs sm:text-sm font-extrabold text-rose-700 font-mono">-{money(tomorrowCash)}</span>
+              <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-[#F4ECE1]">
+                <span className="text-xs sm:text-sm font-semibold text-rose-800 min-w-0 flex-1 leading-snug">
+                  {t('dashboard.minusTomorrowLeftover')}
+                </span>
+                <div className="shrink-0 text-right">
+                  <MoneyDisplay value={tomorrowCash} prefix="-" className="text-xs sm:text-sm font-bold text-rose-700" />
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-emerald-50/80 rounded-xl border border-emerald-200">
-                <span className="text-xs sm:text-sm font-black text-emerald-950 uppercase tracking-wider">{t('dashboard.equalsTotalRevenue')}</span>
-                <span className="text-sm sm:text-base font-black text-emerald-900 font-mono">{money(todayGain)}</span>
+
+              {/* Total Daily Revenue Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 sm:p-3.5 bg-emerald-50/90 rounded-2xl border border-emerald-200 shadow-xs">
+                <span className="text-xs sm:text-sm font-black text-emerald-950 uppercase tracking-wider min-w-0">
+                  {t('dashboard.equalsTotalRevenue')}
+                </span>
+                <div className="shrink-0 text-left sm:text-right">
+                  <MoneyDisplay 
+                    value={todayGain} 
+                    className="text-sm sm:text-base font-black text-emerald-900" 
+                    currencyClassName="text-xs font-bold text-emerald-700 ml-1"
+                  />
+                </div>
               </div>
-              <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1] pt-1">
-                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B]">{t('dashboard.minusCompanyExpenses')}</span>
-                <span className="text-xs sm:text-sm font-extrabold text-rose-600 font-mono">-{money(todayExpense)}</span>
+
+              {/* Operating Expenses Row */}
+              <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-[#F4ECE1] pt-1">
+                <span className="text-xs sm:text-sm font-semibold text-[#4A2E1B] min-w-0 flex-1 leading-snug">
+                  {t('dashboard.minusCompanyExpenses')}
+                </span>
+                <div className="shrink-0 text-right">
+                  <MoneyDisplay value={todayExpense} prefix="-" className="text-xs sm:text-sm font-bold text-rose-600" />
+                </div>
               </div>
+
               {totals?.ownerExpenseTotal ? (
-                <div className="flex justify-between items-center pb-2.5 border-b border-purple-100 text-purple-950">
-                  <span className="text-xs font-semibold">{t('dashboard.ownerDrawingsNote')}</span>
-                  <span className="text-xs font-bold font-mono text-purple-800">{money(totals.ownerExpenseTotal)}</span>
+                <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-purple-100 text-purple-950">
+                  <span className="text-xs font-semibold min-w-0 flex-1 leading-snug">
+                    {t('dashboard.ownerDrawingsNote')}
+                  </span>
+                  <div className="shrink-0 text-right">
+                    <MoneyDisplay value={totals.ownerExpenseTotal} className="text-xs font-bold text-purple-800" />
+                  </div>
                 </div>
               ) : null}
-              <div className="flex justify-between items-center p-4 bg-[#F4ECE1] rounded-2xl mt-2">
-                <div>
-                  <span className="text-sm font-extrabold text-[#2C1B10] block">{t('dashboard.dailyNetIncome')}</span>
-                  <span className="text-[11px] text-[#8C7361]">{t('dashboard.dailyNetIncomeSub')}</span>
+
+              {/* Daily Net Income Highlight Card */}
+              <div className="p-4 sm:p-5 bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl mt-3 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm sm:text-base font-extrabold text-[#2C1B10] block">
+                      {t('dashboard.dailyNetIncome')}
+                    </span>
+                    <span className="text-[11px] text-[#8C7361] mt-0.5 block leading-tight">
+                      {t('dashboard.dailyNetIncomeSub')}
+                    </span>
+                  </div>
+                  <div className="shrink-0 text-left sm:text-right pt-1 sm:pt-0">
+                    <MoneyDisplay 
+                      value={todayNet} 
+                      className={`text-lg sm:text-2xl font-black ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`} 
+                      currencyClassName="text-xs sm:text-sm font-bold opacity-75 ml-1.5"
+                    />
+                  </div>
                 </div>
-                <span className={`text-base sm:text-xl font-extrabold font-mono ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                  {money(todayNet)}
-                </span>
               </div>
             </div>
           </CardContent>
