@@ -8,6 +8,7 @@ import { EthDatePicker } from "@/components/EthDatePicker";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -36,10 +37,24 @@ export default function EditUserPage() {
   const userId = params?.id as string;
   const { user } = useAuth();
   const { branches } = useBranch();
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "OWNER": return t('users.roleOwner');
+      case "ADMIN": return t('users.roleAdmin');
+      case "BAKER": return t('users.roleBaker');
+      case "CAKE_WORKER": return t('users.roleCakeWorker');
+      case "CASHIER": return t('users.roleCashier');
+      case "SAMBUSA_WORKER": return t('users.roleSambusaWorker');
+      case "EMPLOYEE": return t('users.roleEmployee');
+      default: return role.replace("_", " ");
+    }
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -96,7 +111,7 @@ export default function EditUserPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success("Personnel updated successfully");
+      toast.success(t('users.toastUserUpdated'));
       router.push("/users");
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update user");
@@ -129,10 +144,10 @@ export default function EditUserPage() {
           </Link>
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-              Edit Personnel: {userData.fullName}
+              {t('users.editPersonnel')}: {userData.fullName}
             </h1>
             <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-              Update credentials, role assignment, work shift, and salary details
+              {t('users.editPersonnelSubtitle')}
             </p>
           </div>
         </div>
@@ -145,20 +160,20 @@ export default function EditUserPage() {
                 <UserCheck className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Account & Identity</h2>
-                <p className="text-xs text-[#8C7361]">Basic contact and system login credentials</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionAccountIdentity')}</h2>
+                <p className="text-xs text-[#8C7361]">{t('users.sectionAccountIdentityDesc')}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Full Name <span className="text-rose-600">*</span>
+                  {t('users.fullNameLabel')} <span className="text-rose-600">*</span>
                 </label>
                 <Input
                   name="fullName"
                   defaultValue={userData.fullName}
-                  placeholder="e.g. Abebe Kebede"
+                  placeholder={t('users.fullNamePlaceholder')}
                   required
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
                 />
@@ -166,12 +181,12 @@ export default function EditUserPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Phone Number <span className="text-rose-600">*</span>
+                  {t('users.phoneNumberLabel')} <span className="text-rose-600">*</span>
                 </label>
                 <Input
                   name="phone"
                   defaultValue={userData.phone}
-                  placeholder="0911..."
+                  placeholder={t('users.phonePlaceholder')}
                   required
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
                 />
@@ -179,19 +194,19 @@ export default function EditUserPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Password <span className="text-xs text-zinc-400 font-normal">(Leave empty to keep current)</span>
+                  {t('users.passwordLabel')} <span className="text-xs text-zinc-400 font-normal">({t('users.passwordLeaveBlank')})</span>
                 </label>
                 <Input
                   name="password"
                   type="text"
-                  placeholder="•••••••• (Leave blank to keep)"
+                  placeholder={`•••••••• (${t('users.passwordLeaveBlank')})`}
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Role <span className="text-rose-600">*</span>
+                  {t('users.systemRoleLabel')} <span className="text-rose-600">*</span>
                 </label>
                 <select
                   name="role"
@@ -201,7 +216,7 @@ export default function EditUserPage() {
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
-                      {r.replace("_", " ")}
+                      {getRoleLabel(r)}
                     </option>
                   ))}
                 </select>
@@ -216,22 +231,22 @@ export default function EditUserPage() {
                 <Building2 className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Branch & Schedule</h2>
-                <p className="text-xs text-[#8C7361]">Station assignment and daily work shifts</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionBranchSchedule')}</h2>
+                <p className="text-xs text-[#8C7361]">{t('users.sectionBranchScheduleDesc')}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Branch Assignment
+                  {t('users.branchAssignmentLabel')}
                 </label>
                 <select
                   name="branchId"
                   defaultValue={userData.branchId || ""}
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  <option value="">Global / All Branches</option>
+                  <option value="">{t('users.globalAllBranches')}</option>
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}
@@ -242,17 +257,17 @@ export default function EditUserPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Assigned Shift
+                  {t('users.assignedShiftLabel')}
                 </label>
                 <select
                   name="shift"
                   defaultValue={userData.shift || ""}
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  <option value="">No shift assigned</option>
+                  <option value="">{t('users.noShiftAssigned')}</option>
                   {SHIFTS.map((s) => (
                     <option key={s} value={s}>
-                      {s === "DAY" ? "Day Shift (DAY)" : s === "NIGHT" ? "Night Shift (NIGHT)" : s}
+                      {s === "DAY" ? t('users.dayShiftOption') : s === "NIGHT" ? t('users.nightShiftOption') : s}
                     </option>
                   ))}
                 </select>
@@ -267,15 +282,15 @@ export default function EditUserPage() {
                 <Calendar className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Payroll & Term Dates</h2>
-                <p className="text-xs text-[#8C7361]">Monthly base salary and contract timeline</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionPayrollTimeline')}</h2>
+                <p className="text-xs text-[#8C7361]">{t('users.sectionPayrollTimelineDesc')}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Monthly Base Salary (ETB)
+                  {t('users.monthlyBaseSalaryLabel')}
                 </label>
                 <Input
                   name="salary"
@@ -291,7 +306,7 @@ export default function EditUserPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Employment Start Date
+                  {t('users.employmentStartDateLabel')}
                 </label>
                 <EthDatePicker
                   name="startDate"
@@ -301,7 +316,7 @@ export default function EditUserPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Last Paid Date
+                  {t('users.lastPaidDateLabel')}
                 </label>
                 <EthDatePicker
                   name="lastPaidDate"
@@ -318,33 +333,33 @@ export default function EditUserPage() {
                 <FileText className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Documentation & Verification</h2>
-                <p className="text-xs text-[#8C7361]">Upload national ID, contract, or credentials</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionDocs')}</h2>
+                <p className="text-xs text-[#8C7361]">{t('users.sectionDocsDesc')}</p>
               </div>
             </div>
 
             <div>
               {userData.filesUrl && (
                 <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
-                  <span className="text-xs font-medium text-blue-900">Current attached documentation on file</span>
+                  <span className="text-xs font-medium text-blue-900">{t('users.currentDocOnFile')}</span>
                   <a
                     href={`http://localhost:3001${userData.filesUrl}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-bold text-blue-700 hover:underline bg-white px-3 py-1 rounded-lg border border-blue-200"
                   >
-                    View Document
+                    {t('users.viewDocument')}
                   </a>
                 </div>
               )}
 
               <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                {userData.filesUrl ? "Replace Attached Document (Optional)" : "Attachment File (PDF / Image)"}
+                {userData.filesUrl ? t('users.replaceDocOptional') : t('users.attachmentFileLabel')}
               </label>
               <div className="border-2 border-dashed border-[#EDE4D5] rounded-2xl p-4 sm:p-6 text-center hover:border-[#E87A18] transition-colors bg-[#FAF6F0]/40">
                 <Upload className="w-8 h-8 text-[#8C7361] mx-auto mb-2" />
                 <p className="text-xs text-[#8C7361] mb-2 font-medium">
-                  Select a new file from your device
+                  {t('users.selectNewFile')}
                 </p>
                 <Input
                   name="file"
@@ -364,7 +379,7 @@ export default function EditUserPage() {
               className="order-1 sm:order-2 flex-1 h-12 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-sm shadow-md flex items-center justify-center gap-2"
             >
               <Save className="w-4 h-4" />
-              {isSubmitting ? "Saving Changes..." : "Save Personnel Changes"}
+              {isSubmitting ? t('users.btnUpdatingPersonnel') : t('users.btnUpdatePersonnel')}
             </Button>
             <Link href="/users" className="order-2 sm:order-1 sm:flex-initial">
               <Button
@@ -372,7 +387,7 @@ export default function EditUserPage() {
                 variant="outline"
                 className="w-full sm:w-auto h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-sm hover:bg-[#FAF6F0]"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
             </Link>
           </div>
