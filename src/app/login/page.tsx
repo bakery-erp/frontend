@@ -5,7 +5,7 @@ import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
-import { Lock, Phone, Loader2, Store } from 'lucide-react';
+import { Lock, Phone, Loader2, Store, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -133,13 +134,26 @@ export default function LoginPage() {
                   </div>
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder={t('auth.passwordPlaceholder')}
-                    className="pl-10 h-12 rounded-2xl focus-visible:ring-[#E87A18] focus-visible:border-transparent bg-[#F4ECE1]/50 text-[#2C1B10] placeholder:text-[#A48F7F] border-[#EDE4D5] focus:bg-white transition-all font-medium"
+                    className="pl-10 pr-11 h-12 rounded-2xl focus-visible:ring-[#E87A18] focus-visible:border-transparent bg-[#F4ECE1]/50 text-[#2C1B10] placeholder:text-[#A48F7F] border-[#EDE4D5] focus:bg-white transition-all font-medium"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#8C7361] hover:text-[#2C1B10] focus:outline-none transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
