@@ -23,6 +23,21 @@ export default function NewUserPage() {
   const { branches } = useBranch();
   const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startDateVal, setStartDateVal] = useState<string>("");
+  const [lastPaidDateVal, setLastPaidDateVal] = useState<string>("");
+  const [lastPaidTouched, setLastPaidTouched] = useState<boolean>(false);
+
+  const handleStartDateChange = (val: string) => {
+    setStartDateVal(val);
+    if (!lastPaidTouched || !lastPaidDateVal) {
+      setLastPaidDateVal(val);
+    }
+  };
+
+  const handleLastPaidDateChange = (val: string) => {
+    setLastPaidDateVal(val);
+    setLastPaidTouched(true);
+  };
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -44,17 +59,29 @@ export default function NewUserPage() {
     try {
       const formData = new FormData(e.currentTarget);
 
+      const startDateStr = formData.get("startDate") as string;
+      const lastPaidDateStr = formData.get("lastPaidDate") as string;
+      if (startDateStr && lastPaidDateStr) {
+        if (new Date(lastPaidDateStr).getTime() < new Date(startDateStr).getTime()) {
+          toast.error(t('users.invalidDateRange') || "Last paid date cannot be earlier than employment start date");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const file = formData.get("file") as File;
+      if (!file || file.size === 0) {
+        toast.error(t('users.idDocumentRequired') || "Identification document is required.");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Clean up empty strings
       if (!formData.get("salary")) formData.delete("salary");
       if (!formData.get("startDate")) formData.delete("startDate");
       if (!formData.get("lastPaidDate")) formData.delete("lastPaidDate");
       if (!formData.get("branchId")) formData.delete("branchId");
       if (!formData.get("shift")) formData.delete("shift");
-
-      const file = formData.get("file") as File;
-      if (file && file.size === 0) {
-        formData.delete("file");
-      }
 
       await api.post("/users", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -244,14 +271,15 @@ export default function NewUserPage() {
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
                   {t('users.employmentStartDateLabel')}
                 </label>
-                <EthDatePicker name="startDate" />
+                <EthDatePicker name="startDate" value={startDateVal} onChange={handleStartDateChange} />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
                   {t('users.lastPaidDateLabel')}
                 </label>
-                <EthDatePicker name="lastPaidDate" />
+                <EthDatePicker name="lastPaidDate" value={lastPaidDateVal} onChange={handleLastPaidDateChange} />
+                <p className="text-[10px] text-[#8C7361] mt-1">Auto-calculated from employment start date</p>
               </div>
             </div>
           </div>
@@ -270,7 +298,7 @@ export default function NewUserPage() {
 
             <div>
               <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                {t('users.attachmentFileLabel')}
+                {t('users.attachmentFileLabel')} <span className="text-rose-600">*</span>
               </label>
               <div className="border-2 border-dashed border-[#EDE4D5] rounded-2xl p-4 sm:p-6 text-center hover:border-[#E87A18] transition-colors bg-[#FAF6F0]/40">
                 <Upload className="w-8 h-8 text-[#8C7361] mx-auto mb-2" />
@@ -280,6 +308,7 @@ export default function NewUserPage() {
                 <Input
                   name="file"
                   type="file"
+                  required
                   accept=".pdf,image/*"
                   className="max-w-xs mx-auto text-xs cursor-pointer border-[#EDE4D5] bg-white rounded-xl h-10"
                 />

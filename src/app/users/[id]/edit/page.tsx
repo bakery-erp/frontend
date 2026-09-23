@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { getFileUrl } from "@/lib/utils";
 import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save, Loader2 } from "lucide-react";
 
 const ROLES = ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] as const;
@@ -42,6 +43,21 @@ export default function EditUserPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [startDateVal, setStartDateVal] = useState<string>("");
+  const [lastPaidDateVal, setLastPaidDateVal] = useState<string>("");
+  const [lastPaidTouched, setLastPaidTouched] = useState<boolean>(false);
+
+  const handleStartDateChange = (val: string) => {
+    setStartDateVal(val);
+    if (!lastPaidTouched && !lastPaidDateVal) {
+      setLastPaidDateVal(val);
+    }
+  };
+
+  const handleLastPaidDateChange = (val: string) => {
+    setLastPaidDateVal(val);
+    setLastPaidTouched(true);
+  };
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -68,6 +84,8 @@ export default function EditUserPage() {
         });
         if (res.data) {
           setUserData(res.data);
+          if (res.data.startDate) setStartDateVal(res.data.startDate.split("T")[0]);
+          if (res.data.lastPaidDate) setLastPaidDateVal(res.data.lastPaidDate.split("T")[0]);
         } else {
           toast.error("User not found");
           router.push("/users");
@@ -89,6 +107,16 @@ export default function EditUserPage() {
 
     try {
       const formData = new FormData(e.currentTarget);
+
+      const startDateStr = formData.get("startDate") as string;
+      const lastPaidDateStr = formData.get("lastPaidDate") as string;
+      if (startDateStr && lastPaidDateStr) {
+        if (new Date(lastPaidDateStr).getTime() < new Date(startDateStr).getTime()) {
+          toast.error(t('users.invalidDateRange') || "Last paid date cannot be earlier than employment start date");
+          setIsSubmitting(false);
+          return;
+        }
+      }
 
       // Clean up empty strings
       if (!formData.get("salary")) formData.delete("salary");
@@ -310,7 +338,8 @@ export default function EditUserPage() {
                 </label>
                 <EthDatePicker
                   name="startDate"
-                  defaultValue={userData.startDate ? userData.startDate.split("T")[0] : ""}
+                  value={startDateVal}
+                  onChange={handleStartDateChange}
                 />
               </div>
 
@@ -320,8 +349,10 @@ export default function EditUserPage() {
                 </label>
                 <EthDatePicker
                   name="lastPaidDate"
-                  defaultValue={userData.lastPaidDate ? userData.lastPaidDate.split("T")[0] : ""}
+                  value={lastPaidDateVal}
+                  onChange={handleLastPaidDateChange}
                 />
+                <p className="text-[10px] text-[#8C7361] mt-1">Must be on or after start date</p>
               </div>
             </div>
           </div>
@@ -343,7 +374,7 @@ export default function EditUserPage() {
                 <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
                   <span className="text-xs font-medium text-blue-900">{t('users.currentDocOnFile')}</span>
                   <a
-                    href={`http://localhost:3001${userData.filesUrl}`}
+                    href={getFileUrl(userData.filesUrl) || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-bold text-blue-700 hover:underline bg-white px-3 py-1 rounded-lg border border-blue-200"

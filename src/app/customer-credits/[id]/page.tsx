@@ -24,32 +24,52 @@ import {
   CheckCircle2,
   Clock,
   FileText,
+  MapPin,
 } from "lucide-react";
 
-interface LoanPayment {
+interface CreditPayment {
   id: string;
-  amountPaid: number;
+  amount?: number | string;
+  amountPaid?: number | string;
   date: string;
   createdAt: string;
+}
+
+interface CustomerInfo {
+  id: string;
+  fullName: string;
+  phone: string;
+  address?: string | null;
+  notes?: string | null;
 }
 
 interface CustomerCredit {
   id: string;
-  branchId: string;
-  type: string;
-  entityId: string | null;
-  totalAmount: number;
-  remainingBalance: number;
+  branchId?: string;
+  type?: string;
+  amount?: number | string;
+  totalAmount?: number | string;
+  paidAmount?: number | string;
+  remainingBalance: number | string;
   status: "OPEN" | "PAID";
   date: string;
   createdAt: string;
-  payments: LoanPayment[];
+  description?: string | null;
+  entityId?: string | null;
+  customer?: CustomerInfo | null;
+  payments: CreditPayment[];
 }
 
-function parseCustomerCreditEntity(raw: string) {
-  if (!raw) return { name: "Customer / Cafe", phone: "", items: [], notes: "" };
+function parseCustomerCreditStatement(
+  rawDesc?: string | null,
+  rawEntity?: string | null,
+  customerObj?: CustomerInfo | null
+) {
+  const customerName = customerObj?.fullName || "";
+  const customerPhone = customerObj?.phone || "";
+  const customerAddress = customerObj?.address || "";
 
-  let remaining = raw;
+  let remaining = rawDesc || rawEntity || "";
   let itemsFromStructured: Array<{ raw: string; qty: string; name: string; unitPrice: string; total: string }> = [];
 
   // 1. Extract [CreditItems: [...]] if present
@@ -72,9 +92,7 @@ function parseCustomerCreditEntity(raw: string) {
           };
         });
       }
-    } catch {
-      // ignore json parse error
-    }
+    } catch {}
     remaining = remaining.replace(/\[CreditItems:\s*\[.*?\]\s*\]/g, "").trim();
   }
 
@@ -89,12 +107,11 @@ function parseCustomerCreditEntity(raw: string) {
   // 3. Extract human notes: split by " - "
   let notesPart = "";
   const parts = remaining.split(/\s+-\s+/);
-  let namePart = parts[0] || "";
+  let namePart = customerName || parts[0] || "";
   if (parts.length > 1) {
     notesPart = parts.slice(1).join(" - ").trim();
   }
 
-  // Clean any remaining [CreditItems:...] or [Products:...] artifact
   notesPart = notesPart
     .replace(/\[CreditItems:.*?\]/g, "")
     .replace(/\[Products:.*?\]/g, "")
@@ -103,37 +120,39 @@ function parseCustomerCreditEntity(raw: string) {
 
   namePart = namePart.replace(/^-\s*|\s*-$/g, "").trim();
 
-  // 4. Extract phone from namePart: "Customer Name (09...)"
-  let phone = "";
+  let phone = customerPhone;
   const phoneMatch = namePart.match(/\((.*?)\)/);
-  if (phoneMatch) {
+  if (phoneMatch && !phone) {
     phone = phoneMatch[1].trim();
     namePart = namePart.replace(/\(.*?\)/, "").trim();
   }
 
-  // 5. Fallback items from productsPart if structured items weren't found
-  const items = itemsFromStructured.length > 0
-    ? itemsFromStructured
-    : productsPart
-    ? productsPart.split(/,\s*/).map((itemStr) => {
-        const cleaned = itemStr.trim();
-        const itemMatch = cleaned.match(/^(?:(\d+(?:\.\d+)?)x\s+)?(.*?)(?:\s+@\s+(\d+(?:\.\d+)?)\s*ETB)?(?:\s*\(([\d\.]+)\s*ETB\))?$/);
-        if (itemMatch) {
-          return {
-            raw: cleaned,
-            qty: itemMatch[1] || "1",
-            name: itemMatch[2] || cleaned,
-            unitPrice: itemMatch[3] ? `${itemMatch[3]} ETB` : "-",
-            total: itemMatch[4] ? `${itemMatch[4]} ETB` : "-",
-          };
-        }
-        return { raw: cleaned, qty: "1", name: cleaned, unitPrice: "-", total: "-" };
-      })
-    : [];
+  const items =
+    itemsFromStructured.length > 0
+      ? itemsFromStructured
+      : productsPart
+      ? productsPart.split(/,\s*/).map((itemStr) => {
+          const cleaned = itemStr.trim();
+          const itemMatch = cleaned.match(
+            /^(?:(\d+(?:\.\d+)?)x\s+)?(.*?)(?:\s+@\s+(\d+(?:\.\d+)?)\s*ETB)?(?:\s*\(([\d\.]+)\s*ETB\))?$/
+          );
+          if (itemMatch) {
+            return {
+              raw: cleaned,
+              qty: itemMatch[1] || "1",
+              name: itemMatch[2] || cleaned,
+              unitPrice: itemMatch[3] ? `${itemMatch[3]} ETB` : "-",
+              total: itemMatch[4] ? `${itemMatch[4]} ETB` : "-",
+            };
+          }
+          return { raw: cleaned, qty: "1", name: cleaned, unitPrice: "-", total: "-" };
+        })
+      : [];
 
   return {
-    name: namePart || "Customer / Cafe",
+    name: customerName || namePart || "Customer / Cafe",
     phone,
+    address: customerAddress,
     items,
     notes: notesPart,
   };
@@ -160,8 +179,13 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
   const fetchCreditDetail = async () => {
     setIsLoading(true);
     try {
-      const res = await api.get(`/loans/${resolvedParams.id}`);
-      setCredit(res.data);
+      try {
+        const res = await api.get(`/customers/credits/${resolvedParams.id}`);
+        setCredit(res.data);
+      } catch {
+        const res = await api.get(`/loans/${resolvedParams.id}`);
+        setCredit(res.data);
+      }
       setAmountPaid("");
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to load customer credit details");
@@ -176,17 +200,25 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
 
     const payNum = Number(amountPaid);
     if (payNum <= 0) {
-      toast.error(t('credits.toastEnterValidPayment'));
+      toast.error(t("credits.toastEnterValidPayment"));
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await api.post(`/loans/${credit.id}/pay`, {
-        amountPaid: payNum,
-        date: paymentDate,
-      });
-      toast.success(t('credits.toastPaymentSuccess'));
+      try {
+        await api.post(`/customers/credits/${credit.id}/pay`, {
+          amount: payNum,
+          date: paymentDate,
+        });
+      } catch {
+        await api.post(`/loans/${credit.id}/pay`, {
+          amountPaid: payNum,
+          date: paymentDate,
+        });
+      }
+
+      toast.success(t("credits.toastPaymentSuccess"));
       setIsPayModalOpen(false);
       fetchCreditDetail();
     } catch (e: any) {
@@ -200,7 +232,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     return (
       <DashboardLayout>
         <div className="text-center py-20 text-[#8C7361] font-semibold">
-          {t('credits.loadingStatement')}
+          {t("credits.loadingStatement")}
         </div>
       </DashboardLayout>
     );
@@ -210,17 +242,17 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     return (
       <DashboardLayout>
         <div className="text-center py-20 text-red-600 font-semibold space-y-3">
-          <p>{t('credits.creditNotFound')}</p>
+          <p>{t("credits.creditNotFound")}</p>
           <Button onClick={() => router.push("/customer-credits")} variant="outline" className="rounded-xl">
-            <ArrowLeft className="w-4 h-4 mr-2" /> {t('credits.backToCredits')}
+            <ArrowLeft className="w-4 h-4 mr-2" /> {t("credits.backToCredits")}
           </Button>
         </div>
       </DashboardLayout>
     );
   }
 
-  const parsed = parseCustomerCreditEntity(credit.entityId || "");
-  const totalAmount = Number(credit.totalAmount || 0);
+  const parsed = parseCustomerCreditStatement(credit.description, credit.entityId, credit.customer);
+  const totalAmount = Number(credit.amount ?? credit.totalAmount ?? 0);
   const remainingBalance = Number(credit.remainingBalance || 0);
   const totalPaid = Math.max(0, totalAmount - remainingBalance);
   const isSettled = credit.status === "PAID" || remainingBalance <= 0.01;
@@ -231,7 +263,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     (a, b) => new Date(a.date || a.createdAt).getTime() - new Date(b.date || b.createdAt).getTime()
   );
   const paymentLedger = paymentsSorted.map((p) => {
-    const paidAmt = Number(p.amountPaid || 0);
+    const paidAmt = Number(p.amount ?? p.amountPaid ?? 0);
     runningBalance = Math.max(0, runningBalance - paidAmt);
     return { ...p, paidAmt, balanceAfter: runningBalance };
   });
@@ -246,7 +278,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
             onClick={() => router.push("/customer-credits")}
             className="text-[#8C7361] hover:bg-[#F4ECE1] rounded-xl w-fit flex items-center gap-1.5 -ml-2 h-9 px-2.5 font-bold"
           >
-            <ArrowLeft className="w-4 h-4" /> {t('credits.backToCredits')}
+            <ArrowLeft className="w-4 h-4" /> {t("credits.backToCredits")}
           </Button>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
@@ -255,7 +287,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               onClick={() => window.print()}
               className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm h-10 sm:h-9 flex items-center justify-center gap-1.5 w-full sm:w-auto"
             >
-              <Printer className="w-4 h-4" /> {t('credits.printStatement')}
+              <Printer className="w-4 h-4" /> {t("credits.printStatement")}
             </Button>
 
             {!isSettled && canManage && (
@@ -263,7 +295,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                 onClick={() => setIsPayModalOpen(true)}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm h-10 sm:h-9 shadow-xs flex items-center justify-center gap-1.5 w-full sm:w-auto whitespace-nowrap"
               >
-                <DollarSign className="w-4 h-4" /> {t('credits.recordPaymentBtn')}
+                <DollarSign className="w-4 h-4" /> {t("credits.recordPaymentBtn")}
               </Button>
             )}
           </div>
@@ -277,11 +309,11 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               <div className="flex items-center gap-2 mb-1">
                 <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-[#E87A18] shrink-0" />
                 <h1 className="text-lg sm:text-2xl font-black text-[#2C1B10] tracking-tight">
-                  {t('credits.statementTitle')}
+                  {t("credits.statementTitle")}
                 </h1>
               </div>
               <p className="text-xs text-[#8C7361] break-all">
-                {t('credits.recordReferenceId')} <strong className="font-mono text-[#2C1B10]">{credit.id}</strong>
+                {t("credits.recordReferenceId")} <strong className="font-mono text-[#2C1B10]">{credit.id}</strong>
               </p>
             </div>
 
@@ -293,7 +325,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                     : "bg-amber-100 text-amber-900 border-amber-300"
                 }`}
               >
-                {isSettled ? t('credits.badgeFullySettled') : t('credits.badgeOutstanding')}
+                {isSettled ? t("credits.badgeFullySettled") : t("credits.badgeOutstanding")}
               </span>
             </div>
           </div>
@@ -302,7 +334,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 bg-[#FAF6F0] p-4 sm:p-5 rounded-2xl border border-[#EDE4D5] overflow-hidden min-w-0">
             <div className="space-y-1.5 min-w-0">
               <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#8C7361] block">
-                {t('credits.customerDetails')}
+                {t("credits.customerDetails")}
               </span>
               <div className="flex items-center gap-2 text-[#2C1B10] font-extrabold text-base sm:text-lg min-w-0">
                 <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#E87A18] shrink-0" />
@@ -316,21 +348,32 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                   </a>
                 </div>
               )}
+              {parsed.address && (
+                <div className="flex items-center gap-2 text-xs font-medium text-[#8C7361]">
+                  <MapPin className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
+                  <span>{parsed.address}</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5 min-w-0">
               <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#8C7361] block">
-                {t('credits.issueDateAndNotes')}
+                {t("credits.issueDateAndNotes")}
               </span>
               <div className="flex items-center gap-2 text-[#2C1B10] font-bold text-xs sm:text-sm">
                 <Calendar className="w-4 h-4 text-[#E87A18] shrink-0" />
-                <span>{t('credits.issuedDateLabel')} {credit.date ? format(new Date(credit.date), "MMMM d, yyyy") : format(new Date(credit.createdAt), "MMMM d, yyyy")}</span>
+                <span>
+                  {t("credits.issuedDateLabel")}{" "}
+                  {credit.date
+                    ? format(new Date(credit.date), "MMMM d, yyyy")
+                    : format(new Date(credit.createdAt), "MMMM d, yyyy")}
+                </span>
               </div>
               {parsed.notes && (
                 <div className="flex items-start gap-2 text-xs text-[#8C7361] italic min-w-0 max-w-full overflow-hidden">
                   <FileText className="w-3.5 h-3.5 text-[#8C7361] shrink-0 mt-0.5" />
                   <span className="break-all break-words [overflow-wrap:anywhere] min-w-0">
-                    {t('credits.noteLabel')} {parsed.notes}
+                    {t("credits.noteLabel")} {parsed.notes}
                   </span>
                 </div>
               )}
@@ -341,7 +384,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-4">
               <span className="text-[11px] sm:text-xs font-bold uppercase text-[#8C7361] block">
-                {t('credits.totalProductCredit')}
+                {t("credits.totalProductCredit")}
               </span>
               <span className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] mt-1 block font-mono">
                 {totalAmount.toFixed(2)} ETB
@@ -350,7 +393,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
 
             <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4">
               <span className="text-[11px] sm:text-xs font-bold uppercase text-emerald-800 block">
-                {t('credits.totalSettlementPaid')}
+                {t("credits.totalSettlementPaid")}
               </span>
               <span className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1 block font-mono">
                 {totalPaid.toFixed(2)} ETB
@@ -359,7 +402,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
 
             <div className="bg-rose-50/60 border border-rose-200 rounded-2xl p-4">
               <span className="text-[11px] sm:text-xs font-bold uppercase text-rose-800 block">
-                {t('credits.remainingBalanceDue')}
+                {t("credits.remainingBalanceDue")}
               </span>
               <span className="text-xl sm:text-2xl font-extrabold text-rose-700 mt-1 block font-mono">
                 {remainingBalance.toFixed(2)} ETB
@@ -371,7 +414,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
           <div className="space-y-3">
             <h3 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-[#E87A18]" />
-              <span>{t('credits.productsTakenOnCredit')}</span>
+              <span>{t("credits.productsTakenOnCredit")}</span>
             </h3>
 
             {parsed.items.length > 0 ? (
@@ -385,8 +428,12 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                         <span className="font-mono font-extrabold text-xs text-[#2C1B10]">{item.total}</span>
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-[#8C7361] pt-1 border-t border-[#EDE4D5]/60">
-                        <span>{t('common.quantity')}: <strong className="font-mono text-[#4A2E1B]">{item.qty}</strong></span>
-                        <span>{t('common.price')}: <span className="font-mono text-[#4A2E1B]">{item.unitPrice}</span></span>
+                        <span>
+                          {t("common.quantity")}: <strong className="font-mono text-[#4A2E1B]">{item.qty}</strong>
+                        </span>
+                        <span>
+                          {t("common.price")}: <span className="font-mono text-[#4A2E1B]">{item.unitPrice}</span>
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -397,10 +444,10 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                   <Table>
                     <TableHeader className="bg-[#FAF6F0]">
                       <TableRow>
-                        <TableHead className="font-extrabold text-[#4A2E1B]">{t('credits.colProductItem')}</TableHead>
-                        <TableHead className="text-center font-extrabold text-[#4A2E1B]">{t('common.quantity')}</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#4A2E1B]">{t('common.price')}</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#4A2E1B]">{t('credits.colLineTotal')}</TableHead>
+                        <TableHead className="font-extrabold text-[#4A2E1B]">{t("credits.colProductItem")}</TableHead>
+                        <TableHead className="text-center font-extrabold text-[#4A2E1B]">{t("common.quantity")}</TableHead>
+                        <TableHead className="text-right font-extrabold text-[#4A2E1B]">{t("common.price")}</TableHead>
+                        <TableHead className="text-right font-extrabold text-[#4A2E1B]">{t("credits.colLineTotal")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -418,7 +465,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               </>
             ) : (
               <div className="bg-[#FAF6F0] p-4 rounded-xl text-xs text-[#8C7361] italic text-center border border-[#EDE4D5]">
-                {t('credits.generalCreditTotal').replace('{total}', totalAmount.toFixed(2))}
+                {t("credits.generalCreditTotal").replace("{total}", totalAmount.toFixed(2))}
               </div>
             )}
           </div>
@@ -427,7 +474,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
           <div className="space-y-3 pt-2">
             <h3 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider flex items-center gap-2">
               <Clock className="w-4 h-4 text-emerald-600" />
-              <span>{t('credits.repaymentLedgerTitle')}</span>
+              <span>{t("credits.repaymentLedgerTitle")}</span>
             </h3>
 
             {paymentLedger.length > 0 ? (
@@ -437,18 +484,24 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                   {paymentLedger.map((p) => (
                     <div key={p.id} className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5] space-y-2">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-[#2C1B10]">{format(new Date(p.date || p.createdAt), "MMM d, yyyy")}</span>
+                        <span className="font-bold text-[#2C1B10]">
+                          {format(new Date(p.date || p.createdAt), "MMM d, yyyy")}
+                        </span>
                         <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">
-                          <CheckCircle2 className="w-3 h-3" /> {t('credits.badgeReceived')}
+                          <CheckCircle2 className="w-3 h-3" /> {t("credits.badgeReceived")}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-xs pt-1.5 border-t border-[#EDE4D5]">
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('credits.paidAmountCol')}</span>
+                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">
+                            {t("credits.paidAmountCol")}
+                          </span>
                           <span className="font-mono font-extrabold text-emerald-700">-{p.paidAmt.toFixed(2)} ETB</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('credits.remainingBalanceAfter')}</span>
+                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">
+                            {t("credits.remainingBalanceAfter")}
+                          </span>
                           <span className="font-mono font-bold text-[#4A2E1B]">{p.balanceAfter.toFixed(2)} ETB</span>
                         </div>
                       </div>
@@ -461,10 +514,14 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                   <Table>
                     <TableHeader className="bg-[#FAF6F0]">
                       <TableRow>
-                        <TableHead className="font-extrabold text-[#4A2E1B]">{t('credits.paymentDateCol')}</TableHead>
-                        <TableHead className="text-right font-extrabold text-emerald-800">{t('credits.paidAmountCol')}</TableHead>
-                        <TableHead className="text-right font-extrabold text-[#4A2E1B]">{t('credits.remainingBalanceAfter')}</TableHead>
-                        <TableHead className="text-center font-extrabold text-[#4A2E1B]">{t('common.status')}</TableHead>
+                        <TableHead className="font-extrabold text-[#4A2E1B]">{t("credits.paymentDateCol")}</TableHead>
+                        <TableHead className="text-right font-extrabold text-emerald-800">
+                          {t("credits.paidAmountCol")}
+                        </TableHead>
+                        <TableHead className="text-right font-extrabold text-[#4A2E1B]">
+                          {t("credits.remainingBalanceAfter")}
+                        </TableHead>
+                        <TableHead className="text-center font-extrabold text-[#4A2E1B]">{t("common.status")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -481,7 +538,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                           </TableCell>
                           <TableCell className="text-center">
                             <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                              <CheckCircle2 className="w-3 h-3" /> {t('credits.badgeReceived')}
+                              <CheckCircle2 className="w-3 h-3" /> {t("credits.badgeReceived")}
                             </span>
                           </TableCell>
                         </TableRow>
@@ -492,7 +549,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               </>
             ) : (
               <div className="bg-[#FAF6F0] p-4 rounded-xl text-xs text-[#8C7361] italic text-center border border-[#EDE4D5]">
-                {t('credits.noPaymentsLogged')}
+                {t("credits.noPaymentsLogged")}
               </div>
             )}
           </div>
@@ -506,7 +563,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span>{t('credits.recordPaymentBtn')}</span>
+                <span>{t("credits.recordPaymentBtn")}</span>
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handlePay} className="space-y-4 mt-2">
@@ -514,13 +571,13 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                 <div className="font-extrabold text-[#2C1B10] text-sm">{parsed.name}</div>
                 {parsed.phone && <div className="text-[#8C7361] text-xs">📞 {parsed.phone}</div>}
                 <div className="flex justify-between text-[#8C7361] font-mono pt-1 border-t border-[#EDE4D5] mt-1">
-                  <span>{t('credits.totalLoanLabel')} {totalAmount.toFixed(2)} ETB</span>
-                  <span className="font-bold text-rose-700">{t('credits.remainingLabel')} {remainingBalance.toFixed(2)} ETB</span>
+                  <span>{t("credits.totalLoanLabel")} {totalAmount.toFixed(2)} ETB</span>
+                  <span className="font-bold text-rose-700">{t("credits.remainingLabel")} {remainingBalance.toFixed(2)} ETB</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">{t('credits.amountPaidLabel')}</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">{t("credits.amountPaidLabel")}</label>
                 <Input
                   type="number"
                   step="any"
@@ -534,12 +591,12 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                   className="rounded-xl border-[#EDE4D5] font-mono font-bold text-base h-11"
                 />
                 <p className="text-[11px] text-[#8C7361] mt-1">
-                  {t('credits.enterPaymentHelp').replace('{max}', remainingBalance.toFixed(2))}
+                  {t("credits.enterPaymentHelp").replace("{max}", remainingBalance.toFixed(2))}
                 </p>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">{t('credits.paymentDateLabel')}</label>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">{t("credits.paymentDateLabel")}</label>
                 <Input
                   type="date"
                   required
@@ -551,10 +608,10 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
 
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setIsPayModalOpen(false)} className="rounded-xl h-10 w-full sm:w-auto font-bold border-[#EDE4D5]">
-                  {t('common.cancel')}
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-10 w-full sm:w-auto">
-                  {isSubmitting ? t('credits.processing') : t('credits.recordSettlementBtn')}
+                  {isSubmitting ? t("credits.processing") : t("credits.recordSettlementBtn")}
                 </Button>
               </DialogFooter>
             </form>
@@ -564,4 +621,3 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     </DashboardLayout>
   );
 }
-
