@@ -122,7 +122,7 @@ export default function UsersPage() {
         api.get<User[]>("/users", { params }),
         api.get<Branch[]>("/branches"),
         api.get<string[]>("/users/roles").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] })),
-        api.get<PasswordResetRequest[]>("/users/password-reset-requests").catch(() => ({ data: [] })),
+        api.get<PasswordResetRequest[]>("/auth/password-reset-requests").catch(() => ({ data: [] })),
       ]);
       setUsers(usersRes.data);
       setBranches(branchesRes.data);
