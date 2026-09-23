@@ -13,82 +13,134 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
-import { Plus, CreditCard, DollarSign, Trash2, RefreshCw, ShoppingBag, X, Eye, AlertTriangle, Phone, CheckCircle2, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Plus,
+  CreditCard,
+  DollarSign,
+  Trash2,
+  RefreshCw,
+  ShoppingBag,
+  Eye,
+  AlertTriangle,
+  Phone,
+  CheckCircle2,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  MapPin,
+  Search,
+  FileText,
+  UserPlus,
+} from "lucide-react";
 
-interface LoanPayment {
+interface CreditPayment {
   id: string;
-  amountPaid: number;
+  amount: number | string;
+  amountPaid?: number | string;
   date: string;
   createdAt: string;
+}
+
+interface CustomerInfo {
+  id: string;
+  fullName: string;
+  phone: string;
+  address?: string | null;
+  notes?: string | null;
 }
 
 interface CustomerCredit {
   id: string;
-  branchId: string;
-  type: string;
-  entityId: string | null;
-  totalAmount: number;
-  remainingBalance: number;
+  branchId?: string;
+  amount?: number | string;
+  totalAmount?: number | string;
+  paidAmount?: number | string;
+  remainingBalance: number | string;
   status: "OPEN" | "PAID";
   date: string;
   createdAt: string;
-  payments: LoanPayment[];
+  description?: string | null;
+  entityId?: string | null;
+  customer?: CustomerInfo | null;
+  payments: CreditPayment[];
 }
 
-interface Product {
+interface CustomerSummary {
   id: string;
-  name: string;
-  unitType: string;
-  basePrice: number;
-  availableStock?: number;
+  fullName: string;
+  phone: string;
+  address?: string | null;
+  notes?: string | null;
+  totalCredits: number;
+  totalBorrowed: number;
+  totalPaid: number;
+  totalRemaining: number;
+  lastCreditDate?: string | null;
 }
 
-interface ProductLineItem {
-  productId: string;
-  quantity: number | string;
-  unitPrice: number;
-}
+function parseCustomerCreditDescription(rawDesc?: string | null, rawEntity?: string | null, customerObj?: CustomerInfo | null) {
+  const customerName = customerObj?.fullName || "";
+  const customerPhone = customerObj?.phone || "";
 
-function parseCustomerCreditEntity(raw: string) {
-  if (!raw) return { name: "Client / Cafe", phone: "", items: [], notes: "" };
-
-  let namePart = raw;
-  // Clean out structured [CreditItems: [...]]
-  namePart = namePart.replace(/\[CreditItems:\s*\[.*?\]\s*\]/g, "").trim();
-
-  let productsPart = "";
-  let notesPart = "";
-
-  const prodMatch = namePart.match(/\[Products:\s*(.*?)\]/);
-  if (prodMatch) {
-    productsPart = prodMatch[1];
-    namePart = namePart.replace(/\[Products:.*?\]/, "").trim();
+  const textToParse = rawDesc || rawEntity || "";
+  if (!textToParse) {
+    return {
+      name: customerName || "Customer / Cafe",
+      phone: customerPhone,
+      items: [],
+      notes: "",
+    };
   }
 
-  const parts = namePart.split(/\s+-\s+/);
+  let remaining = textToParse;
+  let itemsList: string[] = [];
+
+  // 1. Try structured JSON: [CreditItems:[...]]
+  const creditItemsMatch = remaining.match(/\[CreditItems:\s*(\[.*?\])\s*\]/);
+  if (creditItemsMatch) {
+    try {
+      const parsedList = JSON.parse(creditItemsMatch[1]);
+      if (Array.isArray(parsedList)) {
+        itemsList = parsedList.map((it: any) => {
+          const qty = it.quantity != null ? String(it.quantity) : "1";
+          const pName = it.productName || "Product";
+          return `${qty}x ${pName}`;
+        });
+      }
+    } catch {}
+    remaining = remaining.replace(/\[CreditItems:\s*\[.*?\]\s*\]/g, "").trim();
+  }
+
+  // 2. Try [Products: ...]
+  const prodMatch = remaining.match(/\[Products:\s*(.*?)\s*\]/);
+  if (prodMatch) {
+    if (itemsList.length === 0) {
+      itemsList = prodMatch[1].split(/,\s*/).map((s) => s.trim()).filter(Boolean);
+    }
+    remaining = remaining.replace(/\[Products:.*?\]/g, "").trim();
+  }
+
+  // 3. Fallback name and notes
+  let notesPart = "";
+  const parts = remaining.split(/\s+-\s+/);
+  let namePart = customerName || parts[0] || "";
   if (parts.length > 1) {
-    namePart = parts[0].trim();
     notesPart = parts.slice(1).join(" - ").trim();
   }
 
-  namePart = namePart.replace(/^-\s*|\s*-$/g, "").trim();
-
-  let phone = "";
+  let phone = customerPhone;
   const phoneMatch = namePart.match(/\((.*?)\)/);
-  if (phoneMatch) {
+  if (phoneMatch && !phone) {
     phone = phoneMatch[1];
     namePart = namePart.replace(/\(.*?\)/, "").trim();
   }
 
-  const items = productsPart
-    ? productsPart.split(/,\s*/).map((itemStr) => itemStr.trim()).filter(Boolean)
-    : [];
-
   return {
-    name: namePart || "Customer / Cafe",
+    name: customerName || namePart || "Customer / Cafe",
     phone,
-    items,
-    notes: notesPart,
+    items: itemsList,
+    notes: notesPart.replace(/^-\s*|\s*-$/g, "").trim(),
   };
 }
 
@@ -99,17 +151,39 @@ export default function CustomerCreditsPage() {
   const { t } = useLanguage();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "CASHIER";
 
+  // Active Main Tab: "CREDITS" vs "CUSTOMERS"
+  const [activeMainTab, setActiveMainTab] = useState<"CREDITS" | "CUSTOMERS">("CREDITS");
+
+  // Data States
   const [credits, setCredits] = useState<CustomerCredit[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [hasActiveSession, setHasActiveSession] = useState<boolean | null>(null);
+  const [customers, setCustomers] = useState<CustomerSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Quick Filter States
+  // Credit Filter Pills
   type CreditFilterTab = "ALL" | "OPEN" | "PAID" | "TODAY";
   const [filterTab, setFilterTab] = useState<CreditFilterTab>("ALL");
   const activeFilterRef = useRef<HTMLButtonElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCreditCards, setExpandedCreditCards] = useState<Record<string, boolean>>({});
+
+  // Customer Filter State
+  type CustomerFilterType = "ALL" | "DEBT" | "SETTLED";
+  const [customerFilter, setCustomerFilter] = useState<CustomerFilterType>("ALL");
+  const [customerSearch, setCustomerSearch] = useState("");
+
+  // Modals
+  const [payingCredit, setPayingCredit] = useState<CustomerCredit | null>(null);
+  const [amountPaid, setAmountPaid] = useState("");
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [isSubmittingPay, setIsSubmittingPay] = useState(false);
+
+  // Add Customer Modal
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [newCustName, setNewCustName] = useState("");
+  const [newCustPhone, setNewCustPhone] = useState("");
+  const [newCustAddress, setNewCustAddress] = useState("");
+  const [newCustNotes, setNewCustNotes] = useState("");
+  const [isSubmittingCust, setIsSubmittingCust] = useState(false);
 
   const toggleCreditExpand = (id: string) => {
     setExpandedCreditCards((prev) => ({
@@ -124,41 +198,17 @@ export default function CustomerCreditsPage() {
     }
   }, [filterTab]);
 
-  // Dialog States
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [payingCredit, setPayingCredit] = useState<CustomerCredit | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Add Form State
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [lineItems, setLineItems] = useState<ProductLineItem[]>([]);
-  const [customTotalAmount, setCustomTotalAmount] = useState<string>("");
-  const [notes, setNotes] = useState("");
-  const [creditDate, setCreditDate] = useState(format(new Date(), "yyyy-MM-dd"));
-
-  // Pay Form State
-  const [amountPaid, setAmountPaid] = useState("");
-  const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
-
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const branchQuery = selectedBranchId ? `&branchId=${selectedBranchId}` : "";
-      const branchParam = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
-      const [resCredits, resProducts] = await Promise.all([
-        api.get(`/loans?type=CUSTOMER${branchQuery}`),
-        api.get(`/daily-sessions/active/available-products${branchParam}`),
+      const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
+      const [resCredits, resCustomers] = await Promise.all([
+        api.get(`/customers/credits${branchQuery}`).catch(() => api.get(`/loans?type=CUSTOMER${selectedBranchId ? `&branchId=${selectedBranchId}` : ""}`)),
+        api.get(`/customers${branchQuery}`),
       ]);
-      setCredits(resCredits.data);
-      const availData = resProducts.data;
-      if (availData && availData.hasActiveSession) {
-        setHasActiveSession(true);
-        setProducts(availData.products || []);
-      } else {
-        setHasActiveSession(false);
-        setProducts(availData?.products || []);
-      }
+
+      setCredits(resCredits.data || []);
+      setCustomers(resCustomers.data || []);
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to load customer credit records");
       console.error(e);
@@ -171,165 +221,33 @@ export default function CustomerCreditsPage() {
     fetchData();
   }, [fetchData]);
 
-  // Calculate Auto Total Birr from Product Line Items
-  const calculatedBirrTotal = lineItems.reduce(
-    (sum, item) => sum + (Number(item.quantity || 0) * Number(item.unitPrice || 0)),
-    0
-  );
-
-  const effectiveTotalBirr = customTotalAmount !== "" ? Number(customTotalAmount) : calculatedBirrTotal;
-
-  // Stock over-limit check
-  const hasOverStockError = lineItems.some((item) => {
-    const prod = products.find((p) => p.id === item.productId);
-    const qty = Number(item.quantity || 0);
-    return prod && prod.availableStock != null ? qty > prod.availableStock || qty <= 0 : false;
-  });
-
-  const resetAddForm = () => {
-    setCustomerName("");
-    setCustomerPhone("");
-    setLineItems([]);
-    setCustomTotalAmount("");
-    setNotes("");
-    setCreditDate(format(new Date(), "yyyy-MM-dd"));
-  };
-
-  const handleAddLineItem = () => {
-    const inStockProd = products.find((p) => (p.availableStock ?? 0) > 0) || products[0];
-    if (!inStockProd) {
-      toast.error("No products available to select.");
-      return;
-    }
-    setLineItems((prev) => [
-      ...prev,
-      { productId: inStockProd.id, quantity: "", unitPrice: Number(inStockProd.basePrice || 0) },
-    ]);
-  };
-
-  const handleRemoveLineItem = (index: number) => {
-    setLineItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleLineItemChange = (index: number, field: keyof ProductLineItem, value: any) => {
-    setLineItems((prev) => {
-      const updated = [...prev];
-      if (field === "productId") {
-        const prod = products.find((p) => p.id === value);
-        updated[index] = {
-          ...updated[index],
-          productId: value,
-          unitPrice: prod ? Number(prod.basePrice || 0) : updated[index].unitPrice,
-        };
-      } else {
-        updated[index] = {
-          ...updated[index],
-          [field]: value,
-        };
-      }
-      return updated;
-    });
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (hasActiveSession === false) {
-      toast.error("Cannot log credit: No active daily session is open for this branch. Please open a session first.");
-      return;
-    }
-    if (!customerName.trim()) {
-      toast.error("Customer or Business name is required");
-      return;
-    }
-    if (lineItems.length === 0) {
-      toast.error("Please add at least one product item to lend on credit");
-      return;
-    }
-
-    // Validate quantities against in-shop stock
-    for (const item of lineItems) {
-      const prod = products.find((p) => p.id === item.productId);
-      const qty = Number(item.quantity || 0);
-      if (qty <= 0) {
-        toast.error(`Please enter a valid quantity greater than 0 for ${prod?.name || "all items"}`);
-        return;
-      }
-      if (prod && prod.availableStock != null && qty > prod.availableStock) {
-        toast.error(`Cannot lend ${qty} of "${prod.name}". Only ${prod.availableStock} ${prod.unitType} available in shop.`);
-        return;
-      }
-    }
-
-    if (effectiveTotalBirr <= 0) {
-      toast.error("Total credit amount in Birr must be greater than zero");
-      return;
-    }
-
-    // Build Product Summary String for notes
-    let productSummary = "";
-    if (lineItems.length > 0) {
-      const itemSummaries = lineItems.map((item) => {
-        const prod = products.find((p) => p.id === item.productId);
-        const name = prod ? prod.name : "Product";
-        const itemTotal = Number(item.quantity) * Number(item.unitPrice);
-        return `${item.quantity}x ${name} @ ${item.unitPrice} ETB (${itemTotal.toFixed(2)} ETB)`;
-      });
-      productSummary = `[Products: ${itemSummaries.join(", ")}]`;
-    }
-
-    const finalNotes = [productSummary, notes.trim()].filter(Boolean).join(" - ");
-
-    const itemsPayload = lineItems.map((item) => {
-      const prod = products.find((p) => p.id === item.productId);
-      return {
-        productId: item.productId,
-        productName: prod ? prod.name : "Product",
-        quantity: Number(item.quantity),
-        unitPrice: Number(item.unitPrice),
-      };
-    });
-
-    setIsSubmitting(true);
-    try {
-      await api.post("/loans", {
-        type: "CUSTOMER_CREDIT",
-        branchId: selectedBranchId || undefined,
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim() || undefined,
-        notes: finalNotes || undefined,
-        totalAmount: effectiveTotalBirr,
-        date: creditDate,
-        items: itemsPayload,
-      });
-      toast.success("Customer credit logged successfully");
-      setIsAddOpen(false);
-      resetAddForm();
-      fetchData();
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to log customer credit");
-      console.error(e);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  // Payment Handler
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payingCredit || !amountPaid) return;
 
     const payNum = Number(amountPaid);
     if (payNum <= 0) {
-      toast.error("Payment amount must be greater than zero");
+      toast.error(t("credits.toastEnterValidPayment"));
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSubmittingPay(true);
     try {
-      await api.post(`/loans/${payingCredit.id}/pay`, {
-        amountPaid: payNum,
-        date: paymentDate,
-      });
-      toast.success("Repayment recorded successfully");
+      try {
+        await api.post(`/customers/credits/${payingCredit.id}/pay`, {
+          amount: payNum,
+          date: paymentDate,
+        });
+      } catch {
+        // Fallback for legacy loan record if needed
+        await api.post(`/loans/${payingCredit.id}/pay`, {
+          amountPaid: payNum,
+          date: paymentDate,
+        });
+      }
+
+      toast.success(t("credits.toastPaymentSuccess"));
       setPayingCredit(null);
       setAmountPaid("");
       fetchData();
@@ -337,14 +255,19 @@ export default function CustomerCreditsPage() {
       toast.error(e.response?.data?.error || "Failed to record payment");
       console.error(e);
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingPay(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  // Delete Credit
+  const handleDeleteCredit = async (id: string) => {
     if (!confirm("Are you sure you want to delete this customer credit record?")) return;
     try {
-      await api.delete(`/loans/${id}`);
+      try {
+        await api.delete(`/customers/credits/${id}`);
+      } catch {
+        await api.delete(`/loans/${id}`);
+      }
       toast.success("Customer credit record deleted");
       fetchData();
     } catch (e: any) {
@@ -352,39 +275,89 @@ export default function CustomerCreditsPage() {
     }
   };
 
+  // Create Customer Quick Modal
+  const handleCreateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustName.trim() || !newCustPhone.trim()) {
+      toast.error("Customer name and phone number are required.");
+      return;
+    }
+
+    setIsSubmittingCust(true);
+    try {
+      await api.post("/customers", {
+        fullName: newCustName.trim(),
+        phone: newCustPhone.trim(),
+        address: newCustAddress.trim() || undefined,
+        notes: newCustNotes.trim() || undefined,
+        branchId: selectedBranchId || undefined,
+      });
+
+      toast.success(t("credits.toastCustomerCreated"));
+      setIsAddCustomerOpen(false);
+      setNewCustName("");
+      setNewCustPhone("");
+      setNewCustAddress("");
+      setNewCustNotes("");
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to create customer");
+    } finally {
+      setIsSubmittingCust(false);
+    }
+  };
+
   // Metrics
-  const totalCreditGiven = credits.reduce((acc, c) => acc + Number(c.totalAmount || 0), 0);
-  const totalOutstanding = credits.reduce((acc, c) => acc + Number(c.remainingBalance || 0), 0);
-  const totalRepaid = totalCreditGiven - totalOutstanding;
+  const totalCreditGiven = credits.reduce(
+    (acc, c) => acc + Number(c.amount ?? c.totalAmount ?? 0),
+    0
+  );
+  const totalOutstanding = credits.reduce(
+    (acc, c) => acc + Number(c.remainingBalance || 0),
+    0
+  );
+  const totalRepaid = Math.max(0, totalCreditGiven - totalOutstanding);
 
   return (
     <DashboardLayout>
+      {/* Top Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight flex items-center gap-2">
             <CreditCard className="w-7 h-7 text-[#E87A18]" />
-            {t('credits.title')}
+            {t("credits.title")}
           </h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            {t('credits.subtitle')}
+            {t("credits.subtitle")}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <Button
             onClick={fetchData}
             variant="outline"
             size="sm"
-            className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl"
+            className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs h-9"
           >
-            <RefreshCw className="w-3.5 h-3.5 mr-1" /> {t('common.refresh')}
+            <RefreshCw className="w-3.5 h-3.5 mr-1" /> {t("common.refresh")}
           </Button>
+
           {canManage && (
-            <Button
-              onClick={() => router.push("/customer-credits/new")}
-              className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" /> {t('credits.newCredit')}
-            </Button>
+            <>
+              <Button
+                onClick={() => setIsAddCustomerOpen(true)}
+                variant="outline"
+                size="sm"
+                className="border-[#E87A18]/40 text-[#E87A18] hover:bg-amber-50 font-bold rounded-xl text-xs h-9 flex items-center gap-1.5"
+              >
+                <UserPlus className="w-4 h-4" /> {t("credits.addNewCustomerBtn")}
+              </Button>
+              <Button
+                onClick={() => router.push("/customer-credits/new")}
+                className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5 h-9"
+              >
+                <Plus className="w-4 h-4" /> {t("credits.newCredit")}
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -392,721 +365,826 @@ export default function CustomerCreditsPage() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm min-w-0">
-          <span className="text-xs font-bold uppercase text-[#8C7361] block truncate">{t('credits.colTotalAmount')}</span>
+          <span className="text-xs font-bold uppercase text-[#8C7361] block truncate">{t("credits.colTotalAmount")}</span>
           <span className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] mt-1 block font-mono truncate">
             {totalCreditGiven.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
         </div>
         <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm bg-emerald-50/30 min-w-0">
-          <span className="text-xs font-bold uppercase text-emerald-800 block truncate">{t('dashboard.creditReceivedLoans')}</span>
+          <span className="text-xs font-bold uppercase text-emerald-800 block truncate">{t("dashboard.creditReceivedLoans")}</span>
           <span className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1 block font-mono truncate">
             {totalRepaid.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
         </div>
         <div className="bg-white border border-rose-200 rounded-2xl p-4 shadow-sm bg-rose-50/30 min-w-0 sm:col-span-2 md:col-span-1">
-          <span className="text-xs font-bold uppercase text-rose-800 block truncate">{t('credits.colRemaining')}</span>
+          <span className="text-xs font-bold uppercase text-rose-800 block truncate">{t("credits.colRemaining")}</span>
           <span className="text-xl sm:text-2xl font-extrabold text-rose-700 mt-1 block font-mono truncate">
             {totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
           </span>
         </div>
       </div>
 
-      {/* Filter Bar with Horizontal Auto-Centering Tabs */}
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {(() => {
-          const todayYmd = new Date().toISOString().slice(0, 10);
-          const filterPills = [
-            { id: "ALL", label: t('credits.filterAll') || "All Credits", count: credits.length },
-            { id: "OPEN", label: t('credits.statusOpen') || "Open / Unpaid", count: credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length },
-            { id: "PAID", label: t('credits.statusPaid') || "Fully Paid", count: credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length },
-            { id: "TODAY", label: `📅 ${t('credits.filterToday') || "Today"}`, count: credits.filter((c) => (c.date || c.createdAt || "").slice(0, 10) === todayYmd).length },
-          ];
-
-          return (
-            <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
-              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
-              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
-
-              <div 
-                className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-0.5 max-w-full"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-              >
-                {filterPills.map((pill) => {
-                  const isActive = filterTab === pill.id;
-                  return (
-                    <button
-                      key={pill.id}
-                      ref={isActive ? activeFilterRef : null}
-                      type="button"
-                      onClick={() => setFilterTab(pill.id as CreditFilterTab)}
-                      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
-                        isActive
-                          ? "bg-[#4A2E1B] text-white shadow-xs ring-2 ring-[#4A2E1B]/20"
-                          : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
-                      }`}
-                    >
-                      <span>{pill.label}</span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                          isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
-                        }`}
-                      >
-                        {pill.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
-        <Input
-          placeholder={t('credits.searchPlaceholder')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
-        />
+      {/* Main Feature Tabs: Credit Sales vs Customer Directory */}
+      <div className="flex items-center gap-2 p-1.5 bg-[#F4ECE1] rounded-2xl border border-[#EDE4D5] mb-6 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("CREDITS")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all ${
+            activeMainTab === "CREDITS"
+              ? "bg-[#2C1B10] text-white shadow-sm"
+              : "text-[#7A6251] hover:text-[#2C1B10]"
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          {t("credits.creditsTab")} ({credits.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("CUSTOMERS")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all ${
+            activeMainTab === "CUSTOMERS"
+              ? "bg-[#2C1B10] text-white shadow-sm"
+              : "text-[#7A6251] hover:text-[#2C1B10]"
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          {t("credits.customersTab")} ({customers.length})
+        </button>
       </div>
 
-      {/* Credit Data: Desktop Table & Mobile Cards */}
-      {(() => {
-        const todayYmd = new Date().toISOString().slice(0, 10);
-        const filteredCredits = credits.filter((c) => {
-          const isPaid = c.status === "PAID" || Number(c.remainingBalance) <= 0.01;
-          const creditDate = (c.date || c.createdAt || "").slice(0, 10);
+      {/* TAB 1: CREDIT SALES VIEW */}
+      {activeMainTab === "CREDITS" && (
+        <>
+          {/* Filter Bar with Horizontal Auto-Centering Tabs */}
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {(() => {
+              const todayYmd = new Date().toISOString().slice(0, 10);
+              const filterPills = [
+                { id: "ALL", label: t("credits.filterAll") || "All Credits", count: credits.length },
+                {
+                  id: "OPEN",
+                  label: t("credits.statusOpen") || "Open / Unpaid",
+                  count: credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length,
+                },
+                {
+                  id: "PAID",
+                  label: t("credits.statusPaid") || "Fully Paid",
+                  count: credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length,
+                },
+                {
+                  id: "TODAY",
+                  label: `📅 ${t("credits.filterToday") || "Today"}`,
+                  count: credits.filter((c) => (c.date || c.createdAt || "").slice(0, 10) === todayYmd).length,
+                },
+              ];
 
-          if (filterTab === "OPEN" && isPaid) return false;
-          if (filterTab === "PAID" && !isPaid) return false;
-          if (filterTab === "TODAY" && creditDate !== todayYmd) return false;
+              return (
+                <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
 
-          if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            if (!(c.entityId || "").toLowerCase().includes(q)) return false;
-          }
-          return true;
-        });
+                  <div
+                    className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-0.5 max-w-full"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {filterPills.map((pill) => {
+                      const isActive = filterTab === pill.id;
+                      return (
+                        <button
+                          key={pill.id}
+                          ref={isActive ? activeFilterRef : null}
+                          type="button"
+                          onClick={() => setFilterTab(pill.id as CreditFilterTab)}
+                          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
+                            isActive
+                              ? "bg-[#4A2E1B] text-white shadow-xs ring-2 ring-[#4A2E1B]/20"
+                              : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
+                          }`}
+                        >
+                          <span>{pill.label}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                              isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                            }`}
+                          >
+                            {pill.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
-        return (
-          <>
-            {/* Desktop Table View */}
-            <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('common.date')}</TableHead>
-                    <TableHead>{t('credits.colCustomer')}</TableHead>
-                    <TableHead>{t('credits.colProducts')}</TableHead>
-                    <TableHead className="text-right">{t('credits.colTotalAmount')}</TableHead>
-                    <TableHead className="text-right">{t('credits.colRemaining')}</TableHead>
-                    <TableHead className="text-center">{t('credits.colStatus')}</TableHead>
-                    <TableHead>{t('reports.dailyBreakdownTitle')}</TableHead>
-                    <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <Input
+              placeholder={t("credits.searchPlaceholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
+            />
+          </div>
+
+          {/* Credit Data: Desktop Table & Mobile Cards */}
+          {(() => {
+            const todayYmd = new Date().toISOString().slice(0, 10);
+            const filteredCredits = credits.filter((c) => {
+              const isPaid = c.status === "PAID" || Number(c.remainingBalance) <= 0.01;
+              const creditDate = (c.date || c.createdAt || "").slice(0, 10);
+
+              if (filterTab === "OPEN" && isPaid) return false;
+              if (filterTab === "PAID" && !isPaid) return false;
+              if (filterTab === "TODAY" && creditDate !== todayYmd) return false;
+
+              if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const parsed = parseCustomerCreditDescription(c.description, c.entityId, c.customer);
+                const matches =
+                  parsed.name.toLowerCase().includes(q) ||
+                  parsed.phone.includes(q) ||
+                  parsed.notes.toLowerCase().includes(q) ||
+                  (c.description || "").toLowerCase().includes(q) ||
+                  (c.entityId || "").toLowerCase().includes(q);
+                if (!matches) return false;
+              }
+              return true;
+            });
+
+            return (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("common.date")}</TableHead>
+                        <TableHead>{t("credits.colCustomer")}</TableHead>
+                        <TableHead>{t("credits.colProducts")}</TableHead>
+                        <TableHead className="text-right">{t("credits.colTotalAmount")}</TableHead>
+                        <TableHead className="text-right">{t("credits.colRemaining")}</TableHead>
+                        <TableHead className="text-center">{t("credits.colStatus")}</TableHead>
+                        <TableHead>{t("reports.dailyBreakdownTitle")}</TableHead>
+                        <TableHead className="text-right pr-6">{t("common.actions")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
+                            Loading customer product credit accounts...
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredCredits.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
+                            No customer credit sales found matching filter.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredCredits.map((c) => {
+                          const parsed = parseCustomerCreditDescription(c.description, c.entityId, c.customer);
+                          const totalAmt = Number(c.amount ?? c.totalAmount ?? 0);
+                          const remAmt = Number(c.remainingBalance || 0);
+
+                          return (
+                            <TableRow key={c.id}>
+                              <TableCell className="font-bold text-[#2C1B10] text-xs">
+                                {c.date ? format(new Date(c.date), "MMM d, yyyy") : format(new Date(c.createdAt), "MMM d, yyyy")}
+                              </TableCell>
+
+                              {/* Customer & Contact Column */}
+                              <TableCell className="max-w-[200px]">
+                                <div className="font-extrabold text-[#2C1B10] text-sm leading-tight">{parsed.name}</div>
+                                {parsed.phone && (
+                                  <div className="text-xs text-[#8C7361] font-medium mt-0.5 flex items-center gap-1">
+                                    📞 {parsed.phone}
+                                  </div>
+                                )}
+                              </TableCell>
+
+                              {/* Products / Items Taken Column */}
+                              <TableCell className="max-w-[240px]">
+                                {parsed.items.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1 items-center">
+                                    {(expandedCreditCards[c.id] ? parsed.items : parsed.items.slice(0, 2)).map((itemStr, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-tight"
+                                      >
+                                        {itemStr}
+                                      </span>
+                                    ))}
+                                    {parsed.items.length > 2 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleCreditExpand(c.id)}
+                                        className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#4A2E1B] text-white hover:bg-[#3D2314] cursor-pointer transition-colors inline-flex items-center gap-0.5"
+                                      >
+                                        {expandedCreditCards[c.id] ? "Show less" : `+${parsed.items.length - 2} more`}
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
+                                )}
+                                {parsed.notes && (
+                                  <p className="text-[11px] text-[#8C7361] italic mt-0.5 font-normal truncate max-w-[220px]">
+                                    Note: {parsed.notes}
+                                  </p>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="text-right font-extrabold text-[#2C1B10] font-mono text-xs">
+                                {totalAmt.toFixed(2)} ETB
+                              </TableCell>
+
+                              <TableCell className="text-right font-extrabold text-rose-700 font-mono text-xs">
+                                {remAmt.toFixed(2)} ETB
+                              </TableCell>
+
+                              <TableCell className="text-center">
+                                {c.status === "PAID" || remAmt <= 0.01 ? (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    ✓ {t("credits.statusPaid")}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                                    {t("credits.statusOpen")}
+                                  </span>
+                                )}
+                              </TableCell>
+
+                              <TableCell>
+                                {c.payments && c.payments.length > 0 ? (
+                                  <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                                    {c.payments.map((p) => {
+                                      const pAmt = Number(p.amount ?? p.amountPaid ?? 0);
+                                      return (
+                                        <div key={p.id} className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex justify-between font-mono">
+                                          <span className="text-[#8C7361]">{format(new Date(p.date || p.createdAt), "MMM d")}</span>
+                                          <span className="font-bold text-emerald-700">-{pAmt.toFixed(2)} ETB</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-[#8C7361] italic">No repayments yet</span>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="text-right pr-6">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/customer-credits/${c.id}`)}
+                                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" /> {t("common.details")}
+                                  </Button>
+                                  {remAmt > 0.01 && canManage && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        setPayingCredit(c);
+                                        setAmountPaid(String(remAmt));
+                                      }}
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                                    >
+                                      <DollarSign className="w-3.5 h-3.5" /> {t("credits.btnPay")}
+                                    </Button>
+                                  )}
+                                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteCredit(c.id)}
+                                      className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Audit Cards View */}
+                <div className="block md:hidden space-y-3">
                   {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
-                        Loading customer product credit accounts...
-                      </TableCell>
-                    </TableRow>
+                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
+                      Loading customer product credit accounts...
+                    </div>
                   ) : filteredCredits.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
-                        No customer credit sales found matching filter.
-                      </TableCell>
-                    </TableRow>
+                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
+                      No customer credit sales found matching filter.
+                    </div>
                   ) : (
                     filteredCredits.map((c) => {
-                      const parsed = parseCustomerCreditEntity(c.entityId || "");
+                      const parsed = parseCustomerCreditDescription(c.description, c.entityId, c.customer);
+                      const totalAmt = Number(c.amount ?? c.totalAmount ?? 0);
+                      const remAmt = Number(c.remainingBalance || 0);
+                      const isPaid = c.status === "PAID" || remAmt <= 0.01;
+                      const formattedDate = c.date
+                        ? format(new Date(c.date), "MMM d, yyyy")
+                        : format(new Date(c.createdAt), "MMM d, yyyy");
+
                       return (
-                        <TableRow key={c.id}>
-                          <TableCell className="font-bold text-[#2C1B10] text-xs">
-                            {c.date ? format(new Date(c.date), "MMM d, yyyy") : format(new Date(c.createdAt), "MMM d, yyyy")}
-                          </TableCell>
-
-                          {/* Customer & Contact Column */}
-                          <TableCell className="max-w-[200px]">
-                            <div className="font-extrabold text-[#2C1B10] text-sm leading-tight">{parsed.name}</div>
-                            {parsed.phone && (
-                              <div className="text-xs text-[#8C7361] font-medium mt-0.5 flex items-center gap-1">
-                                📞 {parsed.phone}
-                              </div>
+                        <div
+                          key={c.id}
+                          className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-3"
+                        >
+                          <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
+                            <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
+                              <Clock className="w-3.5 h-3.5 text-[#8C7361]" />
+                              <span className="font-semibold">{formattedDate}</span>
+                            </div>
+                            {isPaid ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <CheckCircle2 className="w-3 h-3" /> {t("credits.statusPaid")}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                                <AlertTriangle className="w-3 h-3" /> {t("credits.statusOpen")}
+                              </span>
                             )}
-                          </TableCell>
+                          </div>
 
-                          {/* Products / Items Taken Column */}
-                          <TableCell className="max-w-[240px]">
+                          <div>
+                            <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{parsed.name}</h3>
+                            {parsed.phone && (
+                              <a
+                                href={`tel:${parsed.phone}`}
+                                className="inline-flex items-center gap-1 text-xs text-[#E87A18] font-bold mt-1 hover:underline"
+                              >
+                                <Phone className="w-3 h-3" /> {parsed.phone}
+                              </a>
+                            )}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361]">
+                                {t("credits.colProducts")}
+                              </span>
+                              {parsed.items.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCreditExpand(c.id)}
+                                  className="text-[11px] font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors px-1 py-0.5 rounded hover:bg-amber-50"
+                                >
+                                  {expandedCreditCards[c.id] ? (
+                                    <>
+                                      Show Less <ChevronUp className="w-3.5 h-3.5" />
+                                    </>
+                                  ) : (
+                                    <>
+                                      +{parsed.items.length - 2} more <ChevronDown className="w-3.5 h-3.5" />
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
                             {parsed.items.length > 0 ? (
-                              <div className="flex flex-wrap gap-1 items-center">
+                              <div className="flex flex-wrap gap-1.5 items-center">
                                 {(expandedCreditCards[c.id] ? parsed.items : parsed.items.slice(0, 2)).map((itemStr, idx) => (
                                   <span
                                     key={idx}
-                                    className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-tight"
+                                    className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
                                   >
                                     {itemStr}
                                   </span>
                                 ))}
-                                {parsed.items.length > 2 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleCreditExpand(c.id)}
-                                    className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#4A2E1B] text-white hover:bg-[#3D2314] cursor-pointer transition-colors inline-flex items-center gap-0.5"
-                                  >
-                                    {expandedCreditCards[c.id] ? "Show less" : `+${parsed.items.length - 2} more`}
-                                  </button>
-                                )}
                               </div>
                             ) : (
                               <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
                             )}
                             {parsed.notes && (
-                              <p className="text-[11px] text-[#8C7361] italic mt-0.5 font-normal truncate max-w-[220px]">
+                              <p className="text-xs text-[#8C7361] italic mt-1.5 bg-[#FAF6F0]/60 p-2 rounded-lg border border-[#EDE4D5]">
                                 Note: {parsed.notes}
                               </p>
                             )}
-                          </TableCell>
+                          </div>
 
-                          <TableCell className="text-right font-extrabold text-[#2C1B10] font-mono text-xs">
-                            {Number(c.totalAmount).toFixed(2)} ETB
-                          </TableCell>
-
-                          <TableCell className="text-right font-extrabold text-rose-700 font-mono text-xs">
-                            {Number(c.remainingBalance).toFixed(2)} ETB
-                          </TableCell>
-
-                          <TableCell className="text-center">
-                            {c.status === "PAID" || Number(c.remainingBalance) <= 0.01 ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                ✓ {t('credits.statusPaid')}
+                          <div className="grid grid-cols-2 gap-2 bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5]">
+                            <div>
+                              <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t("credits.colTotalAmount")}</span>
+                              <span className="text-sm font-extrabold text-[#2C1B10] font-mono block mt-0.5">
+                                {totalAmt.toFixed(2)} ETB
                               </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                                {t('credits.statusOpen')}
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t("credits.colRemaining")}</span>
+                              <span className="text-sm font-extrabold text-rose-700 font-mono block mt-0.5">
+                                {remAmt.toFixed(2)} ETB
                               </span>
-                            )}
-                          </TableCell>
+                            </div>
+                          </div>
 
-                          <TableCell>
-                            {c.payments && c.payments.length > 0 ? (
-                              <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
-                                {c.payments.map((p) => (
-                                  <div key={p.id} className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex justify-between font-mono">
-                                    <span className="text-[#8C7361]">{format(new Date(p.date || p.createdAt), "MMM d")}</span>
-                                    <span className="font-bold text-emerald-700">-{Number(p.amountPaid).toFixed(2)} ETB</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-[#8C7361] italic">No repayments yet</span>
-                            )}
-                          </TableCell>
-
-                          <TableCell className="text-right pr-6">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center gap-2 pt-1 border-t border-[#F4ECE1]">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => router.push(`/customer-credits/${c.id}`)}
+                              className="flex-1 border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> {t("common.details")}
+                            </Button>
+                            {remAmt > 0.01 && canManage && (
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => router.push(`/customer-credits/${c.id}`)}
-                                className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                                onClick={() => {
+                                  setPayingCredit(c);
+                                  setAmountPaid(String(remAmt));
+                                }}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5"
                               >
-                                <Eye className="w-3.5 h-3.5" /> {t('common.details')}
+                                <DollarSign className="w-3.5 h-3.5" /> {t("credits.btnPay")}
                               </Button>
-                              {Number(c.remainingBalance) > 0.01 && canManage && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => { setPayingCredit(c); setAmountPaid(String(c.remainingBalance)); }}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
-                                >
-                                  <DollarSign className="w-3.5 h-3.5" /> {t('credits.btnPay')}
-                                </Button>
-                              )}
-                              {user?.role === "OWNER" || user?.role === "ADMIN" ? (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDelete(c.id)}
-                                  className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                            )}
+                          </div>
+                        </div>
                       );
                     })
                   )}
-                </TableBody>
-              </Table>
+                </div>
+              </>
+            );
+          })()}
+        </>
+      )}
+
+      {/* TAB 2: CUSTOMERS DIRECTORY (CRM) */}
+      {activeMainTab === "CUSTOMERS" && (
+        <div className="space-y-4">
+          {/* Customer Search & Filter Bar */}
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCustomerFilter("ALL")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  customerFilter === "ALL"
+                    ? "bg-[#4A2E1B] text-white shadow-xs"
+                    : "bg-[#FAF6F0] text-[#7A6251] border border-[#EDE4D5]"
+                }`}
+              >
+                {t("credits.allCustomers")} ({customers.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomerFilter("DEBT")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  customerFilter === "DEBT"
+                    ? "bg-rose-700 text-white shadow-xs"
+                    : "bg-[#FAF6F0] text-rose-700 border border-[#EDE4D5]"
+                }`}
+              >
+                {t("credits.activeDebt")} ({customers.filter((c) => Number(c.totalRemaining || 0) > 0.01).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomerFilter("SETTLED")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  customerFilter === "SETTLED"
+                    ? "bg-emerald-700 text-white shadow-xs"
+                    : "bg-[#FAF6F0] text-emerald-700 border border-[#EDE4D5]"
+                }`}
+              >
+                {t("credits.settledOnly")} ({customers.filter((c) => Number(c.totalRemaining || 0) <= 0.01).length})
+              </button>
             </div>
 
-            {/* Mobile Audit Cards View */}
-            <div className="block md:hidden space-y-3">
-              {isLoading ? (
-                <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                  Loading customer product credit accounts...
-                </div>
-              ) : filteredCredits.length === 0 ? (
-                <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                  No customer credit sales found matching filter.
-                </div>
-              ) : (
-                filteredCredits.map((c) => {
-                  const parsed = parseCustomerCreditEntity(c.entityId || "");
-                  const isPaid = c.status === "PAID" || Number(c.remainingBalance) <= 0.01;
-                  const formattedDate = c.date
-                    ? format(new Date(c.date), "MMM d, yyyy")
-                    : format(new Date(c.createdAt), "MMM d, yyyy");
+            <Input
+              placeholder={t("credits.searchCustomerPlaceholder")}
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
+            />
+          </div>
 
-                  return (
-                    <div
-                      key={c.id}
-                      className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-3"
-                    >
-                      {/* Top Row: Date & Status Badge */}
-                      <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
-                        <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
-                          <Clock className="w-3.5 h-3.5 text-[#8C7361]" />
-                          <span className="font-semibold">{formattedDate}</span>
-                        </div>
-                        {isPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            <CheckCircle2 className="w-3 h-3" /> {t('credits.statusPaid')}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                            <AlertTriangle className="w-3 h-3" /> {t('credits.statusOpen')}
-                          </span>
-                        )}
-                      </div>
+          {/* Filtered Customer List */}
+          {(() => {
+            const filteredCusts = customers.filter((c) => {
+              const rem = Number(c.totalRemaining || 0);
+              if (customerFilter === "DEBT" && rem <= 0.01) return false;
+              if (customerFilter === "SETTLED" && rem > 0.01) return false;
 
-                      {/* Customer Info */}
-                      <div>
-                        <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{parsed.name}</h3>
-                        {parsed.phone && (
-                          <a
-                            href={`tel:${parsed.phone}`}
-                            className="inline-flex items-center gap-1 text-xs text-[#E87A18] font-bold mt-1 hover:underline"
-                          >
-                            <Phone className="w-3 h-3" /> {parsed.phone}
-                          </a>
-                        )}
-                      </div>
+              if (customerSearch) {
+                const q = customerSearch.toLowerCase();
+                if (!c.fullName.toLowerCase().includes(q) && !c.phone.includes(q)) return false;
+              }
+              return true;
+            });
 
-                      {/* Products Badges with max 2 and Show More Toggle */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361]">
-                            {t('credits.colProducts')}
-                          </span>
-                          {parsed.items.length > 2 && (
-                            <button
-                              type="button"
-                              onClick={() => toggleCreditExpand(c.id)}
-                              className="text-[11px] font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors px-1 py-0.5 rounded hover:bg-amber-50"
-                            >
-                              {expandedCreditCards[c.id] ? (
-                                <>
-                                  Show Less <ChevronUp className="w-3.5 h-3.5" />
-                                </>
-                              ) : (
-                                <>
-                                  +{parsed.items.length - 2} more <ChevronDown className="w-3.5 h-3.5" />
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                        {parsed.items.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5 items-center">
-                            {(expandedCreditCards[c.id] ? parsed.items : parsed.items.slice(0, 2)).map((itemStr, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
-                              >
-                                {itemStr}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
-                        )}
-                        {parsed.notes && (
-                          <p className="text-xs text-[#8C7361] italic mt-1.5 bg-[#FAF6F0]/60 p-2 rounded-lg border border-[#EDE4D5]">
-                            Note: {parsed.notes}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Total and Remaining balance in 2-col box */}
-                      <div className="grid grid-cols-2 gap-2 bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5]">
-                        <div>
-                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('credits.colTotalAmount')}</span>
-                          <span className="text-sm font-extrabold text-[#2C1B10] font-mono block mt-0.5">
-                            {Number(c.totalAmount).toFixed(2)} ETB
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t('credits.colRemaining')}</span>
-                          <span className="text-sm font-extrabold text-rose-700 font-mono block mt-0.5">
-                            {Number(c.remainingBalance).toFixed(2)} ETB
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Repayments if any */}
-                      {c.payments && c.payments.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold uppercase text-[#8C7361] block">
-                            {t('reports.dailyBreakdownTitle')} ({c.payments.length})
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {c.payments.map((p) => (
-                              <span
-                                key={p.id}
-                                className="text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-lg font-mono font-bold flex items-center gap-1"
-                              >
-                                <span>{format(new Date(p.date || p.createdAt), "MMM d")}:</span>
-                                <span>-{Number(p.amountPaid).toFixed(2)} ETB</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Mobile touch action bar */}
-                      <div className="flex items-center gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => router.push(`/customer-credits/${c.id}`)}
-                          className="flex-1 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> {t('common.details')}
-                        </Button>
-                        {Number(c.remainingBalance) > 0.01 && canManage && (
-                          <Button
-                            size="sm"
-                            onClick={() => { setPayingCredit(c); setAmountPaid(String(c.remainingBalance)); }}
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
-                          >
-                            <DollarSign className="w-3.5 h-3.5" /> {t('credits.btnPay')}
-                          </Button>
-                        )}
-                        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(c.id)}
-                            className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-9 w-9 p-0 rounded-xl shrink-0"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </>
-        );
-      })()}
-
-      {/* CREATE PRODUCT CREDIT MODAL */}
-      {isAddOpen && (
-        <Dialog open={true} onOpenChange={(open) => { if (!open) setIsAddOpen(false); }}>
-          <DialogContent className="max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-[#E87A18]" />
-                Issue Product Credit to Customer / Cafe
-              </DialogTitle>
-            </DialogHeader>
-
-            {hasActiveSession === false && (
-              <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-900 mt-2">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-extrabold block">No Active Daily Session Open</span>
-                  <span className="text-amber-700 text-[11px]">
-                    Products cannot be lent on credit without an open daily session. Please open a daily session for this branch first.
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleCreate} className="space-y-4 mt-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Customer / Cafe Name</label>
-                  <Input
-                    required
-                    placeholder="e.g. Abyssinia Cafe / Central Hotel"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="rounded-xl border-zinc-200"
-                  />
-                </div>
-
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Phone Number</label>
-                  <Input
-                    placeholder="e.g. 0911223344"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="rounded-xl border-zinc-200"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Credit Date</label>
-                <Input
-                  type="date"
-                  required
-                  value={creditDate}
-                  onChange={(e) => setCreditDate(e.target.value)}
-                  className="rounded-xl border-zinc-200"
-                />
-              </div>
-
-              {/* PRODUCTS LIST SELECTION */}
-              <div className="border border-[#EDE4D5] rounded-xl p-3.5 bg-[#FAF6F0]/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold uppercase text-[#4A2E1B] flex items-center gap-1.5">
-                    <ShoppingBag className="w-4 h-4 text-[#E87A18]" /> Products Taken on Credit
-                  </span>
-                  <Button
-                    type="button"
-                    onClick={handleAddLineItem}
-                    disabled={hasActiveSession === false || products.length === 0}
-                    size="sm"
-                    className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white text-xs font-bold h-7 px-2.5 rounded-lg flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Product Line
-                  </Button>
-                </div>
-
-                {lineItems.length === 0 ? (
-                  <p className="text-xs text-[#8C7361] italic text-center py-2">
-                    No products added yet. Click &quot;Add Product Line&quot; to select items taken on credit.
-                  </p>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {lineItems.map((item, idx) => {
-                      const selectedProd = products.find((p) => p.id === item.productId);
-                      const isOverStock = selectedProd && selectedProd.availableStock != null
-                        ? Number(item.quantity || 0) > selectedProd.availableStock
-                        : false;
-                      const itemSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
-
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-2 rounded-xl border transition-all ${
-                            isOverStock
-                              ? "bg-rose-50 border-rose-300"
-                              : "bg-white border-[#EDE4D5]"
-                          } flex flex-col sm:flex-row sm:items-center gap-2`}
-                        >
-                          <div className="flex-1">
-                            <select
-                              value={item.productId}
-                              onChange={(e) => handleLineItemChange(idx, "productId", e.target.value)}
-                              className="w-full text-xs font-bold border border-zinc-200 rounded-lg h-9 px-2 bg-white text-[#2C1B10]"
-                            >
-                              {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name} ({p.availableStock ?? 0} {p.unitType} in shop) - {Number(p.basePrice).toFixed(2)} ETB {p.availableStock != null && p.availableStock <= 0 ? " [OUT OF STOCK]" : ""}
-                                </option>
-                              ))}
-                            </select>
-                            {selectedProd && (
-                              <div className="flex items-center gap-1.5 mt-1 px-1">
-                                <span className="text-[10px] font-bold text-[#8C7361]">In Shop:</span>
+            return (
+              <>
+                {/* Desktop Customers Table */}
+                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("credits.colCustomer")}</TableHead>
+                        <TableHead>{t("credits.phoneNumberLabel")}</TableHead>
+                        <TableHead>{t("credits.addressLabel")}</TableHead>
+                        <TableHead className="text-center">{t("credits.totalCreditsCount")}</TableHead>
+                        <TableHead className="text-right">{t("credits.totalBorrowed")}</TableHead>
+                        <TableHead className="text-right">{t("credits.totalRepaid")}</TableHead>
+                        <TableHead className="text-right pr-6">{t("credits.outstandingDebt")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                            Loading customer directory...
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredCusts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                            {t("credits.noCustomersFound")}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredCusts.map((c) => {
+                          const rem = Number(c.totalRemaining || 0);
+                          return (
+                            <TableRow key={c.id}>
+                              <TableCell>
+                                <span className="font-extrabold text-[#2C1B10] text-sm block">{c.fullName}</span>
+                                {c.notes && (
+                                  <span className="text-[11px] text-[#8C7361] italic block truncate max-w-[200px]">
+                                    {c.notes}
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs text-[#4A2E1B] font-bold">
+                                {c.phone}
+                              </TableCell>
+                              <TableCell className="text-xs text-[#8C7361]">
+                                {c.address || "-"}
+                              </TableCell>
+                              <TableCell className="text-center font-bold text-xs">
+                                <span className="px-2 py-0.5 bg-[#FAF6F0] rounded-full border border-[#EDE4D5] font-mono">
+                                  {c.totalCredits}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right font-mono font-bold text-xs text-[#2C1B10]">
+                                {Number(c.totalBorrowed || 0).toFixed(2)} ETB
+                              </TableCell>
+                              <TableCell className="text-right font-mono font-bold text-xs text-emerald-700">
+                                {Number(c.totalPaid || 0).toFixed(2)} ETB
+                              </TableCell>
+                              <TableCell className="text-right pr-6">
                                 <span
-                                  className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-md ${
-                                    (selectedProd.availableStock ?? 0) > 5
-                                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                      : (selectedProd.availableStock ?? 0) > 0
-                                      ? "bg-amber-50 text-amber-700 border border-amber-200"
-                                      : "bg-rose-50 text-rose-700 border border-rose-200"
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-black ${
+                                    rem > 0.01
+                                      ? "bg-rose-100 text-rose-800 border border-rose-300"
+                                      : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                                   }`}
                                 >
-                                  {selectedProd.availableStock ?? 0} {selectedProd.unitType}
+                                  {rem.toFixed(2)} ETB
                                 </span>
-                              </div>
-                            )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Customers Cards */}
+                <div className="block md:hidden space-y-3">
+                  {isLoading ? (
+                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
+                      Loading customer directory...
+                    </div>
+                  ) : filteredCusts.length === 0 ? (
+                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
+                      {t("credits.noCustomersFound")}
+                    </div>
+                  ) : (
+                    filteredCusts.map((c) => {
+                      const rem = Number(c.totalRemaining || 0);
+                      return (
+                        <div key={c.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-3">
+                          <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2">
+                            <div>
+                              <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{c.fullName}</h3>
+                              <a
+                                href={`tel:${c.phone}`}
+                                className="inline-flex items-center gap-1 text-xs text-[#E87A18] font-bold mt-0.5 hover:underline"
+                              >
+                                <Phone className="w-3 h-3" /> {c.phone}
+                              </a>
+                            </div>
+
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-mono font-black border ${
+                                rem > 0.01
+                                  ? "bg-rose-100 text-rose-800 border-rose-300"
+                                  : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                              }`}
+                            >
+                              {rem > 0.01 ? `${rem.toFixed(2)} ETB Due` : "Settled"}
+                            </span>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <div className="w-20">
-                              <Input
-                                type="number"
-                                min="1"
-                                max={selectedProd?.availableStock ?? undefined}
-                                value={item.quantity}
-                                onChange={(e) => handleLineItemChange(idx, "quantity", e.target.value)}
-                                placeholder="Qty"
-                                className={`text-xs h-9 font-bold text-center font-mono ${
-                                  isOverStock ? "border-rose-500 ring-2 ring-rose-200 text-rose-700" : ""
-                                }`}
-                              />
-                              {isOverStock && selectedProd && (
-                                <p className="text-[9px] font-extrabold text-rose-600 mt-0.5 text-center leading-tight">
-                                  Max: {selectedProd.availableStock}
-                                </p>
-                              )}
-                            </div>
+                          {c.address && (
+                            <p className="text-xs text-[#8C7361] flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5 text-[#8C7361] shrink-0" /> {c.address}
+                            </p>
+                          )}
 
-                            {/* Editable Unit Price / Amount Input */}
-                            <div className="w-24">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={item.unitPrice}
-                                onChange={(e) => handleLineItemChange(idx, "unitPrice", e.target.value)}
-                                placeholder="Amount"
-                                className="text-xs h-9 font-bold text-center font-mono"
-                              />
+                          <div className="grid grid-cols-3 gap-2 bg-[#FAF6F0] p-2.5 rounded-xl border border-[#EDE4D5] text-center">
+                            <div>
+                              <span className="text-[9px] font-bold uppercase text-[#8C7361] block">{t("credits.totalCreditsCount")}</span>
+                              <span className="text-xs font-mono font-extrabold text-[#2C1B10]">{c.totalCredits}</span>
                             </div>
-
-                            <div className="text-xs font-extrabold text-[#E87A18] font-mono w-24 text-right pr-1">
-                              = {itemSubtotal.toFixed(2)} ETB
+                            <div>
+                              <span className="text-[9px] font-bold uppercase text-[#8C7361] block">{t("credits.totalBorrowed")}</span>
+                              <span className="text-xs font-mono font-extrabold text-[#2C1B10]">{Number(c.totalBorrowed || 0).toFixed(0)}</span>
                             </div>
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveLineItem(idx)}
-                              className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50 rounded-lg"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
+                            <div>
+                              <span className="text-[9px] font-bold uppercase text-emerald-800 block">{t("credits.totalRepaid")}</span>
+                              <span className="text-xs font-mono font-extrabold text-emerald-700">{Number(c.totalPaid || 0).toFixed(0)}</span>
+                            </div>
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* BIRR TOTAL CALCULATION DISPLAY */}
-              <div className="bg-[#4A2E1B] text-white p-3.5 rounded-xl flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-amber-200 block uppercase">Calculated Total Credit (Birr)</span>
-                  <span className="text-[11px] text-zinc-300">
-                    Sum of products: {calculatedBirrTotal.toFixed(2)} ETB
-                  </span>
+                    })
+                  )}
                 </div>
-                <div className="w-36">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={customTotalAmount !== "" ? customTotalAmount : (calculatedBirrTotal > 0 ? String(calculatedBirrTotal) : "")}
-                    onChange={(e) => setCustomTotalAmount(e.target.value)}
-                    placeholder="Total Birr"
-                    className="bg-white text-[#2C1B10] font-extrabold text-base font-mono h-10 text-right rounded-lg"
-                  />
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* MODAL: Settle Credit Repayment */}
+      <Dialog open={!!payingCredit} onOpenChange={(open) => !open && setPayingCredit(null)}>
+        <DialogContent className="max-w-md bg-white rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-emerald-600" />
+              {t("credits.modalPayTitle")}
+            </DialogTitle>
+          </DialogHeader>
+
+          {payingCredit && (
+            <form onSubmit={handlePay} className="space-y-4 pt-2">
+              <div className="p-3 bg-[#FAF6F0] rounded-xl border border-[#EDE4D5] space-y-1">
+                <span className="text-[10px] font-bold uppercase text-[#8C7361] block">{t("credits.colCustomer")}</span>
+                <span className="font-extrabold text-sm text-[#2C1B10] block">
+                  {payingCredit.customer?.fullName || parseCustomerCreditDescription(payingCredit.description, payingCredit.entityId).name}
+                </span>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-[#EDE4D5]/60 mt-1">
+                  <span className="text-[#8C7361]">{t("credits.colRemaining")}:</span>
+                  <span className="font-mono font-extrabold text-rose-700">
+                    {Number(payingCredit.remainingBalance).toFixed(2)} ETB
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Additional Notes / Delivery Details</label>
+                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                  {t("credits.amountPaidLabel")} <span className="text-rose-500">*</span>
+                </label>
                 <Input
-                  placeholder="e.g. Delivered by morning truck shift"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="rounded-xl border-zinc-200"
+                  type="number"
+                  step="0.01"
+                  max={Number(payingCredit.remainingBalance)}
+                  required
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(e.target.value)}
+                  placeholder="0.00"
+                  className="rounded-xl font-mono font-bold text-sm"
                 />
               </div>
 
-              <DialogFooter className="gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
-                  Cancel
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                  {t("credits.paymentDateLabel")} <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className="rounded-xl text-xs font-bold"
+                />
+              </div>
+
+              <DialogFooter className="pt-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPayingCredit(null)}
+                  className="rounded-xl border-[#EDE4D5]"
+                >
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || hasActiveSession === false || hasOverStockError || lineItems.length === 0}
-                  className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl disabled:opacity-50"
+                  disabled={isSubmittingPay}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
                 >
-                  {isSubmitting ? "Saving..." : "Log Product Credit"}
+                  {isSubmittingPay ? t("common.loading") : t("credits.btnPay")}
                 </Button>
               </DialogFooter>
             </form>
-          </DialogContent>
-        </Dialog>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
 
-      {/* PAY / SETTLEMENT MODAL */}
-      {payingCredit && (() => {
-        const parsedModal = parseCustomerCreditEntity(payingCredit.entityId || "");
-        return (
-          <Dialog open={true} onOpenChange={(open) => { if (!open) setPayingCredit(null); }}>
-            <DialogContent className="max-w-md rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-emerald-600" />
-                  {t('credits.modalPayTitle')}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handlePay} className="space-y-3.5 mt-2">
-                <div className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5] text-xs space-y-1">
-                  <div className="font-extrabold text-[#2C1B10] text-sm">{parsedModal.name}</div>
-                  {parsedModal.phone && (
-                    <div className="text-[#8C7361] font-medium text-xs">📞 {parsedModal.phone}</div>
-                  )}
-                  <div className="flex justify-between text-[#8C7361] font-mono pt-1 border-t border-[#EDE4D5] mt-1">
-                    <span>{t('credits.colTotalAmount')}: {Number(payingCredit.totalAmount).toFixed(2)} ETB</span>
-                    <span className="font-bold text-rose-700">{t('credits.colRemaining')}: {Number(payingCredit.remainingBalance).toFixed(2)} ETB</span>
-                  </div>
-                </div>
+      {/* MODAL: Quick Add Customer Profile */}
+      <Dialog open={isAddCustomerOpen} onOpenChange={setIsAddCustomerOpen}>
+        <DialogContent className="max-w-md bg-white rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-[#E87A18]" />
+              {t("credits.addNewCustomerBtn")}
+            </DialogTitle>
+          </DialogHeader>
 
-                <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('credits.amountPaidLabel')}</label>
-                  <Input
-                    type="number"
-                    step="any"
-                    required
-                    min="0.01"
-                    max={Number(payingCredit.remainingBalance)}
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(e.target.value)}
-                    placeholder="Enter amount..."
-                    className="rounded-xl border-zinc-200 font-mono font-bold text-base h-11"
-                  />
-                  <p className="text-[11px] text-[#8C7361] mt-1">Enter any integer or decimal amount (e.g. 30 or 40.98)</p>
-                </div>
+          <form onSubmit={handleCreateCustomer} className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.customerNameLabel")} <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                required
+                placeholder={t("credits.customerNamePlaceholder")}
+                value={newCustName}
+                onChange={(e) => setNewCustName(e.target.value)}
+                className="rounded-xl text-xs font-bold"
+              />
+            </div>
 
-                <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('credits.paymentDateLabel')}</label>
-                  <Input
-                    type="date"
-                    required
-                    value={paymentDate}
-                    onChange={(e) => setPaymentDate(e.target.value)}
-                    className="rounded-xl border-zinc-200"
-                  />
-                </div>
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.phoneNumberLabel")} <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                required
+                placeholder={t("credits.phonePlaceholder")}
+                value={newCustPhone}
+                onChange={(e) => setNewCustPhone(e.target.value)}
+                className="rounded-xl text-xs font-bold"
+              />
+            </div>
 
-                <DialogFooter className="gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setPayingCredit(null)} className="rounded-xl">
-                    {t('common.cancel')}
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl">
-                    {isSubmitting ? t('common.loading') : t('credits.btnPay')}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        );
-      })()}
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.addressLabel")}
+              </label>
+              <Input
+                placeholder={t("credits.addressPlaceholder")}
+                value={newCustAddress}
+                onChange={(e) => setNewCustAddress(e.target.value)}
+                className="rounded-xl text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.noteLabel")}
+              </label>
+              <Input
+                placeholder="Optional notes or references"
+                value={newCustNotes}
+                onChange={(e) => setNewCustNotes(e.target.value)}
+                className="rounded-xl text-xs"
+              />
+            </div>
+
+            <DialogFooter className="pt-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddCustomerOpen(false)}
+                className="rounded-xl border-[#EDE4D5]"
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingCust}
+                className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl"
+              >
+                {isSubmittingCust ? t("common.loading") : t("credits.addNewCustomerBtn")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

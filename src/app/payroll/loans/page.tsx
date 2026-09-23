@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
-import { Plus, Edit2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Edit2, CheckCircle2, XCircle, Clock, Search, Filter, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -46,6 +46,29 @@ export default function PayrollLoansPage() {
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+
+  const filteredLoans = loans.filter((l) => {
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      const matchName = l.user?.fullName?.toLowerCase().includes(q);
+      const matchPhone = l.user?.phone?.includes(q);
+      if (!matchName && !matchPhone) return false;
+    }
+    if (statusFilter !== "ALL" && l.status !== statusFilter) {
+      return false;
+    }
+    if (typeFilter !== "ALL" && l.type !== typeFilter) {
+      return false;
+    }
+    return true;
+  });
+
+  const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL" || typeFilter !== "ALL";
 
   useEffect(() => {
     fetchLoans();
@@ -170,6 +193,66 @@ export default function PayrollLoansPage() {
         <PayrollNav />
       </div>
 
+      {/* Filter and Search Bar */}
+      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs mb-6 space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-[#8C7361]" />
+            <Input
+              placeholder="Search by staff name or phone..."
+              className="pl-9 h-10 rounded-xl border-[#EDE4D5] bg-[#FAF6F0]/50 text-xs sm:text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-full sm:w-48">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full h-10 rounded-xl border border-[#EDE4D5] bg-[#FAF6F0]/50 px-3 text-xs sm:text-sm font-semibold text-[#2C1B10] focus:outline-none"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="OPEN">Open (Approved)</option>
+              <option value="PENDING_APPROVAL">Pending Review</option>
+              <option value="PAID">Fully Repaid</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
+
+          {/* Type Filter */}
+          <div className="w-full sm:w-44">
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full h-10 rounded-xl border border-[#EDE4D5] bg-[#FAF6F0]/50 px-3 text-xs sm:text-sm font-semibold text-[#2C1B10] focus:outline-none"
+            >
+              <option value="ALL">All Types</option>
+              <option value="STAFF_LOAN">Staff Loan</option>
+              <option value="SALARY_ADVANCE">Salary Advance</option>
+            </select>
+          </div>
+
+          {/* Reset Filters */}
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("ALL");
+                setTypeFilter("ALL");
+              }}
+              className="h-10 px-3 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Mobile Cards View (block md:hidden) */}
       <div className="block md:hidden space-y-3">
         <div className="p-3 bg-[#FAF6F0] rounded-2xl border border-[#EDE4D5] flex items-center justify-between">
@@ -186,12 +269,12 @@ export default function PayrollLoansPage() {
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
             {t('payroll.loadingLoans')}
           </div>
-        ) : loans.length === 0 ? (
+        ) : filteredLoans.length === 0 ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            {t('payroll.emptyLoans')}
+            {loans.length === 0 ? t('payroll.emptyLoans') : "No loans match the selected filters."}
           </div>
         ) : (
-          loans.map((l) => (
+          filteredLoans.map((l) => (
             <div key={l.id} className="bg-white rounded-2xl p-3.5 sm:p-4 border border-[#EDE4D5] shadow-xs space-y-3 overflow-hidden">
               <div className="flex items-start justify-between gap-2 min-w-0">
                 <div className="min-w-0 flex-1">
@@ -267,14 +350,14 @@ export default function PayrollLoansPage() {
                   {t('payroll.loadingLoans')}
                 </TableCell>
               </TableRow>
-            ) : loans.length === 0 ? (
+            ) : filteredLoans.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
-                  {t('payroll.emptyLoans')}
+                  {loans.length === 0 ? t('payroll.emptyLoans') : "No loans match the selected filters."}
                 </TableCell>
               </TableRow>
             ) : (
-              loans.map((l) => (
+              filteredLoans.map((l) => (
                 <TableRow key={l.id} className="hover:bg-[#FAF6F0]/50 transition-colors">
                   <TableCell className="text-xs font-semibold text-[#8C7361]">
                     {formatEthDate(l.createdAt)}

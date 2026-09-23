@@ -9,7 +9,7 @@ import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, getFileUrl } from "@/lib/utils";
 import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -708,7 +708,7 @@ export default function UsersPage() {
                 <div>
                   <p className="text-zinc-500 font-medium mb-1">Employment Document</p>
                   {viewingUser.filesUrl ? (
-                    <a href={`http://localhost:3001${viewingUser.filesUrl}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-semibold bg-blue-50 px-2 py-0.5 rounded inline-block">
+                    <a href={getFileUrl(viewingUser.filesUrl) || "#"} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-semibold bg-blue-50 px-2 py-0.5 rounded inline-block">
                       Open Uploaded File
                     </a>
                   ) : (

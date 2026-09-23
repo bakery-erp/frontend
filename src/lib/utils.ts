@@ -7,11 +7,19 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getImageUrl(url?: string | null): string | null {
   if (!url) return null;
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+  const backendHost = apiBase.replace(/\/api\/?$/, '');
+
+  if (url.startsWith('http://localhost:3001')) {
+    return url.replace('http://localhost:3001', backendHost);
+  }
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
     return url;
   }
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-  const backendHost = apiBase.replace(/\/api\/?$/, '');
   const cleanPath = url.startsWith('/') ? url : `/${url}`;
   return `${backendHost}${cleanPath}`;
+}
+
+export function getFileUrl(url?: string | null): string | null {
+  return getImageUrl(url);
 }

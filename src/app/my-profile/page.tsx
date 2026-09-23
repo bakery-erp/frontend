@@ -171,10 +171,38 @@ export default function MyProfilePage() {
     }
   };
 
+  const handleFileSelection = (file: File | null) => {
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!allowed.includes(file.type.toLowerCase())) {
+      toast.error("Unsupported file format. Please select a JPG, PNG, or WebP image.");
+      setSelectedFile(null);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Maximum allowed size is 5MB.");
+      setSelectedFile(null);
+      return;
+    }
+    setSelectedFile(file);
+  };
+
   const handleAvatarUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
       toast.error(t('profile.selectFilePrompt'));
+      return;
+    }
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!allowed.includes(selectedFile.type.toLowerCase())) {
+      toast.error("Unsupported file format. Please select a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Maximum allowed size is 5MB.");
       return;
     }
     setIsUploadingAvatar(true);
@@ -1049,13 +1077,27 @@ export default function MyProfilePage() {
               {t('profile.changeProfilePicDesc')}
             </p>
 
+            <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl">
+              <p className="text-xs font-bold text-amber-900 mb-0.5">
+                📷 Supported Formats:
+              </p>
+              <p className="text-[11px] text-amber-800">
+                JPG, JPEG, PNG, WebP (Maximum allowed size: 5MB)
+              </p>
+            </div>
+
             <div className="flex flex-col items-center justify-center p-3 xs:p-4 bg-[#FAF7EE] border border-dashed border-[#EDE4D5] rounded-2xl">
               <input
                 type="file"
-                accept="image/*"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                accept="image/jpeg,image/png,image/webp,image/jpg"
+                onChange={(e) => handleFileSelection(e.target.files?.[0] || null)}
                 className="w-full text-xs text-[#2C1B10] file:mr-2.5 file:py-2 file:px-3 xs:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#E87A18] file:text-white hover:file:bg-[#d46d13]"
               />
+              {selectedFile && (
+                <div className="mt-2.5 text-xs text-emerald-700 font-semibold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                  <span>✓ {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="flex-col xs:flex-row gap-2 pt-2">

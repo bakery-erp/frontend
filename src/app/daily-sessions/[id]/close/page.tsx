@@ -74,6 +74,7 @@ interface DailySessionDetail {
   actualTelebirrAmount: number | null;
   cashLeftoverAmount: number | null;
   notes: string | null;
+  draftExchangeLogs?: string | null;
   productionSummary?: ProductionSummaryItem[];
   supplierDeliveries?: SupplierDeliveryItem[];
   expenses?: ExpenseItem[];
@@ -92,6 +93,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [financialCategories, setFinancialCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isViewOnly, setIsViewOnly] = useState(false);
 
   // UX Focus and Scroll Refs
@@ -116,6 +118,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [actualTelebirr, setActualTelebirr] = useState<string>("");
   const [cashLeftover, setCashLeftover] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [exchangeLogs, setExchangeLogs] = useState<string>("");
   const [leftovers, setLeftovers] = useState<Record<string, { quantityRemaining: number | string; damagedQuantity: number | string; damageReason: string }>>({});
   const [expenseList, setExpenseList] = useState<ExpenseItem[]>([]);
 
@@ -186,6 +189,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       setActualTelebirr(s.actualTelebirrAmount != null ? String(s.actualTelebirrAmount) : "");
       setCashLeftover(s.cashLeftoverAmount != null ? String(s.cashLeftoverAmount) : "");
       setNotes(s.notes || "");
+      setExchangeLogs(s.draftExchangeLogs || "");
 
       // Populate leftovers map: default empty so placeholder 0 displays and typing immediately enters fresh number
       const initialLeftovers: Record<string, { quantityRemaining: number | string; damagedQuantity: number | string; damageReason: string }> = {};
@@ -347,6 +351,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       actualTelebirrAmount: actualTelebirr !== "" ? Number(actualTelebirr) : null,
       cashLeftoverAmount: cashLeftover !== "" ? Number(cashLeftover) : null,
       notes: notes.trim() || null,
+      draftExchangeLogs: exchangeLogs.trim() || null,
       leftoverRecords: formattedLeftovers,
       expenses: expenseList.map((e) => ({
         id: e.id,
@@ -355,6 +360,28 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         description: e.description,
       })),
     };
+  };
+
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+    try {
+      const payload = {
+        label: sessionLabel.trim() || null,
+        actualCashAmount: actualCash !== "" ? Number(actualCash) : null,
+        actualCbeAmount: actualCbe !== "" ? Number(actualCbe) : null,
+        actualTelebirrAmount: actualTelebirr !== "" ? Number(actualTelebirr) : null,
+        cashLeftoverAmount: cashLeftover !== "" ? Number(cashLeftover) : null,
+        notes: notes.trim() || null,
+        draftExchangeLogs: exchangeLogs.trim() || null,
+      };
+
+      await api.post(`/daily-sessions/${resolvedParams.id}/save-draft`, payload);
+      toast.success("Shift draft exchange log & cash counts saved successfully!");
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to save draft progress");
+    } finally {
+      setIsSavingDraft(false);
+    }
   };
 
   const handleSaveEdits = async () => {
@@ -1380,10 +1407,45 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
         {/* Section 6: Notes & Submission Controls */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F4ECE1] pb-3">
+            <div>
+              <h2 className="text-sm font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#E87A18]" /> Cash Drawer & Daily Exchange Log (Shift Draft)
+              </h2>
+              <p className="text-xs text-[#8C7361] mt-0.5">
+                Log cash-to-digital conversions, bill exchanges, counter change floats, and mid-shift cash counts.
+              </p>
+            </div>
+            {session.status !== "CLOSED" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isViewOnly}
+                className="border-amber-300 text-amber-800 hover:bg-amber-50 rounded-xl text-xs font-bold shrink-0 self-start sm:self-auto"
+              >
+                <Save className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                {isSavingDraft ? "Saving..." : "Save Draft Log"}
+              </Button>
+            )}
+          </div>
+
+          <div>
+            <textarea
+              rows={3}
+              placeholder="e.g. 10:30 AM: Exchanged 2,000 ETB cash for CBE with customer. 2:00 PM: Counter 1 took 500 ETB change float..."
+              value={exchangeLogs}
+              disabled={isViewOnly}
+              onChange={(e) => setExchangeLogs(e.target.value)}
+              className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-3 text-xs disabled:opacity-80"
+            />
+          </div>
+
           <div>
             <label className="text-xs font-bold text-[#2C1B10] block mb-1">Session Closing Notes / Remarks</label>
             <textarea
-              rows={3}
+              rows={2}
               placeholder="Add any remarks regarding sales, stock differences, or staff notes..."
               value={notes}
               disabled={isViewOnly}
@@ -1402,6 +1464,20 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             </Button>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              {/* Save Draft Progress throughout shift */}
+              {session.status !== "CLOSED" && (
+                <Button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  disabled={isSavingDraft || isViewOnly}
+                  variant="outline"
+                  className="border-amber-400 text-amber-900 bg-amber-50 hover:bg-amber-100 font-bold text-xs sm:text-sm rounded-xl px-4 h-10 shadow-xs justify-center"
+                >
+                  <Save className="w-4 h-4 mr-1.5 text-amber-700" />
+                  {isSavingDraft ? "Saving Draft..." : "Save Draft Progress"}
+                </Button>
+              )}
+
               {/* Save Edits without changing status */}
               <Button
                 onClick={handleSaveEdits}

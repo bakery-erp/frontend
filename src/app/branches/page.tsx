@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { Plus, Search, MapPin, MoreVertical, Edit2, Building2 } from "lucide-react";
+import { Plus, Search, MapPin, MoreVertical, Edit2, Building2, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,8 +23,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  
 } from "@/components/ui/dialog";
+import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -52,6 +52,12 @@ export default function BranchesPage() {
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [formData, setFormData] = useState({ name: "", address: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [showUnsavedChanges, setShowUnsavedChanges] = useState(false);
+
+  // Delete state
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isOwner = user?.role === "OWNER";
 
@@ -139,6 +145,43 @@ export default function BranchesPage() {
     setFormData({ name: "", address: "" });
   };
 
+  const isFormDirty = () => {
+    if (editingBranch) {
+      return formData.name !== editingBranch.name || formData.address !== (editingBranch.address || "");
+    }
+    return formData.name.trim() !== "" || formData.address.trim() !== "";
+  };
+
+  const handleRequestCloseDialog = () => {
+    if (isFormDirty()) {
+      setShowUnsavedChanges(true);
+    } else {
+      handleCloseDialog();
+    }
+  };
+
+  const handlePromptDelete = (branch: Branch) => {
+    if (!isOwner) return;
+    setBranchToDelete(branch);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteBranch = async () => {
+    if (!branchToDelete) return;
+    try {
+      setIsDeleting(true);
+      await api.delete(`/branches/${branchToDelete.id}`);
+      toast.success(t('branches.toastBranchDeleted') || "Branch and associated data deleted permanently");
+      setBranches((prev) => prev.filter((b) => b.id !== branchToDelete.id));
+      setIsDeleteDialogOpen(false);
+      setBranchToDelete(null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || t('branches.toastFailedToDelete') || "Failed to delete branch");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const filteredBranches = branches.filter((b) =>
     b.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -163,7 +206,16 @@ export default function BranchesPage() {
           )}
 
           {isOwner && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={(open) => {
+                if (!open) {
+                  handleRequestCloseDialog();
+                } else {
+                  setIsDialogOpen(true);
+                }
+              }}
+            >
               <DialogContent className="sm:max-w-[425px] rounded-2xl">
                 <DialogHeader>
                   <DialogTitle>{editingBranch ? t('branches.editBranch') : t('branches.newBranch')}</DialogTitle>
@@ -198,7 +250,7 @@ export default function BranchesPage() {
                     />
                   </div>
                   <DialogFooter className="pt-4 gap-2">
-                    <Button type="button" variant="outline" onClick={handleCloseDialog} className="rounded-xl border-[#EDE4D5]">
+                    <Button type="button" variant="outline" onClick={handleRequestCloseDialog} className="rounded-xl border-[#EDE4D5]">
                       {t('common.cancel')}
                     </Button>
                     <Button type="submit" disabled={submitting} className="rounded-xl bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold">
@@ -304,6 +356,15 @@ export default function BranchesPage() {
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handlePromptDelete(branch)}
+                            className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
+                            title={t('branches.deleteBranch') || "Delete Branch"}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       ) : (
                         <span className="text-xs text-zinc-400 font-medium">{t('branches.readOnly')}</span>
@@ -375,21 +436,83 @@ export default function BranchesPage() {
                         {toggleLoading === branch.id ? t('common.updating') : branch.isActive ? t('branches.disableBranch') : t('branches.enableBranch')}
                       </label>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenDialog(branch)}
-                      className="h-8 px-3 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] flex items-center gap-1.5 text-xs font-bold"
-                    >
-                      <Edit2 className="w-3.5 h-3.5 text-[#E87A18]" />
-                      {t('common.edit')}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenDialog(branch)}
+                        className="h-8 px-3 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] flex items-center gap-1.5 text-xs font-bold"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-[#E87A18]" />
+                        {t('common.edit')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePromptDelete(branch)}
+                        className="h-8 px-2.5 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center justify-center text-xs font-bold"
+                        title={t('branches.deleteBranch') || "Delete"}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
             ))
           )}
         </div>
+
+        {/* Delete Branch Confirmation Modal */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => !isDeleting && setIsDeleteDialogOpen(open)}>
+          <DialogContent className="max-w-md rounded-2xl bg-white border border-rose-200 p-6 shadow-xl">
+            <DialogHeader className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto sm:mx-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
+                  {t('branches.deleteConfirmTitle') || "Permanently Delete Branch?"}
+                </DialogTitle>
+                <div className="mt-2 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 space-y-2">
+                  <p className="font-extrabold text-rose-950 text-sm flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-rose-600" /> {branchToDelete?.name}
+                  </p>
+                  <p className="leading-relaxed">
+                    {t('branches.deleteConfirmWarning') ||
+                      "Are you sure you want to delete this branch? All data associated with this branch (production batches, daily sessions, sales, expenses, and branch stock items) will be permanently deleted and cannot be recovered. Please ensure you really want to proceed."}
+                  </p>
+                </div>
+              </div>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isDeleting}
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="w-full sm:w-auto h-11 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs sm:text-sm hover:bg-[#FAF6F0]"
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteBranch}
+                className="w-full sm:w-auto h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2"
+              >
+                {isDeleting ? t('common.loading') : (t('branches.confirmDelete') || "Delete Branch & Data")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Unsaved Changes Confirmation Modal */}
+        <UnsavedChangesDialog
+          open={showUnsavedChanges}
+          onOpenChange={setShowUnsavedChanges}
+          onConfirmDiscard={handleCloseDialog}
+        />
       </div>
     </DashboardLayout>
   );
