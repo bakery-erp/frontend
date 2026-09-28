@@ -604,7 +604,7 @@ export default function StockPage() {
                 </div>
                 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('production.unit')}</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.unit')}</label>
                   <select name="unitType" required defaultValue={editingItem?.unitType || "KG"} className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]">
                     <option value="KG">Kg (Kilogram)</option>
                     <option value="PIECE">Piece</option>

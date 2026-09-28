@@ -660,7 +660,7 @@ export default function SuppliersPage() {
                   <>
                     {/* Desktop Column Headers (>= sm) */}
                     <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
-                      <div className="col-span-4">{t('production.product')}</div>
+                      <div className="col-span-4">{t('common.product')}</div>
                       <div className="col-span-2 text-center">{t('suppliers.colQtyReceived')}</div>
                       <div className="col-span-2 text-center">{t('suppliers.colUnitCost')} ({t('common.currency')})</div>
                       <div className="col-span-2 text-center">{t('stock.unitPriceLabel')}</div>
@@ -685,7 +685,7 @@ export default function SuppliersPage() {
                                   <span className="w-5 h-5 rounded-full bg-[#FAF6F0] border border-[#EDE4D5] text-[#E87A18] text-[11px] font-extrabold flex items-center justify-center">
                                     {index + 1}
                                   </span>
-                                  <span className="text-xs font-bold text-[#4A2E1B]">{t('production.product')} #{index + 1}</span>
+                                  <span className="text-xs font-bold text-[#4A2E1B]">{t('common.product')} #{index + 1}</span>
                                 </div>
                                 <button
                                   type="button"
@@ -700,7 +700,7 @@ export default function SuppliersPage() {
 
                               {/* Product Selection */}
                               <div>
-                                <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">{t('production.product')}</label>
+                                <label className="text-[11px] font-bold text-[#4A2E1B] block mb-1">{t('common.product')}</label>
                                 <select
                                   value={item.productId}
                                   onChange={(e) => updateDeliveryItemRow(index, 'productId', e.target.value)}

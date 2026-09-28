@@ -178,7 +178,7 @@ export default function ProductsPage() {
             <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('production.statusDelivered')}</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalDelivered')}</p>
             <p className="text-base sm:text-xl font-extrabold text-[#E87A18] font-mono truncate">{totalDeliveredItems.toLocaleString()} {t('common.pcs')}</p>
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function ProductsPage() {
             <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('production.statusProduced')}</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalProduced')}</p>
             <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalProducedItems.toLocaleString()} {t('common.pcs')}</p>
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function ProductsPage() {
             <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.title')}</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalVarieties')}</p>
             <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{products.length} {t('common.items')}</p>
           </div>
         </div>
@@ -399,8 +399,8 @@ export default function ProductsPage() {
                   <TableHead>{t('stock.title')}</TableHead>
                   <TableHead>{t('products.colUnit')}</TableHead>
                   <TableHead>{t('products.colPrice')}</TableHead>
-                  <TableHead className="text-center">{t('production.title')}</TableHead>
-                  <TableHead className="text-center">🚚 Delivered</TableHead>
+                  <TableHead className="text-center">{t('products.colProduced')}</TableHead>
+                  <TableHead className="text-center">{t('products.colDelivered')}</TableHead>
                   <TableHead className="text-center">{t('dashboard.incomeFromSales')}</TableHead>
                   <TableHead>{t('products.colActive')}</TableHead>
                   {isAdminOrOwner && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}

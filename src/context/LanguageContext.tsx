@@ -26,6 +26,25 @@ function getNestedValue(obj: any, path: string): string | undefined {
   return typeof curr === 'string' ? curr : undefined;
 }
 
+// Humanizes a developer key like "production.statusProduction" or "colStockStatus" into "Production" or "Stock Status"
+function humanizeKey(keyPath: string): string {
+  if (!keyPath) return '';
+  const parts = keyPath.split('.');
+  const last = parts[parts.length - 1] || keyPath;
+
+  // Strip common technical prefixes if followed by an uppercase letter
+  const stripped = last.replace(/^(status|col|lbl|btn|nav|tab|filter|modal|toast|field|step)([A-Z])/, '$2');
+
+  // Insert spaces between camelCase words and replace dashes/underscores
+  const withSpaces = stripped
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+
+  if (!withSpaces) return '';
+  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+}
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>('en');
   const [isInitialized, setIsInitialized] = useState(false);
@@ -62,9 +81,18 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         text = getNestedValue(dictionaries.en, keyPath);
       }
 
-      // If still missing, return the keyPath itself
+      // If still missing, convert key to a clean human-readable label so raw keys NEVER show on the UI
       if (text === undefined) {
-        return keyPath;
+        let fallback = humanizeKey(keyPath);
+        if (variables) {
+          Object.entries(variables).forEach(([key, val]) => {
+            fallback = fallback.replace(new RegExp(`\\{${key}\\}`, 'g'), String(val));
+          });
+        }
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(`[i18n missing key] "${keyPath}" -> "${fallback}"`);
+        }
+        return fallback;
       }
 
       // Interpolate variables like {name}, {count}, {branch}
