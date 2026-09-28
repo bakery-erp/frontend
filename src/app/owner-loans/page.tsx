@@ -14,7 +14,6 @@ import {
   HandCoins,
   Plus,
   Search,
-  Filter,
   RotateCcw,
   CheckCircle2,
   Clock,
@@ -22,14 +21,12 @@ import {
   CreditCard,
   Building2,
   ArrowDownRight,
-  TrendingDown,
-  Calendar,
   AlertCircle,
   FileText,
   DollarSign,
-  ChevronRight,
   ShieldAlert,
-  Sparkles,
+  User,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +56,7 @@ interface OwnerLoan {
     role: string;
   } | null;
   type: string;
-  entityId?: string | null; // Used for Reason / Purpose / Notes
+  entityId?: string | null; // Stores structured { lender, reason, notes } or raw string
   totalAmount: number | string;
   remainingBalance: number | string;
   status: "OPEN" | "PAID";
@@ -67,6 +64,41 @@ interface OwnerLoan {
   createdAt: string;
   updatedAt: string;
   payments: Payment[];
+}
+
+interface ParsedOwnerLoanInfo {
+  lender: string;
+  reason: string;
+  notes: string;
+}
+
+function parseOwnerLoanEntity(raw?: string | null): ParsedOwnerLoanInfo {
+  if (!raw) return { lender: "External Lender", reason: "", notes: "" };
+  try {
+    if (raw.startsWith("{") && raw.endsWith("}")) {
+      const parsed = JSON.parse(raw);
+      return {
+        lender: parsed.lender || parsed.name || "External Lender",
+        reason: parsed.reason || "",
+        notes: parsed.notes || "",
+      };
+    }
+  } catch {}
+
+  const bracketMatch = raw.match(/\[Lender:\s*(.*?)\]\s*(.*)/i);
+  if (bracketMatch) {
+    return {
+      lender: bracketMatch[1].trim(),
+      reason: bracketMatch[2].trim(),
+      notes: "",
+    };
+  }
+
+  return {
+    lender: raw,
+    reason: "",
+    notes: "",
+  };
 }
 
 export default function OwnerLoansPage() {
@@ -86,6 +118,7 @@ export default function OwnerLoansPage() {
   // Log New Loan Modal State
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isSubmittingLog, setIsSubmittingLog] = useState(false);
+  const [logLender, setLogLender] = useState("");
   const [logAmount, setLogAmount] = useState("");
   const [logDate, setLogDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [logBranchId, setLogBranchId] = useState("");
@@ -192,11 +225,16 @@ export default function OwnerLoansPage() {
 
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
-        const reasonMatch = l.entityId?.toLowerCase().includes(q);
+        const info = parseOwnerLoanEntity(l.entityId);
+        const lenderMatch = info.lender.toLowerCase().includes(q);
+        const reasonMatch = info.reason.toLowerCase().includes(q);
+        const notesMatch = info.notes.toLowerCase().includes(q);
         const branchMatch = l.branch?.name?.toLowerCase().includes(q);
         const idMatch = l.id.toLowerCase().includes(q);
         const amountMatch = String(l.totalAmount).includes(q);
-        if (!reasonMatch && !branchMatch && !idMatch && !amountMatch) return false;
+        if (!lenderMatch && !reasonMatch && !notesMatch && !branchMatch && !idMatch && !amountMatch) {
+          return false;
+        }
       }
 
       return true;
@@ -214,6 +252,11 @@ export default function OwnerLoansPage() {
       return;
     }
 
+    if (!logLender.trim()) {
+      toast.error("Please enter the name of the person or company you lent from");
+      return;
+    }
+
     if (!logBranchId) {
       toast.error("Please select a branch");
       return;
@@ -221,21 +264,19 @@ export default function OwnerLoansPage() {
 
     setIsSubmittingLog(true);
     try {
-      const combinedReason = logNotes.trim()
-        ? `${logReason || "Personal Loan"} (${logNotes.trim()})`
-        : logReason || "Owner Personal Loan";
-
       await api.post("/loans", {
         type: "OWNER_LOAN",
         branchId: logBranchId,
         totalAmount: amountNum,
         date: logDate,
-        notes: combinedReason,
-        entityId: combinedReason,
+        lenderName: logLender.trim(),
+        reason: logReason.trim(),
+        notes: logNotes.trim(),
       });
 
       toast.success(t("ownerLoans.toastLoanLogged"));
       setIsLogModalOpen(false);
+      setLogLender("");
       setLogAmount("");
       setLogReason("");
       setLogNotes("");
@@ -298,16 +339,6 @@ export default function OwnerLoansPage() {
       toast.error(err.response?.data?.error || "Failed to delete loan record");
     }
   };
-
-  // Quick Preset Reasons
-  const presetReasons = [
-    t("ownerLoans.presetPersonal"),
-    t("ownerLoans.presetEmergency"),
-    t("ownerLoans.presetFamily"),
-    t("ownerLoans.presetInvestment"),
-    t("ownerLoans.presetCar"),
-    t("ownerLoans.presetHouse"),
-  ];
 
   if (!isAuthLoading && user && user.role !== "OWNER") {
     return (
@@ -439,7 +470,7 @@ export default function OwnerLoansPage() {
             <Search className="w-4 h-4 text-[#8C7361] absolute left-3 top-3" />
             <Input
               type="text"
-              placeholder="Search by purpose, branch, amount or notes..."
+              placeholder="Search by person/company, purpose, branch, amount or notes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 h-10 rounded-xl border-[#EDE4D5] bg-[#FAF6F0]/40 text-xs sm:text-sm font-medium focus:bg-white transition-colors"
@@ -509,7 +540,7 @@ export default function OwnerLoansPage() {
               <p className="text-xs text-[#8C7361] mt-1 max-w-sm mx-auto">
                 {hasActiveFilters
                   ? "Try resetting search terms or status filters to view records."
-                  : "Click '+ Log Personal Loan' above to record your first personal borrowing from bakery branch cash."}
+                  : "Click '+ Log Personal Loan' above to record money borrowed from a person or company."}
               </p>
               {!hasActiveFilters && (
                 <Button
@@ -528,6 +559,7 @@ export default function OwnerLoansPage() {
                   <TableHeader className="bg-[#FAF6F0]">
                     <TableRow className="border-[#EDE4D5]">
                       <TableHead className="font-extrabold text-[#4A2E1B] text-xs">{t("ownerLoans.colDate")}</TableHead>
+                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs">{t("ownerLoans.colLender")}</TableHead>
                       <TableHead className="font-extrabold text-[#4A2E1B] text-xs">{t("ownerLoans.colReason")}</TableHead>
                       <TableHead className="font-extrabold text-[#4A2E1B] text-xs">{t("ownerLoans.colBranch")}</TableHead>
                       <TableHead className="font-extrabold text-[#4A2E1B] text-xs text-right">{t("ownerLoans.colTotalAmount")}</TableHead>
@@ -544,6 +576,7 @@ export default function OwnerLoansPage() {
                       const paidNum = loan.payments?.reduce((s, p) => s + (Number(p.amountPaid) || 0), 0) || (totalNum - remNum);
                       const percentPaid = totalNum > 0 ? Math.min(100, Math.round((paidNum / totalNum) * 100)) : 100;
                       const isPaid = loan.status === "PAID" || remNum <= 0;
+                      const loanInfo = parseOwnerLoanEntity(loan.entityId);
 
                       return (
                         <TableRow key={loan.id} className="border-[#EDE4D5] hover:bg-[#FAF6F0]/40 transition-colors">
@@ -557,14 +590,28 @@ export default function OwnerLoansPage() {
                             </div>
                           </TableCell>
 
-                          {/* Reason / Notes */}
-                          <TableCell className="max-w-[240px]">
-                            <div className="font-bold text-sm text-[#2C1B10] truncate">
-                              {loan.entityId || "Owner Personal Loan"}
+                          {/* Lender Name (Person or Company) */}
+                          <TableCell className="max-w-[200px]">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-center shrink-0 text-[#E87A18]">
+                                <Landmark className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="font-black text-sm text-[#2C1B10] truncate">
+                                {loanInfo.lender}
+                              </span>
                             </div>
-                            <div className="text-[10px] text-[#8C7361] font-mono truncate">
-                              ID: {loan.id.slice(-8)}
+                          </TableCell>
+
+                          {/* Reason / Purpose (Manual) */}
+                          <TableCell className="max-w-[220px]">
+                            <div className="font-semibold text-xs text-[#4A2E1B] truncate">
+                              {loanInfo.reason || <span className="text-[#8C7361] italic text-[11px]">No specific reason</span>}
                             </div>
+                            {loanInfo.notes && (
+                              <div className="text-[10px] text-[#8C7361] truncate mt-0.5">
+                                Note: {loanInfo.notes}
+                              </div>
+                            )}
                           </TableCell>
 
                           {/* Branch */}
@@ -581,7 +628,7 @@ export default function OwnerLoansPage() {
                           </TableCell>
 
                           {/* Repaid Progress */}
-                          <TableCell className="text-center min-w-[140px]">
+                          <TableCell className="text-center min-w-[130px]">
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-xs font-bold font-mono text-emerald-700">
                                 {paidNum.toLocaleString()} ETB ({percentPaid}%)
@@ -673,15 +720,24 @@ export default function OwnerLoansPage() {
                   const paidNum = loan.payments?.reduce((s, p) => s + (Number(p.amountPaid) || 0), 0) || (totalNum - remNum);
                   const percentPaid = totalNum > 0 ? Math.min(100, Math.round((paidNum / totalNum) * 100)) : 100;
                   const isPaid = loan.status === "PAID" || remNum <= 0;
+                  const loanInfo = parseOwnerLoanEntity(loan.entityId);
 
                   return (
                     <div key={loan.id} className="p-4 space-y-3">
                       {/* Top Bar */}
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h4 className="font-extrabold text-sm text-[#2C1B10] leading-snug">
-                            {loan.entityId || "Owner Personal Loan"}
-                          </h4>
+                          <div className="flex items-center gap-1.5">
+                            <Landmark className="w-4 h-4 text-[#E87A18]" />
+                            <h4 className="font-black text-sm text-[#2C1B10]">
+                              {loanInfo.lender}
+                            </h4>
+                          </div>
+                          {loanInfo.reason && (
+                            <p className="text-xs font-semibold text-[#4A2E1B] mt-0.5">
+                              {loanInfo.reason}
+                            </p>
+                          )}
                           <div className="flex items-center gap-2 mt-1 text-[11px] text-[#8C7361] font-semibold">
                             <span>{formatEthDate(loan.date || loan.createdAt)}</span>
                             <span>•</span>
@@ -789,6 +845,24 @@ export default function OwnerLoansPage() {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
+              {/* Lent From (Person or Company) */}
+              <div>
+                <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
+                  {t("ownerLoans.fieldLender")} *
+                </label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    required
+                    placeholder={t("ownerLoans.fieldLenderPlaceholder")}
+                    value={logLender}
+                    onChange={(e) => setLogLender(e.target.value)}
+                    className="h-11 rounded-xl border-[#EDE4D5] text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] pl-9"
+                  />
+                  <Landmark className="w-4 h-4 text-[#8C7361] absolute left-3 top-3.5" />
+                </div>
+              </div>
+
               {/* Amount */}
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
@@ -800,7 +874,7 @@ export default function OwnerLoansPage() {
                     step="0.01"
                     min="1"
                     required
-                    placeholder="e.g. 15000"
+                    placeholder="e.g. 25000"
                     value={logAmount}
                     onChange={(e) => setLogAmount(e.target.value)}
                     className="h-11 rounded-xl border-[#EDE4D5] font-mono text-base font-black text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] pr-12"
@@ -843,37 +917,18 @@ export default function OwnerLoansPage() {
                 </div>
               </div>
 
-              {/* Purpose / Reason */}
+              {/* Purpose / Reason (Manual text input, no presets) */}
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
-                  {t("ownerLoans.fieldReason")} *
+                  {t("ownerLoans.fieldReason")}
                 </label>
                 <Input
                   type="text"
-                  required
-                  placeholder="e.g. Personal car repair, Emergency drawing"
+                  placeholder={t("ownerLoans.fieldReasonPlaceholder")}
                   value={logReason}
                   onChange={(e) => setLogReason(e.target.value)}
-                  className="h-10 rounded-xl border-[#EDE4D5] text-xs sm:text-sm font-medium"
+                  className="h-11 rounded-xl border-[#EDE4D5] text-xs sm:text-sm font-medium"
                 />
-
-                {/* Preset Shortcut Buttons */}
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {presetReasons.map((reason, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setLogReason(reason)}
-                      className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-all ${
-                        logReason === reason
-                          ? "bg-[#E87A18] text-white border-[#E87A18]"
-                          : "bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                      }`}
-                    >
-                      {reason}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Notes */}
@@ -883,7 +938,7 @@ export default function OwnerLoansPage() {
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Optional details, receipt notes, repayment plan..."
+                  placeholder="Optional details, terms, repayment schedule..."
                   value={logNotes}
                   onChange={(e) => setLogNotes(e.target.value)}
                   className="w-full rounded-xl border border-[#EDE4D5] p-2.5 text-xs text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] focus:outline-none"
@@ -915,190 +970,205 @@ export default function OwnerLoansPage() {
       {/* ======================= REPAY LOAN MODAL ======================= */}
       <Dialog open={!!payingLoan} onOpenChange={(open) => !open && setPayingLoan(null)}>
         <DialogContent className="max-w-md rounded-3xl p-6 bg-white border border-[#EDE4D5]">
-          {payingLoan && (
-            <form onSubmit={handlePayLoan}>
-              <DialogHeader className="pb-3 border-b border-[#EDE4D5]">
-                <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
-                    <DollarSign className="w-5 h-5 stroke-[2.5]" />
+          {payingLoan && (() => {
+            const info = parseOwnerLoanEntity(payingLoan.entityId);
+            return (
+              <form onSubmit={handlePayLoan}>
+                <DialogHeader className="pb-3 border-b border-[#EDE4D5]">
+                  <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
+                      <DollarSign className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    <span>{t("ownerLoans.modalPayTitle")}</span>
+                  </DialogTitle>
+                  <p className="text-xs text-[#8C7361] mt-1">{t("ownerLoans.modalPayDesc")}</p>
+                </DialogHeader>
+
+                {/* Loan Context Card */}
+                <div className="bg-[#FAF6F0] rounded-2xl p-4 my-4 border border-[#EDE4D5] space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-[#8C7361]">Lent From:</span>
+                    <span className="font-extrabold text-[#2C1B10] truncate max-w-[200px]">
+                      {info.lender}
+                    </span>
                   </div>
-                  <span>{t("ownerLoans.modalPayTitle")}</span>
-                </DialogTitle>
-                <p className="text-xs text-[#8C7361] mt-1">{t("ownerLoans.modalPayDesc")}</p>
-              </DialogHeader>
-
-              {/* Loan Context Card */}
-              <div className="bg-[#FAF6F0] rounded-2xl p-4 my-4 border border-[#EDE4D5] space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#8C7361]">Loan Purpose:</span>
-                  <span className="font-extrabold text-[#2C1B10] truncate max-w-[180px]">
-                    {payingLoan.entityId || "Owner Loan"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#8C7361]">Original Loan:</span>
-                  <span className="font-mono font-bold text-[#2C1B10]">
-                    {Number(payingLoan.totalAmount).toLocaleString()} ETB
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm pt-2 border-t border-[#EDE4D5]/80">
-                  <span className="font-black text-rose-700">Current Balance Due:</span>
-                  <span className="font-mono font-black text-base text-rose-700">
-                    {Number(payingLoan.remainingBalance).toLocaleString()} ETB
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-4 py-1">
-                {/* Repayment Amount */}
-                <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
-                    {t("ownerLoans.fieldPayAmount")} *
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="1"
-                      max={Number(payingLoan.remainingBalance)}
-                      required
-                      placeholder="e.g. 5000"
-                      value={payAmount}
-                      onChange={(e) => setPayAmount(e.target.value)}
-                      className="h-11 rounded-xl border-[#EDE4D5] font-mono text-base font-black text-emerald-700 focus:ring-2 focus:ring-emerald-500 pr-12"
-                    />
-                    <span className="absolute right-3.5 top-3 text-xs font-bold text-[#8C7361]">ETB</span>
+                  {info.reason && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-[#8C7361]">Reason:</span>
+                      <span className="font-semibold text-[#4A2E1B] truncate max-w-[200px]">
+                        {info.reason}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-[#8C7361]">Original Loan:</span>
+                    <span className="font-mono font-bold text-[#2C1B10]">
+                      {Number(payingLoan.totalAmount).toLocaleString()} ETB
+                    </span>
                   </div>
+                  <div className="flex items-center justify-between text-sm pt-2 border-t border-[#EDE4D5]/80">
+                    <span className="font-black text-rose-700">Current Balance Due:</span>
+                    <span className="font-mono font-black text-base text-rose-700">
+                      {Number(payingLoan.remainingBalance).toLocaleString()} ETB
+                    </span>
+                  </div>
+                </div>
 
-                  {/* Quick Shortcut Buttons */}
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setPayAmount(String(payingLoan.remainingBalance))}
-                      className="flex-1 py-1 px-2.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors"
-                    >
-                      {t("ownerLoans.quickPayFull", { amount: Number(payingLoan.remainingBalance).toLocaleString() })}
-                    </button>
-                    {Number(payingLoan.remainingBalance) > 100 && (
+                <div className="space-y-4 py-1">
+                  {/* Repayment Amount */}
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
+                      {t("ownerLoans.fieldPayAmount")} *
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="1"
+                        max={Number(payingLoan.remainingBalance)}
+                        required
+                        placeholder="e.g. 5000"
+                        value={payAmount}
+                        onChange={(e) => setPayAmount(e.target.value)}
+                        className="h-11 rounded-xl border-[#EDE4D5] font-mono text-base font-black text-emerald-700 focus:ring-2 focus:ring-emerald-500 pr-12"
+                      />
+                      <span className="absolute right-3.5 top-3 text-xs font-bold text-[#8C7361]">ETB</span>
+                    </div>
+
+                    {/* Quick Shortcut Buttons */}
+                    <div className="flex gap-2 mt-2">
                       <button
                         type="button"
-                        onClick={() => setPayAmount(String(Math.round(Number(payingLoan.remainingBalance) / 2)))}
-                        className="py-1 px-2.5 rounded-lg bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-xs font-bold hover:bg-[#F4ECE1] transition-colors"
+                        onClick={() => setPayAmount(String(payingLoan.remainingBalance))}
+                        className="flex-1 py-1 px-2.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors"
                       >
-                        {t("ownerLoans.quickPayHalf", { amount: Math.round(Number(payingLoan.remainingBalance) / 2).toLocaleString() })}
+                        {t("ownerLoans.quickPayFull", { amount: Number(payingLoan.remainingBalance).toLocaleString() })}
                       </button>
-                    )}
+                      {Number(payingLoan.remainingBalance) > 100 && (
+                        <button
+                          type="button"
+                          onClick={() => setPayAmount(String(Math.round(Number(payingLoan.remainingBalance) / 2)))}
+                          className="py-1 px-2.5 rounded-lg bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-xs font-bold hover:bg-[#F4ECE1] transition-colors"
+                        >
+                          {t("ownerLoans.quickPayHalf", { amount: Math.round(Number(payingLoan.remainingBalance) / 2).toLocaleString() })}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Payment Date */}
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
+                      {t("ownerLoans.fieldPayDate")} *
+                    </label>
+                    <Input
+                      type="date"
+                      required
+                      value={payDate}
+                      onChange={(e) => setPayDate(e.target.value)}
+                      className="h-11 rounded-xl border-[#EDE4D5] text-xs sm:text-sm font-semibold"
+                    />
                   </div>
                 </div>
 
-                {/* Payment Date */}
-                <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
-                    {t("ownerLoans.fieldPayDate")} *
-                  </label>
-                  <Input
-                    type="date"
-                    required
-                    value={payDate}
-                    onChange={(e) => setPayDate(e.target.value)}
-                    className="h-11 rounded-xl border-[#EDE4D5] text-xs sm:text-sm font-semibold"
-                  />
-                </div>
-              </div>
-
-              <DialogFooter className="pt-4 border-t border-[#EDE4D5] flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setPayingLoan(null)}
-                  className="h-10 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs"
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmittingPay}
-                  className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 shadow-xs"
-                >
-                  {isSubmittingPay ? "Saving..." : "Confirm Repayment"}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
+                <DialogFooter className="pt-4 border-t border-[#EDE4D5] flex items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPayingLoan(null)}
+                    className="h-10 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs"
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmittingPay}
+                    className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 shadow-xs"
+                  >
+                    {isSubmittingPay ? "Saving..." : "Confirm Repayment"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
       {/* ======================= PAYMENT HISTORY MODAL ======================= */}
       <Dialog open={!!historyLoan} onOpenChange={(open) => !open && setHistoryLoan(null)}>
         <DialogContent className="max-w-md rounded-3xl p-6 bg-white border border-[#EDE4D5]">
-          {historyLoan && (
-            <div>
-              <DialogHeader className="pb-3 border-b border-[#EDE4D5]">
-                <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-[#FAF6F0] text-[#E87A18]">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <span>{t("ownerLoans.modalHistoryTitle")}</span>
-                </DialogTitle>
-                <p className="text-xs text-[#8C7361] mt-0.5">
-                  {historyLoan.entityId || "Owner Personal Loan"} — ID: {historyLoan.id.slice(-8)}
-                </p>
-              </DialogHeader>
-
-              <div className="my-4 max-h-[50vh] overflow-y-auto space-y-2">
-                {(!historyLoan.payments || historyLoan.payments.length === 0) ? (
-                  <div className="text-center py-8 text-[#8C7361]">
-                    <Clock className="w-8 h-8 mx-auto mb-2 text-[#CBB29F]" />
-                    <p className="text-xs font-semibold">No payments recorded yet against this loan.</p>
-                  </div>
-                ) : (
-                  historyLoan.payments.map((p, idx) => (
-                    <div
-                      key={p.id || idx}
-                      className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-3 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black">
-                          #{idx + 1}
-                        </div>
-                        <div>
-                          <p className="font-bold text-xs text-[#2C1B10]">
-                            {formatEthDate(p.date || p.createdAt)}
-                          </p>
-                          <p className="text-[10px] text-[#8C7361]">
-                            {format(new Date(p.date || p.createdAt), "MMM dd, yyyy")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-mono font-black text-sm text-emerald-700">
-                          +{Number(p.amountPaid).toLocaleString()} ETB
-                        </span>
-                        <span className="block text-[10px] font-bold text-[#8C7361] uppercase">PAID</span>
-                      </div>
+          {historyLoan && (() => {
+            const info = parseOwnerLoanEntity(historyLoan.entityId);
+            return (
+              <div>
+                <DialogHeader className="pb-3 border-b border-[#EDE4D5]">
+                  <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-[#FAF6F0] text-[#E87A18]">
+                      <FileText className="w-5 h-5" />
                     </div>
-                  ))
-                )}
-              </div>
+                    <span>{t("ownerLoans.modalHistoryTitle")}</span>
+                  </DialogTitle>
+                  <div className="flex items-center gap-1.5 mt-1 text-xs text-[#8C7361]">
+                    <span className="font-bold text-[#2C1B10]">{info.lender}</span>
+                    {info.reason && <span>• {info.reason}</span>}
+                  </div>
+                </DialogHeader>
 
-              {/* Summary Bottom Bar */}
-              <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between text-xs">
-                <span className="font-bold text-[#8C7361]">Remaining Due:</span>
-                <span className="font-mono font-black text-sm text-rose-600">
-                  {Number(historyLoan.remainingBalance).toLocaleString()} ETB
-                </span>
-              </div>
+                <div className="my-4 max-h-[50vh] overflow-y-auto space-y-2">
+                  {(!historyLoan.payments || historyLoan.payments.length === 0) ? (
+                    <div className="text-center py-8 text-[#8C7361]">
+                      <Clock className="w-8 h-8 mx-auto mb-2 text-[#CBB29F]" />
+                      <p className="text-xs font-semibold">No payments recorded yet against this loan.</p>
+                    </div>
+                  ) : (
+                    historyLoan.payments.map((p, idx) => (
+                      <div
+                        key={p.id || idx}
+                        className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-3 flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black">
+                            #{idx + 1}
+                          </div>
+                          <div>
+                            <p className="font-bold text-xs text-[#2C1B10]">
+                              {formatEthDate(p.date || p.createdAt)}
+                            </p>
+                            <p className="text-[10px] text-[#8C7361]">
+                              {format(new Date(p.date || p.createdAt), "MMM dd, yyyy")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-mono font-black text-sm text-emerald-700">
+                            +{Number(p.amountPaid).toLocaleString()} ETB
+                          </span>
+                          <span className="block text-[10px] font-bold text-[#8C7361] uppercase">PAID</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-              <div className="pt-3 text-right">
-                <Button
-                  onClick={() => setHistoryLoan(null)}
-                  className="bg-[#2C1B10] hover:bg-[#4A2E1B] text-white font-bold text-xs h-9 px-4 rounded-xl"
-                >
-                  {t("common.close")}
-                </Button>
+                {/* Summary Bottom Bar */}
+                <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#8C7361]">Remaining Due:</span>
+                  <span className="font-mono font-black text-sm text-rose-600">
+                    {Number(historyLoan.remainingBalance).toLocaleString()} ETB
+                  </span>
+                </div>
+
+                <div className="pt-3 text-right">
+                  <Button
+                    onClick={() => setHistoryLoan(null)}
+                    className="bg-[#2C1B10] hover:bg-[#4A2E1B] text-white font-bold text-xs h-9 px-4 rounded-xl"
+                  >
+                    {t("common.close")}
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </DashboardLayout>
