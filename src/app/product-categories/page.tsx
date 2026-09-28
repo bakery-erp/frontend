@@ -84,10 +84,13 @@ export default function ProductCategoriesPage() {
     if (!editingCategory) return;
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
-    const rawParentId = formData.get("parentId");
-    const parentId = rawParentId ? String(rawParentId) : null;
+    const isSubcategory = Boolean(editingCategory.parentId);
+
+    const parentId = isSubcategory ? (editParentId || null) : null;
     const parentCat = parentId ? rootCategories.find((c) => c.id === parentId) : null;
-    const type = parentCat ? parentCat.type : formData.get("type");
+    const type = isSubcategory
+      ? (parentCat ? parentCat.type : editingCategory.type)
+      : formData.get("type");
 
     try {
       await api.patch(`/product-categories/${editingCategory.id}`, {
@@ -95,7 +98,7 @@ export default function ProductCategoriesPage() {
         type,
         parentId,
       });
-      toast.success("Category updated");
+      toast.success(isSubcategory ? "Subcategory updated" : "Category updated");
       setEditingCategory(null);
       setEditParentId("");
       fetchCategories();
@@ -539,45 +542,50 @@ export default function ProductCategoriesPage() {
                     </label>
                     <Input name="name" required defaultValue={editingCategory.name} className="h-10" />
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colProductType')}</label>
-                    <select
-                      name="type"
-                      required
-                      value={editSelectedParent?.type || editingCategory.type}
-                      disabled={!!editSelectedParent}
-                      onChange={() => undefined}
-                      className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm disabled:opacity-70"
-                    >
-                      <option value="PRODUCED">PRODUCED</option>
-                      <option value="RESELL">RESELL</option>
-                    </select>
-                    {editSelectedParent && (
-                      <p className="mt-1 text-[11px] text-zinc-500">Inherited automatically from parent category.</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colParentCategory')}</label>
-                    <select
-                      name="parentId"
-                      value={editParentId}
-                      onChange={(event) => setEditParentId(event.target.value)}
-                      disabled={getChildCount(editingCategory.id) > 0}
-                      className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm disabled:opacity-70"
-                    >
-                      <option value="">Top-level Category (No Parent)</option>
-                      {rootCategories
-                        .filter((category) => category.id !== editingCategory.id)
-                        .map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name} ({category.type})
-                          </option>
-                        ))}
-                    </select>
-                    {getChildCount(editingCategory.id) > 0 && (
-                      <p className="mt-1 text-[11px] text-amber-700">This category has subcategories, so it must remain a top-level category.</p>
-                    )}
-                  </div>
+
+                  {editingCategory.parentId ? (
+                    <>
+                      <div>
+                        <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colParentCategory')}</label>
+                        <select
+                          name="parentId"
+                          required
+                          value={editParentId}
+                          onChange={(event) => setEditParentId(event.target.value)}
+                          className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm"
+                        >
+                          <option value="" disabled>Select parent category</option>
+                          {rootCategories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name} ({category.type})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colProductType')}</label>
+                        <Input
+                          value={editSelectedParent?.type || editingCategory.type}
+                          readOnly
+                          className="h-10 bg-zinc-50 font-bold"
+                        />
+                        <p className="mt-1 text-[11px] text-zinc-500">Auto-inherited from parent category.</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colProductType')}</label>
+                      <select
+                        name="type"
+                        required
+                        defaultValue={editingCategory.type}
+                        className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm"
+                      >
+                        <option value="PRODUCED">PRODUCED</option>
+                        <option value="RESELL">RESELL</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
                   <Button
