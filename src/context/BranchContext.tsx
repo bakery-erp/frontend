@@ -39,6 +39,13 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
           const { data } = await api.get<Branch[]>('/branches');
           setBranches(data);
+          if (savedBranch && savedBranch !== 'ALL') {
+            const exists = Array.isArray(data) && data.some((b) => b.id === savedBranch);
+            if (!exists) {
+              localStorage.removeItem('selectedBranchId');
+              setSelectedBranchIdState(null);
+            }
+          }
         } catch (e) {
           console.error('Failed to fetch branches:', e);
         } finally {
