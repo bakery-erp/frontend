@@ -174,13 +174,22 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         : [];
       setFinancialCategories(dbFinCats);
 
-      // Check Midnight & Closed Session Lockout for Cashier
+      // Check Closed & Lockout Rules:
+      // CLOSED sessions are permanently locked in View Mode for everyone.
+      // Non-Admin/Owner (Cashier) is locked in View Mode if CLOSE_PENDING or session is before today.
       const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
       const sessionYmd = s.date ? new Date(s.date).toISOString().slice(0, 10) : "";
-      if (sessionYmd < ethTodayYmd || s.status === "CLOSED" || s.status === "CLOSE_PENDING" || !isAdminOrOwner) {
-        if (s.status === "CLOSED" || s.status === "CLOSE_PENDING" || sessionYmd < ethTodayYmd) {
+      if (s.status === "CLOSED") {
+        setIsViewOnly(true);
+      } else if (!isAdminOrOwner) {
+        if (s.status === "CLOSE_PENDING" || sessionYmd < ethTodayYmd) {
           setIsViewOnly(true);
+        } else {
+          setIsViewOnly(false);
         }
+      } else {
+        // Admin / Owner on OPEN or CLOSE_PENDING: start in active edit mode
+        setIsViewOnly(false);
       }
 
       setSessionLabel(s.label || `Session - ${new Date(s.date).toISOString().split("T")[0]}`);
@@ -353,18 +362,36 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       notes: notes.trim() || null,
       draftExchangeLogs: exchangeLogs.trim() || null,
       leftoverRecords: formattedLeftovers,
-      expenses: expenseList.map((e) => ({
-        id: e.id,
-        amount: Number(e.amount),
-        category: e.category,
-        description: e.description,
-      })),
+      expenses: expenseList
+        .filter((e) => Number(e.amount) > 0)
+        .map((e) => ({
+          id: e.id,
+          amount: Number(e.amount),
+          category: e.category,
+          description: e.description,
+        })),
     };
   };
 
   const handleSaveDraft = async () => {
     setIsSavingDraft(true);
     try {
+      const formattedLeftovers = Object.entries(leftovers).map(([productId, val]) => ({
+        productId,
+        quantityRemaining: Number(val.quantityRemaining) || 0,
+        damagedQuantity: Number(val.damagedQuantity) || 0,
+        damageReason: val.damageReason || "",
+      }));
+
+      const formattedExpenses = expenseList
+        .filter((e) => Number(e.amount) > 0)
+        .map((e) => ({
+          id: e.id,
+          amount: Number(e.amount),
+          category: e.category,
+          description: e.description,
+        }));
+
       const payload = {
         label: sessionLabel.trim() || null,
         actualCashAmount: actualCash !== "" ? Number(actualCash) : null,
@@ -373,10 +400,13 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         cashLeftoverAmount: cashLeftover !== "" ? Number(cashLeftover) : null,
         notes: notes.trim() || null,
         draftExchangeLogs: exchangeLogs.trim() || null,
+        leftoverRecords: formattedLeftovers,
+        expenses: formattedExpenses,
       };
 
       await api.post(`/daily-sessions/${resolvedParams.id}/save-draft`, payload);
-      toast.success("Shift draft exchange log & cash counts saved successfully!");
+      toast.success("Draft saved successfully! Leftovers, cash counts, and exchange log are stored.");
+      await fetchSessionAndProducts();
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to save draft progress");
     } finally {
@@ -404,7 +434,6 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     if (!payload) return;
     setIsSubmitting(true);
     try {
-      const payload = buildPayload();
       await api.post(`/daily-sessions/${resolvedParams.id}/submit-close`, payload);
       toast.success("Session close request submitted to Admin/Owner for approval");
       router.push("/daily-sessions");
@@ -420,9 +449,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       toast.error("Only Owners and Admins can finalize session approval");
       return;
     }
+    const payload = buildPayload();
+    if (!payload) return;
     setIsSubmitting(true);
     try {
-      const payload = buildPayload();
       await api.post(`/daily-sessions/${resolvedParams.id}/finalize`, payload);
       toast.success("Session close request approved and finalized!");
       router.push("/daily-sessions");
@@ -1488,10 +1518,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               </Button>
 
               {/* Cashier Submit Request */}
-              {session.status !== "CLOSED" && (
+              {session.status === "OPEN" && (
                 <Button
                   onClick={handleSubmitClose}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isViewOnly}
                   className="bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm rounded-xl px-5 h-10 shadow-sm justify-center"
                 >
                   Submit for Admin Approval
