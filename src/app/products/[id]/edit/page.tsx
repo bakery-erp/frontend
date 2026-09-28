@@ -57,6 +57,11 @@ export default function EditProductPage() {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+
+  const effectiveCategoryId = selectedCategoryId || product?.categoryId || '';
+  const selectedCategory = categories.find((c) => c.id === effectiveCategoryId);
+  const isResell = selectedCategory?.type === "RESELL";
 
   useEffect(() => {
     if (!productId) return;
@@ -76,6 +81,7 @@ export default function EditProductPage() {
         if (prodRes.data) {
           setProduct(prodRes.data);
           setSelectedImageUrl(prodRes.data.imageUrl || PRODUCT_PRESET_IMAGES[0].url);
+          setSelectedCategoryId(prodRes.data.categoryId || '');
         } else {
           toast.error("Product not found");
           router.push("/products");
@@ -110,7 +116,8 @@ export default function EditProductPage() {
         flavor: formData.get("flavor") || undefined,
         unitType: formData.get("unitType"),
         basePrice: Number(formData.get("basePrice")),
-        buyPrice: formData.get("buyPrice") ? Number(formData.get("buyPrice")) : undefined,
+        // Buying cost is available only for RESELL products, cleared to null for PRODUCED
+        buyPrice: isResell && formData.get("buyPrice") ? Number(formData.get("buyPrice")) : null,
         imageUrl: selectedImageUrl || undefined,
         isActive: formData.get("isActive") === "true",
       };
@@ -191,7 +198,8 @@ export default function EditProductPage() {
                 <select
                   name="categoryId"
                   required
-                  defaultValue={product.categoryId}
+                  value={selectedCategoryId}
+                  onChange={(e) => setSelectedCategoryId(e.target.value)}
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
                   {categories.map((c) => (
@@ -261,21 +269,29 @@ export default function EditProductPage() {
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Cost / Buy Price (ETB) <span className="text-[#8C7361] font-normal">(Optional)</span>
-                </label>
-                <Input
-                  name="buyPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  defaultValue={product.buyPrice ?? ""}
-                  placeholder="0.00"
-                  onFocus={(e) => e.target.select()}
-                  className="h-11 rounded-xl border-[#EDE4D5] text-sm font-mono"
-                />
-              </div>
+              {isResell ? (
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
+                    Buying Cost / Unit Buy Price (ETB) <span className="text-[#8C7361] font-normal">(Optional)</span>
+                  </label>
+                  <Input
+                    name="buyPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={product.buyPrice ?? ""}
+                    placeholder="0.00"
+                    onFocus={(e) => e.target.select()}
+                    className="h-11 rounded-xl border-[#EDE4D5] text-sm font-mono"
+                  />
+                  <p className="mt-1 text-[11px] text-zinc-500">Wholesale cost paid to supplier for this resell item.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col justify-center rounded-xl border border-dashed border-[#EDE4D5] bg-[#FAF6F0] p-3 text-xs text-[#8C7361]">
+                  <span className="font-bold text-[#2C1B10] block mb-0.5">In-House Produced Item</span>
+                  <span>Buying cost applies only to external RESELL items. Produced goods are manufactured from raw ingredients.</span>
+                </div>
+              )}
 
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">

@@ -14,6 +14,7 @@ interface Product {
   name: string;
   unitType: string;
   basePrice: number;
+  buyPrice?: number | null;
   category?: { type: string };
 }
 
@@ -1037,13 +1038,18 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       onChange={(e) => {
                         setResellProductId(e.target.value);
                         const p = products.find((pr) => pr.id === e.target.value);
-                        if (p) setResellSellPrice(String(p.basePrice));
+                        if (p) {
+                          setResellSellPrice(String(p.basePrice));
+                          if (p.buyPrice != null) {
+                            setResellBuyPrice(String(p.buyPrice));
+                          }
+                        }
                       }}
                       className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     >
                       <option value="">Select Product...</option>
                       {products
-                        .filter((p) => p.category?.type === 'RESELL' || p.category?.type !== 'PRODUCED')
+                        .filter((p) => p.category?.type === 'RESELL')
                         .map((p) => (
                           <option key={p.id} value={p.id}>{p.name} ({p.unitType}) - {p.basePrice} ETB</option>
                         ))}

@@ -268,7 +268,12 @@ export default function ProductsPage() {
                     <h3 className="font-extrabold text-base text-[#2C1B10] tracking-tight">
                       {prod.name} {prod.flavor && <span className="text-xs font-normal text-[#8C7361]">({prod.flavor})</span>}
                     </h3>
-                    <p className="text-xs text-[#8C7361] mt-0.5 font-medium">Selling Price: <strong className="text-[#E87A18]">{Number(prod.basePrice).toFixed(2)} ETB</strong></p>
+                    <div className="text-xs text-[#8C7361] mt-0.5 font-medium">
+                      <p>Selling Price: <strong className="text-[#E87A18]">{Number(prod.basePrice).toFixed(2)} ETB</strong></p>
+                      {prod.category?.type === 'RESELL' && prod.buyPrice != null && (
+                        <p className="text-[11px] font-mono text-zinc-500 mt-0.5">Buy Cost: {Number(prod.buyPrice).toFixed(2)} ETB</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-3.5 pt-3 border-t border-[#F4ECE1] grid grid-cols-3 gap-1 text-center text-xs text-[#8C7361]">
@@ -427,7 +432,12 @@ export default function ProductsPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-xs font-semibold text-[#8C7361]">{prod.unitType}</TableCell>
-                      <TableCell className="font-extrabold text-[#E87A18] text-sm">{Number(prod.basePrice).toFixed(2)} ETB</TableCell>
+                      <TableCell>
+                        <div className="font-extrabold text-[#E87A18] text-sm">{Number(prod.basePrice).toFixed(2)} ETB</div>
+                        {prod.category?.type === 'RESELL' && prod.buyPrice != null && (
+                          <div className="text-[11px] font-mono text-zinc-500 font-semibold">Cost: {Number(prod.buyPrice).toFixed(2)} ETB</div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalProduced || 0}</TableCell>
                       <TableCell className="text-center font-extrabold text-[#E87A18]">{prod.totalDelivered || 0}</TableCell>
                       <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalSold || 0}</TableCell>
