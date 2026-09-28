@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -9,7 +9,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ArrowLeft, Edit3, DollarSign, Image as ImageIcon, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit3, DollarSign, Image as ImageIcon, Save } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DetailSkeleton } from "@/components/ui/skeletons";
 
 interface ProductCategory {
   id: string;
@@ -50,54 +52,58 @@ export default function EditProductPage() {
   const params = useParams();
   const productId = params?.id as string;
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [product, setProduct] = useState<ProductData | null>(null);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['product-edit', productId],
+    queryFn: async () => {
+      const [prodRes, catRes, finCatRes] = await Promise.all([
+        api.get(`/products/${productId}`).catch(async () => {
+          const allRes = await api.get('/products');
+          const found = allRes.data.find((p: ProductData) => p.id === productId);
+          return { data: found };
+        }),
+        api.get('/product-categories'),
+        api.get('/financial-categories?type=REVENUE').catch(() => ({ data: [] })),
+      ]);
+
+      if (!prodRes.data) {
+        throw new Error("Product not found");
+      }
+
+      return {
+        product: prodRes.data as ProductData,
+        categories: (Array.isArray(catRes.data) ? catRes.data : []) as ProductCategory[],
+        financialCategories: (Array.isArray(finCatRes.data) ? finCatRes.data : []) as FinancialCategory[],
+      };
+    },
+    enabled: !!productId,
+  });
+
+  const product = data?.product;
+  const categories = data?.categories || [];
+  const financialCategories = data?.financialCategories || [];
+
+  useEffect(() => {
+    if (product) {
+      if (!selectedImageUrl && product.imageUrl) {
+        setSelectedImageUrl(product.imageUrl);
+      } else if (!selectedImageUrl) {
+        setSelectedImageUrl(PRODUCT_PRESET_IMAGES[0].url);
+      }
+      if (!selectedCategoryId && product.categoryId) {
+        setSelectedCategoryId(product.categoryId);
+      }
+    }
+  }, [product, selectedImageUrl, selectedCategoryId]);
 
   const effectiveCategoryId = selectedCategoryId || product?.categoryId || '';
   const selectedCategory = categories.find((c) => c.id === effectiveCategoryId);
   const isResell = selectedCategory?.type === "RESELL";
-
-  useEffect(() => {
-    if (!productId) return;
-
-    const fetchData = async () => {
-      try {
-        const [prodRes, catRes, finCatRes] = await Promise.all([
-          api.get(`/products/${productId}`).catch(async () => {
-            const allRes = await api.get('/products');
-            const found = allRes.data.find((p: ProductData) => p.id === productId);
-            return { data: found };
-          }),
-          api.get('/product-categories'),
-          api.get('/financial-categories?type=REVENUE').catch(() => ({ data: [] })),
-        ]);
-
-        if (prodRes.data) {
-          setProduct(prodRes.data);
-          setSelectedImageUrl(prodRes.data.imageUrl || PRODUCT_PRESET_IMAGES[0].url);
-          setSelectedCategoryId(prodRes.data.categoryId || '');
-        } else {
-          toast.error("Product not found");
-          router.push("/products");
-        }
-        setCategories(Array.isArray(catRes.data) ? catRes.data : []);
-        setFinancialCategories(Array.isArray(finCatRes.data) ? finCatRes.data : []);
-      } catch (err) {
-        toast.error("Failed to load product details");
-        router.push("/products");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [productId, router]);
 
   const formatCategoryLabel = (cat: ProductCategory) =>
     cat.parent ? `${cat.parent.name} / ${cat.name}` : cat.name;
@@ -123,6 +129,11 @@ export default function EditProductPage() {
       };
 
       await api.patch(`/products/${product.id}`, data);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+        queryClient.invalidateQueries({ queryKey: ['product-edit', productId] }),
+        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
+      ]);
       toast.success("Product updated successfully");
       router.push("/products");
     } catch (err: any) {
@@ -132,17 +143,30 @@ export default function EditProductPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex h-96 items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#E87A18]" />
+        <div className="max-w-3xl mx-auto pb-12">
+          <DetailSkeleton />
         </div>
       </DashboardLayout>
     );
   }
 
-  if (!product) return null;
+  if (error || !product) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto pb-12 text-center py-16 space-y-4">
+          <p className="text-sm font-bold text-rose-600">Product not found or failed to load.</p>
+          <Link href="/products">
+            <Button variant="outline" className="rounded-xl border-[#EDE4D5]">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Products
+            </Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

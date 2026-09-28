@@ -19,6 +19,8 @@ import {
   Boxes
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductHistoryRecord {
   id: string;
@@ -63,40 +65,25 @@ export default function DailyProductHistoryPage() {
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
+  const queryClient = useQueryClient();
 
-  const [records, setRecords] = useState<ProductHistoryRecord[]>([]);
-  const [summary, setSummary] = useState<SummaryData>({
-    totalProducedQuantity: 0,
-    totalValuation: 0,
-    count: 0,
-  });
-
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [productFilter, setProductFilter] = useState("");
-  const [allProducts, setAllProducts] = useState<ProductItem[]>([]);
 
   const [startDate, setStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
 
-  // Fetch product list for filter options
-  useEffect(() => {
-    const fetchFilterOptions = async () => {
-      try {
-        const branchId = selectedBranchId || user?.branchId;
-        const branchQuery = branchId ? `?branchId=${branchId}` : "";
-        const prodRes = await api.get(`/products${branchQuery}`);
-        setAllProducts(prodRes.data || []);
-      } catch (e) {
-        console.error("Failed to load filter metadata:", e);
-      }
-    };
-    fetchFilterOptions();
-  }, [selectedBranchId, user?.branchId]);
+  const branchId = selectedBranchId || user?.branchId;
 
-  useEffect(() => {
-    fetchHistory();
-  }, [selectedBranchId, startDate, endDate, productFilter]);
+  // Fetch product list for filter options
+  const { data: allProducts = [] } = useQuery<ProductItem[]>({
+    queryKey: ["products-filter", branchId],
+    queryFn: async () => {
+      const branchQuery = branchId ? `?branchId=${branchId}` : "";
+      const prodRes = await api.get(`/products${branchQuery}`);
+      return prodRes.data || [];
+    },
+  });
 
   const handleSetToday = () => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -111,41 +98,38 @@ export default function DailyProductHistoryPage() {
     }
   };
 
-  const fetchHistory = async () => {
-    setIsLoading(true);
-    try {
-      const branchId = selectedBranchId || user?.branchId;
+  const { data: historyData, isLoading } = useQuery({
+    queryKey: ["production-history", branchId, startDate, endDate, productFilter, search],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (branchId) params.append("branchId", branchId);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
-      params.append("type", "PRODUCED"); // Strict: Produced items only
+      params.append("type", "PRODUCED");
       if (productFilter) params.append("productId", productFilter);
       if (search.trim()) params.append("search", search.trim());
 
       const res = await api.get(`/production-batches/daily-product-history/all?${params.toString()}`);
-      
-      // Filter out any resell items completely
       const rawRecords: ProductHistoryRecord[] = (res.data.records || []).filter(
         (r: ProductHistoryRecord) => r.type === "PRODUCED"
       );
 
-      setRecords(rawRecords);
-
       const totalQty = rawRecords.reduce((acc, r) => acc + (r.netQuantity || r.quantity), 0);
       const totalVal = rawRecords.reduce((acc, r) => acc + r.subtotal, 0);
 
-      setSummary({
-        totalProducedQuantity: totalQty,
-        totalValuation: totalVal,
-        count: rawRecords.length,
-      });
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to load product daily history");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return {
+        records: rawRecords,
+        summary: {
+          totalProducedQuantity: totalQty,
+          totalValuation: totalVal,
+          count: rawRecords.length,
+        },
+      };
+    },
+  });
+
+  const records = historyData?.records || [];
+  const summary = historyData?.summary || { totalProducedQuantity: 0, totalValuation: 0, count: 0 };
 
   // Strict User/Role-Based Filtering: Non-admin users see ONLY what they logged for themselves
   const filteredRoleRecords = useMemo(() => {
@@ -179,7 +163,7 @@ export default function DailyProductHistoryPage() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchHistory();
+    queryClient.invalidateQueries({ queryKey: ["production-history"] });
   };
 
   return (
@@ -199,7 +183,7 @@ export default function DailyProductHistoryPage() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={fetchHistory}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["production-history"] })}
             className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs"
           >
             {t('productionHistory.refreshLogs')}
@@ -214,10 +198,14 @@ export default function DailyProductHistoryPage() {
             <p className="text-[11px] xs:text-xs font-bold text-emerald-800 uppercase tracking-wider truncate">
               {t('productionHistory.totalQuantityProduced')}
             </p>
-            <h3 className="text-xl xs:text-2xl font-extrabold text-emerald-900 font-mono mt-0.5 xs:mt-1">
-              {filteredRoleSummary.totalProducedQuantity.toLocaleString()}{" "}
-              <span className="text-xs text-emerald-700 font-normal">{t('productionHistory.pcs')}</span>
-            </h3>
+            {isLoading ? (
+              <Skeleton className="h-7 w-28 mt-1 rounded-lg" />
+            ) : (
+              <h3 className="text-xl xs:text-2xl font-extrabold text-emerald-900 font-mono mt-0.5 xs:mt-1">
+                {filteredRoleSummary.totalProducedQuantity.toLocaleString()}{" "}
+                <span className="text-xs text-emerald-700 font-normal">{t('productionHistory.pcs')}</span>
+              </h3>
+            )}
           </div>
           <div className="p-2.5 xs:p-3 bg-emerald-50 rounded-xl shrink-0">
             <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-emerald-600" />
@@ -230,13 +218,17 @@ export default function DailyProductHistoryPage() {
               <p className="text-[11px] xs:text-xs font-bold text-amber-800 uppercase tracking-wider truncate">
                 {t('productionHistory.estValuation')}
               </p>
-              <h3 className="text-xl xs:text-2xl font-extrabold text-amber-900 font-mono mt-0.5 xs:mt-1 truncate">
-                {filteredRoleSummary.totalValuation.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{" "}
-                <span className="text-xs text-amber-700 font-normal">{t('productionHistory.etb')}</span>
-              </h3>
+              {isLoading ? (
+                <Skeleton className="h-7 w-32 mt-1 rounded-lg" />
+              ) : (
+                <h3 className="text-xl xs:text-2xl font-extrabold text-amber-900 font-mono mt-0.5 xs:mt-1 truncate">
+                  {filteredRoleSummary.totalValuation.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  <span className="text-xs text-amber-700 font-normal">{t('productionHistory.etb')}</span>
+                </h3>
+              )}
             </div>
             <div className="p-2.5 xs:p-3 bg-amber-50 rounded-xl shrink-0">
               <DollarSign className="w-5 h-5 xs:w-6 xs:h-6 text-amber-600" />
@@ -248,10 +240,14 @@ export default function DailyProductHistoryPage() {
               <p className="text-[11px] xs:text-xs font-bold text-indigo-800 uppercase tracking-wider truncate">
                 {t('productionHistory.varietiesLogged')}
               </p>
-              <h3 className="text-xl xs:text-2xl font-extrabold text-indigo-900 font-mono mt-0.5 xs:mt-1">
-                {uniqueProductsCount.toLocaleString()}{" "}
-                <span className="text-xs text-indigo-700 font-normal">{t('productionHistory.types')}</span>
-              </h3>
+              {isLoading ? (
+                <Skeleton className="h-7 w-20 mt-1 rounded-lg" />
+              ) : (
+                <h3 className="text-xl xs:text-2xl font-extrabold text-indigo-900 font-mono mt-0.5 xs:mt-1">
+                  {uniqueProductsCount.toLocaleString()}{" "}
+                  <span className="text-xs text-indigo-700 font-normal">{t('productionHistory.types')}</span>
+                </h3>
+              )}
             </div>
             <div className="p-2.5 xs:p-3 bg-indigo-50 rounded-xl shrink-0">
               <Boxes className="w-5 h-5 xs:w-6 xs:h-6 text-indigo-600" />
@@ -264,10 +260,14 @@ export default function DailyProductHistoryPage() {
             <p className="text-[11px] xs:text-xs font-bold text-purple-800 uppercase tracking-wider truncate">
               {t('productionHistory.batchesLogged')}
             </p>
-            <h3 className="text-xl xs:text-2xl font-extrabold text-purple-900 font-mono mt-0.5 xs:mt-1">
-              {filteredRoleSummary.count.toLocaleString()}{" "}
-              <span className="text-xs text-purple-700 font-normal">{t('productionHistory.batches')}</span>
-            </h3>
+            {isLoading ? (
+              <Skeleton className="h-7 w-20 mt-1 rounded-lg" />
+            ) : (
+              <h3 className="text-xl xs:text-2xl font-extrabold text-purple-900 font-mono mt-0.5 xs:mt-1">
+                {filteredRoleSummary.count.toLocaleString()}{" "}
+                <span className="text-xs text-purple-700 font-normal">{t('productionHistory.batches')}</span>
+              </h3>
+            )}
           </div>
           <div className="p-2.5 xs:p-3 bg-purple-50 rounded-xl shrink-0">
             <Layers className="w-5 h-5 xs:w-6 xs:h-6 text-purple-600" />
@@ -357,8 +357,19 @@ export default function DailyProductHistoryPage() {
       {/* ── Mobile Audit Cards (< md) ── */}
       <div className="space-y-3 block md:hidden mb-6">
         {isLoading ? (
-          <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            {t('productionHistory.loading')}
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-2.5">
+                <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-5 w-20" />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredRoleRecords.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
@@ -428,11 +439,20 @@ export default function DailyProductHistoryPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={isGlobalAdmin ? 6 : 5} className="text-center py-10 text-[#8C7361]">
-                  {t('productionHistory.loading')}
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, idx) => (
+                <TableRow key={idx}>
+                  <TableCell><Skeleton className="h-4 w-24 mb-1" /><Skeleton className="h-3 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  {isGlobalAdmin && (
+                    <>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    </>
+                  )}
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                </TableRow>
+              ))
             ) : filteredRoleRecords.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={isGlobalAdmin ? 6 : 5} className="text-center py-10 text-[#8C7361]">

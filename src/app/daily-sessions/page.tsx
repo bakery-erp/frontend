@@ -13,6 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useLanguage } from '@/context/LanguageContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TableSkeleton, CardGridSkeleton } from '@/components/ui/skeletons';
 
 interface DailySession {
   id: string;
@@ -41,12 +44,26 @@ export default function DailySessionsPage() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
-  const [sessions, setSessions] = useState<DailySession[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isTodayOnly, setIsTodayOnly] = useState(false);
   
   const canManageSessions = user?.role === 'OWNER' || user?.role === 'ADMIN';
+
+  const { data: sessionData, isLoading } = useQuery<{ sessions: DailySession[]; products: Product[] }>({
+    queryKey: ['daily-sessions', selectedBranchId],
+    queryFn: async () => {
+      const params: any = {};
+      if (selectedBranchId) params.branchId = selectedBranchId;
+      const [sessRes, prodRes] = await Promise.all([
+        api.get('/daily-sessions', { params }),
+        api.get('/products?isActive=true'),
+      ]);
+      return { sessions: sessRes.data, products: prodRes.data };
+    },
+  });
+
+  const sessions = sessionData?.sessions || [];
+  const products = sessionData?.products || [];
 
   // Compute today's session in Ethiopian timezone (UTC+3)
   const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
@@ -78,28 +95,6 @@ export default function DailySessionsPage() {
   const [conversionQty, setConversionQty] = useState('1');
   const [isConverting, setIsConverting] = useState(false);
 
-  useEffect(() => {
-    fetchSessions();
-  }, [selectedBranchId]);
-
-  const fetchSessions = async () => {
-    setIsLoading(true);
-    try {
-      const params: any = {};
-      if (selectedBranchId) params.branchId = selectedBranchId;
-      const [sessRes, prodRes] = await Promise.all([
-        api.get('/daily-sessions', { params }),
-        api.get('/products?isActive=true'),
-      ]);
-      setSessions(sessRes.data);
-      setProducts(prodRes.data);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to fetch sessions');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleOpenNewSession = async () => {
     if (!canManageSessions) {
       toast.error('Only Owners and Admins can start business sessions');
@@ -117,7 +112,10 @@ export default function DailySessionsPage() {
         date: todayYmd,
       });
       toast.success('Daily session opened successfully');
-      fetchSessions();
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to open session');
     }
@@ -128,7 +126,8 @@ export default function DailySessionsPage() {
     try {
       await api.post(`/daily-sessions/${session.id}/pause`);
       toast.success('Business session paused');
-      fetchSessions();
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to pause session');
     }
@@ -139,7 +138,8 @@ export default function DailySessionsPage() {
     try {
       await api.post(`/daily-sessions/${session.id}/reopen`);
       toast.success('Business session reopened for editing');
-      fetchSessions();
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to reopen session');
     }
@@ -178,7 +178,10 @@ export default function DailySessionsPage() {
       });
       toast.success('Daily session finalized & closed successfully');
       setActiveSession(null);
-      fetchSessions();
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to finalize session');
     } finally {
@@ -212,7 +215,10 @@ export default function DailySessionsPage() {
       setConversionQty('1');
       setFromProductId('');
       setToProductId('');
-      fetchSessions();
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to convert product');
     } finally {
@@ -254,8 +260,9 @@ export default function DailySessionsPage() {
       </div>
 
       {/* Active Session Status Banner */}
-      {!isLoading && (
-        todaySession ? (
+      {isLoading ? (
+        <Skeleton className="h-28 w-full rounded-2xl mb-6" />
+      ) : todaySession ? (
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 mb-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5 min-w-0">
               <div className={`p-3 rounded-2xl shrink-0 ${
@@ -394,8 +401,7 @@ export default function DailySessionsPage() {
               </Button>
             )}
           </div>
-        )
-      )}
+        )}
 
       {/* ── Session History Section Header ── */}
       <div className="flex items-center justify-between gap-3 mb-4 pt-1">
@@ -411,11 +417,18 @@ export default function DailySessionsPage() {
       </div>
 
       {/* ── Mobile Session Cards (< md) ── */}
-      <div className="space-y-3 block md:hidden mb-6">
+      <div className="md:hidden space-y-3">
         {isLoading ? (
-          <div className="text-center py-8 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            {t('common.loading')}
-          </div>
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-12 w-full rounded-xl" />
+              <Skeleton className="h-8 w-24 rounded-xl" />
+            </div>
+          ))
         ) : historySessions.length === 0 ? (
           <div className="text-center py-8 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
             {isTodayOnly ? "No past session recorded for today." : "No past sessions found in history. Active session is running above."}
@@ -569,7 +582,17 @@ export default function DailySessionsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{t('common.loading')}</TableCell></TableRow>
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell className="text-right pr-6"><Skeleton className="h-8 w-24 rounded-xl ml-auto" /></TableCell>
+                </TableRow>
+              ))
             ) : historySessions.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{isTodayOnly ? "No past session recorded for today." : "No past sessions found in history. Active session is running above."}</TableCell></TableRow>
             ) : historySessions.map((sess) => {

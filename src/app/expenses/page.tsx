@@ -15,6 +15,9 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Trash2, Pencil, X, AlertTriangle, CalendarDays, Wallet, Tag, Check, Settings, User as UserIcon, Clock } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/skeletons";
 
 interface Expense {
   id: string;
@@ -54,12 +57,7 @@ export default function ExpensesPage() {
   
   const isManagement = user?.role === "OWNER" || user?.role === "ADMIN";
   const canAccess = isManagement || user?.role === "CASHIER";
-
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<FinancialCategory[]>([]);
-  const [activeSession, setActiveSession] = useState<DailySession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const queryClient = useQueryClient();
 
   // Ethiopian local date helper (UTC+3)
   const getEthTodayStr = () => new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
@@ -130,7 +128,7 @@ export default function ExpensesPage() {
       });
       toast.success(t('expenses.reasonAdded'));
       setNewCatName("");
-      loadCategories();
+      queryClient.invalidateQueries({ queryKey: ["financial-categories"] });
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to add expense reason");
     } finally {
@@ -149,7 +147,7 @@ export default function ExpensesPage() {
       });
       toast.success(t('expenses.reasonUpdated'));
       setEditingCatId(null);
-      loadCategories();
+      queryClient.invalidateQueries({ queryKey: ["financial-categories"] });
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to update expense reason");
     }
@@ -160,7 +158,7 @@ export default function ExpensesPage() {
     try {
       await api.delete(`/financial-categories/${id}`);
       toast.success(t('expenses.reasonDeleted'));
-      loadCategories();
+      queryClient.invalidateQueries({ queryKey: ["financial-categories"] });
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to delete expense reason");
     }
@@ -207,61 +205,43 @@ export default function ExpensesPage() {
     setFilterTo(todayStr);
   };
 
-  useEffect(() => {
-    if (canAccess) {
-      loadExpenses();
-    }
-  }, [selectedBranchId, filterFrom, filterTo, typeFilter]);
+  const branchId = selectedBranchId || user?.branchId;
 
-  useEffect(() => {
-    if (canAccess) {
-      loadCategories();
-      loadActiveSession();
-    }
-  }, [selectedBranchId, user?.role, user?.branchId]);
-
-  const loadCategories = async () => {
-    try {
+  // React Query: Categories
+  const { data: categories = [] } = useQuery<FinancialCategory[]>({
+    queryKey: ["financial-categories", "EXPENSE"],
+    queryFn: async () => {
       const res = await api.get("/financial-categories", { params: { type: "EXPENSE" } });
-      setCategories(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      // Non-critical
-    }
-  };
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: !!canAccess,
+  });
 
-  const loadActiveSession = async () => {
-    setIsLoadingSession(true);
-    try {
-      const branchId = selectedBranchId || user?.branchId;
-      if (!branchId) {
-        setActiveSession(null);
-        return;
-      }
+  // React Query: Active Session
+  const { data: activeSession = null, isLoading: isLoadingSession } = useQuery<DailySession | null>({
+    queryKey: ["expenses-active-session", branchId],
+    queryFn: async () => {
+      if (!branchId) return null;
       const res = await api.get("/daily-sessions", { params: { branchId } });
       const list = Array.isArray(res.data) ? res.data : (res.data?.sessions || []);
       const openSess = list.find((s: any) => s.status === "OPEN");
-      setActiveSession(openSess || null);
-    } catch {
-      setActiveSession(null);
-    } finally {
-      setIsLoadingSession(false);
-    }
-  };
+      return openSess || null;
+    },
+    enabled: !!canAccess && !!branchId,
+  });
 
-  const loadExpenses = async () => {
-    setIsLoading(true);
-    try {
+  // React Query: Expenses
+  const { data: expenses = [], isLoading } = useQuery<Expense[]>({
+    queryKey: ["expenses", selectedBranchId, filterFrom, filterTo, typeFilter],
+    queryFn: async () => {
       const params: any = { from: filterFrom, to: filterTo };
       if (selectedBranchId) params.branchId = selectedBranchId;
       if (typeFilter !== "ALL") params.type = typeFilter;
       const res = await api.get("/expenses", { params });
-      setExpenses(Array.isArray(res.data) ? res.data : []);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error || "Failed to load expenses");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: !!canAccess,
+  });
 
   const resetForm = () => {
     setEditingId(null);
@@ -371,8 +351,10 @@ export default function ExpensesPage() {
         toast.success(t('expenses.expenseRecorded'));
       }
       resetForm();
-      loadExpenses();
-      loadActiveSession();
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-active-session"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to save expense");
     } finally {
@@ -387,7 +369,9 @@ export default function ExpensesPage() {
     try {
       await api.delete(`/expenses/${expenseToDelete}`);
       toast.success(t('expenses.expenseDeleted'));
-      loadExpenses();
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to delete expense");
     } finally {
@@ -633,7 +617,11 @@ export default function ExpensesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-blue-900">{money(companyTotal)}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-32 rounded-lg" />
+            ) : (
+              <div className="text-2xl font-black text-blue-900">{money(companyTotal)}</div>
+            )}
             <p className="text-[11px] text-blue-600 mt-1 font-medium">{t('expenses.companySubtitle')}</p>
           </CardContent>
         </Card>
@@ -645,7 +633,11 @@ export default function ExpensesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-purple-900">{money(ownerTotal)}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-32 rounded-lg" />
+            ) : (
+              <div className="text-2xl font-black text-purple-900">{money(ownerTotal)}</div>
+            )}
             <p className="text-[11px] text-purple-600 mt-1 font-medium">{t('expenses.ownerSubtitle')}</p>
           </CardContent>
         </Card>
@@ -657,7 +649,11 @@ export default function ExpensesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-rose-900">{money(grandTotal)}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-32 rounded-lg" />
+            ) : (
+              <div className="text-2xl font-black text-rose-900">{money(grandTotal)}</div>
+            )}
             <p className="text-[11px] text-rose-600 mt-1 font-medium">{t('expenses.totalSubtitle')}</p>
           </CardContent>
         </Card>
@@ -747,7 +743,7 @@ export default function ExpensesPage() {
                 />
               </div>
               <Button
-                onClick={loadExpenses}
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
                 variant="outline"
                 className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
               >
@@ -775,7 +771,7 @@ export default function ExpensesPage() {
                 />
               </div>
               <Button
-                onClick={loadExpenses}
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
                 variant="outline"
                 className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
               >
@@ -837,7 +833,9 @@ export default function ExpensesPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="text-center text-[#8C7361] py-8 font-medium">{t('common.loading')}</p>
+            <div className="p-4">
+              <TableSkeleton rows={5} columns={isManagement ? 8 : 7} />
+            </div>
           ) : displayExpenses.length === 0 ? (
             <div className="text-center py-10 text-[#8C7361]">
               <p className="font-bold text-sm text-[#2C1B10]">{t('dashboard.noExpensesToday')}</p>

@@ -16,6 +16,10 @@ import {
   Search, ArrowRightLeft, DollarSign, Package, Calendar, Clock, Receipt, UserCheck 
 } from "lucide-react";
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton, KpiCardsSkeleton } from "@/components/ui/skeletons";
+
 interface StockItem {
   id: string;
   name: string;
@@ -95,6 +99,7 @@ export default function StockMovementsPage() {
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (user && !isGlobalAdmin) {
@@ -121,12 +126,7 @@ export default function StockMovementsPage() {
     }, 60);
     return () => clearTimeout(timer);
   }, [activeTab]);
-  const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [loans, setLoans] = useState<StockPurchaseLoan[]>([]);
 
-  const [isLoadingMovements, setIsLoadingMovements] = useState(true);
-  const [isLoadingLoans, setIsLoadingLoans] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -165,57 +165,38 @@ export default function StockMovementsPage() {
   const [paidAmount, setPaidAmount] = useState<string>("");
   const [supplierName, setSupplierName] = useState<string>("");
 
-  const fetchItems = useCallback(async () => {
-    try {
+  const { data: stockItems = [] } = useQuery<StockItem[]>({
+    queryKey: ['stock-items', selectedBranchId],
+    queryFn: async () => {
       const endpoint = selectedBranchId 
         ? `/stock-items?branchId=${selectedBranchId}` 
         : `/stock-items`;
       const res = await api.get(endpoint);
-      setStockItems(res.data);
-    } catch (e) {
-      console.error(e);
-    }
-  }, [selectedBranchId]);
+      return res.data;
+    },
+  });
 
-  const fetchMovements = useCallback(async () => {
-    setIsLoadingMovements(true);
-    try {
+  const { data: movements = [], isLoading: isLoadingMovements } = useQuery<StockMovement[]>({
+    queryKey: ['stock-movements', selectedBranchId],
+    queryFn: async () => {
       const endpoint = selectedBranchId 
         ? `/stock-movements?branchId=${selectedBranchId}` 
         : `/stock-movements`;
-        
       const res = await api.get(endpoint);
-      setMovements(res.data);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Error fetching stock movements");
-      console.error(e);
-    } finally {
-      setIsLoadingMovements(false);
-    }
-  }, [selectedBranchId]);
+      return res.data;
+    },
+  });
 
-  const fetchLoans = useCallback(async () => {
-    setIsLoadingLoans(true);
-    try {
+  const { data: loans = [], isLoading: isLoadingLoans } = useQuery<StockPurchaseLoan[]>({
+    queryKey: ['stock-loans', selectedBranchId, loanStatusFilter],
+    queryFn: async () => {
       let endpoint = `/stock-movements/loans/list?`;
       if (selectedBranchId) endpoint += `branchId=${selectedBranchId}&`;
       if (loanStatusFilter !== "ALL") endpoint += `status=${loanStatusFilter}&`;
-
       const res = await api.get(endpoint);
-      setLoans(res.data);
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e.response?.data?.error || "Error fetching stock loans");
-    } finally {
-      setIsLoadingLoans(false);
-    }
-  }, [selectedBranchId, loanStatusFilter]);
-
-  useEffect(() => {
-    fetchItems();
-    fetchMovements();
-    fetchLoans();
-  }, [fetchItems, fetchMovements, fetchLoans]);
+      return res.data;
+    },
+  });
 
   // Calculations for Loans summary cards
   const loanStats = useMemo(() => {
@@ -288,9 +269,10 @@ export default function StockMovementsPage() {
       setIsLoan(false);
       setPaidAmount("");
       setSupplierName("");
-      fetchMovements();
-      fetchLoans();
-      fetchItems();
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error recording movement");
       console.error(error);
@@ -320,8 +302,9 @@ export default function StockMovementsPage() {
       setSelectedLoanForPay(null);
       setPayAmount("");
       setPayNote("");
-      fetchLoans();
-      fetchMovements();
+      queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error processing loan payment");
       console.error(error);
@@ -427,109 +410,130 @@ export default function StockMovementsPage() {
       {activeTab === "movements" && (
         <div className="space-y-4">
           {/* Desktop Table View */}
-          <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-[#FAF7EE]/50">
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colDateTime')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMaterial')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMovementType')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colQtyDelta')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMonetaryDelta')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colReason')}</TableHead>
-                  <TableHead className="pr-6 font-extrabold text-[#2C1B10]">{t('stockMovements.colRecordedBy')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingMovements ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.loading')}</TableCell></TableRow>
-                ) : movements.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
-                ) : movements.map(mov => {
-                  const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
-                  const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
-                  const isNegative = mov.type === "OUT" || mov.type === "PRODUCTION_USAGE";
+          {isLoadingMovements ? (
+            <div className="hidden sm:block">
+              <TableSkeleton rows={8} columns={7} hasActions={false} />
+            </div>
+          ) : (
+            <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#FAF7EE]/50">
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colDateTime')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMaterial')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMovementType')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colQtyDelta')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMonetaryDelta')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colReason')}</TableHead>
+                    <TableHead className="pr-6 font-extrabold text-[#2C1B10]">{t('stockMovements.colRecordedBy')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {movements.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
+                  ) : movements.map(mov => {
+                    const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
+                    const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
+                    const isNegative = mov.type === "OUT" || mov.type === "PRODUCTION_USAGE";
 
-                  return (
-                    <TableRow key={mov.id}>
-                      <TableCell className="text-xs font-semibold text-[#8C7361]">
-                        {formatEthDate(mov.createdAt, true)}
-                      </TableCell>
-                      <TableCell className="font-bold text-[#2C1B10]">{mov.stockItem?.name}</TableCell>
-                      <TableCell>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getMovementColor(mov.type)}`}>
-                          {getMovementTypeLabel(mov.type)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-bold text-sm">
-                        <span className={isNegative ? "text-rose-600" : "text-emerald-700"}>
-                          {isNegative ? "-" : "+"}
-                          {Number(mov.quantity).toFixed(2)}
-                        </span>{" "}
-                        <span className="text-xs text-[#8C7361] font-semibold">{mov.stockItem?.unitType}</span>
-                      </TableCell>
-                      <TableCell className="font-extrabold text-xs">
-                        <span className={isNegative ? "text-rose-600" : "text-emerald-700"}>
-                          {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={mov.reason || "—"}>
-                        {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, t('stockMovements.typeProductionUsage')) : "—"}
-                      </TableCell>
-                      <TableCell className="text-xs font-bold text-[#2C1B10] pr-6">{mov.user?.fullName || "System"}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                    return (
+                      <TableRow key={mov.id}>
+                        <TableCell className="text-xs font-semibold text-[#8C7361]">
+                          {formatEthDate(mov.createdAt, true)}
+                        </TableCell>
+                        <TableCell className="font-bold text-[#2C1B10]">{mov.stockItem?.name}</TableCell>
+                        <TableCell>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getMovementColor(mov.type)}`}>
+                            {getMovementTypeLabel(mov.type)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-bold text-sm">
+                          <span className={isNegative ? "text-rose-600" : "text-emerald-700"}>
+                            {isNegative ? "-" : "+"}
+                            {Number(mov.quantity).toFixed(2)}
+                          </span>{" "}
+                          <span className="text-xs text-[#8C7361] font-semibold">{mov.stockItem?.unitType}</span>
+                        </TableCell>
+                        <TableCell className="font-extrabold text-xs">
+                          <span className={isNegative ? "text-rose-600" : "text-emerald-700"}>
+                            {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={mov.reason || "—"}>
+                          {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, t('stockMovements.typeProductionUsage')) : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs font-bold text-[#2C1B10] pr-6">{mov.user?.fullName || "System"}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {/* Mobile Cards View */}
-          <div className="grid grid-cols-1 gap-3 sm:hidden">
-            {isLoadingMovements ? (
-              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stockMovements.loading')}</div>
-            ) : movements.length === 0 ? (
-              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stockMovements.noMovements')}</div>
-            ) : movements.map(mov => {
-              const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
-              const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
-              const isNegative = mov.type === "OUT" || mov.type === "PRODUCTION_USAGE";
-
-              return (
-                <div key={mov.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-2.5">
+          {isLoadingMovements ? (
+            <div className="grid grid-cols-1 gap-3 sm:hidden">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-2.5">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <div className="font-extrabold text-[#2C1B10] text-base">{mov.stockItem?.name || "Unknown Item"}</div>
-                      <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</div>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${getMovementColor(mov.type)}`}>
-                      {getMovementTypeLabel(mov.type)}
-                    </span>
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-5 w-20 rounded-md" />
                   </div>
-
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <div>
-                      <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colQtyDelta')}</span>
-                      <span className={`font-bold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
-                        {isNegative ? "-" : "+"}{Number(mov.quantity).toFixed(2)} {mov.stockItem?.unitType}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colTotalValue')}</span>
-                      <span className={`font-extrabold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
-                        {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-20" />
                   </div>
-
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
-                    <span>{t('stockMovements.colRecordedBy')}: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
-                    <span className="truncate max-w-[150px]">{mov.reason || "—"}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-3.5 w-20" />
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:hidden">
+              {movements.map(mov => {
+                const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
+                const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
+                const isNegative = mov.type === "OUT" || mov.type === "PRODUCTION_USAGE";
+
+                return (
+                  <div key={mov.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-2.5">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-extrabold text-[#2C1B10] text-base">{mov.stockItem?.name || "Unknown Item"}</div>
+                        <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</div>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${getMovementColor(mov.type)}`}>
+                        {getMovementTypeLabel(mov.type)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <div>
+                        <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colQtyDelta')}</span>
+                        <span className={`font-bold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
+                          {isNegative ? "-" : "+"}{Number(mov.quantity).toFixed(2)} {mov.stockItem?.unitType}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colTotalValue')}</span>
+                        <span className={`font-extrabold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
+                          {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
+                      <span>{t('stockMovements.colRecordedBy')}: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
+                      <span className="truncate max-w-[150px]">{mov.reason || "—"}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -537,59 +541,63 @@ export default function StockMovementsPage() {
       {activeTab === "loans" && (
         <div className="space-y-6">
           {/* Summary KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-            <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiTotalCredit')}</span>
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+          {isLoadingLoans ? (
+            <KpiCardsSkeleton count={4} />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiTotalCredit')}</span>
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
                 </div>
+                <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] mt-1.5 sm:mt-2 font-mono truncate">
+                  {loanStats.totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                </p>
+                <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiTotalCreditDesc')}</span>
               </div>
-              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] mt-1.5 sm:mt-2 font-mono truncate">
-                {loanStats.totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-              </p>
-              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiTotalCreditDesc')}</span>
-            </div>
 
-            <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiTotalPaid')}</span>
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                  <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiTotalPaid')}</span>
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                    <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
                 </div>
+                <p className="text-base sm:text-xl font-extrabold text-emerald-700 mt-1.5 sm:mt-2 font-mono truncate">
+                  {loanStats.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                </p>
+                <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiTotalPaidDesc')}</span>
               </div>
-              <p className="text-base sm:text-xl font-extrabold text-emerald-700 mt-1.5 sm:mt-2 font-mono truncate">
-                {loanStats.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-              </p>
-              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiTotalPaidDesc')}</span>
-            </div>
 
-            <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiRemainingDebt')}</span>
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
-                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiRemainingDebt')}</span>
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
+                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
                 </div>
+                <p className="text-base sm:text-xl font-extrabold text-rose-600 mt-1.5 sm:mt-2 font-mono truncate">
+                  {loanStats.totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                </p>
+                <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiRemainingDebtDesc')}</span>
               </div>
-              <p className="text-base sm:text-xl font-extrabold text-rose-600 mt-1.5 sm:mt-2 font-mono truncate">
-                {loanStats.totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-              </p>
-              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiRemainingDebtDesc')}</span>
-            </div>
 
-            <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiActiveLoans')}</span>
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.kpiActiveLoans')}</span>
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
                 </div>
+                <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] mt-1.5 sm:mt-2 font-mono truncate">
+                  {loanStats.activeLoansCount} <span className="text-xs font-normal text-[#8C7361]">{t('stockMovements.unsettled')}</span>
+                </p>
+                <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiActiveLoansDesc')}</span>
               </div>
-              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] mt-1.5 sm:mt-2 font-mono truncate">
-                {loanStats.activeLoansCount} <span className="text-xs font-normal text-[#8C7361]">{t('stockMovements.unsettled')}</span>
-              </p>
-              <span className="text-[10px] sm:text-[11px] text-[#8C7361] block mt-0.5">{t('stockMovements.kpiActiveLoansDesc')}</span>
             </div>
-          </div>
+          )}
 
           {/* Filters Bar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-[#EDE4D5]">
@@ -637,99 +645,113 @@ export default function StockMovementsPage() {
           </div>
 
           {/* Desktop Loans Table View */}
-          <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-[#FAF7EE]/50">
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colDateSupplier')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colStockItemPurchased')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colTotalValue')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colPaidAmount')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colRemainingBalance')}</TableHead>
-                  <TableHead className="font-extrabold text-[#2C1B10]">{t('common.status')}</TableHead>
-                  <TableHead className="pr-6 font-extrabold text-[#2C1B10] text-right">{t('common.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingLoans ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.loadingLoans')}</TableCell></TableRow>
-                ) : filteredLoans.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noLoansFound')}</TableCell></TableRow>
-                ) : filteredLoans.map(loan => {
-                  const item = loan.stockMovement?.stockItem;
-                  const qty = Number(loan.stockMovement?.quantity || 0);
-                  const tot = Number(loan.totalAmount || 0);
-                  const paid = Number(loan.paidAmount || 0);
-                  const rem = Number(loan.remainingBalance || 0);
+          {isLoadingLoans ? (
+            <div className="hidden sm:block">
+              <TableSkeleton rows={6} columns={7} hasActions={true} />
+            </div>
+          ) : (
+            <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#FAF7EE]/50">
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colDateSupplier')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colStockItemPurchased')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colTotalValue')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colPaidAmount')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colRemainingBalance')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('common.status')}</TableHead>
+                    <TableHead className="pr-6 font-extrabold text-[#2C1B10] text-right">{t('common.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredLoans.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noLoansFound')}</TableCell></TableRow>
+                  ) : filteredLoans.map(loan => {
+                    const item = loan.stockMovement?.stockItem;
+                    const qty = Number(loan.stockMovement?.quantity || 0);
+                    const tot = Number(loan.totalAmount || 0);
+                    const paid = Number(loan.paidAmount || 0);
+                    const rem = Number(loan.remainingBalance || 0);
 
-                  return (
-                    <TableRow key={loan.id}>
-                      <TableCell>
-                        <div className="font-bold text-[#2C1B10]">{loan.supplierName || t('stockMovements.unspecifiedSupplier')}</div>
-                        <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(loan.createdAt, true)}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-bold text-[#2C1B10]">{item?.name || t('stockMovements.colMaterial')}</div>
-                        <div className="text-xs text-[#8C7361]">
-                          {t('stock.colCurrentQty')}: <strong className="text-[#2C1B10]">{qty.toFixed(2)} {item?.unitType}</strong>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-extrabold text-xs text-[#2C1B10]">
-                        {tot.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-                      </TableCell>
-                      <TableCell className="font-bold text-xs text-emerald-700">
-                        {paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-                      </TableCell>
-                      <TableCell className="font-extrabold text-xs text-rose-600">
-                        {rem.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-                      </TableCell>
-                      <TableCell>{getLoanStatusBadge(loan.status)}</TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex items-center justify-end gap-2">
-                          {loan.status !== "PAID" && (
+                    return (
+                      <TableRow key={loan.id}>
+                        <TableCell>
+                          <div className="font-bold text-[#2C1B10]">{loan.supplierName || t('stockMovements.unspecifiedSupplier')}</div>
+                          <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(loan.createdAt, true)}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-bold text-[#2C1B10]">{item?.name || t('stockMovements.colMaterial')}</div>
+                          <div className="text-xs text-[#8C7361]">
+                            {t('stock.colCurrentQty')}: <strong className="text-[#2C1B10]">{qty.toFixed(2)} {item?.unitType}</strong>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-extrabold text-xs text-[#2C1B10]">
+                          {tot.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                        </TableCell>
+                        <TableCell className="font-bold text-xs text-emerald-700">
+                          {paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                        </TableCell>
+                        <TableCell className="font-extrabold text-xs text-rose-600">
+                          {rem.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                        </TableCell>
+                        <TableCell>{getLoanStatusBadge(loan.status)}</TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2">
+                            {loan.status !== "PAID" && (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedLoanForPay(loan);
+                                  setPayAmount(rem > 0 ? String(rem) : "");
+                                  setPayNote("");
+                                }}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl h-8 px-3"
+                              >
+                                <Coins className="w-3.5 h-3.5 mr-1" /> {t('stockMovements.payLoanBtn')}
+                              </Button>
+                            )}
+
                             <Button
                               size="sm"
-                              onClick={() => {
-                                setSelectedLoanForPay(loan);
-                                setPayAmount(rem > 0 ? String(rem) : "");
-                                setPayNote("");
-                              }}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl h-8 px-3"
+                              variant="outline"
+                              onClick={() => setSelectedLoanForHistory(loan)}
+                              className="text-xs font-bold rounded-xl h-8 px-2.5 border-[#EDE4D5]"
+                              title={t('stockMovements.historyModalTitle')}
                             >
-                              <Coins className="w-3.5 h-3.5 mr-1" /> {t('stockMovements.payLoanBtn')}
+                              <History className="w-3.5 h-3.5 text-[#8C7361]" />
+                              {loan.payments && loan.payments.length > 0 && (
+                                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-700 font-bold">
+                                  {loan.payments.length}
+                                </span>
+                              )}
                             </Button>
-                          )}
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSelectedLoanForHistory(loan)}
-                            className="text-xs font-bold rounded-xl h-8 px-2.5 border-[#EDE4D5]"
-                            title={t('stockMovements.historyModalTitle')}
-                          >
-                            <History className="w-3.5 h-3.5 text-[#8C7361]" />
-                            {loan.payments && loan.payments.length > 0 && (
-                              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-purple-100 text-purple-700 font-bold">
-                                {loan.payments.length}
-                              </span>
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {/* Mobile Loans Card View */}
-          <div className="grid grid-cols-1 gap-3 sm:hidden">
-            {isLoadingLoans ? (
-              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stockMovements.loadingLoans')}</div>
-            ) : filteredLoans.length === 0 ? (
-              <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stockMovements.noLoansFound')}</div>
-            ) : filteredLoans.map(loan => {
+          {isLoadingLoans ? (
+            <div className="grid grid-cols-1 gap-3 sm:hidden">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+                  <div className="flex items-start justify-between">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </div>
+                  <Skeleton className="h-10 w-full rounded-xl" />
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:hidden">
+              {filteredLoans.map(loan => {
               const item = loan.stockMovement?.stockItem;
               const qty = Number(loan.stockMovement?.quantity || 0);
               const tot = Number(loan.totalAmount || 0);
@@ -793,8 +815,9 @@ export default function StockMovementsPage() {
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
 
       {/* RECORD MOVEMENT MODAL */}
       {isAddOpen && (

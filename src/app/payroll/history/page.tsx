@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
 import { formatEthDate, getEthMonthName } from "@/lib/ethiopianDate";
 import { useLanguage } from "@/context/LanguageContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface User {
   id: string;
@@ -42,28 +44,19 @@ export default function PayrollHistoryPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
-  const [history, setHistory] = useState<PayrollRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [editingPayroll, setEditingPayroll] = useState<PayrollRecord | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [selectedBranchId]);
-
-  const fetchHistory = async () => {
-    try {
-      setIsLoading(true);
+  const { data: history = [], isLoading } = useQuery<PayrollRecord[]>({
+    queryKey: ["payroll-history", selectedBranchId],
+    queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/payroll", { params });
-      setHistory(data);
-    } catch {
-      toast.error("Failed to load payroll execution history");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return data || [];
+    },
+  });
 
   const handleUpdatePayroll = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -79,10 +72,12 @@ export default function PayrollHistoryPage() {
         finalAmount: fd.get("finalAmount"),
         paymentDate: fd.get("paymentDate") || null,
       });
-      toast.success("Payroll record updated successfully");
+      toast.success(t('payroll.recordUpdated') || "Payroll record updated successfully");
       setIsEditOpen(false);
       setEditingPayroll(null);
-      fetchHistory();
+      queryClient.invalidateQueries({ queryKey: ["payroll-history"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update payroll record");
     } finally {
@@ -107,8 +102,21 @@ export default function PayrollHistoryPage() {
       {/* Mobile Cards View (block md:hidden) */}
       <div className="block md:hidden space-y-3">
         {isLoading ? (
-          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            {t('common.loading')}
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+                <div className="flex justify-between items-center pb-2 border-b border-[#F4ECE1]">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : history.length === 0 ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
@@ -199,11 +207,21 @@ export default function PayrollHistoryPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-10 text-[#8C7361] font-medium">
-                  {t('common.loading')}
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, idx) => (
+                <TableRow key={idx}>
+                  <TableCell><Skeleton className="h-4 w-28 mb-1" /><Skeleton className="h-3 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16 mx-auto rounded-full" /></TableCell>
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                    <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 ml-auto rounded-xl" /></TableCell>
+                  )}
+                </TableRow>
+              ))
             ) : history.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-10 text-[#8C7361] font-medium">

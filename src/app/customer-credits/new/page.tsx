@@ -27,6 +27,8 @@ import {
   Search,
 } from "lucide-react";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface InShopProduct {
   id: string;
@@ -65,6 +67,7 @@ export default function NewCustomerCreditPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
 
   const [products, setProducts] = useState<InShopProduct[]>([]);
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
@@ -306,6 +309,10 @@ export default function NewCustomerCreditPage() {
       });
 
       toast.success(t("credits.toastCreditLogged"));
+      queryClient.invalidateQueries({ queryKey: ["customer-credits-page"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-credits"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       router.push("/customer-credits");
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to log customer credit");
@@ -563,8 +570,9 @@ export default function NewCustomerCreditPage() {
             </div>
 
             {isLoading ? (
-              <div className="text-center py-6 text-xs text-[#8C7361] font-medium">
-                {t("credits.checkingInventory")}
+              <div className="space-y-3 py-3">
+                <Skeleton className="h-12 w-full rounded-xl" />
+                <Skeleton className="h-12 w-full rounded-xl" />
               </div>
             ) : lineItems.length === 0 ? (
               <div className="text-center py-8 bg-[#FAF6F0] rounded-xl border border-dashed border-[#EDE4D5] text-[#8C7361] text-xs space-y-2">

@@ -33,6 +33,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Branch {
   id: string;
@@ -80,13 +82,37 @@ export default function UsersPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
-  const [users, setUsers] = useState<User[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [roles, setRoles] = useState<string[]>([]);
-  const [resetRequests, setResetRequests] = useState<PasswordResetRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"users" | "requests">("users");
+
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ["users-page", selectedBranchId],
+    queryFn: async () => {
+      const params: Record<string, string> = {};
+      if (selectedBranchId) {
+        params.branchId = selectedBranchId;
+      }
+      const [usersRes, branchesRes, rolesRes, resetRes] = await Promise.all([
+        api.get<User[]>("/users", { params }),
+        api.get<Branch[]>("/branches"),
+        api.get<string[]>("/users/roles").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] })),
+        api.get<PasswordResetRequest[]>("/auth/password-reset-requests").catch(() => ({ data: [] })),
+      ]);
+      return {
+        users: usersRes.data || [],
+        branches: branchesRes.data || [],
+        roles: rolesRes.data || [],
+        resetRequests: resetRes.data || [],
+      };
+    },
+  });
+
+  const users = pageData?.users || [];
+  const branches = pageData?.branches || [];
+  const roles = pageData?.roles || [];
+  const resetRequests = pageData?.resetRequests || [];
 
   // Reset Password Dialog State
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -106,35 +132,6 @@ export default function UsersPage() {
   // Dialog states
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    fetchData();
-  }, [selectedBranchId]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, string> = {};
-      if (selectedBranchId) {
-        params.branchId = selectedBranchId;
-      }
-      const [usersRes, branchesRes, rolesRes, resetRes] = await Promise.all([
-        api.get<User[]>("/users", { params }),
-        api.get<Branch[]>("/branches"),
-        api.get<string[]>("/users/roles").catch(() => ({ data: ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] })),
-        api.get<PasswordResetRequest[]>("/auth/password-reset-requests").catch(() => ({ data: [] })),
-      ]);
-      setUsers(usersRes.data);
-      setBranches(branchesRes.data);
-      setRoles(rolesRes.data);
-      setResetRequests(resetRes.data || []);
-    } catch (error) {
-      toast.error("Failed to load users");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const pendingCount = resetRequests.filter((r) => r.status === "PENDING").length;
 
@@ -162,7 +159,8 @@ export default function UsersPage() {
         employeeName: data.employee.fullName,
         employeePhone: data.employee.phone,
       });
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["users-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to reset password");
     } finally {
@@ -174,7 +172,7 @@ export default function UsersPage() {
     try {
       await api.post(`/auth/password-reset-requests/${requestId}/reject`);
       toast.success("Password reset request rejected");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["users-page"] });
     } catch (err: any) {
       toast.error("Failed to reject request");
     }
@@ -205,13 +203,12 @@ export default function UsersPage() {
     setIsViewDialogOpen(true);
   };
 
-
-  
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     try {
       await api.patch(`/users/${userId}`, { isActive: !currentStatus });
       toast.success("Status updated");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["users-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
     } catch (error) {
       toast.error("Failed to update status");
     }
@@ -220,8 +217,6 @@ export default function UsersPage() {
   const handleToggleActive = async (u: User) => {
     await handleToggleStatus(u.id, u.isActive);
   };
-
-  if (loading) return <DashboardLayout><div className="flex h-full items-center justify-center">Loading...</div></DashboardLayout>;
 
   return (
     <DashboardLayout>
@@ -303,7 +298,21 @@ export default function UsersPage() {
           <>
             {/* MOBILE TOUCH CARDS: Personnel Directory (block md:hidden) */}
             <div className="block md:hidden divide-y divide-[#EDE4D5]/60 p-3 space-y-3">
-              {filteredUsers.length === 0 ? (
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <Skeleton className="w-10 h-10 rounded-xl" />
+                        <div className="space-y-1.5 flex-1">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredUsers.length === 0 ? (
                 <div className="text-center py-8 text-[#8C7361] text-xs font-medium">
                   No users found matching your search.
                 </div>
@@ -388,7 +397,25 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.length === 0 ? (
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <Skeleton className="w-9 h-9 rounded-xl" />
+                            <div className="space-y-1.5">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                        <TableCell className="text-right pr-6"><Skeleton className="h-8 w-24 ml-auto rounded-xl" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : filteredUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
                         No users found matching your search.
@@ -477,7 +504,19 @@ export default function UsersPage() {
           <>
             {/* MOBILE TOUCH CARDS: Password Reset Requests (block md:hidden) */}
             <div className="block md:hidden divide-y divide-[#EDE4D5]/60 p-3 space-y-3">
-              {resetRequests.length === 0 ? (
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                      </div>
+                      <Skeleton className="h-4 w-28" />
+                    </div>
+                  ))}
+                </div>
+              ) : resetRequests.length === 0 ? (
                 <div className="text-center py-8 text-[#8C7361] text-xs font-medium">
                   No password reset requests found.
                 </div>
@@ -556,7 +595,17 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {resetRequests.length === 0 ? (
+                  {isLoading ? (
+                    Array.from({ length: 4 }).map((_, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                        <TableCell className="text-right pr-6"><Skeleton className="h-8 w-24 ml-auto rounded-xl" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : resetRequests.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
                         No password reset requests found.

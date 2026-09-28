@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TableSkeleton } from "@/components/ui/skeletons";
 
 type CategoryType = "PRODUCED" | "RESELL";
 
@@ -28,8 +30,7 @@ export default function ProductCategoriesPage() {
   const { t } = useLanguage();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN";
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isSubcategoryOpen, setIsSubcategoryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,21 +38,13 @@ export default function ProductCategoriesPage() {
   const [editParentId, setEditParentId] = useState<string>("");
   const [subParentId, setSubParentId] = useState<string>("");
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
+  const { data: categories = [], isLoading } = useQuery<Category[]>({
+    queryKey: ["product-categories"],
+    queryFn: async () => {
       const res = await api.get("/product-categories");
-      setCategories(res.data);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Error");
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return res.data || [];
+    },
+  });
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,7 +58,8 @@ export default function ProductCategoriesPage() {
       });
       toast.success("Category created");
       setIsCategoryOpen(false);
-      fetchCategories();
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Error");
       console.error(e);
@@ -101,7 +95,8 @@ export default function ProductCategoriesPage() {
       toast.success(isSubcategory ? "Subcategory updated" : "Category updated");
       setEditingCategory(null);
       setEditParentId("");
-      fetchCategories();
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Error");
       console.error(e);
@@ -117,7 +112,8 @@ export default function ProductCategoriesPage() {
     try {
       await api.delete(`/product-categories/${categoryToDelete.id}`);
       toast.success("Category deleted");
-      fetchCategories();
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Error");
       console.error(e);
@@ -230,7 +226,8 @@ export default function ProductCategoriesPage() {
                   toast.success("Subcategory created");
                   setIsSubcategoryOpen(false);
                   setSubParentId("");
-                  fetchCategories();
+                  queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+                  queryClient.invalidateQueries({ queryKey: ["products"] });
                 } catch (e: any) {
                   toast.error(e.response?.data?.error || "Error");
                   console.error(e);
@@ -304,80 +301,82 @@ export default function ProductCategoriesPage() {
             </span>
           </div>
 
-          {/* Mobile Cards for Categories (md:hidden) */}
-          <div className="block md:hidden p-3 space-y-3">
-            {isLoading ? (
-              <div className="text-center py-8 text-[#8C7361] font-medium">{t('categories.loading')}</div>
-            ) : rootCategories.length === 0 ? (
-              <div className="text-center py-8 text-[#8C7361]">
-                {t('categories.noCategories')}
-              </div>
-            ) : rootCategories.map((cat) => (
-              <div key={cat.id} className="bg-[#FCFAF8] border border-[#EDE4D5] rounded-2xl p-4 shadow-xs">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-extrabold text-base text-[#2C1B10]">{cat.name}</h3>
+          {isLoading ? (
+            <div className="p-4">
+              <TableSkeleton rows={4} columns={5} hasActions={true} />
+            </div>
+          ) : (
+            <>
+              {/* Mobile Cards for Categories (md:hidden) */}
+              <div className="block md:hidden p-3 space-y-3">
+                {rootCategories.length === 0 ? (
+                  <div className="text-center py-8 text-[#8C7361]">
+                    {t('categories.noCategories')}
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                    cat.type === 'PRODUCED' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-purple-100 text-purple-800 border-purple-200'
-                  }`}>
-                    {cat.type}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-[#F4ECE1] bg-white rounded-xl p-2 text-center text-xs">
-                  <div>
-                    <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('common.products')}</span>
-                    <strong className="text-base text-[#2C1B10] font-mono">{cat._count?.products || 0}</strong>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('categories.colSubcategories')}</span>
-                    <strong className="text-base text-[#8C7361] font-mono">{getChildCount(cat.id)}</strong>
-                  </div>
-                </div>
-
-                {canManage && (
-                  <div className="mt-3 pt-2 border-t border-[#F4ECE1] flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 h-9 font-bold text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
-                      onClick={() => openEditModal(cat)}
-                    >
-                      {t('common.edit')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 h-9 font-bold text-xs text-rose-600 border-rose-200 hover:bg-rose-50"
-                      onClick={() => setCategoryToDelete(cat)}
-                    >
-                      {t('common.delete')}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop Table for Categories (hidden md:block) */}
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('categories.colCategoryName')}</TableHead>
-                  <TableHead>{t('categories.colProductType')}</TableHead>
-                  <TableHead className="text-center">{t('categories.colProductsCount')}</TableHead>
-                  <TableHead className="text-center">{t('categories.colSubcategories')}</TableHead>
-                  <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">{t('categories.loading')}</TableCell></TableRow>
-                ) : rootCategories.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">{t('categories.noCategories')}</TableCell></TableRow>
                 ) : rootCategories.map((cat) => (
+                  <div key={cat.id} className="bg-[#FCFAF8] border border-[#EDE4D5] rounded-2xl p-4 shadow-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="font-extrabold text-base text-[#2C1B10]">{cat.name}</h3>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        cat.type === 'PRODUCED' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-purple-100 text-purple-800 border-purple-200'
+                      }`}>
+                        {cat.type}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-[#F4ECE1] bg-white rounded-xl p-2 text-center text-xs">
+                      <div>
+                        <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('common.products')}</span>
+                        <strong className="text-base text-[#2C1B10] font-mono">{cat._count?.products || 0}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('categories.colSubcategories')}</span>
+                        <strong className="text-base text-[#8C7361] font-mono">{getChildCount(cat.id)}</strong>
+                      </div>
+                    </div>
+
+                    {canManage && (
+                      <div className="mt-3 pt-2 border-t border-[#F4ECE1] flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-9 font-bold text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                          onClick={() => openEditModal(cat)}
+                        >
+                          {t('common.edit')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-9 font-bold text-xs text-rose-600 border-rose-200 hover:bg-rose-50"
+                          onClick={() => setCategoryToDelete(cat)}
+                        >
+                          {t('common.delete')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table for Categories (hidden md:block) */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('categories.colCategoryName')}</TableHead>
+                      <TableHead>{t('categories.colProductType')}</TableHead>
+                      <TableHead className="text-center">{t('categories.colProductsCount')}</TableHead>
+                      <TableHead className="text-center">{t('categories.colSubcategories')}</TableHead>
+                      <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rootCategories.length === 0 ? (
+                      <TableRow><TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">{t('categories.noCategories')}</TableCell></TableRow>
+                    ) : rootCategories.map((cat) => (
                   <TableRow key={cat.id}>
                     <TableCell className="font-bold text-[#2C1B10]">
                       {cat.name}
@@ -416,6 +415,8 @@ export default function ProductCategoriesPage() {
               </TableBody>
             </Table>
           </div>
+        </>
+      )}
         </div>
       </div>
 
@@ -430,7 +431,11 @@ export default function ProductCategoriesPage() {
             {subcategories.length} total
           </span>
         </div>
-        {subcategories.length === 0 ? (
+        {isLoading ? (
+          <div className="p-4">
+            <TableSkeleton rows={4} columns={5} hasActions={true} />
+          </div>
+        ) : subcategories.length === 0 ? (
           <div className="px-4 py-8 text-center text-[#8C7361] font-medium">No subcategories found. Click '+ Add Subcategory' to create one under a parent category.</div>
         ) : (
           <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ArrowLeft, PackagePlus, DollarSign, Image as ImageIcon, Save, Tag } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DetailSkeleton } from "@/components/ui/skeletons";
 
 interface ProductCategory {
   id: string;
@@ -35,30 +37,30 @@ const PRODUCT_PRESET_IMAGES = [
 export default function NewProductPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
+  const queryClient = useQueryClient();
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>(PRODUCT_PRESET_IMAGES[0].url);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { data, isLoading } = useQuery({
+    queryKey: ['product-new-metadata'],
+    queryFn: async () => {
+      const [resCat, resFinCat] = await Promise.all([
+        api.get("/product-categories"),
+        api.get("/financial-categories?type=REVENUE").catch(() => ({ data: [] }))
+      ]);
+      return {
+        categories: (Array.isArray(resCat.data) ? resCat.data : []) as ProductCategory[],
+        financialCategories: (Array.isArray(resFinCat.data) ? resFinCat.data : []) as FinancialCategory[],
+      };
+    },
+  });
+
+  const categories = data?.categories || [];
+  const financialCategories = data?.financialCategories || [];
+
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
   const isResell = selectedCategory?.type === "RESELL";
-
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const [resCat, resFinCat] = await Promise.all([
-          api.get("/product-categories"),
-          api.get("/financial-categories?type=REVENUE").catch(() => ({ data: [] }))
-        ]);
-        setCategories(Array.isArray(resCat.data) ? resCat.data : []);
-        setFinancialCategories(Array.isArray(resFinCat.data) ? resFinCat.data : []);
-      } catch (err) {
-        toast.error("Failed to load categories");
-      }
-    };
-    fetchMetadata();
-  }, []);
 
   const formatCategoryLabel = (cat: ProductCategory) =>
     cat.parent ? `${cat.parent.name} / ${cat.name}` : cat.name;
@@ -83,6 +85,10 @@ export default function NewProductPage() {
       };
 
       await api.post("/products", data);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
+      ]);
       toast.success("Product created successfully");
       router.push("/products");
     } catch (err: any) {
@@ -91,6 +97,16 @@ export default function NewProductPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto pb-12">
+          <DetailSkeleton />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LayoutGrid, List, Plus, PackageCheck, TrendingUp, ShoppingBag, ShieldAlert, Image as ImageIcon, Truck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CardGridSkeleton, TableSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductCategory {
   id: string;
@@ -64,40 +67,34 @@ export default function ProductsPage() {
   const { t } = useLanguage();
   const isAdminOrOwner = user?.role === 'ADMIN' || user?.role === 'OWNER';
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'GRID' | 'TABLE'>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
 
   const formatCategoryLabel = (category: ProductCategory) =>
     category.parent ? `${category.parent.name} / ${category.name}` : category.name;
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedBranchId]);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['products', selectedBranchId],
+    queryFn: async () => {
       const params: Record<string, string> = {};
       if (selectedBranchId) params.branchId = selectedBranchId;
 
       const [resProd, resCat, resFinCat] = await Promise.all([
         api.get("/products", { params }),
         api.get("/product-categories"),
-        api.get("/financial-categories?type=REVENUE")
+        api.get("/financial-categories?type=REVENUE"),
       ]);
-      setProducts(resProd.data);
-      setCategories(resCat.data);
-      setFinancialCategories(resFinCat.data);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to load products");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return {
+        products: (resProd.data || []) as Product[],
+        categories: (resCat.data || []) as ProductCategory[],
+        financialCategories: (resFinCat.data || []) as FinancialCategory[],
+      };
+    },
+  });
+
+  const products = pageData?.products || [];
+  const categories = pageData?.categories || [];
+  const financialCategories = pageData?.financialCategories || [];
 
   const getProductImage = (product: Product): string => {
     if (product.imageUrl) return product.imageUrl;
@@ -169,7 +166,11 @@ export default function ProductsPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.colStockStatus')}</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalHouseStock.toLocaleString()} {t('common.pcs')}</p>
+            {isLoading ? (
+              <Skeleton className="h-5 w-16 mt-0.5" />
+            ) : (
+              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalHouseStock.toLocaleString()} {t('common.pcs')}</p>
+            )}
           </div>
         </div>
 
@@ -179,7 +180,11 @@ export default function ProductsPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalDelivered')}</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#E87A18] font-mono truncate">{totalDeliveredItems.toLocaleString()} {t('common.pcs')}</p>
+            {isLoading ? (
+              <Skeleton className="h-5 w-16 mt-0.5" />
+            ) : (
+              <p className="text-base sm:text-xl font-extrabold text-[#E87A18] font-mono truncate">{totalDeliveredItems.toLocaleString()} {t('common.pcs')}</p>
+            )}
           </div>
         </div>
 
@@ -189,7 +194,11 @@ export default function ProductsPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalProduced')}</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalProducedItems.toLocaleString()} {t('common.pcs')}</p>
+            {isLoading ? (
+              <Skeleton className="h-5 w-16 mt-0.5" />
+            ) : (
+              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalProducedItems.toLocaleString()} {t('common.pcs')}</p>
+            )}
           </div>
         </div>
 
@@ -199,7 +208,11 @@ export default function ProductsPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('dashboard.incomeFromSales')}</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalSoldItems.toLocaleString()} {t('common.pcs')}</p>
+            {isLoading ? (
+              <Skeleton className="h-5 w-16 mt-0.5" />
+            ) : (
+              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalSoldItems.toLocaleString()} {t('common.pcs')}</p>
+            )}
           </div>
         </div>
 
@@ -209,7 +222,11 @@ export default function ProductsPage() {
           </div>
           <div className="min-w-0">
             <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalVarieties')}</p>
-            <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{products.length} {t('common.items')}</p>
+            {isLoading ? (
+              <Skeleton className="h-5 w-16 mt-0.5" />
+            ) : (
+              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{products.length} {t('common.items')}</p>
+            )}
           </div>
         </div>
       </div>
@@ -227,7 +244,11 @@ export default function ProductsPage() {
 
       {/* Content Rendering: Visual Grid View vs Table View */}
       {isLoading ? (
-        <div className="text-center py-12 text-[#8C7361] font-medium">{t('common.loading')}</div>
+        viewMode === 'GRID' ? (
+          <CardGridSkeleton count={8} />
+        ) : (
+          <TableSkeleton rows={8} columns={9} hasActions={true} />
+        )
       ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12 bg-white border border-[#EDE4D5] rounded-2xl text-[#8C7361]">
           {t('products.noProductsFound')}

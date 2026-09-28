@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Supplier {
   id: string;
@@ -48,10 +50,7 @@ export default function SuppliersPage() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [deliveries, setDeliveries] = useState<SupplierDelivery[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   // Modals
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
@@ -64,13 +63,9 @@ export default function SuppliersPage() {
   const [deliveryIsPaid, setDeliveryIsPaid] = useState(true);
   const [deliveryItems, setDeliveryItems] = useState<DeliveryLineItem[]>([]);
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedBranchId]);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['suppliers-page', selectedBranchId],
+    queryFn: async () => {
       const params: any = {};
       if (selectedBranchId) params.branchId = selectedBranchId;
       const [supRes, delRes, prodRes] = await Promise.all([
@@ -78,17 +73,19 @@ export default function SuppliersPage() {
         api.get('/supplier-deliveries', { params }),
         api.get('/products'),
       ]);
-      setSuppliers(supRes.data);
-      setDeliveries(delRes.data);
       const resellOnly = (prodRes.data || []).filter((p: any) => p.category?.type === 'RESELL');
-      const filteredProd = resellOnly.length > 0 ? resellOnly : prodRes.data.filter((p: any) => p.category?.type !== 'PRODUCED');
-      setProducts(filteredProd);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to fetch supplier data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const filteredProd = resellOnly.length > 0 ? resellOnly : (prodRes.data || []).filter((p: any) => p.category?.type !== 'PRODUCED');
+      return {
+        suppliers: (supRes.data || []) as Supplier[],
+        deliveries: (delRes.data || []) as SupplierDelivery[],
+        products: filteredProd as any[],
+      };
+    },
+  });
+
+  const suppliers = pageData?.suppliers || [];
+  const deliveries = pageData?.deliveries || [];
+  const products: any[] = pageData?.products || [];
 
   const openLogDeliveryModal = () => {
     if (suppliers.length > 0) setDeliverySupplierId(suppliers[0].id);
@@ -130,7 +127,7 @@ export default function SuppliersPage() {
       const updated = [...prev];
       const item = { ...updated[index], [field]: value };
       if (field === 'productId') {
-        const sel = products.find((p) => p.id === value);
+        const sel = products.find((p: any) => p.id === value);
         if (sel) {
           item.unitSellPrice = String(sel.basePrice || '');
           item.unitBuyPrice = String(sel.buyPrice || '');
@@ -164,7 +161,7 @@ export default function SuppliersPage() {
       await api.post('/suppliers', data);
       toast.success('Supplier registered successfully');
       setIsAddSupplierOpen(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to add supplier');
     } finally {
@@ -201,7 +198,11 @@ export default function SuppliersPage() {
 
       toast.success(`Successfully recorded ${validItems.length} delivery item(s)!`);
       setIsLogDeliveryOpen(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to record delivery receipt');
     } finally {
@@ -213,7 +214,9 @@ export default function SuppliersPage() {
     try {
       await api.patch(`/supplier-deliveries/${deliveryId}`, { isPaid: !currentPaid });
       toast.success(`Delivery payment status updated to ${!currentPaid ? 'PAID' : 'UNPAID'}`);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to update payment status');
     }
@@ -264,7 +267,11 @@ export default function SuppliersPage() {
         <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
           <div className="min-w-0">
             <p className="text-xs font-bold text-[#8C7361] uppercase truncate">{t('suppliers.activeSuppliers')}</p>
-            <h3 className="text-xl sm:text-2xl font-black text-[#2C1B10] mt-1">{suppliers.length}</h3>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16 mt-1 rounded-lg" />
+            ) : (
+              <h3 className="text-xl sm:text-2xl font-black text-[#2C1B10] mt-1">{suppliers.length}</h3>
+            )}
           </div>
           <div className="p-3 bg-[#FAF6F0] rounded-xl shrink-0"><PackageCheck className="w-6 h-6 text-[#E87A18]" /></div>
         </div>
@@ -272,7 +279,11 @@ export default function SuppliersPage() {
         <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
           <div className="min-w-0">
             <p className="text-xs font-bold text-[#8C7361] uppercase truncate">{t('suppliers.totalReceipts')}</p>
-            <h3 className="text-xl sm:text-2xl font-black text-[#2C1B10] mt-1">{totalDeliveriesThisMonth}</h3>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16 mt-1 rounded-lg" />
+            ) : (
+              <h3 className="text-xl sm:text-2xl font-black text-[#2C1B10] mt-1">{totalDeliveriesThisMonth}</h3>
+            )}
           </div>
           <div className="p-3 bg-[#FAF6F0] rounded-xl shrink-0"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
         </div>
@@ -280,7 +291,11 @@ export default function SuppliersPage() {
         <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-sm flex items-center justify-between min-w-0">
           <div className="min-w-0">
             <p className="text-xs font-bold text-[#8C7361] uppercase truncate">{t('suppliers.accountsPayable')}</p>
-            <h3 className="text-xl sm:text-2xl font-black text-amber-700 mt-1 truncate">{totalUnpaidAmount.toFixed(2)} {t('common.currency')}</h3>
+            {isLoading ? (
+              <Skeleton className="h-8 w-28 mt-1 rounded-lg" />
+            ) : (
+              <h3 className="text-xl sm:text-2xl font-black text-amber-700 mt-1 truncate">{totalUnpaidAmount.toFixed(2)} {t('common.currency')}</h3>
+            )}
           </div>
           <div className="p-3 bg-amber-50 rounded-xl shrink-0"><DollarSign className="w-6 h-6 text-amber-600" /></div>
         </div>
@@ -309,7 +324,15 @@ export default function SuppliersPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">{t('suppliers.loading')}</TableCell></TableRow>
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell className="text-right pr-6"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
               ) : suppliers.length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-6 text-[#8C7361]">{t('suppliers.noSuppliers')}</TableCell></TableRow>
               ) : suppliers.map((sup: any) => {
@@ -335,7 +358,17 @@ export default function SuppliersPage() {
         {/* Mobile Suppliers Directory Cards */}
         <div className="block md:hidden p-3 space-y-3">
           {isLoading ? (
-            <p className="text-center py-6 text-xs text-[#8C7361]">{t('suppliers.loading')}</p>
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-2.5">
+                  <div className="flex justify-between items-center pb-2 border-b border-[#F4ECE1]">
+                    <Skeleton className="h-5 w-28" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-40" />
+                </div>
+              ))}
+            </div>
           ) : suppliers.length === 0 ? (
             <p className="text-center py-6 text-xs text-[#8C7361]">{t('suppliers.noSuppliers')}</p>
           ) : (
@@ -394,7 +427,18 @@ export default function SuppliersPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">{t('stockMovements.loading')}</TableCell></TableRow>
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                    <TableCell className="text-right pr-6"><Skeleton className="h-8 w-20 ml-auto rounded-full" /></TableCell>
+                  </TableRow>
+                ))
               ) : deliveries.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
               ) : deliveries.map((d) => {
@@ -445,7 +489,20 @@ export default function SuppliersPage() {
         {/* Mobile Deliveries View Cards */}
         <div className="block md:hidden p-3 space-y-3">
           {isLoading ? (
-            <p className="text-center py-6 text-xs text-[#8C7361]">{t('stockMovements.loading')}</p>
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-2.5">
+                  <div className="flex justify-between items-center pb-2 border-b border-[#F4ECE1]">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-5 w-20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : deliveries.length === 0 ? (
             <p className="text-center py-6 text-xs text-[#8C7361]">{t('stockMovements.noMovements')}</p>
           ) : (

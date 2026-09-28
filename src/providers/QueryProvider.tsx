@@ -9,10 +9,10 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
       new QueryClient({
         defaultOptions: {
           queries: {
-            refetchOnWindowFocus: true,
+            refetchOnWindowFocus: false,
             refetchOnReconnect: true,
-            staleTime: 5000, // Consider data fresh for 5s
-            refetchInterval: 10000, // Polling every 10s for auto live updates without manual page refresh
+            staleTime: 30000, // Consider data fresh for 30s for instant sidebar transitions
+            gcTime: 10 * 60 * 1000, // Keep in memory for 10 minutes
           },
         },
       })

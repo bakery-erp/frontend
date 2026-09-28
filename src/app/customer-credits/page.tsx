@@ -13,6 +13,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/skeletons";
 import {
   Plus,
   CreditCard,
@@ -149,15 +152,11 @@ export default function CustomerCreditsPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "CASHIER";
 
   // Active Main Tab: "CREDITS" vs "CUSTOMERS"
   const [activeMainTab, setActiveMainTab] = useState<"CREDITS" | "CUSTOMERS">("CREDITS");
-
-  // Data States
-  const [credits, setCredits] = useState<CustomerCredit[]>([]);
-  const [customers, setCustomers] = useState<CustomerSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Credit Filter Pills
   type CreditFilterTab = "ALL" | "OPEN" | "PAID" | "TODAY";
@@ -198,28 +197,23 @@ export default function CustomerCreditsPage() {
     }
   }, [filterTab]);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: ['customer-credits-page', selectedBranchId],
+    queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const [resCredits, resCustomers] = await Promise.all([
         api.get(`/customers/credits${branchQuery}`).catch(() => api.get(`/loans?type=CUSTOMER${selectedBranchId ? `&branchId=${selectedBranchId}` : ""}`)),
         api.get(`/customers${branchQuery}`),
       ]);
+      return {
+        credits: (resCredits.data || []) as CustomerCredit[],
+        customers: (resCustomers.data || []) as CustomerSummary[],
+      };
+    },
+  });
 
-      setCredits(resCredits.data || []);
-      setCustomers(resCustomers.data || []);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to load customer credit records");
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedBranchId]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const credits = data?.credits || [];
+  const customers = data?.customers || [];
 
   // Payment Handler
   const handlePay = async (e: React.FormEvent) => {
@@ -250,7 +244,9 @@ export default function CustomerCreditsPage() {
       toast.success(t("credits.toastPaymentSuccess"));
       setPayingCredit(null);
       setAmountPaid("");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to record payment");
       console.error(e);
@@ -269,7 +265,9 @@ export default function CustomerCreditsPage() {
         await api.delete(`/loans/${id}`);
       }
       toast.success("Customer credit record deleted");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to delete credit record");
     }
@@ -299,7 +297,8 @@ export default function CustomerCreditsPage() {
       setNewCustPhone("");
       setNewCustAddress("");
       setNewCustNotes("");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to create customer");
     } finally {
@@ -333,7 +332,7 @@ export default function CustomerCreditsPage() {
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <Button
-            onClick={fetchData}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] })}
             variant="outline"
             size="sm"
             className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs h-9"
@@ -529,11 +528,18 @@ export default function CustomerCreditsPage() {
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
-                            Loading customer product credit accounts...
-                          </TableCell>
-                        </TableRow>
+                        Array.from({ length: 5 }).map((_, i) => (
+                          <TableRow key={i}>
+                            <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell className="text-center"><Skeleton className="h-5 w-16 rounded-full mx-auto" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell className="text-right pr-6"><Skeleton className="h-8 w-20 rounded-xl ml-auto" /></TableCell>
+                          </TableRow>
+                        ))
                       ) : filteredCredits.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
@@ -675,11 +681,21 @@ export default function CustomerCreditsPage() {
                 </div>
 
                 {/* Mobile Audit Cards View */}
-                <div className="block md:hidden space-y-3">
+                <div className="md:hidden space-y-3">
                   {isLoading ? (
-                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                      Loading customer product credit accounts...
-                    </div>
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-3">
+                        <div className="flex justify-between items-center">
+                          <Skeleton className="h-5 w-36" />
+                          <Skeleton className="h-5 w-16 rounded-full" />
+                        </div>
+                        <Skeleton className="h-10 w-full rounded-xl" />
+                        <div className="flex justify-between items-center pt-2">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-8 w-24 rounded-xl" />
+                        </div>
+                      </div>
+                    ))
                   ) : filteredCredits.length === 0 ? (
                     <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
                       No customer credit sales found matching filter.
@@ -900,11 +916,17 @@ export default function CustomerCreditsPage() {
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
-                            Loading customer directory...
-                          </TableCell>
-                        </TableRow>
+                        Array.from({ length: 5 }).map((_, i) => (
+                          <TableRow key={i}>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                            <TableCell className="text-center"><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                            <TableCell className="text-right pr-6"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                          </TableRow>
+                        ))
                       ) : filteredCusts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
@@ -961,11 +983,17 @@ export default function CustomerCreditsPage() {
                 </div>
 
                 {/* Mobile Customers Cards */}
-                <div className="block md:hidden space-y-3">
+                <div className="md:hidden space-y-3">
                   {isLoading ? (
-                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                      Loading customer directory...
-                    </div>
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-3">
+                        <div className="flex justify-between items-center">
+                          <Skeleton className="h-5 w-36" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                        <Skeleton className="h-12 w-full rounded-xl" />
+                      </div>
+                    ))
                   ) : filteredCusts.length === 0 ? (
                     <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
                       {t("credits.noCustomersFound")}

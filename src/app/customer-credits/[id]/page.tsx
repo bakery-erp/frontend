@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import {
   ArrowLeft,
   CreditCard,
@@ -163,36 +166,27 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "CASHIER";
 
-  const [credit, setCredit] = useState<CustomerCredit | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: credit, isLoading } = useQuery<CustomerCredit | null>({
+    queryKey: ['customer-credit', resolvedParams.id],
+    queryFn: async () => {
+      try {
+        const res = await api.get(`/customers/credits/${resolvedParams.id}`);
+        return res.data;
+      } catch {
+        const res = await api.get(`/loans/${resolvedParams.id}`);
+        return res.data;
+      }
+    },
+    enabled: !!resolvedParams.id,
+  });
+
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [amountPaid, setAmountPaid] = useState("");
   const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    fetchCreditDetail();
-  }, [resolvedParams.id]);
-
-  const fetchCreditDetail = async () => {
-    setIsLoading(true);
-    try {
-      try {
-        const res = await api.get(`/customers/credits/${resolvedParams.id}`);
-        setCredit(res.data);
-      } catch {
-        const res = await api.get(`/loans/${resolvedParams.id}`);
-        setCredit(res.data);
-      }
-      setAmountPaid("");
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to load customer credit details");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,7 +214,11 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
 
       toast.success(t("credits.toastPaymentSuccess"));
       setIsPayModalOpen(false);
-      fetchCreditDetail();
+      setAmountPaid("");
+      queryClient.invalidateQueries({ queryKey: ['customer-credit', resolvedParams.id] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to record payment");
     } finally {
@@ -228,11 +226,19 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !credit) {
     return (
       <DashboardLayout>
-        <div className="text-center py-20 text-[#8C7361] font-semibold">
-          {t("credits.loadingStatement")}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <DetailSkeleton />
+          <KpiCardsSkeleton count={3} />
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-5 shadow-xs">
+            <Skeleton className="h-6 w-48 mb-4" />
+            <TableSkeleton rows={4} columns={5} hasActions={false} />
+          </div>
         </div>
       </DashboardLayout>
     );

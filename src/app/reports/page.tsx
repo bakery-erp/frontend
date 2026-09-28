@@ -31,6 +31,8 @@ import {
   Search,
   RefreshCw,
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type ModalType = 'REVENUE' | 'EXPENSE' | 'NET_INCOME' | 'OWNER' | 'STOCK' | 'PRODUCT' | 'NET_WEALTH' | null;
 
@@ -88,23 +90,11 @@ export default function FinancialReportsPage() {
     return () => clearTimeout(timer);
   }, [activePreset]);
 
-  // Core Data States
-  const [report, setReport] = useState<any>(null);
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [products, setProducts] = useState<ProductItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
 
-  // Active Clicked Modal Detail State
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [searchFilter, setSearchFilter] = useState<string>('');
-
-  useEffect(() => {
-    fetchReportData();
-  }, [selectedBranchId, from, to]);
-
-  const fetchReportData = async () => {
-    setIsLoading(true);
-    try {
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['financial-reports', selectedBranchId, from, to],
+    queryFn: async () => {
       const params: any = { from, to };
       if (selectedBranchId) params.branchId = selectedBranchId;
 
@@ -114,15 +104,21 @@ export default function FinancialReportsPage() {
         api.get('/products', { params: selectedBranchId ? { branchId: selectedBranchId } : {} }).catch(() => ({ data: [] })),
       ]);
 
-      setReport(reportRes.data || {});
-      setStockItems(Array.isArray(stockRes.data) ? stockRes.data : []);
-      setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
-    } catch (e: any) {
-      toast.error('Failed to load financial analysis data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return {
+        report: reportRes.data || {},
+        stockItems: (Array.isArray(stockRes.data) ? stockRes.data : []) as StockItem[],
+        products: (Array.isArray(prodRes.data) ? prodRes.data : []) as ProductItem[],
+      };
+    },
+  });
+
+  const report = pageData?.report || null;
+  const stockItems = pageData?.stockItems || [];
+  const products = pageData?.products || [];
+
+  // Active Clicked Modal Detail State
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [searchFilter, setSearchFilter] = useState<string>('');
 
   const handlePreset = (preset: 'today' | 'yesterday' | 'week' | 'month') => {
     setActivePreset(preset);
@@ -304,7 +300,7 @@ export default function FinancialReportsPage() {
             />
             <Button
               size="sm"
-              onClick={fetchReportData}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['financial-reports'] })}
               variant="outline"
               className="h-9 border-[#EDE4D5] text-[#4A2E1B] hover:bg-amber-50 rounded-xl px-3 flex items-center gap-1.5 text-xs font-bold shrink-0"
             >
@@ -356,7 +352,11 @@ export default function FinancialReportsPage() {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
               <div>
                 <div className="text-3xl sm:text-5xl font-black font-mono tracking-tight text-white mb-2">
-                  {isLoading ? t('common.loading') : money(totalNetWealth)}
+                  {isLoading ? (
+                    <Skeleton className="h-10 sm:h-12 w-56 bg-white/20 rounded-xl" />
+                  ) : (
+                    money(totalNetWealth)
+                  )}
                 </div>
                 <p className="text-xs text-amber-100/70 max-w-xl">
                   {t('reports.netWealthFormulaDesc')}
@@ -413,7 +413,7 @@ export default function FinancialReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
-              {isLoading ? '...' : money(revenueTotalWithCredit)}
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(revenueTotalWithCredit)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
@@ -456,7 +456,7 @@ export default function FinancialReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 font-mono tracking-tight">
-              {isLoading ? '...' : money(companyExpenseTotal)}
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(companyExpenseTotal)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
@@ -499,7 +499,7 @@ export default function FinancialReportsPage() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl sm:text-3xl font-extrabold font-mono tracking-tight ${dailyNetIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-              {isLoading ? '...' : money(dailyNetIncome)}
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(dailyNetIncome)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
@@ -544,7 +544,7 @@ export default function FinancialReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-extrabold text-purple-950 font-mono tracking-tight">
-              {isLoading ? '...' : money(ownerExpenseTotalWithLiabilities)}
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(ownerExpenseTotalWithLiabilities)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
@@ -587,7 +587,7 @@ export default function FinancialReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
-              {isLoading ? '...' : money(stockValuation)}
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(stockValuation)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
@@ -630,7 +630,7 @@ export default function FinancialReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
-              {isLoading ? '...' : money(productValuation)}
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(productValuation)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">

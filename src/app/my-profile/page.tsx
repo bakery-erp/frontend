@@ -32,6 +32,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { format } from 'date-fns';
 import { formatEthDate, getEthMonthName } from '@/lib/ethiopianDate';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from '@/components/ui/skeletons';
 
 interface DashboardData {
   user: {
@@ -99,9 +101,16 @@ const MONTH_NAMES = [
 export default function MyProfilePage() {
   const { user: authUser, updateUser } = useAuth();
   const { t } = useLanguage();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties' | 'pending' | 'settings'>('payroll');
+
+  const { data = null, isLoading: loading } = useQuery<DashboardData | null>({
+    queryKey: ['my-profile-dashboard'],
+    queryFn: async () => {
+      const res = await api.get('/users/me/dashboard');
+      return res.data;
+    },
+  });
 
   // Tab auto-centering ref
   const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
@@ -129,23 +138,6 @@ export default function MyProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [heroAvatarError, setHeroAvatarError] = useState(false);
-
-  useEffect(() => {
-    fetchMyDashboard();
-  }, []);
-
-  const fetchMyDashboard = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/users/me/dashboard');
-      setData(res.data);
-    } catch (err: any) {
-      console.error('Failed to load employee portal details:', err);
-      toast.error(err.response?.data?.error || 'Failed to load your profile details');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,7 +212,7 @@ export default function MyProfilePage() {
         setHeroAvatarError(false);
         updateUser({ filesUrl: res.data.filesUrl });
       }
-      fetchMyDashboard();
+      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to upload profile picture');
     } finally {
@@ -232,7 +224,8 @@ export default function MyProfilePage() {
     try {
       await api.post(`/loans/${id}/approve`);
       toast.success(t('profile.loanApprovedToast'));
-      fetchMyDashboard();
+      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-loans-page'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to approve loan');
     }
@@ -242,7 +235,8 @@ export default function MyProfilePage() {
     try {
       await api.post(`/loans/${id}/reject`);
       toast.success(t('profile.loanRejectedToast'));
-      fetchMyDashboard();
+      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-loans-page'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to reject loan');
     }
@@ -252,7 +246,8 @@ export default function MyProfilePage() {
     try {
       await api.post(`/penalties/${id}/approve`);
       toast.success(t('profile.penaltyApprovedToast'));
-      fetchMyDashboard();
+      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-penalties-page'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to approve penalty');
     }
@@ -262,7 +257,8 @@ export default function MyProfilePage() {
     try {
       await api.post(`/penalties/${id}/reject`);
       toast.success(t('profile.penaltyRejectedToast'));
-      fetchMyDashboard();
+      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-penalties-page'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to reject penalty');
     }
@@ -272,7 +268,8 @@ export default function MyProfilePage() {
     try {
       await api.post(`/payroll/${id}/approve`);
       toast.success(t('profile.payrollApprovedToast'));
-      fetchMyDashboard();
+      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-history'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to approve payroll');
     }
@@ -282,20 +279,20 @@ export default function MyProfilePage() {
     try {
       await api.post(`/payroll/${id}/reject`);
       toast.success(t('profile.payrollRejectedToast'));
-      fetchMyDashboard();
+      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-history'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to reject payroll');
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <DashboardLayout>
-        <div className="flex h-64 items-center justify-center">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 border-4 border-[#E87A18] border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-semibold text-[#8C7361]">{t('profile.loadingProfileText')}</p>
-          </div>
+        <div className="space-y-6 max-w-6xl mx-auto pb-12">
+          <DetailSkeleton />
+          <KpiCardsSkeleton count={3} />
+          <TableSkeleton rows={5} columns={6} />
         </div>
       </DashboardLayout>
     );

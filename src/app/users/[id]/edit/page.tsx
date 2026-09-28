@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getFileUrl } from "@/lib/utils";
-import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { DetailSkeleton } from "@/components/ui/skeletons";
 
 const ROLES = ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] as const;
 const SHIFTS = ["DAY", "NIGHT"] as const;
@@ -39,6 +41,7 @@ export default function EditUserPage() {
   const { user } = useAuth();
   const { branches } = useBranch();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,6 +143,8 @@ export default function EditUserPage() {
       });
 
       toast.success(t('users.toastUserUpdated'));
+      queryClient.invalidateQueries({ queryKey: ["users-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
       router.push("/users");
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update user");
@@ -151,8 +156,8 @@ export default function EditUserPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex h-96 items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#E87A18]" />
+        <div className="max-w-3xl mx-auto pb-12">
+          <DetailSkeleton />
         </div>
       </DashboardLayout>
     );

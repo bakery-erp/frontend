@@ -31,6 +31,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TableSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
@@ -107,8 +110,7 @@ export default function OwnerLoansPage() {
   const { t } = useLanguage();
   const router = useRouter();
 
-  const [loans, setLoans] = useState<OwnerLoan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -149,29 +151,20 @@ export default function OwnerLoansPage() {
     }
   }, [branches, logBranchId]);
 
-  const fetchLoans = async () => {
-    try {
-      setIsLoading(true);
+  // React Query for instant cached navigation and background updates
+  const { data: loans = [], isLoading } = useQuery<OwnerLoan[]>({
+    queryKey: ["owner-loans"],
+    queryFn: async () => {
       const { data } = await api.get("/loans", {
         params: {
           type: "OWNER_LOAN",
           branchId: "ALL",
         },
       });
-      setLoans(data || []);
-    } catch (err: any) {
-      console.error("Failed to load owner loans", err);
-      toast.error(err.response?.data?.error || "Failed to load personal loans");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user?.role === "OWNER") {
-      fetchLoans();
-    }
-  }, [user]);
+      return data || [];
+    },
+    enabled: user?.role === "OWNER",
+  });
 
   // Summary Metrics
   const summary = useMemo(() => {
@@ -280,7 +273,8 @@ export default function OwnerLoansPage() {
       setLogAmount("");
       setLogReason("");
       setLogNotes("");
-      fetchLoans();
+      queryClient.invalidateQueries({ queryKey: ["owner-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (err: any) {
       console.error(err);
       toast.error(err.response?.data?.error || "Failed to log personal loan");
@@ -317,7 +311,8 @@ export default function OwnerLoansPage() {
       toast.success(t("ownerLoans.toastLoanPaid"));
       setPayingLoan(null);
       setPayAmount("");
-      fetchLoans();
+      queryClient.invalidateQueries({ queryKey: ["owner-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (err: any) {
       console.error(err);
       toast.error(err.response?.data?.error || "Failed to record loan payment");
@@ -333,7 +328,8 @@ export default function OwnerLoansPage() {
     try {
       await api.delete(`/loans/${loanId}`);
       toast.success(t("ownerLoans.toastLoanDeleted"));
-      fetchLoans();
+      queryClient.invalidateQueries({ queryKey: ["owner-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (err: any) {
       console.error(err);
       toast.error(err.response?.data?.error || "Failed to delete loan record");
@@ -401,9 +397,13 @@ export default function OwnerLoansPage() {
               <p className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider truncate">
                 {t("ownerLoans.totalBorrowed")}
               </p>
-              <h3 className="text-lg sm:text-2xl font-black text-[#2C1B10] font-mono tracking-tight truncate mt-0.5">
-                {summary.totalBorrowed.toLocaleString()} <span className="text-xs font-semibold text-[#8C7361]">{t("common.currency")}</span>
-              </h3>
+              {isLoading ? (
+                <Skeleton className="h-7 w-28 mt-1" />
+              ) : (
+                <h3 className="text-lg sm:text-2xl font-black text-[#2C1B10] font-mono tracking-tight truncate mt-0.5">
+                  {summary.totalBorrowed.toLocaleString()} <span className="text-xs font-semibold text-[#8C7361]">{t("common.currency")}</span>
+                </h3>
+              )}
             </div>
           </div>
 
@@ -416,9 +416,13 @@ export default function OwnerLoansPage() {
               <p className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider truncate">
                 {t("ownerLoans.totalRepaid")}
               </p>
-              <h3 className="text-lg sm:text-2xl font-black text-emerald-700 font-mono tracking-tight truncate mt-0.5">
-                {summary.totalRepaid.toLocaleString()} <span className="text-xs font-semibold text-emerald-600">{t("common.currency")}</span>
-              </h3>
+              {isLoading ? (
+                <Skeleton className="h-7 w-28 mt-1" />
+              ) : (
+                <h3 className="text-lg sm:text-2xl font-black text-emerald-700 font-mono tracking-tight truncate mt-0.5">
+                  {summary.totalRepaid.toLocaleString()} <span className="text-xs font-semibold text-emerald-600">{t("common.currency")}</span>
+                </h3>
+              )}
             </div>
           </div>
 
@@ -435,11 +439,15 @@ export default function OwnerLoansPage() {
               <p className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider truncate">
                 {t("ownerLoans.outstandingBalance")}
               </p>
-              <h3 className={`text-lg sm:text-2xl font-black font-mono tracking-tight truncate mt-0.5 ${
-                summary.totalRemaining > 0 ? "text-rose-600" : "text-emerald-700"
-              }`}>
-                {summary.totalRemaining.toLocaleString()} <span className="text-xs font-semibold text-[#8C7361]">{t("common.currency")}</span>
-              </h3>
+              {isLoading ? (
+                <Skeleton className="h-7 w-28 mt-1" />
+              ) : (
+                <h3 className={`text-lg sm:text-2xl font-black font-mono tracking-tight truncate mt-0.5 ${
+                  summary.totalRemaining > 0 ? "text-rose-600" : "text-emerald-700"
+                }`}>
+                  {summary.totalRemaining.toLocaleString()} <span className="text-xs font-semibold text-[#8C7361]">{t("common.currency")}</span>
+                </h3>
+              )}
             </div>
           </div>
 
@@ -452,14 +460,18 @@ export default function OwnerLoansPage() {
               <p className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider truncate">
                 {t("ownerLoans.activeLoans")}
               </p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-lg sm:text-2xl font-black text-[#2C1B10] font-mono">
-                  {summary.openCount}
-                </span>
-                <span className="text-xs font-bold text-[#8C7361]">
-                  ({summary.paidCount} {t("ownerLoans.settledLoans").toLowerCase()})
-                </span>
-              </div>
+              {isLoading ? (
+                <Skeleton className="h-7 w-20 mt-1" />
+              ) : (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-lg sm:text-2xl font-black text-[#2C1B10] font-mono">
+                    {summary.openCount}
+                  </span>
+                  <span className="text-xs font-bold text-[#8C7361]">
+                    ({summary.paidCount} {t("ownerLoans.settledLoans").toLowerCase()})
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -525,9 +537,8 @@ export default function OwnerLoansPage() {
         {/* Content Table / Card View */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
           {isLoading ? (
-            <div className="py-16 text-center text-[#8C7361] font-semibold flex flex-col items-center gap-2">
-              <div className="w-8 h-8 border-3 border-[#E87A18] border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm">Loading personal loans...</p>
+            <div className="p-4">
+              <TableSkeleton rows={5} columns={7} hasActions={true} />
             </div>
           ) : filteredLoans.length === 0 ? (
             <div className="py-16 px-4 text-center">

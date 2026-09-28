@@ -8,6 +8,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3, FileText, X, Check } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 
 interface Product {
   id: string;
@@ -484,10 +487,17 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const totalExpenseSum = expenseList.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const totalEnteredCash = (Number(actualCash) || 0) + (Number(actualCbe) || 0) + (Number(actualTelebirr) || 0);
 
-  if (isLoading) {
+  if (isLoading && !session) {
     return (
       <DashboardLayout>
-        <div className="text-center py-20 text-[#8C7361] font-semibold">Loading session details...</div>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-5 w-32" />
+          </div>
+          <DetailSkeleton />
+          <KpiCardsSkeleton count={4} />
+          <TableSkeleton rows={6} columns={6} hasActions={false} />
+        </div>
       </DashboardLayout>
     );
   }

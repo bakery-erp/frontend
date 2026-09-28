@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { useLanguage } from "@/context/LanguageContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface User {
   id: string;
@@ -38,42 +40,30 @@ export default function PayrollPenaltiesPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
 
-  const [penalties, setPenalties] = useState<Penalty[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isPenaltyOpen, setIsPenaltyOpen] = useState(false);
   const [editingPenalty, setEditingPenalty] = useState<Penalty | null>(null);
   const [isEditPenaltyOpen, setIsEditPenaltyOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchPenalties();
-    fetchUsers();
-  }, [selectedBranchId]);
-
-  const fetchUsers = async () => {
-    try {
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ["payroll-penalties-page", selectedBranchId],
+    queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
-      const { data } = await api.get("/users", { params });
-      setUsers(data.filter((u: User) => u.role !== "OWNER"));
-    } catch {
-      console.error("Failed to load users");
-    }
-  };
+      const [usersRes, penaltiesRes] = await Promise.all([
+        api.get("/users", { params }),
+        api.get("/penalties", { params }),
+      ]);
+      return {
+        users: (usersRes.data || []).filter((u: User) => u.role !== "OWNER") as User[],
+        penalties: (penaltiesRes.data || []) as Penalty[],
+      };
+    },
+  });
 
-  const fetchPenalties = async () => {
-    try {
-      setIsLoading(true);
-      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
-      const { data } = await api.get("/penalties", { params });
-      setPenalties(data);
-    } catch {
-      toast.error(t('common.error'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const users = pageData?.users || [];
+  const penalties = pageData?.penalties || [];
 
   const handleAddPenalty = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,7 +78,9 @@ export default function PayrollPenaltiesPage() {
       });
       toast.success(t('common.success'));
       setIsPenaltyOpen(false);
-      fetchPenalties();
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || t('common.error'));
     } finally {
@@ -112,7 +104,9 @@ export default function PayrollPenaltiesPage() {
       toast.success(t('common.success'));
       setIsEditPenaltyOpen(false);
       setEditingPenalty(null);
-      fetchPenalties();
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || t('common.error'));
     } finally {
@@ -177,8 +171,19 @@ export default function PayrollPenaltiesPage() {
         </div>
 
         {isLoading ? (
-          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            {t('payroll.loadingPenalties')}
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+                <div className="flex justify-between items-center pb-2 border-b border-[#F4ECE1]">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-5 w-20" />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : penalties.length === 0 ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
@@ -262,11 +267,19 @@ export default function PayrollPenaltiesPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
-                  {t('payroll.loadingPenalties')}
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, idx) => (
+                <TableRow key={idx}>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                    <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 ml-auto rounded-xl" /></TableCell>
+                  )}
+                </TableRow>
+              ))
             ) : penalties.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">

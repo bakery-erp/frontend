@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { useLanguage } from "@/context/LanguageContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface User {
   id: string;
@@ -38,10 +40,8 @@ export default function PayrollLoansPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
 
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isLoanOpen, setIsLoanOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
@@ -51,6 +51,26 @@ export default function PayrollLoansPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
+
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ["payroll-loans-page", selectedBranchId],
+    queryFn: async () => {
+      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
+      const loanParams: any = { type: "STAFF" };
+      if (selectedBranchId) loanParams.branchId = selectedBranchId;
+      const [usersRes, loansRes] = await Promise.all([
+        api.get("/users", { params }),
+        api.get("/loans", { params: loanParams }),
+      ]);
+      return {
+        users: (usersRes.data || []).filter((u: User) => u.role !== "OWNER") as User[],
+        loans: (loansRes.data || []) as Loan[],
+      };
+    },
+  });
+
+  const users = pageData?.users || [];
+  const loans = pageData?.loans || [];
 
   const filteredLoans = loans.filter((l) => {
     if (searchTerm.trim()) {
@@ -70,35 +90,6 @@ export default function PayrollLoansPage() {
 
   const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL" || typeFilter !== "ALL";
 
-  useEffect(() => {
-    fetchLoans();
-    fetchUsers();
-  }, [selectedBranchId]);
-
-  const fetchUsers = async () => {
-    try {
-      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
-      const { data } = await api.get("/users", { params });
-      setUsers(data.filter((u: User) => u.role !== "OWNER"));
-    } catch {
-      console.error("Failed to load users");
-    }
-  };
-
-  const fetchLoans = async () => {
-    try {
-      setIsLoading(true);
-      const params: any = { type: "STAFF" };
-      if (selectedBranchId) params.branchId = selectedBranchId;
-      const { data } = await api.get("/loans", { params });
-      setLoans(data);
-    } catch {
-      toast.error("Failed to load loans");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleAddLoan = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -111,7 +102,9 @@ export default function PayrollLoansPage() {
       });
       toast.success("Loan recorded successfully. Awaiting employee approval.");
       setIsLoanOpen(false);
-      fetchLoans();
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to add loan");
     } finally {
@@ -133,7 +126,9 @@ export default function PayrollLoansPage() {
       toast.success("Loan updated successfully");
       setIsEditLoanOpen(false);
       setEditingLoan(null);
-      fetchLoans();
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update loan");
     } finally {
@@ -266,8 +261,19 @@ export default function PayrollLoansPage() {
         </div>
 
         {isLoading ? (
-          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
-            {t('payroll.loadingLoans')}
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-3">
+                <div className="flex justify-between items-center pb-2 border-b border-[#F4ECE1]">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredLoans.length === 0 ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
@@ -345,11 +351,19 @@ export default function PayrollLoansPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
-                  {t('payroll.loadingLoans')}
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, idx) => (
+                <TableRow key={idx}>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                    <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 ml-auto rounded-xl" /></TableCell>
+                  )}
+                </TableRow>
+              ))
             ) : filteredLoans.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">

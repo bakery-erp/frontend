@@ -14,6 +14,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Branch { id: string; name: string; }
 interface Product { id: string; name: string; unitType: string; category?: { type: string } }
@@ -37,11 +39,8 @@ export default function ProductionPage() {
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
+  const queryClient = useQueryClient();
 
-  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
-  const [batches, setBatches] = useState<ProductionBatch[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "PENDING">("ALL");
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -70,7 +69,6 @@ export default function ProductionPage() {
     return () => clearTimeout(timer);
   }, [filterTab]);
 
-  const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionBatchId, setActionBatchId] = useState<string | null>(null);
@@ -81,9 +79,9 @@ export default function ProductionPage() {
   const [items, setItems] = useState<{ productId: string; quantityProduced: string }[]>([]);
   const [materials, setMaterials] = useState<{ stockItemId: string; quantityUsed: string }[]>([]);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: ["production-page", selectedBranchId],
+    queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
 
@@ -91,27 +89,26 @@ export default function ProductionPage() {
         api.get(`/production-batches${branchQuery}`),
         api.get(`/products${branchQuery}`),
         api.get(`/stock-items${branchQuery}`),
-        api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null }))
+        api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null })),
       ]);
 
-      setBatches(resBatches.data);
       const filteredProds = isGlobalAdmin
-        ? resProd.data
+        ? (resProd.data || [])
         : (resProd.data || []).filter((p: Product) => (p.category ? p.category.type !== "RESELL" : true));
-      setProducts(filteredProds);
-      setStockItems(resStock.data);
-      setActiveSession(resSess.data);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Error fetching data");
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedBranchId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+      return {
+        batches: (resBatches.data || []) as ProductionBatch[],
+        products: filteredProds as Product[],
+        stockItems: (resStock.data || []) as StockItem[],
+        activeSession: (resSess.data || null) as ActiveSession | null,
+      };
+    },
+  });
+
+  const batches = data?.batches || [];
+  const products = data?.products || [];
+  const stockItems = data?.stockItems || [];
+  const activeSession = data?.activeSession || null;
 
   const isSessionOpen = activeSession?.status === "OPEN";
   const sessionStatusLabel = !activeSession
@@ -149,7 +146,12 @@ export default function ProductionPage() {
       setIsAddOpen(false);
       setItems([]);
       setMaterials([]);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["production-page"] });
+      queryClient.invalidateQueries({ queryKey: ["production-history"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error creating batch");
       console.error(error);
@@ -163,7 +165,12 @@ export default function ProductionPage() {
     try {
       await api.post(`/production-batches/${batchId}/approve`);
       toast.success("Batch approved & stock levels updated!");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["production-page"] });
+      queryClient.invalidateQueries({ queryKey: ["production-history"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to approve batch");
     } finally {
@@ -176,7 +183,12 @@ export default function ProductionPage() {
     try {
       await api.post(`/production-batches/${batchId}/reject`);
       toast.success("Batch rejected");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["production-page"] });
+      queryClient.invalidateQueries({ queryKey: ["production-history"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to reject batch");
     } finally {
@@ -372,8 +384,19 @@ export default function ProductionPage() {
       {/* ── Mobile Card List (block on < md) ── */}
       <div className="space-y-3 block md:hidden mb-6">
         {isLoading ? (
-          <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            {t('production.loadingLogs')}
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl border border-[#EDE4D5] p-4 space-y-3 shadow-xs">
+                <div className="flex justify-between items-center pb-2.5 border-b border-[#F4ECE1]">
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredBatches.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
@@ -545,7 +568,30 @@ export default function ProductionPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">{t('production.loadingLogs')}</TableCell></TableRow>
+              Array.from({ length: 5 }).map((_, idx) => (
+                <TableRow key={idx}>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24 mb-1.5" />
+                    <Skeleton className="h-3 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-32 mb-1" />
+                    <Skeleton className="h-3 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-28" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <Skeleton className="h-8 w-20 ml-auto rounded-xl" />
+                  </TableCell>
+                </TableRow>
+              ))
             ) : filteredBatches.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">

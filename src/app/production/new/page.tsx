@@ -22,6 +22,8 @@ import {
   Clock,
   XCircle,
 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DetailSkeleton } from "@/components/ui/skeletons";
 
 interface ProductCategory {
   id: string;
@@ -59,13 +61,9 @@ function ProductionFormContent() {
 
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const queryClient = useQueryClient();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
-  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [originalBatchStatus, setOriginalBatchStatus] = useState<string | null>(null);
 
@@ -105,28 +103,24 @@ function ProductionFormContent() {
     }
   }, [selectedSubCatId]);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, [selectedBranchId, editBatchId]);
-
-  const fetchInitialData = async () => {
-    setIsLoading(true);
-    try {
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['production-new-form', selectedBranchId, editBatchId],
+    queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
 
-      const [resCat, resProd, resStock, resSess] = await Promise.all([
+      const [resCat, resProd, resStock, resSess, resBatch] = await Promise.all([
         api.get("/product-categories"),
         api.get(`/products${branchQuery}`),
         api.get(`/stock-items${branchQuery}`),
         api.get("/daily-sessions/active", sessionParams).catch(() => ({ data: null })),
+        editBatchId ? api.get(`/production-batches/${editBatchId}`).catch(() => ({ data: null })) : Promise.resolve({ data: null }),
       ]);
 
       const allCats: ProductCategory[] = resCat.data || [];
       const filteredCats = isGlobalAdmin
         ? allCats
         : allCats.filter((c) => c.type !== "RESELL");
-      setCategories(filteredCats);
 
       const allProds: Product[] = resProd.data || [];
       const filteredProds = isGlobalAdmin
@@ -134,50 +128,50 @@ function ProductionFormContent() {
         : allProds.filter(
             (p: Product) => (p.category ? p.category.type !== "RESELL" : true)
           );
-      setProducts(filteredProds);
-      setStockItems(resStock.data || []);
-      setActiveSession(resSess.data);
 
-      // If in Edit mode, load the existing batch data and pre-fill selections
-      if (editBatchId) {
-        try {
-          const resBatch = await api.get(`/production-batches/${editBatchId}`);
-          const batch = resBatch.data;
-          if (batch) {
-            setOriginalBatchStatus(batch.status);
-            if (batch.date) {
-              setDate(new Date(batch.date).toISOString().slice(0, 10));
-            }
-            if (batch.shift) {
-              setShift(batch.shift);
-            }
-            if (Array.isArray(batch.items)) {
-              const pMap: Record<string, string> = {};
-              batch.items.forEach((item: any) => {
-                const pId = item.productId || item.product?.id;
-                if (pId) pMap[pId] = String(item.quantityProduced);
-              });
-              setSelectedProducts(pMap);
-            }
-            if (Array.isArray(batch.materialUsages)) {
-              const mMap: Record<string, string> = {};
-              batch.materialUsages.forEach((mat: any) => {
-                const sId = mat.stockItemId || mat.stockItem?.id;
-                if (sId) mMap[sId] = String(mat.quantityUsed);
-              });
-              setSelectedMaterials(mMap);
-            }
-          }
-        } catch (err: any) {
-          toast.error("Failed to load production batch for editing");
-        }
+      return {
+        categories: filteredCats,
+        products: filteredProds,
+        stockItems: (resStock.data || []) as StockItem[],
+        activeSession: resSess.data as ActiveSession | null,
+        batch: resBatch?.data || null,
+      };
+    },
+  });
+
+  const categories = pageData?.categories || [];
+  const products = pageData?.products || [];
+  const stockItems = pageData?.stockItems || [];
+  const activeSession = pageData?.activeSession || null;
+
+  useEffect(() => {
+    if (pageData?.batch && editBatchId) {
+      const batch = pageData.batch;
+      setOriginalBatchStatus(batch.status);
+      if (batch.date) {
+        setDate(new Date(batch.date).toISOString().slice(0, 10));
       }
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Error loading production categories & products");
-    } finally {
-      setIsLoading(false);
+      if (batch.shift) {
+        setShift(batch.shift);
+      }
+      if (Array.isArray(batch.items)) {
+        const pMap: Record<string, string> = {};
+        batch.items.forEach((item: any) => {
+          const pId = item.productId || item.product?.id;
+          if (pId) pMap[pId] = String(item.quantityProduced);
+        });
+        setSelectedProducts(pMap);
+      }
+      if (Array.isArray(batch.materialUsages)) {
+        const mMap: Record<string, string> = {};
+        batch.materialUsages.forEach((mat: any) => {
+          const sId = mat.stockItemId || mat.stockItem?.id;
+          if (sId) mMap[sId] = String(mat.quantityUsed);
+        });
+        setSelectedMaterials(mMap);
+      }
     }
-  };
+  }, [pageData?.batch, editBatchId]);
 
   const isSessionOpen = activeSession?.status === "OPEN";
 
@@ -309,6 +303,13 @@ function ProductionFormContent() {
           toast.success("Production batch created & inventory updated successfully!");
         }
       }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['production-page'] }),
+        queryClient.invalidateQueries({ queryKey: ['production-history'] }),
+        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
+      ]);
       router.push("/production");
     } catch (err: any) {
       toast.error(
@@ -322,6 +323,16 @@ function ProductionFormContent() {
 
   const totalProductsSelectedCount = Object.keys(selectedProducts).length;
   const totalMaterialsSelectedCount = Object.keys(selectedMaterials).length;
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-6xl mx-auto space-y-6 pb-12">
+          <DetailSkeleton />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

@@ -13,6 +13,8 @@ import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw, AlertTriangle, Lock, Clock, User as UserIcon, History } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TableSkeleton } from "@/components/ui/skeletons";
 
 interface Product {
     id: string;
@@ -43,10 +45,7 @@ export default function ProductConversionsPage() {
     const { selectedBranchId } = useBranch();
     const { t } = useLanguage();
 
-    const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
-    const [conversions, setConversions] = useState<ProductConversion[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const queryClient = useQueryClient();
 
     // Dialog States
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -59,11 +58,9 @@ export default function ProductConversionsPage() {
     const [fromQuantity, setFromQuantity] = useState("1");
     const [toQuantity, setToQuantity] = useState("1");
 
-    const [sessionStockSummary, setSessionStockSummary] = useState<Record<string, { maxAvailable: number; productName: string; unitType: string }>>({});
-
-    const fetchData = useCallback(async () => {
-        setIsLoading(true);
-        try {
+    const { data: pageData, isLoading } = useQuery({
+        queryKey: ['product-conversions', selectedBranchId],
+        queryFn: async () => {
             const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
             const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
 
@@ -73,27 +70,27 @@ export default function ProductConversionsPage() {
                 api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null })),
             ]);
 
-            setConversions(resConversions.data);
-            setProducts(resProducts.data);
-            setActiveSession(resSess.data);
-
+            let summary: Record<string, { maxAvailable: number; productName: string; unitType: string }> = {};
             if (resSess.data?.id) {
-                const sessDetailRes = await api.get(`/daily-sessions/${resSess.data.id}`);
-                if (sessDetailRes.data?.availableStockSummary) {
-                    setSessionStockSummary(sessDetailRes.data.availableStockSummary);
+                const sessDetailRes = await api.get(`/daily-sessions/${resSess.data.id}`).catch(() => ({ data: null }));
+                if (sessDetailRes?.data?.availableStockSummary) {
+                    summary = sessDetailRes.data.availableStockSummary;
                 }
             }
-        } catch (e: any) {
-            toast.error(e.response?.data?.error || "Error loading product conversions");
-            console.error(e);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [selectedBranchId]);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+            return {
+                conversions: (resConversions.data || []) as ProductConversion[],
+                products: (resProducts.data || []) as Product[],
+                activeSession: (resSess.data || null) as ActiveSession | null,
+                sessionStockSummary: summary,
+            };
+        },
+    });
+
+    const conversions = pageData?.conversions || [];
+    const products = pageData?.products || [];
+    const activeSession = pageData?.activeSession || null;
+    const sessionStockSummary = pageData?.sessionStockSummary || {};
 
     const isSessionOpen = activeSession?.status === "OPEN";
     const sessionStatusLabel = !activeSession
@@ -156,7 +153,10 @@ export default function ProductConversionsPage() {
             toast.success("Product conversion recorded successfully");
             setIsAddOpen(false);
             resetForm();
-            fetchData();
+            queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
+            queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         } catch (e: any) {
             toast.error(e.response?.data?.error || "Failed to record conversion");
             console.error(e);
@@ -188,7 +188,10 @@ export default function ProductConversionsPage() {
             toast.success("Product conversion updated successfully");
             setEditingConversion(null);
             resetForm();
-            fetchData();
+            queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
+            queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         } catch (e: any) {
             toast.error(e.response?.data?.error || "Failed to update conversion");
             console.error(e);
@@ -202,7 +205,10 @@ export default function ProductConversionsPage() {
         try {
             await api.delete(`/product-conversions/${id}`);
             toast.success("Conversion record deleted");
-            fetchData();
+            queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
+            queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         } catch (e: any) {
             toast.error(e.response?.data?.error || "Failed to delete conversion record");
         }
@@ -270,7 +276,7 @@ export default function ProductConversionsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
-                        onClick={fetchData}
+                        onClick={() => queryClient.invalidateQueries({ queryKey: ['product-conversions'] })}
                         variant="outline"
                         size="sm"
                         className="border-zinc-300 text-zinc-700 hover:bg-zinc-100 font-bold rounded-xl"
@@ -376,107 +382,105 @@ export default function ProductConversionsPage() {
 
             {/* History: Desktop Table & Mobile Cards */}
             <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>{t('conversions.colDate')}</TableHead>
-                            <TableHead>{t('conversions.colSource')}</TableHead>
-                            <TableHead>{t('conversions.colTarget')}</TableHead>
-                            <TableHead>{t('conversions.colRatio')}</TableHead>
-                            <TableHead>{t('conversions.colLoggedBy')}</TableHead>
-                            <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
+                {isLoading ? (
+                    <div className="p-4">
+                        <TableSkeleton rows={5} columns={6} hasActions={true} />
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
-                                    {emptyMessage}
-                                </TableCell>
+                                <TableHead>{t('conversions.colDate')}</TableHead>
+                                <TableHead>{t('conversions.colSource')}</TableHead>
+                                <TableHead>{t('conversions.colTarget')}</TableHead>
+                                <TableHead>{t('conversions.colRatio')}</TableHead>
+                                <TableHead>{t('conversions.colLoggedBy')}</TableHead>
+                                <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
                             </TableRow>
-                        ) : displayedConversions.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
-                                    {emptyMessage}
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            displayedConversions.map((c) => (
-                                <TableRow key={c.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="font-bold text-[#2C1B10]">
-                                                {format(new Date(c.createdAt), "MMM d, yyyy")}
-                                            </span>
-                                            {isToday(c.createdAt) && (
-                                                <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                    {t('conversions.tabToday')}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-[#8C7361] font-semibold mt-0.5">
-                                            {format(new Date(c.createdAt), "hh:mm a")}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="font-bold text-rose-700">
-                                            -{c.fromQuantity} {c.fromProduct?.unitType || "unit"}
-                                        </div>
-                                        <div className="text-xs text-[#8C7361] font-semibold">
-                                            {c.fromProduct?.name || "Original Item"}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="font-bold text-emerald-700">
-                                            +{c.toQuantity} {c.toProduct?.unitType || "unit"}
-                                        </div>
-                                        <div className="text-xs text-[#8C7361] font-semibold">
-                                            {c.toProduct?.name || "Converted Item"}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
-                                            {c.fromQuantity} {c.fromProduct?.unitType || "unit"} ➔ {c.toQuantity} {c.toProduct?.unitType || "unit"}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="text-xs font-bold text-[#2C1B10]">
-                                            {c.user?.fullName || "Staff"}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-right pr-6">
-                                        <div className="flex items-center justify-end gap-1.5">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleOpenEdit(c)}
-                                                className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
-                                            >
-                                                <Edit className="w-3.5 h-3.5" /> {t('common.edit')}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => handleDelete(c.id)}
-                                                className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </Button>
-                                        </div>
+                        </TableHeader>
+                        <TableBody>
+                            {displayedConversions.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
+                                        {emptyMessage}
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                            ) : (
+                                displayedConversions.map((c) => (
+                                    <TableRow key={c.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-bold text-[#2C1B10]">
+                                                    {format(new Date(c.createdAt), "MMM d, yyyy")}
+                                                </span>
+                                                {isToday(c.createdAt) && (
+                                                    <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                        {t('conversions.tabToday')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-[#8C7361] font-semibold mt-0.5">
+                                                {format(new Date(c.createdAt), "hh:mm a")}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="font-bold text-rose-700">
+                                                -{c.fromQuantity} {c.fromProduct?.unitType || "unit"}
+                                            </div>
+                                            <div className="text-xs text-[#8C7361] font-semibold">
+                                                {c.fromProduct?.name || "Original Item"}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="font-bold text-emerald-700">
+                                                +{c.toQuantity} {c.toProduct?.unitType || "unit"}
+                                            </div>
+                                            <div className="text-xs text-[#8C7361] font-semibold">
+                                                {c.toProduct?.name || "Converted Item"}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                                                {c.fromQuantity} {c.fromProduct?.unitType || "unit"} ➔ {c.toQuantity} {c.toProduct?.unitType || "unit"}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-xs font-bold text-[#2C1B10]">
+                                                {c.user?.fullName || "Staff"}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleOpenEdit(c)}
+                                                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                                                >
+                                                    <Edit className="w-3.5 h-3.5" /> {t('common.edit')}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => handleDelete(c.id)}
+                                                    className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                )}
             </div>
 
             {/* Mobile Audit Cards View */}
             <div className="block md:hidden space-y-3">
                 {isLoading ? (
-                    <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                        {emptyMessage}
-                    </div>
+                    <TableSkeleton rows={4} columns={3} hasActions={false} />
                 ) : displayedConversions.length === 0 ? (
                     <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
                         {emptyMessage}

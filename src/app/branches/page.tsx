@@ -29,6 +29,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Branch {
   id: string;
@@ -42,8 +44,7 @@ export default function BranchesPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [toggleLoading, setToggleLoading] = useState<string | null>(null);
   
@@ -66,22 +67,17 @@ export default function BranchesPage() {
     if (user.role !== "OWNER" && user.role !== "ADMIN") {
       router.push("/");
       toast.error("Unauthorized access to Branch Management.");
-      return;
     }
-      fetchBranches();
   }, [user, router]);
 
-  const fetchBranches = async () => {
-    try {
-      setLoading(true);
+  const { data: branches = [], isLoading: loading } = useQuery<Branch[]>({
+    queryKey: ["branches-list"],
+    queryFn: async () => {
       const res = await api.get("/branches");
-      setBranches(res.data);
-    } catch (error) {
-      toast.error(t('branches.toastFailedToLoad'));
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data || [];
+    },
+    enabled: !!user && (user.role === "OWNER" || user.role === "ADMIN"),
+  });
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     if (!isOwner) return;
@@ -89,9 +85,9 @@ export default function BranchesPage() {
       setToggleLoading(id);
       await api.patch(`/branches/${id}`, { isActive: !currentStatus });
       toast.success(currentStatus ? t('branches.toastBranchDeactivated') : t('branches.toastBranchActivated'));
-      setBranches((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, isActive: !currentStatus } : b))
-      );
+      queryClient.invalidateQueries({ queryKey: ["branches-list"] });
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error) {
       toast.error(t('branches.toastFailedToUpdate'));
     } finally {
@@ -108,17 +104,16 @@ export default function BranchesPage() {
     try {
       if (editingBranch) {
         // Update
-        const res = await api.patch(`/branches/${editingBranch.id}`, formData);
-        setBranches((prev) =>
-          prev.map((b) => (b.id === res.data.id ? res.data : b))
-        );
+        await api.patch(`/branches/${editingBranch.id}`, formData);
         toast.success(t('branches.toastBranchUpdated'));
       } else {
         // Create
-        const res = await api.post("/branches", formData);
-        setBranches((prev) => [...prev, res.data]);
+        await api.post("/branches", formData);
         toast.success(t('branches.toastBranchCreated'));
       }
+      queryClient.invalidateQueries({ queryKey: ["branches-list"] });
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       handleCloseDialog();
     } catch (error) {
       toast.error(editingBranch ? t('branches.toastFailedToUpdate') : t('branches.toastFailedToCreate'));
@@ -172,7 +167,9 @@ export default function BranchesPage() {
       setIsDeleting(true);
       await api.delete(`/branches/${branchToDelete.id}`);
       toast.success(t('branches.toastBranchDeleted') || "Branch and associated data deleted permanently");
-      setBranches((prev) => prev.filter((b) => b.id !== branchToDelete.id));
+      queryClient.invalidateQueries({ queryKey: ["branches-list"] });
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setIsDeleteDialogOpen(false);
       setBranchToDelete(null);
     } catch (error: any) {
@@ -290,11 +287,15 @@ export default function BranchesPage() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-[#8C7361]">
-                    {t('branches.loadingBranches')}
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="text-right pr-6"><Skeleton className="h-8 w-20 ml-auto rounded-xl" /></TableCell>
+                  </TableRow>
+                ))
               ) : filteredBranches.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-[#8C7361]">
@@ -380,8 +381,16 @@ export default function BranchesPage() {
         {/* Mobile Cards (visible on mobile < md, hidden on desktop) */}
         <div className="md:hidden space-y-3">
           {loading ? (
-            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-8 text-center text-[#8C7361] text-xs font-semibold">
-              {t('branches.loadingBranches')}
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3">
+                  <div className="flex justify-between items-center pb-2 border-b border-[#F4ECE1]">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-48" />
+                </div>
+              ))}
             </div>
           ) : filteredBranches.length === 0 ? (
             <div className="bg-white border border-[#EDE4D5] rounded-2xl p-8 text-center text-[#8C7361] text-xs font-semibold">

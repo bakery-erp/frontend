@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useLanguage } from '@/context/LanguageContext';
+import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TableSkeleton } from '@/components/ui/skeletons';
 
 interface DashboardTotals {
   yesterdayLeftoverCash?: number;
@@ -73,20 +76,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
-  const [totals, setTotals] = useState<DashboardTotals | null>(null);
-  const [stockSummary, setStockSummary] = useState<StockSummary | null>(null);
-  const [staffCount, setStaffCount] = useState<number>(0);
-  const [productValuation, setProductValuation] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // Detail data from the report
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [deliveries, setDeliveries] = useState<any[]>([]);
-  const [payrollRecords, setPayrollRecords] = useState<any[]>([]);
-  const [loans, setLoans] = useState<any[]>([]);
-  const [customerLoanPayments, setCustomerLoanPayments] = useState<any[]>([]);
-
   // Expand/collapse states for the two big cards
   const [showGainDetail, setShowGainDetail] = useState(false);
   const [showExpenseDetail, setShowExpenseDetail] = useState(false);
@@ -126,13 +115,13 @@ export default function Dashboard() {
         return;
       }
     }
-    fetchDashboardData();
-  }, [selectedBranchId, user, router]);
+  }, [user, router]);
 
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
-    try {
-      const todayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+  const todayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ['dashboard', selectedBranchId, todayYmd],
+    queryFn: async () => {
       const params: any = { from: todayYmd, to: todayYmd };
       if (selectedBranchId) {
         params.branchId = selectedBranchId;
@@ -165,30 +154,40 @@ export default function Dashboard() {
         netIncome: data.netIncome ?? 0,
         openingLeftoverQuantity: 0,
       };
-      setTotals(t);
-      setSessions(data.sessions || []);
-      setExpenses(data.expenses || []);
-      setDeliveries(data.supplierDeliveries || []);
-      setPayrollRecords(data.payrollRecords || []);
-      setLoans(data.loans || []);
-      setCustomerLoanPayments(data.customerLoanPayments || []);
-      setStockSummary(stockRes.data || null);
-      setStaffCount(Array.isArray(usersRes.data) ? usersRes.data.length : 0);
 
-      // Calculate Product Inventory Money Valuation
       const prods = Array.isArray(prodRes.data) ? prodRes.data : [];
       const totalVal = prods.reduce((sum: number, p: any) => {
         const qty = Number(p.currentHouseStock || 0);
         const price = Number(p.buyPrice || p.basePrice || 0);
         return sum + (qty * price);
       }, 0);
-      setProductValuation(totalVal);
-    } catch (e) {
-      console.error('Failed to fetch dashboard data:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
+      return {
+        totals: t,
+        sessions: data.sessions || [],
+        expenses: data.expenses || [],
+        deliveries: data.supplierDeliveries || [],
+        payrollRecords: data.payrollRecords || [],
+        loans: data.loans || [],
+        customerLoanPayments: data.customerLoanPayments || [],
+        stockSummary: stockRes.data || null,
+        staffCount: Array.isArray(usersRes.data) ? usersRes.data.length : 0,
+        productValuation: totalVal,
+      };
+    },
+    enabled: !!user && (user.role === 'OWNER' || user.role === 'ADMIN'),
+  });
+
+  const totals = dashboardData?.totals || null;
+  const sessions = dashboardData?.sessions || [];
+  const expenses = dashboardData?.expenses || [];
+  const deliveries = dashboardData?.deliveries || [];
+  const payrollRecords = dashboardData?.payrollRecords || [];
+  const loans = dashboardData?.loans || [];
+  const customerLoanPayments = dashboardData?.customerLoanPayments || [];
+  const stockSummary = dashboardData?.stockSummary || null;
+  const staffCount = dashboardData?.staffCount || 0;
+  const productValuation = dashboardData?.productValuation || 0;
 
   const isOwner = user?.role === 'OWNER';
 
@@ -236,7 +235,7 @@ export default function Dashboard() {
   }> = [];
 
   // POS Sales
-  sessions.forEach((s) => {
+  sessions.forEach((s: any) => {
     (s.sales || []).forEach((sale: any) => {
       unifiedTransactions.push({
         id: sale.id,
@@ -251,7 +250,7 @@ export default function Dashboard() {
   });
 
   // Expenses
-  expenses.forEach((e) => {
+  expenses.forEach((e: any) => {
     unifiedTransactions.push({
       id: e.id,
       date: e.date,
@@ -264,7 +263,7 @@ export default function Dashboard() {
   });
 
   // Supplier Deliveries
-  deliveries.forEach((d) => {
+  deliveries.forEach((d: any) => {
     const netQty = Math.max(0, Number(d.quantityReceived || 0) - Number(d.returnedQuantity || 0));
     const cost = Number(d.unitBuyPrice || 0) * netQty;
     unifiedTransactions.push({
@@ -279,7 +278,7 @@ export default function Dashboard() {
   });
 
   // Customer Credits / Loans
-  loans.forEach((l) => {
+  loans.forEach((l: any) => {
     if (l.type === 'CUSTOMER_CREDIT') {
       unifiedTransactions.push({
         id: l.id,
@@ -304,7 +303,7 @@ export default function Dashboard() {
   });
 
   // Payroll Disbursements
-  payrollRecords.forEach((pr) => {
+  payrollRecords.forEach((pr: any) => {
     unifiedTransactions.push({
       id: pr.id,
       date: pr.paymentDate || pr.createdAt || new Date().toISOString(),
@@ -386,7 +385,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="pt-2">
               <div className="text-3xl sm:text-4xl font-extrabold text-emerald-950 tracking-tight font-heading">
-                {isLoading ? '...' : money(todayGain)}
+                {isLoading ? <Skeleton className="h-10 w-48 rounded-xl bg-emerald-200/60" /> : money(todayGain)}
               </div>
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-emerald-100">
                 <span className="text-xs font-bold text-emerald-700">
@@ -472,7 +471,7 @@ export default function Dashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {salesDetailRows.map((row, i) => (
+                        {salesDetailRows.map((row: any, i: number) => (
                           <TableRow key={i} className="border-b border-emerald-100/50 hover:bg-emerald-50/40">
                             <TableCell className="font-bold text-[#2C1B10]">{row.product}</TableCell>
                             <TableCell className="text-right font-bold text-[#4A2E1B]">{row.qty}</TableCell>
@@ -481,7 +480,7 @@ export default function Dashboard() {
                         ))}
                         <TableRow className="bg-emerald-100/60 font-extrabold text-emerald-950">
                           <TableCell className="font-extrabold">{t('dashboard.itemizedSalesTitle')}</TableCell>
-                          <TableCell className="text-right font-extrabold">{salesDetailRows.reduce((s, r) => s + r.qty, 0)} {t('common.items')}</TableCell>
+                          <TableCell className="text-right font-extrabold">{salesDetailRows.reduce((s: number, r: any) => s + r.qty, 0)} {t('common.items')}</TableCell>
                           <TableCell className="text-right text-emerald-900 font-black pr-6">{money(salesIncome)}</TableCell>
                         </TableRow>
                       </TableBody>
@@ -501,7 +500,7 @@ export default function Dashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {customerLoanPayments.map((cp, idx) => (
+                        {customerLoanPayments.map((cp: any, idx: number) => (
                           <TableRow key={cp.id || idx} className="border-b border-emerald-50">
                             <TableCell className="font-bold text-[#2C1B10]">{cp.loan?.entityId || 'Customer Credit'}</TableCell>
                             <TableCell className="text-right font-mono font-bold text-emerald-800 pr-6">{money(cp.amountPaid)}</TableCell>
@@ -543,7 +542,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="pt-2">
               <div className="text-3xl sm:text-4xl font-extrabold text-rose-950 tracking-tight font-heading">
-                {isLoading ? '...' : money(todayExpense)}
+                {isLoading ? <Skeleton className="h-10 w-48 rounded-xl bg-rose-200/60" /> : money(todayExpense)}
               </div>
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-rose-100">
                 <span className="text-xs font-bold text-rose-700">
@@ -723,7 +722,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className={`text-xl sm:text-2xl font-extrabold tracking-tight font-heading ${todayNet >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-              {isLoading ? '...' : money(todayNet)}
+              {isLoading ? <Skeleton className="h-7 w-28 rounded-lg" /> : money(todayNet)}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
               {t('dashboard.netProfitSub')}
@@ -741,7 +740,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight font-heading font-mono">
-              {isLoading ? '...' : money(productValuation)}
+              {isLoading ? <Skeleton className="h-7 w-28 rounded-lg" /> : money(productValuation)}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
               {t('dashboard.productStockValueSub')}
@@ -759,7 +758,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-extrabold text-amber-950 tracking-tight font-heading font-mono">
-              {isLoading ? '...' : money(totals?.supplierDeliveryCost)}
+              {isLoading ? <Skeleton className="h-7 w-28 rounded-lg" /> : money(totals?.supplierDeliveryCost)}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
               {deliveries.length > 0 ? `${deliveries.length} ${t('dashboard.supplierDeliveriesTitle')}` : t('dashboard.catSupplierPurchases')}
@@ -777,7 +776,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight font-heading font-mono">
-              {isLoading ? '...' : money(totals?.loanTotal)}
+              {isLoading ? <Skeleton className="h-7 w-28 rounded-lg" /> : money(totals?.loanTotal)}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
               {t('dashboard.staffLoansSub', { count: loans.length })}
@@ -795,7 +794,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
-              {isLoading ? '...' : `${stockSummary?.healthy || 0} / ${stockSummary?.totalItems || 0}`}
+              {isLoading ? <Skeleton className="h-7 w-20 rounded-lg" /> : `${stockSummary?.healthy || 0} / ${stockSummary?.totalItems || 0}`}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
               {stockSummary?.lowStock ? t('dashboard.itemsLowThreshold', { count: stockSummary.lowStock }) : t('dashboard.allInventoryHealthy')}
@@ -813,7 +812,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] tracking-tight font-heading">
-              {isLoading ? '...' : `${branches.length} Br, ${staffCount} Staff`}
+              {isLoading ? <Skeleton className="h-7 w-28 rounded-lg" /> : `${branches.length} Br, ${staffCount} Staff`}
             </div>
             <p className="text-[11px] text-[#8C7361] font-semibold mt-1">
               {t('dashboard.activeStaffSub', { branches: branches.length, staff: staffCount })}
@@ -1027,7 +1026,11 @@ export default function Dashboard() {
         </CardHeader>
 
         <CardContent className="p-0">
-          {filteredTransactions.length === 0 ? (
+          {isLoading ? (
+            <div className="p-4">
+              <TableSkeleton rows={5} columns={6} hasActions={false} />
+            </div>
+          ) : filteredTransactions.length === 0 ? (
             <div className="text-center py-10 text-[#8C7361] text-xs font-medium">
               {t('dashboard.noTransactionsFound')}
             </div>

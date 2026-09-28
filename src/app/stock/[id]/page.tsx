@@ -27,6 +27,10 @@ import {
   Layers
 } from "lucide-react";
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
+
 interface Branch {
   id: string;
   name: string;
@@ -103,12 +107,20 @@ export default function StockItemDetailPage() {
   const params = useParams();
   const router = useRouter();
   const itemId = params.id as string;
+  const queryClient = useQueryClient();
 
   const { user } = useAuth();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
-  const [data, setData] = useState<HistoryData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, isLoading } = useQuery<HistoryData>({
+    queryKey: ['stock-item-history', itemId],
+    queryFn: async () => {
+      const res = await api.get(`/stock-items/${itemId}/history`);
+      return res.data;
+    },
+    enabled: !!itemId,
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterType, setFilterType] = useState<string>("ALL");
 
@@ -151,24 +163,6 @@ export default function StockItemDetailPage() {
 
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const fetchDetail = useCallback(async () => {
-    if (!itemId) return;
-    setIsLoading(true);
-    try {
-      const res = await api.get(`/stock-items/${itemId}/history`);
-      setData(res.data);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Error loading stock item detail");
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [itemId]);
-
-  useEffect(() => {
-    fetchDetail();
-  }, [fetchDetail]);
-
   const handleAddStock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!data?.stockItem) return;
@@ -197,7 +191,10 @@ export default function StockItemDetailPage() {
       setIsAddLoan(false);
       setAddPaidAmount("");
       setAddSupplierName("");
-      fetchDetail();
+      queryClient.invalidateQueries({ queryKey: ['stock-item-history', itemId] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to add stock level");
     } finally {
@@ -225,7 +222,8 @@ export default function StockItemDetailPage() {
       setSelectedLoan(null);
       setPayAmount("");
       setPayNote("");
-      fetchDetail();
+      queryClient.invalidateQueries({ queryKey: ['stock-item-history', itemId] });
+      queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to record loan payment");
     } finally {
@@ -253,7 +251,10 @@ export default function StockItemDetailPage() {
       setIsReduceOpen(false);
       setReduceAmount("");
       setReduceReason("");
-      fetchDetail();
+      queryClient.invalidateQueries({ queryKey: ['stock-item-history', itemId] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to reduce stock level");
     } finally {
@@ -278,7 +279,8 @@ export default function StockItemDetailPage() {
       await api.patch(`/stock-items/${itemId}`, updatePayload);
       toast.success("Stock item updated");
       setIsEditOpen(false);
-      fetchDetail();
+      queryClient.invalidateQueries({ queryKey: ['stock-item-history', itemId] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error updating stock item");
       console.error(error);
@@ -308,10 +310,23 @@ export default function StockItemDetailPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <DashboardLayout>
-        <div className="py-16 text-center text-zinc-400 text-sm">Loading item audit history...</div>
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <DetailSkeleton />
+          <KpiCardsSkeleton count={5} />
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-5 shadow-xs">
+            <div className="flex justify-between items-center mb-4">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-8 w-64 rounded-xl" />
+            </div>
+            <TableSkeleton rows={6} columns={7} hasActions={false} />
+          </div>
+        </div>
       </DashboardLayout>
     );
   }

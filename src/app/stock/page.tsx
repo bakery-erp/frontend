@@ -12,6 +12,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, CreditCard } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TableSkeleton } from "@/components/ui/skeletons";
 
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -44,8 +46,7 @@ export default function StockPage() {
     }
   }, [user, isGlobalAdmin]);
 
-  const [items, setItems] = useState<StockItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
@@ -79,26 +80,18 @@ export default function StockPage() {
   const [reduceAmount, setReduceAmount] = useState<string>("");
   const [reduceReason, setReduceReason] = useState<string>("");
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: items = [], isLoading } = useQuery<StockItem[]>({
+    queryKey: ['stock-items', selectedBranchId],
+    queryFn: async () => {
       const endpoint = selectedBranchId 
         ? `/stock-items?branchId=${selectedBranchId}` 
         : `/stock-items`;
 
       const res = await api.get(endpoint);
-      setItems(res.data);
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Error fetching stock");
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedBranchId]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+      return res.data || [];
+    },
+    enabled: isGlobalAdmin,
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, isEdit: boolean) => {
     e.preventDefault();
@@ -131,7 +124,8 @@ export default function StockPage() {
       setIsCreateLoan(false);
       setCreatePaidAmount("");
       setCreateSupplierName("");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error saving stock item");
       console.error(error);
@@ -168,7 +162,8 @@ export default function StockPage() {
       setIsAddLoan(false);
       setAddPaidAmount("");
       setAddSupplierName("");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to add stock level");
     } finally {
@@ -196,7 +191,8 @@ export default function StockPage() {
       setReducingItem(null);
       setReduceAmount("");
       setReduceReason("");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to reduce stock level");
     } finally {
@@ -211,7 +207,8 @@ export default function StockPage() {
     try {
       await api.delete(`/stock-items/${itemToDelete.id}`);
       toast.success("Stock item deleted");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to delete item");
     } finally {
@@ -342,7 +339,11 @@ export default function StockPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{t('stock.loading')}</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={7} className="p-4">
+                  <TableSkeleton rows={6} columns={6} hasActions={true} />
+                </TableCell>
+              </TableRow>
             ) : filteredItems.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{t('stock.noItems')}</TableCell></TableRow>
             ) : filteredItems.map(item => {
@@ -453,7 +454,7 @@ export default function StockPage() {
       {/* Mobile Cards View */}
       <div className="grid grid-cols-1 gap-3 sm:hidden">
         {isLoading ? (
-          <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stock.loading')}</div>
+          <TableSkeleton rows={4} columns={3} hasActions={false} />
         ) : filteredItems.length === 0 ? (
           <div className="bg-white p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">{t('stock.noItems')}</div>
         ) : filteredItems.map(item => {

@@ -41,6 +41,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { EthDateTime } from "ethiopian-calendar-date-converter";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ETH_MONTHS = [
   "Meskerem",
@@ -121,12 +123,45 @@ export default function PayrollPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("RUN");
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [isLoadingLoans, setIsLoadingLoans] = useState(true);
-  const [isLoadingPenalties, setIsLoadingPenalties] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ["payroll-users", selectedBranchId],
+    queryFn: async () => {
+      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
+      const { data } = await api.get("/users", { params });
+      return (data || []).filter((u: User) => u.role !== "OWNER");
+    },
+  });
+
+  const { data: history = [], isLoading: isLoadingHistory } = useQuery<PayrollRecord[]>({
+    queryKey: ["payroll-history", selectedBranchId],
+    queryFn: async () => {
+      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
+      const { data } = await api.get("/payroll", { params });
+      return data || [];
+    },
+  });
+
+  const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
+    queryKey: ["payroll-loans", selectedBranchId],
+    queryFn: async () => {
+      const params: any = { type: "STAFF" };
+      if (selectedBranchId) params.branchId = selectedBranchId;
+      const { data } = await api.get("/loans", { params });
+      return data || [];
+    },
+  });
+
+  const { data: penalties = [], isLoading: isLoadingPenalties } = useQuery<Penalty[]>({
+    queryKey: ["payroll-penalties", selectedBranchId],
+    queryFn: async () => {
+      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
+      const { data } = await api.get("/penalties", { params });
+      return data || [];
+    },
+  });
 
   // RUN PAYROLL STATE
   const [selectedUser, setSelectedUser] = useState("");
@@ -148,77 +183,18 @@ export default function PayrollPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // HISTORY STATE
-  const [history, setHistory] = useState<PayrollRecord[]>([]);
   const [editingPayroll, setEditingPayroll] = useState<PayrollRecord | null>(null);
   const [isEditPayrollOpen, setIsEditPayrollOpen] = useState(false);
 
   // LOAN STATE
-  const [loans, setLoans] = useState<Loan[]>([]);
   const [isLoanOpen, setIsLoanOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
 
   // PENALTY STATE
-  const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [isPenaltyOpen, setIsPenaltyOpen] = useState(false);
   const [editingPenalty, setEditingPenalty] = useState<Penalty | null>(null);
   const [isEditPenaltyOpen, setIsEditPenaltyOpen] = useState(false);
-
-  useEffect(() => {
-    fetchUsers();
-    if (activeTab === "HISTORY" || activeTab === "RUN") fetchHistory();
-    if (activeTab === "LOANS") fetchLoans();
-    if (activeTab === "PENALTIES") fetchPenalties();
-  }, [activeTab, selectedBranchId]);
-
-  const fetchUsers = async () => {
-    try {
-      setIsLoadingUsers(true);
-      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
-      const { data } = await api.get("/users", { params });
-      setUsers(data.filter((u: User) => u.role !== "OWNER"));
-    } catch {
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
-  const fetchHistory = async () => {
-    try {
-      setIsLoadingHistory(true);
-      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
-      const { data } = await api.get("/payroll", { params });
-      setHistory(data);
-    } catch {
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
-
-  const fetchLoans = async () => {
-    try {
-      setIsLoadingLoans(true);
-      const params: any = { type: "STAFF" };
-      if (selectedBranchId) params.branchId = selectedBranchId;
-      const { data } = await api.get("/loans", { params });
-      setLoans(data);
-    } catch {
-    } finally {
-      setIsLoadingLoans(false);
-    }
-  };
-
-  const fetchPenalties = async () => {
-    try {
-      setIsLoadingPenalties(true);
-      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
-      const { data } = await api.get("/penalties", { params });
-      setPenalties(data);
-    } catch {
-    } finally {
-      setIsLoadingPenalties(false);
-    }
-  };
 
   const handleCalculate = async () => {
     if (!selectedUser) {
@@ -271,9 +247,13 @@ export default function PayrollPage() {
       toast.success("Payroll processed and recorded successfully");
       setCalcData(null);
       setSelectedUser("");
-      fetchHistory();
-      fetchLoans();
-      fetchPenalties();
+      queryClient.invalidateQueries({ queryKey: ["payroll-history"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error processing payroll");
     } finally {
@@ -294,7 +274,10 @@ export default function PayrollPage() {
       });
       toast.success("Loan recorded successfully");
       setIsLoanOpen(false);
-      fetchLoans();
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to add loan");
     } finally {
@@ -317,7 +300,10 @@ export default function PayrollPage() {
       toast.success("Loan updated successfully");
       setIsEditLoanOpen(false);
       setEditingLoan(null);
-      fetchLoans();
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update loan");
     } finally {
@@ -339,7 +325,10 @@ export default function PayrollPage() {
       });
       toast.success("Penalty added successfully");
       setIsPenaltyOpen(false);
-      fetchPenalties();
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to add penalty");
     } finally {
@@ -363,7 +352,10 @@ export default function PayrollPage() {
       toast.success("Penalty updated successfully");
       setIsEditPenaltyOpen(false);
       setEditingPenalty(null);
-      fetchPenalties();
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update penalty");
     } finally {
@@ -389,7 +381,10 @@ export default function PayrollPage() {
       toast.success("Payroll record updated successfully");
       setIsEditPayrollOpen(false);
       setEditingPayroll(null);
-      fetchHistory();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["payroll-history"] }),
+        queryClient.invalidateQueries({ queryKey: ["payroll-page"] }),
+      ]);
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update payroll record");
     } finally {
@@ -823,8 +818,21 @@ export default function PayrollPage() {
           {/* Mobile Touch Cards */}
           <div className="block md:hidden p-4 space-y-3">
             {isLoadingHistory ? (
-              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
-                Loading payroll history...
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-[#FAF6F0] rounded-xl p-4 border border-[#EDE4D5] space-y-3 shadow-2xs">
+                    <div className="flex justify-between items-start">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : history.length === 0 ? (
               <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
@@ -915,14 +923,20 @@ export default function PayrollPage() {
               </TableHeader>
               <TableBody>
                 {isLoadingHistory ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="text-center py-8 text-[#8C7361] font-medium"
-                    >
-                      Loading payroll history...
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 5 }).map((_, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell><Skeleton className="h-4 w-28 mb-1" /><Skeleton className="h-3 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                        <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 ml-auto rounded-xl" /></TableCell>
+                      )}
+                    </TableRow>
+                  ))
                 ) : history.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
@@ -1006,8 +1020,19 @@ export default function PayrollPage() {
           {/* Mobile Touch Cards for Loans */}
           <div className="block md:hidden p-4 space-y-3">
             {isLoadingLoans ? (
-              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
-                Loading employee loans...
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-[#FAF6F0] rounded-xl p-4 border border-[#EDE4D5] space-y-3 shadow-2xs">
+                    <div className="flex justify-between items-start">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : loans.length === 0 ? (
               <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
@@ -1092,11 +1117,19 @@ export default function PayrollPage() {
               </TableHeader>
               <TableBody>
                 {isLoadingLoans ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
-                      Loading employee loans...
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 5 }).map((_, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell><Skeleton className="h-4 w-28 mb-1" /><Skeleton className="h-3 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                        <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 ml-auto rounded-xl" /></TableCell>
+                      )}
+                    </TableRow>
+                  ))
                 ) : loans.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
@@ -1172,8 +1205,19 @@ export default function PayrollPage() {
           {/* Mobile Touch Cards for Penalties */}
           <div className="block md:hidden p-4 space-y-3">
             {isLoadingPenalties ? (
-              <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
-                Loading workforce penalties...
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-[#FAF6F0] rounded-xl p-4 border border-[#EDE4D5] space-y-3 shadow-2xs">
+                    <div className="flex justify-between items-start">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : penalties.length === 0 ? (
               <div className="text-center py-8 text-[#8C7361] font-medium text-sm">
@@ -1251,11 +1295,18 @@ export default function PayrollPage() {
               </TableHeader>
               <TableBody>
                 {isLoadingPenalties ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
-                      Loading workforce penalties...
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 5 }).map((_, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell><Skeleton className="h-4 w-28 mb-1" /><Skeleton className="h-3 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                        <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 ml-auto rounded-xl" /></TableCell>
+                      )}
+                    </TableRow>
+                  ))
                 ) : penalties.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">

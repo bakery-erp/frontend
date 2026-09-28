@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ArrowLeft, UserPlus, Building2, Calendar, FileText, Upload, Save } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ROLES = ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] as const;
 const SHIFTS = ["DAY", "NIGHT"] as const;
@@ -22,6 +23,7 @@ export default function NewUserPage() {
   const { user } = useAuth();
   const { branches } = useBranch();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startDateVal, setStartDateVal] = useState<string>("");
   const [lastPaidDateVal, setLastPaidDateVal] = useState<string>("");
@@ -87,6 +89,7 @@ export default function NewUserPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
+      await queryClient.invalidateQueries({ queryKey: ["users-page"] });
       toast.success(t('users.toastUserCreated'));
       router.push("/users");
     } catch (error: any) {
