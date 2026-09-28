@@ -12,7 +12,7 @@ import LanguageSelector from '@/components/LanguageSelector';
 import {
   LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
-  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck, CreditCard
+  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck, CreditCard, HandCoins
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -85,6 +85,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: DollarSign, label: t('nav.expenses'), href: '/expenses' }
+    ] : []),
+    ...(isOwner ? [
+      { icon: HandCoins, label: t('nav.ownerLoans'), href: '/owner-loans' }
     ] : []),
     ...((isOwner || isAdmin) ? [
       { icon: Banknote, label: t('nav.payroll'), href: '/payroll' },
