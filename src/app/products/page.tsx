@@ -50,9 +50,10 @@ interface Product {
   totalDamaged?: number;
 }
 
-// Preset high quality fallback images for bakery items
 const PRODUCT_PRESET_IMAGES: { label: string; url: string }[] = [
-  { label: 'Fresh Bread / Loaf', url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80' },
+  { label: 'French Bread', url: 'https://www.melskitchencafe.com/wp-content/uploads/french-bread1.webp' },
+  { label: 'Loaf Bread', url: 'https://www.thespruceeats.com/thmb/j4mujy24lcmnyW_a7VS1sVP4Mw4=/750x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/loaf-of-bread-182835505-58a7008c5f9b58a3c91c9a14.jpg' },
+  { label: 'Barley Bread', url: 'https://live.staticflickr.com/2835/8764387785_85b54dae35_z.jpg' },
   { label: 'Croissant / Pastry', url: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80' },
   { label: 'Bomboloni / Donut', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=600&q=80' },
   { label: 'Sambusa / Snack', url: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&q=80' },
