@@ -137,6 +137,7 @@ function ProductionFormContent() {
         batch: resBatch?.data || null,
       };
     },
+    staleTime: 60 * 1000,
   });
 
   const categories = pageData?.categories || [];
@@ -393,23 +394,27 @@ function ProductionFormContent() {
             )}
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
-                isSessionOpen
+                isLoading
+                  ? "bg-zinc-100 text-zinc-600 border-zinc-200"
+                  : isSessionOpen
                   ? "bg-emerald-50 text-emerald-900 border-emerald-300"
                   : "bg-amber-50 text-amber-900 border-amber-300"
               }`}
             >
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${
-                  isSessionOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                  isLoading
+                    ? "bg-zinc-400 animate-pulse"
+                    : isSessionOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
                 }`}
               />
-              {isSessionOpen ? "Session Open" : "Session Closed"}
+              {isLoading ? "Checking Session..." : isSessionOpen ? "Session Open" : "Session Closed"}
             </span>
           </div>
         </div>
 
         {/* Warning if no active open session (only for new batches) */}
-        {!isSessionOpen && !isEditMode && (
+        {!isLoading && !!pageData && !isSessionOpen && !isEditMode && (
           <div className="p-3.5 xs:p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5 xs:gap-3 shadow-xs">
             <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
             <div>

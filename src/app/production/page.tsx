@@ -103,6 +103,7 @@ export default function ProductionPage() {
         activeSession: (resSess.data || null) as ActiveSession | null,
       };
     },
+    staleTime: 60 * 1000,
   });
 
   const batches = data?.batches || [];
@@ -278,7 +279,7 @@ export default function ProductionPage() {
           )}
           <Button
             onClick={() => window.location.href = '/production/new'}
-            disabled={!isSessionOpen}
+            disabled={isLoading || !isSessionOpen}
             className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 flex-1 sm:flex-initial h-10 xs:h-11"
           >
             <Plus className="w-4 h-4" /> {t('production.newBatch')}
@@ -286,7 +287,7 @@ export default function ProductionPage() {
         </div>
       </div>
 
-      {!isSessionOpen && (
+      {!isLoading && !!data && !isSessionOpen && (
         <div className="mb-4 xs:mb-6 p-3.5 xs:p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
           <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
           <span>

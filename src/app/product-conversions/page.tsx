@@ -85,6 +85,7 @@ export default function ProductConversionsPage() {
                 sessionStockSummary: summary,
             };
         },
+        staleTime: 60 * 1000,
     });
 
     const conversions = pageData?.conversions || [];
@@ -285,7 +286,7 @@ export default function ProductConversionsPage() {
                     </Button>
                     <Button
                         onClick={handleOpenAdd}
-                        disabled={!isSessionOpen}
+                        disabled={isLoading || !isSessionOpen}
                         className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
                     >
                         <Plus className="w-4 h-4" /> {t('conversions.btnNewConversion')}
@@ -293,7 +294,7 @@ export default function ProductConversionsPage() {
                 </div>
             </div>
 
-            {!isSessionOpen && (
+            {!isLoading && !!pageData && !isSessionOpen && (
                 <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
                     <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
                     <span>

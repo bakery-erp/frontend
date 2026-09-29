@@ -261,7 +261,7 @@ export default function MobileSambusaStation() {
 
       {/* Main Content Area */}
       <div className="p-4 flex-1 space-y-4 overflow-y-auto">
-        {!isSessionOpen && (
+        {!isLoading && !isSessionOpen && (
           <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center space-x-3 text-rose-300 text-xs font-semibold">
             {activeSession?.status === 'PAUSED' ? (
               <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />

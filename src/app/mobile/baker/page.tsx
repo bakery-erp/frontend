@@ -296,7 +296,7 @@ export default function MobileBakerStation() {
 
       {/* Main Content Area */}
       <div className="p-4 flex-1 space-y-5 overflow-y-auto">
-        {!isSessionOpen && (
+        {!isLoading && !isSessionOpen && (
           <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center space-x-3 text-amber-300 text-xs font-semibold">
             {activeSession?.status === 'PAUSED' ? (
               <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
