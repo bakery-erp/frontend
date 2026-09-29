@@ -60,6 +60,7 @@ export default function PayrollPenaltiesPage() {
         penalties: (penaltiesRes.data || []) as Penalty[],
       };
     },
+    staleTime: 60000,
   });
 
   const users = pageData?.users || [];

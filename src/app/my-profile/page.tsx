@@ -110,6 +110,7 @@ export default function MyProfilePage() {
       const res = await api.get('/users/me/dashboard');
       return res.data;
     },
+    enabled: !!authUser?.id,
     staleTime: 60000,
   });
 

@@ -38,12 +38,39 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('erp_user');
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      const stored = localStorage.getItem('erp_user');
+      // If user is already cached in localStorage, start with isLoading = false for instant load
+      return !!token && !stored;
+    }
+    return true;
+  });
+
   const router = useRouter();
 
   const updateUser = (updated: Partial<AuthUser>) => {
-    setUser((prev) => (prev ? { ...prev, ...updated } : prev));
+    setUser((prev) => {
+      if (!prev) return null;
+      const next = { ...prev, ...updated };
+      try {
+        localStorage.setItem('erp_user', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -53,9 +80,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const { data } = await api.get<AuthUser>('/auth/me');
           setUser(data);
+          localStorage.setItem('erp_user', JSON.stringify(data));
         } catch (error) {
           localStorage.removeItem('token');
+          localStorage.removeItem('erp_user');
+          setUser(null);
         }
+      } else {
+        localStorage.removeItem('erp_user');
+        setUser(null);
       }
       setIsLoading(false);
     };
@@ -74,6 +107,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (data: LoginResponse) => {
     localStorage.setItem('token', data.token);
+    try {
+      localStorage.setItem('erp_user', JSON.stringify(data.user));
+    } catch {}
     setUser(data.user);
     if (data.user.role === 'EMPLOYEE') {
       router.push('/my-profile');
@@ -95,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ignore errors on logout
     }
     localStorage.removeItem('token');
+    localStorage.removeItem('erp_user');
     setUser(null);
     router.push('/login');
   };

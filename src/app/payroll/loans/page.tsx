@@ -67,6 +67,7 @@ export default function PayrollLoansPage() {
         loans: (loansRes.data || []) as Loan[],
       };
     },
+    staleTime: 60000,
   });
 
   const users = pageData?.users || [];

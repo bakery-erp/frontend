@@ -22,7 +22,17 @@ const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
 export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branches, setBranches] = useState<Branch[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('erp_branches');
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
   const [selectedBranchId, setSelectedBranchIdState] = useState<string | null>(null);
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
 
@@ -35,10 +45,13 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setSelectedBranchIdState(savedBranch === 'ALL' || !savedBranch ? null : savedBranch);
 
       const fetchBranches = async () => {
-        setIsLoadingBranches(true);
+        if (branches.length === 0) setIsLoadingBranches(true);
         try {
           const { data } = await api.get<Branch[]>('/branches');
           setBranches(data);
+          try {
+            localStorage.setItem('erp_branches', JSON.stringify(data));
+          } catch {}
           if (savedBranch && savedBranch !== 'ALL') {
             const exists = Array.isArray(data) && data.some((b) => b.id === savedBranch);
             if (!exists) {

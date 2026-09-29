@@ -56,6 +56,7 @@ export default function PayrollHistoryPage() {
       const { data } = await api.get("/payroll", { params });
       return data || [];
     },
+    staleTime: 60000,
   });
 
   const handleUpdatePayroll = async (e: React.FormEvent<HTMLFormElement>) => {
