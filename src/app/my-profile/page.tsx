@@ -105,11 +105,12 @@ export default function MyProfilePage() {
   const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties' | 'pending' | 'settings'>('payroll');
 
   const { data = null, isLoading: loading } = useQuery<DashboardData | null>({
-    queryKey: ['my-profile-dashboard'],
+    queryKey: ['my-profile-dashboard', authUser?.id],
     queryFn: async () => {
       const res = await api.get('/users/me/dashboard');
       return res.data;
     },
+    staleTime: 60000,
   });
 
   // Tab auto-centering ref
@@ -286,7 +287,7 @@ export default function MyProfilePage() {
     }
   };
 
-  if (loading && !data) {
+  if (loading && !data && !authUser) {
     return (
       <DashboardLayout>
         <div className="space-y-6 max-w-6xl mx-auto pb-12">
@@ -395,61 +396,67 @@ export default function MyProfilePage() {
       </div>
 
       {/* ── Key Metrics Summary Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 xs:mb-8">
-        <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.baseSalary')}</CardTitle>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0">
-              <Banknote className="h-5 w-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 pb-3.5 pt-0">
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(u?.salary)}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.monthlyBaseRate')}</p>
-          </CardContent>
-        </Card>
+      {loading && !data ? (
+        <div className="mb-5 xs:mb-8">
+          <KpiCardsSkeleton count={4} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 xs:mb-8">
+          <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
+              <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.baseSalary')}</CardTitle>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0">
+                <Banknote className="h-5 w-5" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-3.5 pt-0">
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(u?.salary)}</div>
+              <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.monthlyBaseRate')}</p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.loanBalance')}</CardTitle>
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center shrink-0">
-              <Wallet className="h-5 w-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 pb-3.5 pt-0">
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(totalLoanBalance)}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">
-              {t('profile.activeLoansCount', { count: loans.filter((l) => l.status === 'OPEN').length })}
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
+              <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.loanBalance')}</CardTitle>
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center shrink-0">
+                <Wallet className="h-5 w-5" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-3.5 pt-0">
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] tracking-tight">{money(totalLoanBalance)}</div>
+              <p className="text-xs text-[#8C7361] font-semibold mt-1">
+                {t('profile.activeLoansCount', { count: loans.filter((l) => l.status === 'OPEN').length })}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.penaltiesTotal')}</CardTitle>
-            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-700 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{money(totalPenaltyAmount)}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.loggedPenaltiesCount', { count: penalties.length })}</p>
-          </CardContent>
-        </Card>
+          <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
+              <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.penaltiesTotal')}</CardTitle>
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-700 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0">
+              <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{money(totalPenaltyAmount)}</div>
+              <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.loggedPenaltiesCount', { count: penalties.length })}</p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
-            <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.pendingApprovals')}</CardTitle>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 pb-3.5 pt-0">
-            <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">{pendingCount}</div>
-            <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.requiresYourReview')}</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
+              <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.pendingApprovals')}</CardTitle>
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-3.5 pt-0">
+              <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">{pendingCount}</div>
+              <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.requiresYourReview')}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* ── Main Navigation Tabs ── */}
       <div className="bg-white rounded-2xl xs:rounded-3xl border border-[#EDE4D5] shadow-xs overflow-hidden mb-6 xs:mb-8">
@@ -538,8 +545,12 @@ export default function MyProfilePage() {
         </div>
 
         <div className="p-3.5 xs:p-5 sm:p-6">
-          {/* TAB 1: PAYROLL */}
-          {activeTab === 'payroll' && (
+          {loading && !data ? (
+            <TableSkeleton rows={5} columns={6} />
+          ) : (
+            <>
+              {/* TAB 1: PAYROLL */}
+              {activeTab === 'payroll' && (
             <div>
               <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-3 xs:mb-4">{t('profile.payslipsHistoryTitle')}</h3>
               {payrolls.length === 0 ? (
@@ -1056,6 +1067,8 @@ export default function MyProfilePage() {
                 </form>
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
       </div>

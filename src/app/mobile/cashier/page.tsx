@@ -40,16 +40,12 @@ export default function MobileCashierStation() {
     setIsLoading(true);
     try {
       const [sessRes, prodRes] = await Promise.all([
-        api.get('/daily-sessions'),
+        api.get('/daily-sessions/active').catch(() => ({ data: null })),
         api.get('/products?isActive=true'),
       ]);
       
-      const openSess = Array.isArray(sessRes.data) 
-        ? sessRes.data.find((s: ActiveSession) => s.status === 'OPEN')
-        : null;
-
-      setActiveSession(openSess || null);
-      setProducts(prodRes.data);
+      setActiveSession(sessRes.data || null);
+      setProducts(prodRes.data || []);
 
       const initial: Record<string, number> = {};
       prodRes.data.forEach((p: Product) => {

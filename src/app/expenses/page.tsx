@@ -222,12 +222,15 @@ export default function ExpensesPage() {
     queryKey: ["expenses-active-session", branchId],
     queryFn: async () => {
       if (!branchId) return null;
-      const res = await api.get("/daily-sessions", { params: { branchId } });
-      const list = Array.isArray(res.data) ? res.data : (res.data?.sessions || []);
-      const openSess = list.find((s: any) => s.status === "OPEN");
-      return openSess || null;
+      try {
+        const res = await api.get("/daily-sessions/active", { params: { branchId } });
+        return res.data || null;
+      } catch {
+        return null;
+      }
     },
     enabled: !!canAccess && !!branchId,
+    staleTime: 60000,
   });
 
   // React Query: Expenses

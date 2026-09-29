@@ -133,6 +133,7 @@ export default function PayrollPage() {
       const { data } = await api.get("/users", { params });
       return (data || []).filter((u: User) => u.role !== "OWNER");
     },
+    staleTime: 60000,
   });
 
   const { data: history = [], isLoading: isLoadingHistory } = useQuery<PayrollRecord[]>({
@@ -142,6 +143,8 @@ export default function PayrollPage() {
       const { data } = await api.get("/payroll", { params });
       return data || [];
     },
+    enabled: activeTab === "HISTORY",
+    staleTime: 60000,
   });
 
   const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
@@ -152,6 +155,8 @@ export default function PayrollPage() {
       const { data } = await api.get("/loans", { params });
       return data || [];
     },
+    enabled: activeTab === "LOANS",
+    staleTime: 60000,
   });
 
   const { data: penalties = [], isLoading: isLoadingPenalties } = useQuery<Penalty[]>({
@@ -161,6 +166,8 @@ export default function PayrollPage() {
       const { data } = await api.get("/penalties", { params });
       return data || [];
     },
+    enabled: activeTab === "PENALTIES",
+    staleTime: 60000,
   });
 
   // RUN PAYROLL STATE

@@ -11,8 +11,9 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
           queries: {
             refetchOnWindowFocus: false,
             refetchOnReconnect: true,
-            staleTime: 30000, // Consider data fresh for 30s for instant sidebar transitions
-            gcTime: 10 * 60 * 1000, // Keep in memory for 10 minutes
+            staleTime: 60 * 1000, // Keep cached data fresh for 60s for instant page transitions
+            gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
+            retry: 1, // Avoid long waits on retries
           },
         },
       })
