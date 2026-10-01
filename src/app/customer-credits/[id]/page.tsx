@@ -215,6 +215,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
       toast.success(t("credits.toastPaymentSuccess"));
       setIsPayModalOpen(false);
       setAmountPaid("");
+      queryClient.invalidateQueries({ queryKey: ['customer-credit-detail', resolvedParams.id] });
       queryClient.invalidateQueries({ queryKey: ['customer-credit', resolvedParams.id] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits'] });

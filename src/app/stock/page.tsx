@@ -63,7 +63,18 @@ export default function StockPage() {
   // Manual stock addition modal state
   const [addingItem, setAddingItem] = useState<StockItem | null>(null);
   const [addAmount, setAddAmount] = useState<string>("");
+  const [addUnitPrice, setAddUnitPrice] = useState<string>("");
   const [addReason, setAddReason] = useState<string>("");
+
+  const openAddStockModal = (item: StockItem) => {
+    setAddingItem(item);
+    setAddAmount("");
+    setAddUnitPrice(item.unitPrice != null ? String(item.unitPrice) : "");
+    setAddReason("");
+    setIsAddLoan(false);
+    setAddPaidAmount("");
+    setAddSupplierName("");
+  };
 
   // Loan state for Creation
   const [isCreateLoan, setIsCreateLoan] = useState<boolean>(false);
@@ -144,10 +155,17 @@ export default function StockPage() {
       return;
     }
 
+    const parsedUnitPrice = addUnitPrice !== "" ? parseFloat(addUnitPrice) : undefined;
+    if (parsedUnitPrice !== undefined && (isNaN(parsedUnitPrice) || parsedUnitPrice < 0)) {
+      toast.error("Please enter a valid positive unit price");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await api.post(`/stock-items/${addingItem.id}/add`, {
         quantity: qty,
+        unitPrice: parsedUnitPrice,
         reason: addReason.trim() || "Manual Stock Addition",
         loanInfo: isAddLoan ? {
           isLoan: true,
@@ -158,6 +176,7 @@ export default function StockPage() {
       toast.success(`Successfully added ${qty} ${addingItem.unitType} to ${addingItem.name}`);
       setAddingItem(null);
       setAddAmount("");
+      setAddUnitPrice("");
       setAddReason("");
       setIsAddLoan(false);
       setAddPaidAmount("");
@@ -398,14 +417,7 @@ export default function StockPage() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => {
-                              setAddingItem(item);
-                              setAddAmount("");
-                              setAddReason("");
-                              setIsAddLoan(false);
-                              setAddPaidAmount("");
-                              setAddSupplierName("");
-                            }}
+                            onClick={() => openAddStockModal(item)}
                             className="h-8 px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex items-center gap-1 font-semibold"
                           >
                             <PlusCircle className="w-3.5 h-3.5" />
@@ -512,14 +524,7 @@ export default function StockPage() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => {
-                        setAddingItem(item);
-                        setAddAmount("");
-                        setAddReason("");
-                        setIsAddLoan(false);
-                        setAddPaidAmount("");
-                        setAddSupplierName("");
-                      }}
+                      onClick={() => openAddStockModal(item)}
                       className="h-9 px-1 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-bold flex items-center justify-center gap-1"
                     >
                       <PlusCircle className="w-3.5 h-3.5 shrink-0" />
@@ -756,12 +761,54 @@ export default function StockPage() {
                 </div>
 
                 <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-[#2C1B10] uppercase">
+                      {t('stock.unitPriceLabel') || "Current Unit Price"} ({t('common.currency')}/{addingItem.unitType})
+                    </label>
+                    {addingItem.unitPrice != null && (
+                      <span className="text-[11px] text-[#8C7361]">
+                        Current: {Number(addingItem.unitPrice).toFixed(2)} {t('common.currency')}
+                      </span>
+                    )}
+                  </div>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    min="0"
+                    value={addUnitPrice} 
+                    onChange={(e) => setAddUnitPrice(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder={addingItem.unitPrice ? String(addingItem.unitPrice) : "0.00"} 
+                    className="h-10 rounded-xl border-zinc-200 font-mono" 
+                  />
+                  <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
+                    Prompting current pricing updates this item's latest purchasing rate and stock movement value.
+                  </p>
+                </div>
+
+                {(() => {
+                  const qty = parseFloat(addAmount) || 0;
+                  const rate = addUnitPrice !== "" ? (parseFloat(addUnitPrice) || 0) : Number(addingItem.unitPrice || 0);
+                  if (qty > 0 && rate > 0) {
+                    return (
+                      <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between text-xs">
+                        <span className="font-bold text-emerald-900">Total Purchase Cost:</span>
+                        <span className="font-mono font-extrabold text-emerald-800 text-sm">
+                          {(qty * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
                     {t('common.notes')}
                   </label>
                   <Input 
                     value={addReason} 
-                    onChange={(e) => setAddReason(e.target.value)}
+                    onChange={(e) => setAddReason(e.target.value)} 
                     placeholder="e.g. Local Purchase, Restock, Inventory Audit" 
                     className="h-10 rounded-xl border-zinc-200" 
                   />

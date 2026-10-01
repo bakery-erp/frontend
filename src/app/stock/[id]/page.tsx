@@ -144,6 +144,7 @@ export default function StockItemDetailPage() {
   // Modals inside detail page
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addAmount, setAddAmount] = useState<string>("");
+  const [addUnitPrice, setAddUnitPrice] = useState<string>("");
   const [addReason, setAddReason] = useState<string>("");
 
   // Add stock loan state
@@ -173,10 +174,17 @@ export default function StockItemDetailPage() {
       return;
     }
 
+    const parsedUnitPrice = addUnitPrice !== "" ? parseFloat(addUnitPrice) : undefined;
+    if (parsedUnitPrice !== undefined && (isNaN(parsedUnitPrice) || parsedUnitPrice < 0)) {
+      toast.error("Please enter a valid positive unit price");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await api.post(`/stock-items/${itemId}/add`, {
         quantity: qty,
+        unitPrice: parsedUnitPrice,
         reason: addReason.trim() || "Manual Stock Addition",
         loanInfo: isAddLoan ? {
           isLoan: true,
@@ -187,6 +195,7 @@ export default function StockItemDetailPage() {
       toast.success(`Successfully added ${qty} ${data.stockItem.unitType} to ${data.stockItem.name}`);
       setIsAddOpen(false);
       setAddAmount("");
+      setAddUnitPrice("");
       setAddReason("");
       setIsAddLoan(false);
       setAddPaidAmount("");
@@ -389,7 +398,15 @@ export default function StockItemDetailPage() {
           {isGlobalAdmin && (
             <div className="grid grid-cols-3 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <Button 
-                onClick={() => setIsAddOpen(true)}
+                onClick={() => {
+                  setIsAddOpen(true);
+                  setAddAmount("");
+                  setAddUnitPrice(unitPrice ? String(unitPrice) : "");
+                  setAddReason("");
+                  setIsAddLoan(false);
+                  setAddPaidAmount("");
+                  setAddSupplierName("");
+                }}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm h-10 px-2 sm:px-4"
               >
                 <PlusCircle className="w-4 h-4 shrink-0" />
@@ -749,6 +766,46 @@ export default function StockItemDetailPage() {
                     className="rounded-xl border-[#EDE4D5] h-10 font-mono" 
                   />
                 </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-[#2C1B10] uppercase">
+                      Current Unit Price (ETB/{stockItem.unitType})
+                    </label>
+                    <span className="text-[11px] text-[#8C7361]">
+                      Current: {unitPrice.toFixed(2)} ETB
+                    </span>
+                  </div>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    min="0"
+                    value={addUnitPrice} 
+                    onChange={(e) => setAddUnitPrice(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder={unitPrice ? String(unitPrice) : "0.00"} 
+                    className="rounded-xl border-[#EDE4D5] h-10 font-mono" 
+                  />
+                  <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
+                    Setting current pricing updates this material's latest unit cost and stock movement valuation.
+                  </p>
+                </div>
+
+                {(() => {
+                  const qty = parseFloat(addAmount) || 0;
+                  const rate = addUnitPrice !== "" ? (parseFloat(addUnitPrice) || 0) : unitPrice;
+                  if (qty > 0 && rate > 0) {
+                    return (
+                      <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between text-xs">
+                        <span className="font-bold text-emerald-900">Total Purchase Cost:</span>
+                        <span className="font-mono font-extrabold text-emerald-800 text-sm">
+                          {(qty * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">

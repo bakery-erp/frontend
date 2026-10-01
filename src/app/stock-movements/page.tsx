@@ -127,9 +127,6 @@ export default function StockMovementsPage() {
     return () => clearTimeout(timer);
   }, [activeTab]);
 
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   // Filter state for loans
   const [loanStatusFilter, setLoanStatusFilter] = useState<string>("ALL");
   const [loanSearch, setLoanSearch] = useState<string>("");
@@ -157,24 +154,6 @@ export default function StockMovementsPage() {
 
   // History Log Modal State
   const [selectedLoanForHistory, setSelectedLoanForHistory] = useState<StockPurchaseLoan | null>(null);
-
-  // New Movement Form State
-  const [movementType, setMovementType] = useState<"IN" | "OUT" | "ADJUSTMENT">("IN");
-  const [selectedStockItem, setSelectedStockItem] = useState<string>("");
-  const [isLoan, setIsLoan] = useState<boolean>(false);
-  const [paidAmount, setPaidAmount] = useState<string>("");
-  const [supplierName, setSupplierName] = useState<string>("");
-
-  const { data: stockItems = [] } = useQuery<StockItem[]>({
-    queryKey: ['stock-items', selectedBranchId],
-    queryFn: async () => {
-      const endpoint = selectedBranchId 
-        ? `/stock-items?branchId=${selectedBranchId}` 
-        : `/stock-items`;
-      const res = await api.get(endpoint);
-      return res.data;
-    },
-  });
 
   const { data: movements = [], isLoading: isLoadingMovements } = useQuery<StockMovement[]>({
     queryKey: ['stock-movements', selectedBranchId],
@@ -233,53 +212,7 @@ export default function StockMovementsPage() {
     });
   }, [loans, loanSearch]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
-    
-    const data: Record<string, any> = {
-      stockItemId: selectedStockItem,
-      type: movementType,
-      reason: formData.get("reason"),
-    };
 
-    if (movementType === "ADJUSTMENT") {
-      data.adjustTo = Number(formData.get("quantity"));
-      data.quantity = 0;
-      data.type = "ADJUSTMENT";
-    } else {
-      data.quantity = Number(formData.get("quantity"));
-    }
-
-    if (movementType === "IN" && isLoan) {
-      data.loanInfo = {
-        isLoan: true,
-        paidAmount: paidAmount !== "" ? Number(paidAmount) : 0,
-        supplierName: supplierName.trim() || undefined,
-      };
-    }
-
-    try {
-      await api.post("/stock-movements", data);
-      toast.success("Stock movement recorded");
-      setIsAddOpen(false);
-      setMovementType("IN");
-      setSelectedStockItem("");
-      setIsLoan(false);
-      setPaidAmount("");
-      setSupplierName("");
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error recording movement");
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handlePayLoanSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,11 +289,6 @@ export default function StockMovementsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10]">{t('stockMovements.title')}</h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('stockMovements.subtitle')}</p>
-        </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button onClick={() => setIsAddOpen(true)} size="default" className="w-full sm:w-auto">
-            {t('stockMovements.recordMovement')}
-          </Button>
         </div>
       </div>
 
@@ -819,140 +747,7 @@ export default function StockMovementsPage() {
       </div>
     )}
 
-      {/* RECORD MOVEMENT MODAL */}
-      {isAddOpen && (
-        <Dialog open={true} onOpenChange={(open) => {
-          if (!open) {
-            setIsAddOpen(false);
-            setIsLoan(false);
-            setPaidAmount("");
-            setSupplierName("");
-          }
-        }}>
-          <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-[#2C1B10]">{t('stockMovements.modalRecordTitle')}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-3.5 py-3">
-                
-                <div>
-                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">{t('stockMovements.colMovementType')}</label>
-                  <select 
-                    value={movementType} 
-                    onChange={(e) => setMovementType(e.target.value as any)}
-                    className="w-full border rounded-xl h-10 px-3 bg-background text-sm font-semibold"
-                  >
-                    <option value="IN">{t('stockMovements.optionIn')}</option>
-                    <option value="OUT">{t('stockMovements.optionOut')}</option>
-                    <option value="ADJUSTMENT">{t('stockMovements.optionAdjustment')}</option>
-                  </select>
-                </div>
 
-                <div>
-                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">{t('stockMovements.colMaterial')}</label>
-                  <select 
-                    required 
-                    value={selectedStockItem}
-                    onChange={(e) => setSelectedStockItem(e.target.value)}
-                    className="w-full border rounded-xl h-10 px-3 bg-background text-sm font-semibold"
-                  >
-                    <option value="" disabled>{t('stockMovements.selectItem')}</option>
-                    {stockItems.map(item => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} ({t('stock.colCurrentQty')}: {Number(item.currentQuantity).toFixed(2)} {item.unitType})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">
-                    {movementType === "ADJUSTMENT" ? t('stockMovements.newTotalQty') : t('stockMovements.qtyToTransfer')}
-                  </label>
-                  <Input 
-                    name="quantity" 
-                    type="number" 
-                    step="0.001" 
-                    min="0" 
-                    required 
-                    onFocus={(e) => e.target.select()}
-                    placeholder={movementType === "ADJUSTMENT" ? "e.g. 50" : "e.g. 10"} 
-                    className="h-10 rounded-xl font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-[#8C7361] uppercase mb-1 block">{t('stockMovements.reasonNotesOptional')}</label>
-                  <Input name="reason" placeholder="e.g. Supplier delivery, Recount, Spilled" className="h-10 rounded-xl text-xs" />
-                </div>
-
-                {movementType === "IN" && (
-                  <div className="p-3.5 bg-purple-50/80 rounded-2xl border border-purple-200 space-y-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={isLoan} 
-                        onChange={(e) => setIsLoan(e.target.checked)} 
-                        className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
-                      />
-                      <span className="text-xs font-extrabold text-purple-950">{t('stockMovements.creditLoanPrompt')}</span>
-                    </label>
-
-                    {isLoan && (
-                      <div className="space-y-3 pt-1">
-                        <div>
-                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stockMovements.colSupplier')}</label>
-                          <Input 
-                            value={supplierName} 
-                            onChange={(e) => setSupplierName(e.target.value)} 
-                            placeholder="e.g. National Flour Mills" 
-                            className="bg-white rounded-xl border-purple-200 text-xs h-9" 
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stockMovements.downPaymentLabel')}</label>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            min="0" 
-                            value={paidAmount} 
-                            onChange={(e) => setPaidAmount(e.target.value)} 
-                            onFocus={(e) => e.target.select()}
-                            placeholder="0.00 (leave 0 if 100% credit)" 
-                            className="bg-white rounded-xl border-purple-200 text-xs font-mono h-9" 
-                          />
-                          <p className="text-[10px] text-purple-700 mt-1">{t('stockMovements.creditLoanNote')}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              </div>
-              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
-                <Button
-                  type="submit"
-                  size="lg"
-                  loading={isSubmitting}
-                  className="w-full sm:w-auto order-1 sm:order-2"
-                >
-                  {t('stockMovements.recordMovement')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  onClick={() => setIsAddOpen(false)}
-                  className="w-full sm:w-auto order-2 sm:order-1"
-                >
-                  {t('common.cancel')}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* RECORD LOAN PAYMENT MODAL */}
       {selectedLoanForPay && (
