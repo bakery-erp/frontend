@@ -13,7 +13,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
-import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, X, MoreVertical, Edit, ArrowUpRight } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -46,6 +46,19 @@ export default function ProductionPage() {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
   const [expandedMaterialsBatches, setExpandedMaterialsBatches] = useState<Record<string, boolean>>({});
+
+  // Action dropdown state
+  const [openActionDropdownId, setOpenActionDropdownId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleDocClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-actions-menu]')) {
+        setOpenActionDropdownId(null);
+      }
+    };
+    document.addEventListener('click', handleDocClick);
+    return () => document.removeEventListener('click', handleDocClick);
+  }, []);
 
   const toggleExpandBatch = (batchId: string) => {
     setExpandedBatches((prev) => ({ ...prev, [batchId]: !prev[batchId] }));
@@ -260,6 +273,8 @@ export default function ProductionPage() {
       return true;
     });
 
+
+
   return (
     <DashboardLayout>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 xs:mb-6">
@@ -409,7 +424,8 @@ export default function ProductionPage() {
           filteredBatches.map((batch) => (
             <div
               key={batch.id}
-              className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-3 hover:border-[#E87A18]/30 transition-all"
+              onClick={() => router.push(`/production/${batch.id}`)}
+              className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-3 hover:border-[#4A2E1B]/30 hover:shadow-xs transition-all cursor-pointer"
             >
               {/* Card Header: Date, Shift, and Status */}
               <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
@@ -427,43 +443,36 @@ export default function ProductionPage() {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7361] block mb-1.5">
                   {t('production.colProductsBaked')} ({batch.items.length})
                 </span>
-                {(() => {
-                  const isExpanded = !!expandedBatches[batch.id];
-                  const hasMore = batch.items.length > 5;
-                  const displayedItems = hasMore && !isExpanded ? batch.items.slice(0, 5) : batch.items;
-
-                  return (
-                    <div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {displayedItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]"
-                          >
-                            <span>{item.product.name}</span>
-                            <span className="text-[#E87A18] font-extrabold">
-                              × {item.quantityProduced} {item.product.unitType}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {hasMore && (
+                {batch.items.length === 0 ? (
+                  <span className="text-xs text-zinc-400 italic">No products</span>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]">
+                      <span>{batch.items[0].product.name}</span>
+                      <span className="text-[#E87A18] font-black">
+                        × {batch.items[0].quantityProduced} {batch.items[0].product.unitType}
+                      </span>
+                    </div>
+                    {batch.items.length > 1 && (
+                      <div>
                         <button
                           type="button"
-                          onClick={() => toggleExpandBatch(batch.id)}
-                          className="mt-2 text-xs font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/production/${batch.id}`);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#FAF6F0] hover:bg-[#F3ECE1] border border-[#EDE4D5] text-xs font-bold text-[#4A2E1B] transition-all cursor-pointer group shadow-2xs"
                         >
-                          {isExpanded ? (
-                            <>{t('production.showLess')}</>
-                          ) : (
-                            <>{t('production.showMoreProducts', { count: String(batch.items.length - 5) })}</>
-                          )}
+                          <span className="text-[#E87A18] font-black">+{batch.items.length - 1}</span>
+                          <span className="font-semibold text-[#8C7361] group-hover:text-[#4A2E1B]">
+                            {t('production.moreProductsBadge')}
+                          </span>
+                          <ChevronRight className="w-3 h-3 text-[#8C7361] group-hover:translate-x-0.5 transition-transform" />
                         </button>
-                      )}
-                    </div>
-                  );
-                })()}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Raw Materials Deducted */}
@@ -473,42 +482,31 @@ export default function ProductionPage() {
                 </span>
                 {batch.materialUsages.length === 0 ? (
                   <span className="text-xs text-zinc-400 italic">{t('production.noMaterialsDeducted')}</span>
-                ) : (() => {
-                  const isMatExpanded = !!expandedMaterialsBatches[batch.id];
-                  const visibleMaterials = isMatExpanded
-                    ? batch.materialUsages
-                    : batch.materialUsages.slice(0, 5);
-                  const hasMoreMaterials = batch.materialUsages.length > 5;
-
-                  return (
-                    <div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {visibleMaterials.map((mat) => (
-                          <span
-                            key={mat.id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800"
-                          >
-                            {mat.stockItem.name}: -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
-                          </span>
-                        ))}
-                      </div>
-
-                      {hasMoreMaterials && (
+                ) : (
+                  <div className="space-y-1.5">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800">
+                      {batch.materialUsages[0].stockItem.name}: -{Number(batch.materialUsages[0].quantityUsed).toFixed(2)} {batch.materialUsages[0].stockItem.unitType}
+                    </span>
+                    {batch.materialUsages.length > 1 && (
+                      <div>
                         <button
                           type="button"
-                          onClick={() => toggleExpandMaterials(batch.id)}
-                          className="mt-2 text-xs font-bold text-[#E87A18] hover:text-[#d46d13] flex items-center gap-1 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/production/${batch.id}`);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-xs font-bold text-rose-800 transition-all cursor-pointer group shadow-2xs"
                         >
-                          {isMatExpanded ? (
-                            <>{t('production.showLess')}</>
-                          ) : (
-                            <>{t('production.showMoreMaterials', { count: String(batch.materialUsages.length - 5) })}</>
-                          )}
+                          <span className="text-rose-600 font-black">+{batch.materialUsages.length - 1}</span>
+                          <span className="font-semibold text-rose-700">
+                            {t('production.moreMaterialsBadge')}
+                          </span>
+                          <ChevronRight className="w-3 h-3 text-rose-500 group-hover:translate-x-0.5 transition-transform" />
                         </button>
-                      )}
-                    </div>
-                  );
-                })()}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Card Footer: Logged by & Action Buttons */}
@@ -517,38 +515,92 @@ export default function ProductionPage() {
                   {t('production.colLoggedBy')}: <strong className="text-[#2C1B10]">{batch.user.fullName}</strong>
                 </span>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => router.push(`/production/new?edit=${batch.id}`)}
-                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
+                <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/production/${batch.id}`)}
+                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                    {t('common.view') || 'View'}
+                  </Button>
+
+                  {/* Actions Dropdown */}
+                  <div className="relative" data-actions-menu>
+                    <button
+                      type="button"
+                      onClick={() => setOpenActionDropdownId(openActionDropdownId === `m-${batch.id}` ? null : `m-${batch.id}`)}
+                      className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                        openActionDropdownId === `m-${batch.id}`
+                          ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
+                          : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                      }`}
+                      title="More Actions"
                     >
-                      {t('common.edit')}
-                    </Button>
-                  )}
-                  {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
-                    <>
-                      <Button
-                        size="sm"
-                        disabled={actionBatchId === batch.id}
-                        onClick={() => handleApprove(batch.id)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-xs"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> {t('common.approve')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={actionBatchId === batch.id}
-                        onClick={() => handleReject(batch.id)}
-                        className="border-red-300 text-red-700 hover:bg-red-50 font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1"
-                      >
-                        <XCircle className="w-3.5 h-3.5" /> {t('common.reject')}
-                      </Button>
-                    </>
-                  )}
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+
+                    {openActionDropdownId === `m-${batch.id}` && (
+                      <div className="absolute right-0 bottom-full mb-1.5 w-48 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1">
+                        {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={actionBatchId === batch.id}
+                              onClick={() => {
+                                setOpenActionDropdownId(null);
+                                handleApprove(batch.id);
+                              }}
+                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              {t('common.approve') || "Approve Batch"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionBatchId === batch.id}
+                              onClick={() => {
+                                setOpenActionDropdownId(null);
+                                handleReject(batch.id);
+                              }}
+                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
+                            >
+                              <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+                              {t('common.reject') || "Reject Batch"}
+                            </button>
+                            <div className="my-1 border-t border-[#F4ECE1]" />
+                          </>
+                        )}
+
+                        {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenActionDropdownId(null);
+                              router.push(`/production/new?edit=${batch.id}`);
+                            }}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
+                            {t('common.edit') || "Edit Batch"}
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenActionDropdownId(null);
+                            router.push(`/production/${batch.id}`);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                          {t('common.details') || "Batch Details"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -602,32 +654,77 @@ export default function ProductionPage() {
                 </TableCell>
               </TableRow>
             ) : filteredBatches.map(batch => (
-              <TableRow key={batch.id}>
+              <TableRow
+                key={batch.id}
+                onClick={() => router.push(`/production/${batch.id}`)}
+                className="hover:bg-[#FAF8F5]/80 transition-colors cursor-pointer"
+              >
                 <TableCell>
                   <div className="font-bold text-[#2C1B10]">{formatEthDate(batch.date)}</div>
                   <div className="text-xs font-semibold text-[#8C7361] mt-0.5">{batch.shift === "NIGHT" ? t('production.nightShiftFull') : t('production.dayShiftFull')}</div>
                 </TableCell>
                 <TableCell>
-                  <ul className="text-sm space-y-1">
-                    {batch.items.map(item => (
-                      <li key={item.id} className="font-semibold text-[#2C1B10]">
-                        {item.product.name}
-                        <span className="font-bold text-[#E87A18]">
-                          : {item.quantityProduced} {item.product.unitType}
+                  {batch.items.length === 0 ? (
+                    <span className="text-zinc-400 italic text-xs">No products</span>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="font-bold text-[#2C1B10] text-sm">
+                        {batch.items[0].product.name}
+                        <span className="font-extrabold text-[#E87A18]">
+                          : {batch.items[0].quantityProduced} {batch.items[0].product.unitType}
                         </span>
-                      </li>
-                    ))}
-                  </ul>
+                      </div>
+                      {batch.items.length > 1 && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/production/${batch.id}`);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#4A2E1B] border border-[#EDE4D5] hover:border-[#4A2E1B]/30 transition-all cursor-pointer group shadow-2xs"
+                            title="View all products in batch"
+                          >
+                            <span className="text-[#E87A18] font-black">+{batch.items.length - 1}</span>
+                            <span className="font-semibold text-[#8C7361] group-hover:text-[#4A2E1B]">
+                              {t('production.moreProductsBadge')}
+                            </span>
+                            <ChevronRight className="w-3 h-3 text-[#8C7361] group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <ul className="text-sm space-y-1 text-[#8C7361]">
-                    {batch.materialUsages.length === 0 ? <span className="text-zinc-400 italic text-xs">{t('production.noMaterialsDeducted')}</span> : null}
-                    {batch.materialUsages.map(mat => (
-                      <li key={mat.id}>
-                        {mat.stockItem.name}: <span className="font-bold text-rose-700">-{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {batch.materialUsages.length === 0 ? (
+                    <span className="text-zinc-400 italic text-xs">{t('production.noMaterialsDeducted')}</span>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="text-sm font-medium text-[#2C1B10]">
+                        {batch.materialUsages[0].stockItem.name}: <span className="font-bold text-rose-700">-{Number(batch.materialUsages[0].quantityUsed).toFixed(2)} {batch.materialUsages[0].stockItem.unitType}</span>
+                      </div>
+                      {batch.materialUsages.length > 1 && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/production/${batch.id}`);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 hover:border-rose-300 transition-all cursor-pointer group shadow-2xs"
+                            title="View all raw materials in batch"
+                          >
+                            <span className="text-rose-600 font-black">+{batch.materialUsages.length - 1}</span>
+                            <span className="font-semibold text-rose-700">
+                              {t('production.moreMaterialsBadge')}
+                            </span>
+                            <ChevronRight className="w-3 h-3 text-rose-500 group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(batch.status)}
@@ -635,39 +732,93 @@ export default function ProductionPage() {
                 <TableCell>
                   <span className="text-xs font-bold text-[#2C1B10]">{batch.user.fullName}</span>
                 </TableCell>
-                <TableCell className="text-right pr-6">
-                  <div className="flex items-center justify-end gap-2">
-                    {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => router.push(`/production/new?edit=${batch.id}`)}
-                        className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
+                <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1.5 relative" data-actions-menu>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => router.push(`/production/${batch.id}`)}
+                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                      {t('common.view') || "View"}
+                    </Button>
+
+                    {/* Compact Actions Dropdown Menu */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setOpenActionDropdownId(openActionDropdownId === batch.id ? null : batch.id)}
+                        className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                          openActionDropdownId === batch.id
+                            ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
+                            : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                        }`}
+                        title="More Actions"
                       >
-                        {t('common.edit')}
-                      </Button>
-                    )}
-                    {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
-                      <>
-                        <Button
-                          size="sm"
-                          disabled={actionBatchId === batch.id}
-                          onClick={() => handleApprove(batch.id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1 shadow-sm"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> {t('common.approve')}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={actionBatchId === batch.id}
-                          onClick={() => handleReject(batch.id)}
-                          className="border-red-300 text-red-700 hover:bg-red-50 font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1"
-                        >
-                          <XCircle className="w-3.5 h-3.5" /> {t('common.reject')}
-                        </Button>
-                      </>
-                    )}
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+
+                      {openActionDropdownId === batch.id && (
+                        <div className="absolute right-0 top-full mt-1.5 w-48 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95 duration-100">
+                          {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={actionBatchId === batch.id}
+                                onClick={() => {
+                                  setOpenActionDropdownId(null);
+                                  handleApprove(batch.id);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
+                              >
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                {t('common.approve') || "Approve Batch"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actionBatchId === batch.id}
+                                onClick={() => {
+                                  setOpenActionDropdownId(null);
+                                  handleReject(batch.id);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
+                              >
+                                <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+                                {t('common.reject') || "Reject Batch"}
+                              </button>
+                              <div className="my-1 border-t border-[#F4ECE1]" />
+                            </>
+                          )}
+
+                          {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenActionDropdownId(null);
+                                router.push(`/production/new?edit=${batch.id}`);
+                              }}
+                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                            >
+                              <Edit className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
+                              {t('common.edit') || "Edit Batch"}
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenActionDropdownId(null);
+                              router.push(`/production/${batch.id}`);
+                            }}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                          >
+                            <ArrowUpRight className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                            {t('common.details') || "Batch Details"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
               </TableRow>
@@ -828,6 +979,8 @@ export default function ProductionPage() {
           </DialogContent>
         </Dialog>
       )}
+
+
 
 
     </DashboardLayout>
