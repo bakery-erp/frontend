@@ -27,7 +27,11 @@ import {
   ShieldAlert,
   User,
   Landmark,
+  MoreVertical,
+  ChevronRight,
+  Eye,
 } from "lucide-react";
+import ConfirmModal from "@/components/ConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -135,6 +139,23 @@ export default function OwnerLoansPage() {
 
   // History Modal State
   const [historyLoan, setHistoryLoan] = useState<OwnerLoan | null>(null);
+
+  // Actions Dropdown & Delete State
+  const [openActionDropdownId, setOpenActionDropdownId] = useState<string | null>(null);
+  const [deleteLoanId, setDeleteLoanId] = useState<string | null>(null);
+  const [isDeletingLoan, setIsDeletingLoan] = useState(false);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-actions-menu]")) {
+        setOpenActionDropdownId(null);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   // Redirect if not Owner
   useEffect(() => {
@@ -321,18 +342,21 @@ export default function OwnerLoansPage() {
     }
   };
 
-  // Handle Delete Loan
-  const handleDeleteLoan = async (loanId: string) => {
-    if (!confirm(t("ownerLoans.confirmDelete"))) return;
-
+  // Handle Delete Loan with ConfirmModal
+  const handleConfirmDeleteLoan = async () => {
+    if (!deleteLoanId) return;
+    setIsDeletingLoan(true);
     try {
-      await api.delete(`/loans/${loanId}`);
+      await api.delete(`/loans/${deleteLoanId}`);
       toast.success(t("ownerLoans.toastLoanDeleted"));
       queryClient.invalidateQueries({ queryKey: ["owner-loans"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (err: any) {
       console.error(err);
       toast.error(err.response?.data?.error || "Failed to delete loan record");
+    } finally {
+      setIsDeletingLoan(false);
+      setDeleteLoanId(null);
     }
   };
 
@@ -570,15 +594,15 @@ export default function OwnerLoansPage() {
                 <Table>
                   <TableHeader className="bg-[#FAF6F0]">
                     <TableRow className="border-[#EDE4D5]">
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs">{t("ownerLoans.colDate")}</TableHead>
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs">{t("ownerLoans.colLender")}</TableHead>
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs">{t("ownerLoans.colReason")}</TableHead>
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs">{t("ownerLoans.colBranch")}</TableHead>
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs text-right">{t("ownerLoans.colTotalAmount")}</TableHead>
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs text-center">{t("ownerLoans.colRepaid")}</TableHead>
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs text-right">{t("ownerLoans.colRemainingBalance")}</TableHead>
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs text-center">{t("ownerLoans.colStatus")}</TableHead>
-                      <TableHead className="font-extrabold text-[#4A2E1B] text-xs text-right pr-6">{t("ownerLoans.colActions")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs whitespace-nowrap">{t("ownerLoans.colDate")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs whitespace-nowrap">{t("ownerLoans.colLender")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs whitespace-nowrap">{t("ownerLoans.colReason")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs whitespace-nowrap">{t("ownerLoans.colBranch")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs text-right whitespace-nowrap">{t("ownerLoans.colTotalAmount")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs text-center whitespace-nowrap">{t("ownerLoans.colRepaid")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs text-right whitespace-nowrap">{t("ownerLoans.colRemainingBalance")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs text-center whitespace-nowrap">{t("ownerLoans.colStatus")}</TableHead>
+                      <TableHead className="px-3 py-2.5 font-extrabold text-[#4A2E1B] text-xs text-right pr-4 whitespace-nowrap">{t("ownerLoans.colActions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -591,63 +615,67 @@ export default function OwnerLoansPage() {
                       const loanInfo = parseOwnerLoanEntity(loan.entityId);
 
                       return (
-                        <TableRow key={loan.id} className="border-[#EDE4D5] hover:bg-[#FAF6F0]/40 transition-colors">
+                        <TableRow
+                          key={loan.id}
+                          onClick={() => setHistoryLoan(loan)}
+                          className="border-[#EDE4D5] hover:bg-[#FAF6F0]/70 transition-colors cursor-pointer"
+                        >
                           {/* Date */}
-                          <TableCell className="text-xs font-semibold text-[#8C7361] whitespace-nowrap">
-                            <div className="font-bold text-[#2C1B10]">
+                          <TableCell className="px-3 py-2.5 text-xs whitespace-nowrap">
+                            <div className="font-bold text-[#2C1B10] text-xs leading-tight">
                               {formatEthDate(loan.date || loan.createdAt)}
                             </div>
-                            <div className="text-[10px] text-[#8C7361]">
-                              {format(new Date(loan.date || loan.createdAt), "MMM dd, yyyy")}
+                            <div className="text-[10px] text-[#8C7361] mt-0.5">
+                              {format(new Date(loan.date || loan.createdAt), "MMM d, yyyy")}
                             </div>
                           </TableCell>
 
                           {/* Lender Name (Person or Company) */}
-                          <TableCell className="max-w-[200px]">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-center shrink-0 text-[#E87A18]">
-                                <Landmark className="w-3.5 h-3.5" />
+                          <TableCell className="px-3 py-2.5 max-w-[150px]">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-6 h-6 rounded-md bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-center shrink-0 text-[#E87A18]">
+                                <Landmark className="w-3 h-3" />
                               </div>
-                              <span className="font-black text-sm text-[#2C1B10] truncate">
+                              <span className="font-extrabold text-xs sm:text-sm text-[#2C1B10] truncate" title={loanInfo.lender}>
                                 {loanInfo.lender}
                               </span>
                             </div>
                           </TableCell>
 
                           {/* Reason / Purpose (Manual) */}
-                          <TableCell className="max-w-[220px]">
-                            <div className="font-semibold text-xs text-[#4A2E1B] truncate">
+                          <TableCell className="px-3 py-2.5 max-w-[140px]">
+                            <div className="font-semibold text-xs text-[#4A2E1B] truncate" title={loanInfo.reason || "No specific reason"}>
                               {loanInfo.reason || <span className="text-[#8C7361] italic text-[11px]">No specific reason</span>}
                             </div>
                             {loanInfo.notes && (
-                              <div className="text-[10px] text-[#8C7361] truncate mt-0.5">
+                              <div className="text-[10px] text-[#8C7361] truncate mt-0.5" title={loanInfo.notes}>
                                 Note: {loanInfo.notes}
                               </div>
                             )}
                           </TableCell>
 
                           {/* Branch */}
-                          <TableCell className="text-xs font-semibold text-[#4A2E1B] whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5]">
-                              <Building2 className="w-3.5 h-3.5 text-[#E87A18]" />
-                              {loan.branch?.name || "Main Branch"}
+                          <TableCell className="px-3 py-2.5 text-xs font-semibold text-[#4A2E1B] whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAF6F0] border border-[#EDE4D5] text-[11px]">
+                              <Building2 className="w-3 h-3 text-[#E87A18] shrink-0" />
+                              <span className="truncate max-w-[90px]">{loan.branch?.name || "Main Branch"}</span>
                             </span>
                           </TableCell>
 
                           {/* Total Amount */}
-                          <TableCell className="text-right font-black text-sm text-[#2C1B10] font-mono whitespace-nowrap">
+                          <TableCell className="px-3 py-2.5 text-right font-black text-xs text-[#2C1B10] font-mono whitespace-nowrap">
                             {totalNum.toLocaleString()} <span className="text-[10px] font-semibold text-[#8C7361]">{t("common.currency")}</span>
                           </TableCell>
 
                           {/* Repaid Progress */}
-                          <TableCell className="text-center min-w-[130px]">
-                            <div className="flex flex-col items-center gap-1">
+                          <TableCell className="px-3 py-2.5 text-center whitespace-nowrap">
+                            <div className="inline-flex flex-col items-center gap-0.5">
                               <span className="text-xs font-bold font-mono text-emerald-700">
-                                {paidNum.toLocaleString()} ETB ({percentPaid}%)
+                                {paidNum.toLocaleString()} <span className="text-[10px]">({percentPaid}%)</span>
                               </span>
-                              <div className="w-24 bg-zinc-100 rounded-full h-1.5 overflow-hidden border border-zinc-200">
+                              <div className="w-16 bg-zinc-100 rounded-full h-1 overflow-hidden border border-zinc-200">
                                 <div
-                                  className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                                  className="bg-emerald-500 h-1 rounded-full transition-all duration-300"
                                   style={{ width: `${percentPaid}%` }}
                                 />
                               </div>
@@ -655,32 +683,32 @@ export default function OwnerLoansPage() {
                           </TableCell>
 
                           {/* Remaining Due */}
-                          <TableCell className="text-right font-mono whitespace-nowrap">
-                            <span className={`font-black text-sm sm:text-base ${isPaid ? "text-emerald-700" : "text-rose-600"}`}>
+                          <TableCell className="px-3 py-2.5 text-right font-mono whitespace-nowrap">
+                            <span className={`font-black text-xs sm:text-sm ${isPaid ? "text-emerald-700" : "text-rose-600"}`}>
                               {remNum.toLocaleString()}
                             </span>
-                            <span className="text-[10px] font-semibold text-[#8C7361] ml-1">{t("common.currency")}</span>
+                            <span className="text-[10px] font-semibold text-[#8C7361] ml-0.5">{t("common.currency")}</span>
                           </TableCell>
 
                           {/* Status Badge */}
-                          <TableCell className="text-center whitespace-nowrap">
+                          <TableCell className="px-3 py-2.5 text-center whitespace-nowrap">
                             {isPaid ? (
-                              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold text-[11px] px-2.5 py-0.5">
-                                <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
+                              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold text-[10px] px-2 py-0.5">
+                                <CheckCircle2 className="w-2.5 h-2.5 mr-1 text-emerald-600" />
                                 {t("ownerLoans.statusPaid")}
                               </Badge>
                             ) : (
-                              <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-[11px] px-2.5 py-0.5">
-                                <Clock className="w-3 h-3 mr-1 text-amber-600 animate-pulse" />
+                              <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-[10px] px-2 py-0.5">
+                                <Clock className="w-2.5 h-2.5 mr-1 text-amber-600 animate-pulse" />
                                 {t("ownerLoans.statusOpen")}
                               </Badge>
                             )}
                           </TableCell>
 
                           {/* Actions */}
-                          <TableCell className="text-right pr-6 whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {!isPaid && (
+                          <TableCell className="px-3 py-2.5 text-right pr-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5 relative" data-actions-menu>
+                              {!isPaid ? (
                                 <Button
                                   size="sm"
                                   variant="success"
@@ -689,31 +717,84 @@ export default function OwnerLoansPage() {
                                     setPayAmount(String(remNum));
                                     setPayDate(format(new Date(), "yyyy-MM-dd"));
                                   }}
+                                  className="h-8 px-2.5 rounded-xl font-bold text-xs shadow-2xs shrink-0 flex items-center gap-1"
                                 >
                                   <DollarSign className="w-3.5 h-3.5 stroke-[2.5]" />
                                   <span>{t("ownerLoans.repayBtn")}</span>
                                 </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setHistoryLoan(loan)}
+                                  className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-[#E87A18]" />
+                                  <span>History ({loan.payments?.length || 0})</span>
+                                </Button>
                               )}
 
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setHistoryLoan(loan)}
-                                title="View Payment History"
-                              >
-                                <FileText className="w-3.5 h-3.5 text-[#8C7361]" />
-                                <span className="ml-1 text-[11px]">{loan.payments?.length || 0}</span>
-                              </Button>
+                              {/* Compact Actions Dropdown Menu */}
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenActionDropdownId(openActionDropdownId === loan.id ? null : loan.id)}
+                                  className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                                    openActionDropdownId === loan.id
+                                      ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
+                                      : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                                  }`}
+                                  title="More Actions"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
 
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleDeleteLoan(loan.id)}
-                                className="text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
-                                title="Delete Record"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+                                {openActionDropdownId === loan.id && (
+                                  <div className="absolute right-0 top-full mt-1.5 w-48 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95 duration-100">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenActionDropdownId(null);
+                                        setHistoryLoan(loan);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                                      <span>Payment History ({loan.payments?.length || 0})</span>
+                                    </button>
+
+                                    {!isPaid && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenActionDropdownId(null);
+                                          setPayingLoan(loan);
+                                          setPayAmount(String(remNum));
+                                          setPayDate(format(new Date(), "yyyy-MM-dd"));
+                                        }}
+                                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
+                                      >
+                                        <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                        <span>{t("ownerLoans.repayBtn")}</span>
+                                      </button>
+                                    )}
+
+                                    <div className="my-1 border-t border-[#F4ECE1]" />
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenActionDropdownId(null);
+                                        setDeleteLoanId(loan.id);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                      <span>{t("common.delete")} Record</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -826,7 +907,7 @@ export default function OwnerLoansPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDeleteLoan(loan.id)}
+                          onClick={() => setDeleteLoanId(loan.id)}
                           className="h-9 w-9 p-0 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1182,6 +1263,18 @@ export default function OwnerLoansPage() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!deleteLoanId}
+        onClose={() => setDeleteLoanId(null)}
+        onConfirm={handleConfirmDeleteLoan}
+        title={t("ownerLoans.modalDeleteTitle") || "Delete Loan Record?"}
+        description={t("ownerLoans.confirmDelete") || "Are you sure you want to delete this personal loan record? This action cannot be undone."}
+        confirmText={t("common.delete") || "Delete"}
+        isLoading={isDeletingLoan}
+        variant="danger"
+      />
     </DashboardLayout>
   );
 }

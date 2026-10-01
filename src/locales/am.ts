@@ -1163,7 +1163,7 @@ export const am: TranslationDictionary = {
     activeLoans: "ክፍት ብድሮች",
     settledLoans: "የተጠናቀቁ ብድሮች",
     colDate: "ቀን",
-    colLender: "የተበደረው ከ (ሰው / ድርጅት)",
+    colLender: "አበዳሪ / ምንጭ",
     colBranch: "ቅርንጫፍ",
     colReason: "ምክንያት / ዓላማ",
     colTotalAmount: "ጠቅላላ ብድር",

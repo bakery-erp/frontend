@@ -1161,7 +1161,7 @@ export const en = {
     activeLoans: "Active Loans",
     settledLoans: "Settled Loans",
     colDate: "Date",
-    colLender: "Lent From (Person / Company)",
+    colLender: "Lender / Source",
     colBranch: "Branch",
     colReason: "Purpose / Reason",
     colTotalAmount: "Total Borrowed",
