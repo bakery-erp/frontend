@@ -345,7 +345,7 @@ export default function OwnerLoansPage() {
           <p className="text-sm text-[#8C7361] mt-1 max-w-md">
             This module is reserved exclusively for the bakery business owner to track personal borrowings and repayments.
           </p>
-          <Button onClick={() => router.push("/")} className="mt-6 bg-[#E87A18] hover:bg-[#d66e13] font-bold text-white rounded-xl">
+          <Button onClick={() => router.push("/")} size="lg" className="mt-6">
             Return to Dashboard
           </Button>
         </div>
@@ -379,7 +379,8 @@ export default function OwnerLoansPage() {
 
           <Button
             onClick={() => setIsLogModalOpen(true)}
-            className="bg-[#E87A18] hover:bg-[#d66e13] text-white font-extrabold h-11 px-5 rounded-2xl shadow-sm flex items-center gap-2 transition-all transform active:scale-95 shrink-0"
+            size="lg"
+            className="shrink-0"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>{t("ownerLoans.logNewLoan")}</span>
@@ -525,7 +526,6 @@ export default function OwnerLoansPage() {
                   setStatusFilter("ALL");
                   setBranchFilter("ALL");
                 }}
-                className="h-10 px-3 rounded-xl border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] font-bold text-xs flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -556,7 +556,8 @@ export default function OwnerLoansPage() {
               {!hasActiveFilters && (
                 <Button
                   onClick={() => setIsLogModalOpen(true)}
-                  className="mt-4 bg-[#E87A18] hover:bg-[#d66e13] text-white font-bold rounded-xl text-xs h-9 px-4"
+                  size="sm"
+                  className="mt-4"
                 >
                   <Plus className="w-4 h-4 mr-1" /> {t("ownerLoans.logNewLoan")}
                 </Button>
@@ -682,12 +683,12 @@ export default function OwnerLoansPage() {
                               {!isPaid && (
                                 <Button
                                   size="sm"
+                                  variant="success"
                                   onClick={() => {
                                     setPayingLoan(loan);
                                     setPayAmount(String(remNum));
                                     setPayDate(format(new Date(), "yyyy-MM-dd"));
                                   }}
-                                  className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs"
                                 >
                                   <DollarSign className="w-3.5 h-3.5 stroke-[2.5]" />
                                   <span>{t("ownerLoans.repayBtn")}</span>
@@ -698,7 +699,6 @@ export default function OwnerLoansPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setHistoryLoan(loan)}
-                                className="h-8 px-2.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs"
                                 title="View Payment History"
                               >
                                 <FileText className="w-3.5 h-3.5 text-[#8C7361]" />
@@ -707,9 +707,9 @@ export default function OwnerLoansPage() {
 
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => handleDeleteLoan(loan.id)}
-                                className="h-8 w-8 p-0 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
+                                className="text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
                                 title="Delete Record"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -962,16 +962,15 @@ export default function OwnerLoansPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsLogModalOpen(false)}
-                className="h-10 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs"
               >
                 {t("common.cancel")}
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmittingLog}
-                className="h-10 rounded-xl bg-[#E87A18] hover:bg-[#d66e13] text-white font-extrabold text-xs px-5 shadow-xs"
+                loading={isSubmittingLog}
+                loadingText="Recording..."
               >
-                {isSubmittingLog ? "Recording..." : t("common.save")}
+                {t("common.save")}
               </Button>
             </DialogFooter>
           </form>
@@ -1087,16 +1086,16 @@ export default function OwnerLoansPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setPayingLoan(null)}
-                    className="h-10 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs"
                   >
                     {t("common.cancel")}
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmittingPay}
-                    className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 shadow-xs"
+                    variant="success"
+                    loading={isSubmittingPay}
+                    loadingText="Saving..."
                   >
-                    {isSubmittingPay ? "Saving..." : "Confirm Repayment"}
+                    Confirm Repayment
                   </Button>
                 </DialogFooter>
               </form>
@@ -1172,7 +1171,8 @@ export default function OwnerLoansPage() {
                 <div className="pt-3 text-right">
                   <Button
                     onClick={() => setHistoryLoan(null)}
-                    className="bg-[#2C1B10] hover:bg-[#4A2E1B] text-white font-bold text-xs h-9 px-4 rounded-xl"
+                    variant="brand"
+                    size="sm"
                   >
                     {t("common.close")}
                   </Button>

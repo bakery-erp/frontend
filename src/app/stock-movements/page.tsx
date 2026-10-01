@@ -358,7 +358,7 @@ export default function StockMovementsPage() {
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('stockMovements.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-sm text-xs sm:text-sm">
+          <Button onClick={() => setIsAddOpen(true)} size="default" className="w-full sm:w-auto">
             {t('stockMovements.recordMovement')}
           </Button>
         </div>
@@ -933,16 +933,18 @@ export default function StockMovementsPage() {
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                  size="lg"
+                  loading={isSubmitting}
+                  className="w-full sm:w-auto order-1 sm:order-2"
                 >
-                  {isSubmitting ? t('common.loading') : t('stockMovements.recordMovement')}
+                  {t('stockMovements.recordMovement')}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
                   onClick={() => setIsAddOpen(false)}
-                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   {t('common.cancel')}
                 </Button>

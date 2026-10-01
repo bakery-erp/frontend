@@ -252,11 +252,11 @@ export default function SuppliersPage() {
 
         <div className="flex items-center gap-2">
           {(user?.role === 'OWNER' || user?.role === 'ADMIN') && (
-            <Button onClick={() => setIsAddSupplierOpen(true)} variant="outline" className="border-[#EDE4D5] rounded-xl text-xs font-bold">
+            <Button onClick={() => setIsAddSupplierOpen(true)} variant="outline" size="default">
               + {t('suppliers.newSupplier')}
             </Button>
           )}
-          <Button onClick={openLogDeliveryModal} className="bg-[#E87A18] hover:bg-[#D66B0F] text-white rounded-xl text-xs font-bold flex items-center gap-1">
+          <Button onClick={openLogDeliveryModal} size="default">
             <Plus className="w-4 h-4" /> {t('suppliers.logDeliveryReceipt')}
           </Button>
         </div>
@@ -628,9 +628,11 @@ export default function SuppliersPage() {
                 </select>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)} className="border-[#EDE4D5] text-xs">{t('common.cancel')}</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs font-bold">
-                  {isSubmitting ? t('common.loading') : t('suppliers.btnRegister')}
+                <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)}>
+                  {t('common.cancel')}
+                </Button>
+                <Button type="submit" variant="brand" loading={isSubmitting}>
+                  {t('suppliers.btnRegister')}
                 </Button>
               </DialogFooter>
             </form>
@@ -915,16 +917,19 @@ export default function SuppliersPage() {
               <DialogFooter className="pt-3 border-t border-[#EDE4D5] flex flex-col sm:flex-row gap-2 w-full">
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto min-h-[44px] h-auto py-2.5 px-4 bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs sm:text-sm font-bold rounded-xl order-1 sm:order-2 whitespace-normal text-center leading-snug"
+                  variant="brand"
+                  size="lg"
+                  loading={isSubmitting}
+                  className="w-full sm:w-auto order-1 sm:order-2"
                 >
-                  {isSubmitting ? t('common.loading') : t('suppliers.btnRecordDeliveries')}
+                  {t('suppliers.btnRecordDeliveries')}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
                   onClick={() => setIsLogDeliveryOpen(false)}
-                  className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] text-xs sm:text-sm font-semibold rounded-xl order-2 sm:order-1"
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   {t('common.cancel')}
                 </Button>

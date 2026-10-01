@@ -282,7 +282,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
           <Button
             variant="ghost"
             onClick={() => router.push("/customer-credits")}
-            className="text-[#8C7361] hover:bg-[#F4ECE1] rounded-xl w-fit flex items-center gap-1.5 -ml-2 h-9 px-2.5 font-bold"
+            className="text-[#8C7361] -ml-2"
           >
             <ArrowLeft className="w-4 h-4" /> {t("credits.backToCredits")}
           </Button>
@@ -291,15 +291,16 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
             <Button
               variant="outline"
               onClick={() => window.print()}
-              className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm h-10 sm:h-9 flex items-center justify-center gap-1.5 w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               <Printer className="w-4 h-4" /> {t("credits.printStatement")}
             </Button>
 
             {!isSettled && canManage && (
               <Button
+                variant="success"
                 onClick={() => setIsPayModalOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm h-10 sm:h-9 shadow-xs flex items-center justify-center gap-1.5 w-full sm:w-auto whitespace-nowrap"
+                className="w-full sm:w-auto whitespace-nowrap"
               >
                 <DollarSign className="w-4 h-4" /> {t("credits.recordPaymentBtn")}
               </Button>
@@ -613,11 +614,11 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               </div>
 
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsPayModalOpen(false)} className="rounded-xl h-10 w-full sm:w-auto font-bold border-[#EDE4D5]">
+                <Button type="button" variant="outline" onClick={() => setIsPayModalOpen(false)} className="w-full sm:w-auto">
                   {t("common.cancel")}
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-10 w-full sm:w-auto">
-                  {isSubmitting ? t("credits.processing") : t("credits.recordSettlementBtn")}
+                <Button type="submit" variant="success" loading={isSubmitting} className="w-full sm:w-auto">
+                  {t("credits.recordSettlementBtn")}
                 </Button>
               </DialogFooter>
             </form>

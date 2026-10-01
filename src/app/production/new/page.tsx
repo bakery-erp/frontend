@@ -755,25 +755,26 @@ function ProductionFormContent() {
               <Button
                 type="button"
                 variant="outline"
+                size="lg"
                 onClick={() => router.push("/production")}
-                className="border-[#EDE4D5] text-[#8C7361] hover:bg-white rounded-xl text-xs font-bold flex-1 sm:flex-initial h-10 xs:h-11"
+                className="flex-1 sm:flex-initial"
               >
                 Cancel
               </Button>
 
               <Button
                 type="submit"
+                size="lg"
+                loading={isSubmitting}
+                loadingText={isEditMode ? "Updating Batch..." : "Submitting..."}
                 disabled={
-                  isSubmitting ||
                   totalProductsSelectedCount === 0 ||
                   (!isEditMode && !isSessionOpen)
                 }
-                className="bg-[#E87A18] hover:bg-[#d46d13] disabled:opacity-50 text-white font-bold rounded-xl text-xs sm:text-sm px-5 py-2.5 shadow-md flex-1 sm:flex-initial h-10 xs:h-11 flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-initial"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {isSubmitting
-                  ? (isEditMode ? "Updating Batch..." : "Submitting...")
-                  : isEditMode
+                {isEditMode
                   ? "Save & Update Batch"
                   : !isSessionOpen
                   ? "Session Closed"

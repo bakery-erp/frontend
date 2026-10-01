@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 this.setState({ hasError: false, error: null });
                 window.location.reload();
               }}
-              className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl"
+              size="lg"
             >
               Reload Page
             </Button>

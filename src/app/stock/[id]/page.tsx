@@ -805,10 +805,10 @@ export default function StockItemDetailPage() {
                 </div>
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
-                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm">
-                  {isSubmitting ? "Processing..." : "Confirm Addition"}
+                <Button type="submit" variant="success" size="lg" loading={isSubmitting} loadingText="Processing..." className="w-full sm:w-auto order-1 sm:order-2">
+                  Confirm Addition
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="w-full sm:w-auto h-10 border-[#EDE4D5] font-semibold text-[#8C7361] hover:text-[#2C1B10] rounded-xl order-2 sm:order-1">
+                <Button type="button" variant="outline" size="lg" onClick={() => setIsAddOpen(false)} className="w-full sm:w-auto order-2 sm:order-1">
                   Cancel
                 </Button>
               </DialogFooter>
@@ -968,10 +968,10 @@ export default function StockItemDetailPage() {
                 </div>
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
-                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto h-11 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm">
-                  {isSubmitting ? "Processing..." : "Confirm Reduction"}
+                <Button type="submit" size="lg" loading={isSubmitting} loadingText="Processing..." className="w-full sm:w-auto order-1 sm:order-2">
+                  Confirm Reduction
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setIsReduceOpen(false)} className="w-full sm:w-auto h-10 border-[#EDE4D5] font-semibold text-[#8C7361] hover:text-[#2C1B10] rounded-xl order-2 sm:order-1">
+                <Button type="button" variant="outline" size="lg" onClick={() => setIsReduceOpen(false)} className="w-full sm:w-auto order-2 sm:order-1">
                   Cancel
                 </Button>
               </DialogFooter>
@@ -1021,10 +1021,10 @@ export default function StockItemDetailPage() {
                 </div>
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
-                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto h-11 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm">
-                  {isSubmitting ? "Saving..." : "Save Changes"}
+                <Button type="submit" size="lg" loading={isSubmitting} loadingText="Saving..." className="w-full sm:w-auto order-1 sm:order-2">
+                  Save Changes
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto h-10 border-[#EDE4D5] font-semibold text-[#8C7361] hover:text-[#2C1B10] rounded-xl order-2 sm:order-1">
+                <Button type="button" variant="outline" size="lg" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto order-2 sm:order-1">
                   Cancel
                 </Button>
               </DialogFooter>

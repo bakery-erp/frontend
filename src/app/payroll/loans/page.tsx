@@ -256,7 +256,7 @@ export default function PayrollLoansPage() {
             <h2 className="font-extrabold text-xs text-[#2C1B10] uppercase tracking-wider">{t('payroll.loansTitle')}</h2>
             <p className="text-[11px] text-[#8C7361]">{t('payroll.allRecordedLoans', { count: loans.length })}</p>
           </div>
-          <Button onClick={() => setIsLoanOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs h-8 px-3 shadow-xs">
+          <Button onClick={() => setIsLoanOpen(true)} size="sm">
             <Plus className="w-3.5 h-3.5 mr-1" /> {t('payroll.dispatchLoan')}
           </Button>
         </div>
@@ -334,7 +334,7 @@ export default function PayrollLoansPage() {
             <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">{t('payroll.loansTitle')}</h2>
             <p className="text-xs text-[#8C7361] mt-0.5">{t('payroll.loansSubtitle')}</p>
           </div>
-          <Button onClick={() => setIsLoanOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
+          <Button onClick={() => setIsLoanOpen(true)} size="sm">
             <Plus className="w-4 h-4 mr-1.5" /> {t('payroll.dispatchLoan')}
           </Button>
         </div>
@@ -457,16 +457,18 @@ export default function PayrollLoansPage() {
             <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                size="lg"
+                loading={isSubmitting}
+                className="w-full sm:w-auto order-1 sm:order-2"
               >
-                {isSubmitting ? t('common.loading') : t('payroll.dispatchLoan')}
+                {t('payroll.dispatchLoan')}
               </Button>
               <Button
                 type="button"
                 variant="outline"
+                size="lg"
                 onClick={() => setIsLoanOpen(false)}
-                className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                className="w-full sm:w-auto order-2 sm:order-1"
               >
                 {t('common.cancel')}
               </Button>
@@ -521,16 +523,18 @@ export default function PayrollLoansPage() {
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                  size="lg"
+                  loading={isSubmitting}
+                  className="w-full sm:w-auto order-1 sm:order-2"
                 >
-                  {isSubmitting ? t('common.loading') : t('common.save')}
+                  {t('common.save')}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
                   onClick={() => setIsEditLoanOpen(false)}
-                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   {t('common.cancel')}
                 </Button>

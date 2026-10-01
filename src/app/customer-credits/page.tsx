@@ -335,9 +335,8 @@ export default function CustomerCreditsPage() {
             onClick={() => queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] })}
             variant="outline"
             size="sm"
-            className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs h-9"
           >
-            <RefreshCw className="w-3.5 h-3.5 mr-1" /> {t("common.refresh")}
+            <RefreshCw className="w-3.5 h-3.5" /> {t("common.refresh")}
           </Button>
 
           {canManage && (
@@ -346,13 +345,13 @@ export default function CustomerCreditsPage() {
                 onClick={() => setIsAddCustomerOpen(true)}
                 variant="outline"
                 size="sm"
-                className="border-[#E87A18]/40 text-[#E87A18] hover:bg-amber-50 font-bold rounded-xl text-xs h-9 flex items-center gap-1.5"
+                className="border-[#E87A18]/40 text-[#E87A18] hover:bg-amber-50"
               >
                 <UserPlus className="w-4 h-4" /> {t("credits.addNewCustomerBtn")}
               </Button>
               <Button
                 onClick={() => router.push("/customer-credits/new")}
-                className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5 h-9"
+                size="sm"
               >
                 <Plus className="w-4 h-4" /> {t("credits.newCredit")}
               </Button>
@@ -644,28 +643,26 @@ export default function CustomerCreditsPage() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => router.push(`/customer-credits/${c.id}`)}
-                                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                                   >
                                     <Eye className="w-3.5 h-3.5" /> {t("common.details")}
                                   </Button>
                                   {remAmt > 0.01 && canManage && (
                                     <Button
                                       size="sm"
+                                      variant="success"
                                       onClick={() => {
                                         setPayingCredit(c);
                                         setAmountPaid(String(remAmt));
                                       }}
-                                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-lg flex items-center gap-1"
                                     >
                                       <DollarSign className="w-3.5 h-3.5" /> {t("credits.btnPay")}
                                     </Button>
                                   )}
                                   {(user?.role === "OWNER" || user?.role === "ADMIN") && (
                                     <Button
-                                      size="sm"
-                                      variant="ghost"
+                                      size="icon-sm"
+                                      variant="destructiveOutline"
                                       onClick={() => handleDeleteCredit(c.id)}
-                                      className="text-rose-600 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-lg"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </Button>
@@ -807,18 +804,19 @@ export default function CustomerCreditsPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => router.push(`/customer-credits/${c.id}`)}
-                              className="flex-1 border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5"
+                              className="flex-1"
                             >
                               <Eye className="w-3.5 h-3.5" /> {t("common.details")}
                             </Button>
                             {remAmt > 0.01 && canManage && (
                               <Button
                                 size="sm"
+                                variant="success"
                                 onClick={() => {
                                   setPayingCredit(c);
                                   setAmountPaid(String(remAmt));
                                 }}
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5"
+                                className="flex-1"
                               >
                                 <DollarSign className="w-3.5 h-3.5" /> {t("credits.btnPay")}
                               </Button>
@@ -1115,16 +1113,15 @@ export default function CustomerCreditsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setPayingCredit(null)}
-                  className="rounded-xl border-[#EDE4D5]"
                 >
                   {t("common.cancel")}
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmittingPay}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
+                  loading={isSubmittingPay}
+                  variant="success"
                 >
-                  {isSubmittingPay ? t("common.loading") : t("credits.btnPay")}
+                  {t("credits.btnPay")}
                 </Button>
               </DialogFooter>
             </form>
@@ -1198,16 +1195,14 @@ export default function CustomerCreditsPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsAddCustomerOpen(false)}
-                className="rounded-xl border-[#EDE4D5]"
               >
                 {t("common.cancel")}
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmittingCust}
-                className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl"
+                loading={isSubmittingCust}
               >
-                {isSubmittingCust ? t("common.loading") : t("credits.addNewCustomerBtn")}
+                {t("credits.addNewCustomerBtn")}
               </Button>
             </DialogFooter>
           </form>

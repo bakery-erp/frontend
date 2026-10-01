@@ -287,7 +287,7 @@ export default function ProductConversionsPage() {
                     <Button
                         onClick={handleOpenAdd}
                         disabled={isLoading || !isSessionOpen}
-                        className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center gap-1.5"
+                        size="default"
                     >
                         <Plus className="w-4 h-4" /> {t('conversions.btnNewConversion')}
                     </Button>
@@ -677,10 +677,11 @@ export default function ProductConversionsPage() {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={isSubmitting || !isSessionOpen || isExceedingStock}
-                                    className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl"
+                                    size="lg"
+                                    loading={isSubmitting}
+                                    disabled={!isSessionOpen || isExceedingStock}
                                 >
-                                    {isSubmitting ? t('common.loading') : !isSessionOpen ? `Disabled (${sessionStatusLabel})` : isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
+                                    {!isSessionOpen ? `Disabled (${sessionStatusLabel})` : isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -799,10 +800,11 @@ export default function ProductConversionsPage() {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={isSubmitting || isExceedingStock}
-                                    className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl"
+                                    size="lg"
+                                    loading={isSubmitting}
+                                    disabled={isExceedingStock}
                                 >
-                                    {isSubmitting ? t('common.loading') : isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
+                                    {isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>

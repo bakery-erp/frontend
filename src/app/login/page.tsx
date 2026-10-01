@@ -160,17 +160,12 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full h-12 rounded-2xl text-base font-extrabold bg-[#E87A18] hover:bg-[#d46d13] text-white shadow-lg shadow-[#E87A18]/25 transition-all mt-2"
-              disabled={isLoading}
+              size="lg"
+              loading={isLoading}
+              loadingText={t('auth.signingInButton')}
+              className="w-full text-base font-extrabold shadow-lg shadow-[#E87A18]/25 mt-2"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {t('auth.signingInButton')}
-                </>
-              ) : (
-                t('auth.signInButton')
-              )}
+              {t('auth.signInButton')}
             </Button>
           </form>
         </CardContent>
@@ -237,24 +232,20 @@ export default function LoginPage() {
                   <Button
                     type="button"
                     variant="outline"
+                    size="lg"
                     onClick={() => setIsResetOpen(false)}
-                    className="w-full xs:flex-1 h-11 rounded-xl text-xs font-bold bg-[#F4ECE1] hover:bg-[#E0D5C3] text-[#4A2E1B] border-[#EDE4D5]"
+                    className="w-full xs:flex-1"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isResetSubmitting}
-                    className="w-full xs:flex-1 h-11 rounded-xl text-xs font-extrabold bg-[#E87A18] hover:bg-[#d46d13] text-white shadow-md shadow-[#E87A18]/20"
+                    size="lg"
+                    loading={isResetSubmitting}
+                    loadingText="Submitting..."
+                    className="w-full xs:flex-1"
                   >
-                    {isResetSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      'Submit Reset Request'
-                    )}
+                    Submit Reset Request
                   </Button>
                 </div>
               </form>

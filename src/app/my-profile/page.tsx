@@ -1115,17 +1115,20 @@ export default function MyProfilePage() {
               <Button
                 type="button"
                 variant="outline"
+                size="lg"
                 onClick={() => setIsAvatarModalOpen(false)}
-                className="min-h-[44px] h-11 rounded-xl border-[#EDE4D5] text-xs font-bold text-[#4A2E1B] w-full xs:w-auto"
+                className="w-full xs:w-auto"
               >
                 {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
-                disabled={isUploadingAvatar || !selectedFile}
-                className="min-h-[44px] h-11 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs w-full xs:w-auto"
+                size="lg"
+                loading={isUploadingAvatar}
+                disabled={!selectedFile}
+                className="w-full xs:w-auto"
               >
-                {isUploadingAvatar ? t('profile.uploadingAvatarBtn') : t('profile.saveAvatarPictureBtn')}
+                {t('profile.saveAvatarPictureBtn')}
               </Button>
             </DialogFooter>
           </form>

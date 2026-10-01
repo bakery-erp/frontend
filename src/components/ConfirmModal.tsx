@@ -57,16 +57,6 @@ export default function ConfirmModal({
     }
   };
 
-  const getConfirmButtonStyle = () => {
-    switch (variant) {
-      case "danger":
-        return "bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-xs";
-      case "warning":
-        return "bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-xs";
-      default:
-        return "bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-xs";
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -83,23 +73,23 @@ export default function ConfirmModal({
           </div>
         </DialogHeader>
 
-        <DialogFooter className="gap-2 mt-4 pt-2 border-t border-zinc-100">
+        <DialogFooter className="gap-2 mt-4 pt-2 border-t border-[#EDE4D5]/40">
           <Button 
             type="button" 
             variant="outline" 
             onClick={onClose} 
             disabled={isLoading}
-            className="rounded-xl border-zinc-200 text-zinc-700 font-semibold"
           >
             {cancelText}
           </Button>
           <Button 
             type="button" 
             onClick={handleConfirm} 
-            disabled={isLoading}
-            className={getConfirmButtonStyle()}
+            loading={isLoading}
+            loadingText="Processing..."
+            variant={variant === "danger" ? "destructive" : "default"}
           >
-            {isLoading ? "Processing..." : confirmText}
+            {confirmText}
           </Button>
         </DialogFooter>
       </DialogContent>
