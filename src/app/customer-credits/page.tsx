@@ -35,6 +35,8 @@ import {
   Search,
   FileText,
   UserPlus,
+  MoreVertical,
+  ChevronRight,
 } from "lucide-react";
 
 interface CreditPayment {
@@ -164,6 +166,19 @@ export default function CustomerCreditsPage() {
   const activeFilterRef = useRef<HTMLButtonElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCreditCards, setExpandedCreditCards] = useState<Record<string, boolean>>({});
+
+  // Action dropdown state
+  const [openActionDropdownId, setOpenActionDropdownId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleDocClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-actions-menu]')) {
+        setOpenActionDropdownId(null);
+      }
+    };
+    document.addEventListener('click', handleDocClick);
+    return () => document.removeEventListener('click', handleDocClick);
+  }, []);
 
   // Customer Filter State
   type CustomerFilterType = "ALL" | "DEBT" | "SETTLED";
@@ -552,14 +567,18 @@ export default function CustomerCreditsPage() {
                           const remAmt = Number(c.remainingBalance || 0);
 
                           return (
-                            <TableRow key={c.id}>
-                              <TableCell className="font-bold text-[#2C1B10] text-xs">
+                            <TableRow
+                              key={c.id}
+                              onClick={() => router.push(`/customer-credits/${c.id}`)}
+                              className="hover:bg-[#FAF8F5]/80 transition-colors cursor-pointer"
+                            >
+                              <TableCell className="font-bold text-[#2C1B10] text-xs whitespace-nowrap">
                                 {c.date ? format(new Date(c.date), "MMM d, yyyy") : format(new Date(c.createdAt), "MMM d, yyyy")}
                               </TableCell>
 
                               {/* Customer & Contact Column */}
-                              <TableCell className="max-w-[200px]">
-                                <div className="font-extrabold text-[#2C1B10] text-sm leading-tight">{parsed.name}</div>
+                              <TableCell className="max-w-[170px]">
+                                <div className="font-extrabold text-[#2C1B10] text-sm leading-tight truncate">{parsed.name}</div>
                                 {parsed.phone && (
                                   <div className="text-xs text-[#8C7361] font-medium mt-0.5 flex items-center gap-1">
                                     📞 {parsed.phone}
@@ -568,85 +587,90 @@ export default function CustomerCreditsPage() {
                               </TableCell>
 
                               {/* Products / Items Taken Column */}
-                              <TableCell className="max-w-[240px]">
+                              <TableCell className="max-w-[180px]">
                                 {parsed.items.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1 items-center">
-                                    {(expandedCreditCards[c.id] ? parsed.items : parsed.items.slice(0, 2)).map((itemStr, idx) => (
-                                      <span
-                                        key={idx}
-                                        className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-tight"
-                                      >
-                                        {itemStr}
-                                      </span>
-                                    ))}
-                                    {parsed.items.length > 2 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleCreditExpand(c.id)}
-                                        className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#4A2E1B] text-white hover:bg-[#3D2314] cursor-pointer transition-colors inline-flex items-center gap-0.5"
-                                      >
-                                        {expandedCreditCards[c.id] ? "Show less" : `+${parsed.items.length - 2} more`}
-                                      </button>
+                                  <div className="space-y-1">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] leading-tight truncate max-w-full">
+                                      {parsed.items[0]}
+                                    </span>
+                                    {parsed.items.length > 1 && (
+                                      <div>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            router.push(`/customer-credits/${c.id}`);
+                                          }}
+                                          className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#4A2E1B] border border-[#EDE4D5] cursor-pointer transition-colors inline-flex items-center gap-0.5"
+                                        >
+                                          <span className="text-[#E87A18] font-black">+{parsed.items.length - 1}</span>
+                                          <span>more</span>
+                                          <ChevronRight className="w-2.5 h-2.5 text-[#8C7361]" />
+                                        </button>
+                                      </div>
                                     )}
                                   </div>
                                 ) : (
                                   <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
                                 )}
                                 {parsed.notes && (
-                                  <p className="text-[11px] text-[#8C7361] italic mt-0.5 font-normal truncate max-w-[220px]">
+                                  <p className="text-[11px] text-[#8C7361] italic mt-0.5 font-normal truncate max-w-[170px]">
                                     Note: {parsed.notes}
                                   </p>
                                 )}
                               </TableCell>
 
-                              <TableCell className="text-right font-extrabold text-[#2C1B10] font-mono text-xs">
+                              <TableCell className="text-right font-extrabold text-[#2C1B10] font-mono text-xs whitespace-nowrap">
                                 {totalAmt.toFixed(2)} ETB
                               </TableCell>
 
-                              <TableCell className="text-right font-extrabold text-rose-700 font-mono text-xs">
+                              <TableCell className="text-right font-extrabold text-rose-700 font-mono text-xs whitespace-nowrap">
                                 {remAmt.toFixed(2)} ETB
                               </TableCell>
 
-                              <TableCell className="text-center">
+                              <TableCell className="text-center whitespace-nowrap">
                                 {c.status === "PAID" || remAmt <= 0.01 ? (
-                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
                                     ✓ {t("credits.statusPaid")}
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
                                     {t("credits.statusOpen")}
                                   </span>
                                 )}
                               </TableCell>
 
-                              <TableCell>
+                              {/* Repayments Column */}
+                              <TableCell className="max-w-[150px]">
                                 {c.payments && c.payments.length > 0 ? (
-                                  <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
-                                    {c.payments.map((p) => {
-                                      const pAmt = Number(p.amount ?? p.amountPaid ?? 0);
-                                      return (
-                                        <div key={p.id} className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex justify-between font-mono">
-                                          <span className="text-[#8C7361]">{format(new Date(p.date || p.createdAt), "MMM d")}</span>
-                                          <span className="font-bold text-emerald-700">-{pAmt.toFixed(2)} ETB</span>
-                                        </div>
-                                      );
-                                    })}
+                                  <div className="space-y-1">
+                                    <div className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex items-center justify-between font-mono">
+                                      <span className="text-[#8C7361]">{format(new Date(c.payments[c.payments.length - 1].date || c.payments[c.payments.length - 1].createdAt), "MMM d")}</span>
+                                      <span className="font-bold text-emerald-700">-{Number(c.payments[c.payments.length - 1].amount ?? c.payments[c.payments.length - 1].amountPaid ?? 0).toFixed(0)} ETB</span>
+                                    </div>
+                                    {c.payments.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          router.push(`/customer-credits/${c.id}`);
+                                        }}
+                                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-800 hover:text-emerald-950 hover:underline cursor-pointer"
+                                      >
+                                        <span>+{c.payments.length - 1} more payment{c.payments.length > 2 ? 's' : ''}</span>
+                                        <ChevronRight className="w-2.5 h-2.5" />
+                                      </button>
+                                    )}
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-[#8C7361] italic">No repayments yet</span>
+                                  <span className="text-xs text-[#8C7361] italic">No repayments</span>
                                 )}
                               </TableCell>
 
-                              <TableCell className="text-right pr-6">
-                                <div className="flex items-center justify-end gap-1.5">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => router.push(`/customer-credits/${c.id}`)}
-                                  >
-                                    <Eye className="w-3.5 h-3.5" /> {t("common.details")}
-                                  </Button>
-                                  {remAmt > 0.01 && canManage && (
+                              {/* Actions Column */}
+                              <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-1.5 relative" data-actions-menu>
+                                  {remAmt > 0.01 && canManage ? (
                                     <Button
                                       size="sm"
                                       variant="success"
@@ -654,19 +678,84 @@ export default function CustomerCreditsPage() {
                                         setPayingCredit(c);
                                         setAmountPaid(String(remAmt));
                                       }}
+                                      className="h-8 px-2.5 rounded-xl font-bold text-xs shadow-2xs shrink-0 flex items-center gap-1"
                                     >
                                       <DollarSign className="w-3.5 h-3.5" /> {t("credits.btnPay")}
                                     </Button>
-                                  )}
-                                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                                  ) : (
                                     <Button
-                                      size="icon-sm"
-                                      variant="destructiveOutline"
-                                      onClick={() => handleDeleteCredit(c.id)}
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => router.push(`/customer-credits/${c.id}`)}
+                                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0"
                                     >
-                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" /> {t("common.details")}
                                     </Button>
                                   )}
+
+                                  {/* Compact Actions Dropdown Menu */}
+                                  <div className="relative">
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenActionDropdownId(openActionDropdownId === c.id ? null : c.id)}
+                                      className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                                        openActionDropdownId === c.id
+                                          ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
+                                          : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                                      }`}
+                                      title="More Actions"
+                                    >
+                                      <MoreVertical className="w-4 h-4" />
+                                    </button>
+
+                                    {openActionDropdownId === c.id && (
+                                      <div className="absolute right-0 top-full mt-1.5 w-44 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95 duration-100">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenActionDropdownId(null);
+                                            router.push(`/customer-credits/${c.id}`);
+                                          }}
+                                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                                        >
+                                          <Eye className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                                          {t("common.details") || "Credit Details"}
+                                        </button>
+
+                                        {remAmt > 0.01 && canManage && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionDropdownId(null);
+                                              setPayingCredit(c);
+                                              setAmountPaid(String(remAmt));
+                                            }}
+                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
+                                          >
+                                            <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                            {t("credits.btnPay") || "Record Payment"}
+                                          </button>
+                                        )}
+
+                                        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                                          <>
+                                            <div className="my-1 border-t border-[#F4ECE1]" />
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setOpenActionDropdownId(null);
+                                                handleDeleteCredit(c.id);
+                                              }}
+                                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                              {t("common.delete") || "Delete Credit"}
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </TableCell>
                             </TableRow>
