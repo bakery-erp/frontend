@@ -247,11 +247,11 @@ export default function BranchesPage() {
                     />
                   </div>
                   <DialogFooter className="pt-4 gap-2">
-                    <Button type="button" variant="outline" onClick={handleRequestCloseDialog} className="rounded-xl border-[#EDE4D5]">
+                    <Button type="button" variant="outline" onClick={handleRequestCloseDialog}>
                       {t('common.cancel')}
                     </Button>
-                    <Button type="submit" disabled={submitting} className="rounded-xl bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold">
-                      {submitting ? t('common.loading') : t('common.save')}
+                    <Button type="submit" variant="brand" loading={submitting}>
+                      {t('common.save')}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -498,19 +498,22 @@ export default function BranchesPage() {
               <Button
                 type="button"
                 variant="outline"
+                size="lg"
                 disabled={isDeleting}
                 onClick={() => setIsDeleteDialogOpen(false)}
-                className="w-full sm:w-auto h-11 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs sm:text-sm hover:bg-[#FAF6F0]"
+                className="w-full sm:w-auto"
               >
                 {t('common.cancel')}
               </Button>
               <Button
                 type="button"
-                disabled={isDeleting}
+                variant="destructive"
+                size="lg"
+                loading={isDeleting}
                 onClick={handleDeleteBranch}
-                className="w-full sm:w-auto h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2"
+                className="w-full sm:w-auto"
               >
-                {isDeleting ? t('common.loading') : (t('branches.confirmDelete') || "Delete Branch & Data")}
+                {t('branches.confirmDelete') || "Delete Branch & Data"}
               </Button>
             </DialogFooter>
           </DialogContent>

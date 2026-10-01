@@ -1504,7 +1504,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             <Button
               variant="outline"
               onClick={() => router.push("/daily-sessions")}
-              className="border-[#EDE4D5] text-[#8C7361] hover:bg-[#F4ECE1] w-full sm:w-auto h-10 order-last sm:order-first"
+              className="w-full sm:w-auto order-last sm:order-first"
             >
               Cancel
             </Button>
@@ -1515,20 +1515,24 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 <Button
                   type="button"
                   onClick={handleSaveDraft}
-                  disabled={isSavingDraft || isViewOnly}
+                  loading={isSavingDraft}
+                  loadingText="Saving Draft..."
+                  disabled={isViewOnly}
                   variant="outline"
-                  className="border-amber-400 text-amber-900 bg-amber-50 hover:bg-amber-100 font-bold text-xs sm:text-sm rounded-xl px-4 h-10 shadow-xs justify-center"
+                  className="border-amber-400 text-amber-900 bg-amber-50 hover:bg-amber-100 justify-center"
                 >
                   <Save className="w-4 h-4 mr-1.5 text-amber-700" />
-                  {isSavingDraft ? "Saving Draft..." : "Save Draft Progress"}
+                  Save Draft Progress
                 </Button>
               )}
 
               {/* Save Edits without changing status */}
               <Button
                 onClick={handleSaveEdits}
-                disabled={isSubmitting || isViewOnly}
-                className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold text-xs sm:text-sm rounded-xl px-5 h-10 shadow-sm disabled:opacity-50 justify-center"
+                loading={isSubmitting}
+                disabled={isViewOnly}
+                variant="brand"
+                className="justify-center"
               >
                 <Save className="w-4 h-4 mr-1.5" /> Save Session Edits
               </Button>
@@ -1537,8 +1541,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               {session.status === "OPEN" && (
                 <Button
                   onClick={handleSubmitClose}
-                  disabled={isSubmitting || isViewOnly}
-                  className="bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm rounded-xl px-5 h-10 shadow-sm justify-center"
+                  loading={isSubmitting}
+                  disabled={isViewOnly}
+                  className="justify-center"
                 >
                   Submit for Admin Approval
                 </Button>
@@ -1548,8 +1553,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               {isAdminOrOwner && session.status !== "CLOSED" && (
                 <Button
                   onClick={handleFinalizeApprove}
-                  disabled={isSubmitting}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-xl px-5 h-10 shadow-sm justify-center"
+                  loading={isSubmitting}
+                  variant="success"
+                  className="justify-center"
                 >
                   <CheckCircle2 className="w-4 h-4 mr-1.5" /> Approve & Finalize Close
                 </Button>
@@ -1558,9 +1564,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               {isAdminOrOwner && session.status === "CLOSE_PENDING" && (
                 <Button
                   onClick={handleReopenSession}
-                  disabled={isSubmitting}
-                  variant="outline"
-                  className="border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl h-10 justify-center"
+                  loading={isSubmitting}
+                  variant="destructiveOutline"
+                  className="justify-center"
                 >
                   Reopen Session
                 </Button>

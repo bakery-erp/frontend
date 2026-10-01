@@ -415,7 +415,7 @@ export default function ExpensesPage() {
             <Button
               onClick={() => setIsManageCategoriesOpen(true)}
               variant="outline"
-              className="flex items-center gap-1.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-full h-9 sm:h-10 px-3.5 sm:px-4 text-xs shadow-2xs"
+              size="default"
             >
               <Settings className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
               <span className="hidden xs:inline">{t('expenses.btnManageCategories')}</span>
@@ -425,7 +425,7 @@ export default function ExpensesPage() {
           <Button
             onClick={openCreateForm}
             disabled={!activeSession}
-            className="flex items-center gap-1.5 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-full h-9 sm:h-10 px-3.5 sm:px-4 shadow-sm disabled:opacity-50 text-xs"
+            size="default"
           >
             <Plus className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden xs:inline">{t('expenses.btnNewExpense')}</span>
@@ -593,15 +593,17 @@ export default function ExpensesPage() {
               <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSaving}
-                  className="w-full sm:w-auto h-11 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs sm:text-sm px-6 shadow-sm"
+                  loading={isSaving}
+                  size="lg"
+                  className="w-full sm:w-auto"
                 >
-                  {isSaving ? t('common.loading') : editingId ? t('common.update') : t('expenses.saveExpenseButton')}
+                  {editingId ? t('common.update') : t('expenses.saveExpenseButton')}
                 </Button>
                 <Button
                   variant="outline"
+                  size="lg"
                   onClick={resetForm}
-                  className="w-full sm:w-auto h-10 border-[#EDE4D5] rounded-xl text-xs sm:text-sm font-semibold text-[#8C7361] hover:text-[#4A2E1B]"
+                  className="w-full sm:w-auto"
                 >
                   {t('common.cancel')}
                 </Button>
@@ -891,13 +893,13 @@ export default function ExpensesPage() {
                         {isManagement && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => openEditForm(expense)} className="rounded-xl h-8 w-8 p-0">
+                              <Button variant="ghost" size="icon-sm" onClick={() => openEditForm(expense)}>
                                 <Pencil className="w-3.5 h-3.5 text-zinc-600" />
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="sm"
-                                className="rounded-xl h-8 w-8 p-0 text-rose-600 hover:text-rose-700"
+                                size="icon-sm"
+                                className="text-rose-600 hover:text-rose-700"
                                 onClick={() => setExpenseToDelete(expense.id)}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1124,7 +1126,7 @@ export default function ExpensesPage() {
             </div>
 
             <DialogFooter className="pt-2">
-              <Button onClick={() => setIsManageCategoriesOpen(false)} className="bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-xs">
+              <Button onClick={() => setIsManageCategoriesOpen(false)} variant="outline">
                 {t('common.close')}
               </Button>
             </DialogFooter>

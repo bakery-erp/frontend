@@ -96,15 +96,18 @@ export function UnsavedChangesDialog({
           <Button
             type="button"
             variant="outline"
+            size="lg"
             onClick={handleClose}
-            className="w-full sm:w-auto h-11 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs sm:text-sm hover:bg-[#FAF6F0]"
+            className="w-full sm:w-auto"
           >
             {texts.keepEditing}
           </Button>
           <Button
             type="button"
+            variant="destructive"
+            size="lg"
             onClick={handleDiscard}
-            className="w-full sm:w-auto h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-md"
+            className="w-full sm:w-auto"
           >
             {texts.discard}
           </Button>

@@ -1019,7 +1019,7 @@ export default function PayrollPage() {
               <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Active Employee Loans</h2>
               <p className="text-xs text-[#8C7361] mt-0.5">Track and edit staff micro-loans and salary advances</p>
             </div>
-            <Button onClick={() => setIsLoanOpen(true)} size="sm" className="w-full sm:w-auto h-10 sm:h-9 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
+            <Button onClick={() => setIsLoanOpen(true)} size="sm">
               <Plus className="w-4 h-4 mr-1.5" /> Dispatch Loan
             </Button>
           </div>
@@ -1204,7 +1204,7 @@ export default function PayrollPage() {
               <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">Workforce Penalties</h2>
               <p className="text-xs text-[#8C7361] mt-0.5">View and edit administrative infraction fines and deductions</p>
             </div>
-            <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="w-full sm:w-auto h-10 sm:h-9 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
+            <Button onClick={() => setIsPenaltyOpen(true)} size="sm">
               <Plus className="w-4 h-4 mr-1.5" /> Log Penalty
             </Button>
           </div>
@@ -1419,10 +1419,12 @@ export default function PayrollPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="order-1 sm:order-2 w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl"
+                size="lg"
+                loading={isSubmitting}
+                loadingText="Dispersing..."
+                className="order-1 sm:order-2 w-full sm:w-auto"
               >
-                {isSubmitting ? "Dispersing..." : "Vault & Disperse"}
+                Vault & Disperse
               </Button>
             </DialogFooter>
           </form>

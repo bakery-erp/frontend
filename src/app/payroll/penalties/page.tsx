@@ -166,7 +166,7 @@ export default function PayrollPenaltiesPage() {
             <h2 className="font-extrabold text-xs text-[#2C1B10] uppercase tracking-wider">{t('payroll.penaltiesTitle')}</h2>
             <p className="text-[11px] text-[#8C7361]">{t('payroll.allRecordedPenalties', { count: penalties.length })}</p>
           </div>
-          <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs h-8 px-3 shadow-xs">
+          <Button onClick={() => setIsPenaltyOpen(true)} size="sm">
             <Plus className="w-3.5 h-3.5 mr-1" /> {t('payroll.logPenalty')}
           </Button>
         </div>
@@ -250,7 +250,7 @@ export default function PayrollPenaltiesPage() {
             <h2 className="font-extrabold text-sm text-[#2C1B10] uppercase tracking-wider">{t('payroll.penaltiesTitle')}</h2>
             <p className="text-xs text-[#8C7361] mt-0.5">{t('payroll.penaltiesSubtitle')}</p>
           </div>
-          <Button onClick={() => setIsPenaltyOpen(true)} size="sm" className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs shadow-xs">
+          <Button onClick={() => setIsPenaltyOpen(true)} size="sm">
             <Plus className="w-4 h-4 mr-1.5" /> {t('payroll.logPenalty')}
           </Button>
         </div>
@@ -382,16 +382,18 @@ export default function PayrollPenaltiesPage() {
             <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                size="lg"
+                loading={isSubmitting}
+                className="w-full sm:w-auto order-1 sm:order-2"
               >
-                {isSubmitting ? t('common.loading') : t('payroll.logPenalty')}
+                {t('payroll.logPenalty')}
               </Button>
               <Button
                 type="button"
                 variant="outline"
+                size="lg"
                 onClick={() => setIsPenaltyOpen(false)}
-                className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                className="w-full sm:w-auto order-2 sm:order-1"
               >
                 {t('common.cancel')}
               </Button>
@@ -448,16 +450,18 @@ export default function PayrollPenaltiesPage() {
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                  size="lg"
+                  loading={isSubmitting}
+                  className="w-full sm:w-auto order-1 sm:order-2"
                 >
-                  {isSubmitting ? t('common.loading') : t('common.save')}
+                  {t('common.save')}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
                   onClick={() => setIsEditPenaltyOpen(false)}
-                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   {t('common.cancel')}
                 </Button>

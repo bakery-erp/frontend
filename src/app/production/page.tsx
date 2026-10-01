@@ -272,7 +272,8 @@ export default function ProductionPage() {
             <Button
               onClick={() => window.location.href = '/production/history'}
               variant="outline"
-              className="border-[#EDE4D5] rounded-xl hover:bg-[#F4ECE1] text-[#4A2E1B] font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 flex-1 sm:flex-initial h-10 xs:h-11"
+              size="lg"
+              className="flex-1 sm:flex-initial"
             >
               <History className="w-4 h-4 text-[#E87A18]" /> {t('productionHistory.title')}
             </Button>
@@ -280,7 +281,8 @@ export default function ProductionPage() {
           <Button
             onClick={() => window.location.href = '/production/new'}
             disabled={isLoading || !isSessionOpen}
-            className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 disabled:text-zinc-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 flex-1 sm:flex-initial h-10 xs:h-11"
+            size="lg"
+            className="flex-1 sm:flex-initial"
           >
             <Plus className="w-4 h-4" /> {t('production.newBatch')}
           </Button>
@@ -817,9 +819,9 @@ export default function ProductionPage() {
               </div>
 
               <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting || !isSessionOpen} className="bg-[#E87A18] hover:bg-[#d46d13] disabled:bg-zinc-300 text-white font-bold rounded-xl">
-                  {isSubmitting ? "Submitting..." : !isSessionOpen ? `Disabled (${sessionStatusLabel})` : (isGlobalAdmin ? "Submit & Approve" : "Submit for Approval")}
+                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                <Button type="submit" loading={isSubmitting} loadingText="Submitting..." disabled={!isSessionOpen}>
+                  {!isSessionOpen ? `Disabled (${sessionStatusLabel})` : (isGlobalAdmin ? "Submit & Approve" : "Submit for Approval")}
                 </Button>
               </DialogFooter>
             </form>

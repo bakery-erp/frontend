@@ -247,7 +247,7 @@ export default function StockPage() {
             </Button>
           </Link>
           {user?.role === "OWNER" && (
-            <Button onClick={() => setIsAddOpen(true)} className="flex-1 sm:flex-initial h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-sm text-xs sm:text-sm flex items-center justify-center gap-1.5">
+            <Button onClick={() => setIsAddOpen(true)} size="default" className="flex-1 sm:flex-initial">
               <Plus className="w-4 h-4 shrink-0" />
               <span>{t('stock.newItem')}</span>
             </Button>
@@ -701,16 +701,18 @@ export default function StockPage() {
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-3">
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto h-11 sm:h-10 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                  size="lg"
+                  loading={isSubmitting}
+                  className="w-full sm:w-auto order-1 sm:order-2"
                 >
-                  {isSubmitting ? t('common.loading') : (editingItem ? t('common.saveChanges') : t('stock.modalCreateTitle'))}
+                  {editingItem ? t('common.saveChanges') : t('stock.modalCreateTitle')}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
                   onClick={() => { setIsAddOpen(false); setEditingItem(null); }}
-                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   {t('common.cancel')}
                 </Button>

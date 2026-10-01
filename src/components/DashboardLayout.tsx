@@ -153,10 +153,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="text-xs text-[#CBB29F] truncate">{user?.phone}</p>
         </div>
         <Button
-          className="w-full justify-center bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl shadow-md border-0 h-10 transition-all"
+          className="w-full justify-center shadow-md"
           onClick={logout}
         >
-          <LogOut className="w-4 h-4 mr-2" /> {t('nav.logout')}
+          <LogOut className="w-4 h-4 mr-1.5" /> {t('nav.logout')}
         </Button>
       </div>
     </div>

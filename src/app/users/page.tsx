@@ -562,7 +562,7 @@ export default function UsersPage() {
                         <Button
                           size="sm"
                           onClick={() => openResetPassword(r.user, r.id)}
-                          className="flex-1 bg-[#E87A18] hover:bg-[#d46d13] text-white text-xs font-bold h-9 rounded-xl shadow-xs"
+                          className="flex-1"
                         >
                           <Key className="w-3.5 h-3.5 mr-1" />
                           Generate Password
@@ -652,7 +652,6 @@ export default function UsersPage() {
                               <Button
                                 size="sm"
                                 onClick={() => openResetPassword(r.user, r.id)}
-                                className="bg-[#E87A18] hover:bg-[#d46d13] text-white text-xs font-bold h-8 rounded-lg shadow-xs"
                               >
                                 <Key className="w-3.5 h-3.5 mr-1" />
                                 Generate Password
@@ -839,10 +838,12 @@ export default function UsersPage() {
           <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
             <Button
               onClick={handleGeneratePassword}
-              disabled={isGenerating}
-              className="w-full sm:w-auto h-11 bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs sm:text-sm order-1 sm:order-2 shadow-sm"
+              size="lg"
+              loading={isGenerating}
+              loadingText="Generating..."
+              className="w-full sm:w-auto order-1 sm:order-2"
             >
-              {isGenerating ? "Generating..." : "Generate & Set Password"}
+              Generate & Set Password
             </Button>
             <Button
               type="button"

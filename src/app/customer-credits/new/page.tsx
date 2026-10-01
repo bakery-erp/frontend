@@ -330,7 +330,7 @@ export default function NewCustomerCreditPage() {
           <Button
             variant="ghost"
             onClick={handleCancelClick}
-            className="text-[#8C7361] hover:bg-[#F4ECE1] rounded-xl w-fit flex items-center gap-1.5 -ml-2 h-9 px-2.5 font-bold"
+            className="text-[#8C7361] -ml-2"
           >
             <ArrowLeft className="w-4 h-4" /> {t("credits.btnBack")}
           </Button>
@@ -562,8 +562,9 @@ export default function NewCustomerCreditPage() {
                 type="button"
                 onClick={handleAddLineItem}
                 disabled={hasActiveSession === false || products.length === 0}
+                variant="brand"
                 size="sm"
-                className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-50"
+                className="self-start sm:self-auto"
               >
                 <Plus className="w-4 h-4" /> {t("credits.addProductLine")}
               </Button>
@@ -706,7 +707,7 @@ export default function NewCustomerCreditPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveLineItem(idx)}
-                          className="h-8 px-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs flex items-center gap-1"
+                          className="text-rose-600 hover:bg-rose-50"
                         >
                           <X className="w-3.5 h-3.5" /> {t("credits.remove")}
                         </Button>
@@ -759,9 +760,9 @@ export default function NewCustomerCreditPage() {
                         <Button
                           type="button"
                           variant="ghost"
-                          size="sm"
+                          size="icon-sm"
                           onClick={() => handleRemoveLineItem(idx)}
-                          className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 rounded-xl shrink-0"
+                          className="text-rose-600 hover:bg-rose-50"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -826,18 +827,21 @@ export default function NewCustomerCreditPage() {
             <Button
               type="button"
               variant="outline"
+              size="lg"
               onClick={handleCancelClick}
-              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs sm:text-sm h-11 sm:h-10 w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               {t("common.cancel")}
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || hasActiveSession === false || hasOverStockError || lineItems.length === 0}
-              className="bg-[#E87A18] hover:bg-[#d46d13] text-white font-bold rounded-xl text-xs sm:text-sm h-11 sm:h-10 w-full sm:w-auto shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+              size="lg"
+              loading={isSubmitting}
+              disabled={hasActiveSession === false || hasOverStockError || lineItems.length === 0}
+              className="w-full sm:w-auto"
             >
               <Check className="w-4 h-4" />
-              {isSubmitting ? t("common.loading") : t("credits.newCredit")}
+              {t("credits.newCredit")}
             </Button>
           </div>
         </form>

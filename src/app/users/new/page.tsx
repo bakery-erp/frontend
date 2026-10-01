@@ -323,17 +323,19 @@ export default function NewUserPage() {
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="order-1 sm:order-2 flex-1 h-12 bg-[#4A2E1B] hover:bg-[#382214] text-white font-bold rounded-xl text-sm shadow-md flex items-center justify-center gap-2"
+              loading={isSubmitting}
+              size="lg"
+              className="order-1 sm:order-2 flex-1"
             >
               <Save className="w-4 h-4" />
-              {isSubmitting ? t('users.btnCreatingPersonnel') : t('users.btnCreatePersonnel')}
+              {t('users.btnCreatePersonnel')}
             </Button>
             <Link href="/users" className="order-2 sm:order-1 sm:flex-initial">
               <Button
                 type="button"
                 variant="outline"
-                className="w-full sm:w-auto h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-sm hover:bg-[#FAF6F0]"
+                size="lg"
+                className="w-full sm:w-auto"
               >
                 {t('common.cancel')}
               </Button>
