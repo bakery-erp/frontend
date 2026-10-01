@@ -412,87 +412,95 @@ export default function OwnerLoansPage() {
         </div>
 
         {/* KPI Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {/* Card 1: Total Borrowed */}
-          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs flex items-center gap-3.5 hover:shadow-md transition-shadow">
-            <div className="w-11 h-11 rounded-xl bg-orange-50 text-[#E87A18] flex items-center justify-center shrink-0 border border-orange-100">
-              <ArrowDownRight className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider truncate">
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
+              <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">
                 {t("ownerLoans.totalBorrowed")}
               </p>
+              <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-orange-50 text-[#E87A18] flex items-center justify-center shrink-0 border border-orange-100">
+                <ArrowDownRight className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </div>
+            </div>
+            <div>
               {isLoading ? (
-                <Skeleton className="h-7 w-28 mt-1" />
+                <Skeleton className="h-7 w-24 mt-1" />
               ) : (
-                <h3 className="text-lg sm:text-2xl font-black text-[#2C1B10] font-mono tracking-tight truncate mt-0.5">
-                  {summary.totalBorrowed.toLocaleString()} <span className="text-xs font-semibold text-[#8C7361]">{t("common.currency")}</span>
+                <h3 className="text-base sm:text-2xl font-black text-[#2C1B10] font-mono tracking-tight break-words">
+                  {summary.totalBorrowed.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t("common.currency")}</span>
                 </h3>
               )}
             </div>
           </div>
 
           {/* Card 2: Total Repaid */}
-          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs flex items-center gap-3.5 hover:shadow-md transition-shadow">
-            <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
-              <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider truncate">
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
+              <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">
                 {t("ownerLoans.totalRepaid")}
               </p>
+              <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                <CheckCircle2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </div>
+            </div>
+            <div>
               {isLoading ? (
-                <Skeleton className="h-7 w-28 mt-1" />
+                <Skeleton className="h-7 w-24 mt-1" />
               ) : (
-                <h3 className="text-lg sm:text-2xl font-black text-emerald-700 font-mono tracking-tight truncate mt-0.5">
-                  {summary.totalRepaid.toLocaleString()} <span className="text-xs font-semibold text-emerald-600">{t("common.currency")}</span>
+                <h3 className="text-base sm:text-2xl font-black text-emerald-700 font-mono tracking-tight break-words">
+                  {summary.totalRepaid.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-emerald-600">{t("common.currency")}</span>
                 </h3>
               )}
             </div>
           </div>
 
           {/* Card 3: Outstanding Balance */}
-          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs flex items-center gap-3.5 hover:shadow-md transition-shadow">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
-              summary.totalRemaining > 0
-                ? "bg-rose-50 text-rose-600 border-rose-100"
-                : "bg-emerald-50 text-emerald-600 border-emerald-100"
-            }`}>
-              <AlertCircle className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider truncate">
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
+              <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">
                 {t("ownerLoans.outstandingBalance")}
               </p>
+              <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 border ${
+                summary.totalRemaining > 0
+                  ? "bg-rose-50 text-rose-600 border-rose-100"
+                  : "bg-emerald-50 text-emerald-600 border-emerald-100"
+              }`}>
+                <AlertCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </div>
+            </div>
+            <div>
               {isLoading ? (
-                <Skeleton className="h-7 w-28 mt-1" />
+                <Skeleton className="h-7 w-24 mt-1" />
               ) : (
-                <h3 className={`text-lg sm:text-2xl font-black font-mono tracking-tight truncate mt-0.5 ${
+                <h3 className={`text-base sm:text-2xl font-black font-mono tracking-tight break-words ${
                   summary.totalRemaining > 0 ? "text-rose-600" : "text-emerald-700"
                 }`}>
-                  {summary.totalRemaining.toLocaleString()} <span className="text-xs font-semibold text-[#8C7361]">{t("common.currency")}</span>
+                  {summary.totalRemaining.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t("common.currency")}</span>
                 </h3>
               )}
             </div>
           </div>
 
           {/* Card 4: Active vs Settled Count */}
-          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs flex items-center gap-3.5 hover:shadow-md transition-shadow">
-            <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 border border-purple-100">
-              <CreditCard className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider truncate">
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
+              <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">
                 {t("ownerLoans.activeLoans")}
               </p>
+              <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 border border-purple-100">
+                <CreditCard className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[2.5]" />
+              </div>
+            </div>
+            <div>
               {isLoading ? (
                 <Skeleton className="h-7 w-20 mt-1" />
               ) : (
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-lg sm:text-2xl font-black text-[#2C1B10] font-mono">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-base sm:text-2xl font-black text-[#2C1B10] font-mono">
                     {summary.openCount}
                   </span>
-                  <span className="text-xs font-bold text-[#8C7361]">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#8C7361]">
                     ({summary.paidCount} {t("ownerLoans.settledLoans").toLowerCase()})
                   </span>
                 </div>
