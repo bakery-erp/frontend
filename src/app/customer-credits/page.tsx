@@ -522,7 +522,7 @@ export default function CustomerCreditsPage() {
                         <TableHead className="text-right">{t("credits.colTotalAmount")}</TableHead>
                         <TableHead className="text-right">{t("credits.colRemaining")}</TableHead>
                         <TableHead className="text-center">{t("credits.colStatus")}</TableHead>
-                        <TableHead>{t("reports.dailyBreakdownTitle")}</TableHead>
+                        <TableHead>{t("credits.colRepayments") || "Repayments"}</TableHead>
                         <TableHead className="text-right pr-6">{t("common.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>

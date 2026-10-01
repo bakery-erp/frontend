@@ -684,6 +684,7 @@ export const en = {
     colTotalAmount: "Total Credit",
     colRemaining: "Remaining Balance",
     colStatus: "Status",
+    colRepayments: "Repayments",
     statusOpen: "OPEN (UNPAID)",
     statusPaid: "PAID",
     btnPay: "Settle / Pay",
