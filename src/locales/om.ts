@@ -1163,7 +1163,7 @@ export const om: TranslationDictionary = {
     activeLoans: "Liqiiwwan Hojiirra Jiran",
     settledLoans: "Liqiiwwan Kaffalamanii Xumuraman",
     colDate: "Guyyaa",
-    colLender: "Kan Irraa Liqeeffame (Nama / Dhaabbata)",
+    colLender: "Madda Liqii",
     colBranch: "Damee",
     colReason: "Sababa / Kaayyoo",
     colTotalAmount: "Waliigala Liqii",
