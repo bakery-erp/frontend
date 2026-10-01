@@ -697,6 +697,7 @@ export const om: TranslationDictionary = {
     colTotalAmount: "Ida'ama Liqii",
     colRemaining: "Liqii Hafe",
     colStatus: "Haala",
+    colRepayments: "Kaffaltii Deebii",
     statusOpen: "BANAA (KAN HIN KAFFALAMNE)",
     statusPaid: "KAFFALAMEERA",
     btnPay: "Kaffali / Buusi",

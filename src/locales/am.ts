@@ -697,6 +697,7 @@ export const am: TranslationDictionary = {
     colTotalAmount: "ጠቅላላ ብድር",
     colRemaining: "ቀሪ ዕዳ",
     colStatus: "ሁኔታ",
+    colRepayments: "የተመለሱ ክፍያዎች",
     statusOpen: "ክፍት (ያልተከፈለ)",
     statusPaid: "የተከፈለ",
     btnPay: "ክፈል / አወራርድ",
