@@ -161,72 +161,92 @@ export default function ProductsPage() {
 
       {/* House Stock Summary Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5 mb-6">
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
-          <div className="p-2 sm:p-3 rounded-xl bg-amber-50 text-amber-700 shrink-0">
-            <PackageCheck className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('products.colStockStatus')}</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+              <PackageCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.colStockStatus')}</p>
+          <div>
             {isLoading ? (
-              <Skeleton className="h-5 w-16 mt-0.5" />
+              <Skeleton className="h-6 w-16" />
             ) : (
-              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalHouseStock.toLocaleString()} {t('common.pcs')}</p>
+              <p className="text-base sm:text-xl font-black text-[#2C1B10] font-mono">
+                {totalHouseStock.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.pcs')}</span>
+              </p>
             )}
           </div>
         </div>
 
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
-          <div className="p-2 sm:p-3 rounded-xl bg-orange-50 text-[#E87A18] shrink-0">
-            <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('products.totalDelivered')}</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-orange-50 text-[#E87A18] flex items-center justify-center shrink-0">
+              <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalDelivered')}</p>
+          <div>
             {isLoading ? (
-              <Skeleton className="h-5 w-16 mt-0.5" />
+              <Skeleton className="h-6 w-16" />
             ) : (
-              <p className="text-base sm:text-xl font-extrabold text-[#E87A18] font-mono truncate">{totalDeliveredItems.toLocaleString()} {t('common.pcs')}</p>
+              <p className="text-base sm:text-xl font-black text-[#E87A18] font-mono">
+                {totalDeliveredItems.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.pcs')}</span>
+              </p>
             )}
           </div>
         </div>
 
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
-          <div className="p-2 sm:p-3 rounded-xl bg-emerald-50 text-emerald-700 shrink-0">
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('products.totalProduced')}</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalProduced')}</p>
+          <div>
             {isLoading ? (
-              <Skeleton className="h-5 w-16 mt-0.5" />
+              <Skeleton className="h-6 w-16" />
             ) : (
-              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalProducedItems.toLocaleString()} {t('common.pcs')}</p>
+              <p className="text-base sm:text-xl font-black text-[#2C1B10] font-mono">
+                {totalProducedItems.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.pcs')}</span>
+              </p>
             )}
           </div>
         </div>
 
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
-          <div className="p-2 sm:p-3 rounded-xl bg-blue-50 text-blue-700 shrink-0">
-            <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('products.totalVarieties')}</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
+              <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('dashboard.incomeFromSales')}</p>
+          <div>
             {isLoading ? (
-              <Skeleton className="h-5 w-16 mt-0.5" />
+              <Skeleton className="h-6 w-16" />
             ) : (
-              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{totalSoldItems.toLocaleString()} {t('common.pcs')}</p>
+              <p className="text-base sm:text-xl font-black text-[#2C1B10] font-mono">
+                {products.length} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.items')}</span>
+              </p>
             )}
           </div>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex items-center space-x-2.5 sm:space-x-3">
-          <div className="p-2 sm:p-3 rounded-xl bg-purple-50 text-purple-700 shrink-0">
-            <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="col-span-2 sm:col-span-1 bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('dashboard.incomeFromSales')}</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-[#8C7361] truncate">{t('products.totalVarieties')}</p>
+          <div>
             {isLoading ? (
-              <Skeleton className="h-5 w-16 mt-0.5" />
+              <Skeleton className="h-6 w-20" />
             ) : (
-              <p className="text-base sm:text-xl font-extrabold text-[#2C1B10] font-mono truncate">{products.length} {t('common.items')}</p>
+              <p className="text-base sm:text-xl font-black text-[#2C1B10] font-mono">
+                {totalSoldItems.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.pcs')}</span>
+              </p>
             )}
           </div>
         </div>

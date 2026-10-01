@@ -248,10 +248,10 @@ export default function DailySessionsPage() {
             {isTodayOnly ? `${t('common.date')} (Today Active)` : t('common.date')}
           </Button>
 
-          {canManageSessions && !todaySession && (
+          {!isLoading && sessionData && canManageSessions && !todaySession && (
             <Button
               onClick={handleOpenNewSession}
-              className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm h-10 px-4 shadow-sm"
+              className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm h-10 px-4 shadow-sm animate-in fade-in duration-150"
             >
               <Plus className="w-4 h-4 mr-1.5" /> {t('sessions.startNewSession')}
             </Button>
