@@ -897,6 +897,8 @@ export const en = {
     colPhone: "Phone Number",
     colAddress: "Address",
     colStatus: "Status",
+    manageBranches: "Manage Branches",
+    allBranchesDesc: "Consolidated view across all branches",
     branchNamePlaceholder: "e.g., Downtown Bakery",
     addressPlaceholder: "e.g., 123 Main St, Cityville",
     loadingBranches: "Loading branches...",

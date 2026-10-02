@@ -368,19 +368,25 @@ export default function UsersPage() {
                       </Badge>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-[#FAF6F0]">
-                      <div className="flex items-center text-[#2C1B10] font-semibold">
-                        <Building2 className="w-3.5 h-3.5 mr-1 text-[#8C7361]" />
-                        {u.branch ? u.branch.name : <span className="text-zinc-400 italic">Unassigned</span>}
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#FAF6F0]">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shadow-2xs min-w-0">
+                        <Building2 className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                        <span className="truncate max-w-[140px] xs:max-w-[190px]">
+                          {u.branch ? u.branch.name : (
+                            <span className="text-[#8C7361] font-normal italic">
+                              {t('users.globalAllBranches') || 'Global / All Branches'}
+                            </span>
+                          )}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <Switch
                           checked={u.isActive}
                           onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
                           disabled={user?.role !== "OWNER" && user?.role !== "ADMIN"}
                         />
-                        <span className={`text-xs font-bold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
-                          {u.isActive ? 'Active' : 'Disabled'}
+                        <span className={`text-xs font-extrabold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                          {u.isActive ? (t('branches.activeStatus') || 'Active') : (t('branches.inactiveStatus') || 'Disabled')}
                         </span>
                       </div>
                     </div>
@@ -466,12 +472,14 @@ export default function UsersPage() {
                         </TableCell>
                         <TableCell>
                           {u.branch ? (
-                            <div className="flex items-center text-[#2C1B10] font-semibold text-xs">
-                              <Building2 className="w-3.5 h-3.5 mr-1 text-[#8C7361]" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shadow-2xs">
+                              <Building2 className="w-3.5 h-3.5 text-[#E87A18]" />
                               {u.branch.name}
-                            </div>
+                            </span>
                           ) : (
-                            <span className="text-zinc-400 text-xs italic">Unassigned (Global)</span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-500 font-medium text-xs italic">
+                              {t('users.globalAllBranches') || 'Global / All Branches'}
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>
