@@ -78,6 +78,12 @@ export default function NewUserPage() {
         return;
       }
 
+      if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
+        toast.error("Identification document must be a PDF (.pdf) file.");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Clean up empty strings
       if (!formData.get("salary")) formData.delete("salary");
       if (!formData.get("startDate")) formData.delete("startDate");
@@ -306,13 +312,13 @@ export default function NewUserPage() {
               <div className="border-2 border-dashed border-[#EDE4D5] rounded-2xl p-4 sm:p-6 text-center hover:border-[#E87A18] transition-colors bg-[#FAF6F0]/40">
                 <Upload className="w-8 h-8 text-[#8C7361] mx-auto mb-2" />
                 <p className="text-xs text-[#8C7361] mb-2 font-medium">
-                  {t('users.selectDocumentHint')}
+                  PDF format only (.pdf, max 15MB)
                 </p>
                 <Input
                   name="file"
                   type="file"
                   required
-                  accept=".pdf,image/*"
+                  accept=".pdf,application/pdf"
                   className="max-w-xs mx-auto text-xs cursor-pointer border-[#EDE4D5] bg-white rounded-xl h-10"
                 />
               </div>

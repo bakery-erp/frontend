@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { getImageUrl } from '@/lib/utils';
+import { getImageUrl, getFileUrl } from '@/lib/utils';
 import {
   User,
   Building2,
@@ -22,6 +22,7 @@ import {
   Check,
   X,
   ShieldCheck,
+  FileText,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,7 @@ interface DashboardData {
     startDate: string | null;
     lastPaidDate: string | null;
     shift: string | null;
+    avatarUrl?: string | null;
     filesUrl: string | null;
     branch?: {
       id: string;
@@ -210,9 +212,9 @@ export default function MyProfilePage() {
       toast.success(t('profile.avatarSuccess'));
       setSelectedFile(null);
       setIsAvatarModalOpen(false);
-      if (res.data?.filesUrl && updateUser) {
+      if (res.data && updateUser) {
         setHeroAvatarError(false);
-        updateUser({ filesUrl: res.data.filesUrl });
+        updateUser({ avatarUrl: res.data.avatarUrl, filesUrl: res.data.filesUrl });
       }
       queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
     } catch (err: any) {
@@ -336,9 +338,9 @@ export default function MyProfilePage() {
                 className="relative group cursor-pointer rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#E87A18] shrink-0"
                 title={t('profile.clickToUpdateAvatar')}
               >
-                {u?.filesUrl && !heroAvatarError ? (
+                {(u?.avatarUrl || (u?.filesUrl && !u.filesUrl.toLowerCase().endsWith('.pdf'))) && !heroAvatarError ? (
                   <img
-                    src={getImageUrl(u.filesUrl)!}
+                    src={getImageUrl(u.avatarUrl || u.filesUrl)!}
                     alt={u.fullName}
                     onError={() => setHeroAvatarError(true)}
                     className="w-14 h-14 xs:w-16 xs:h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white/40 shadow-lg group-hover:scale-105 transition-transform"
@@ -366,9 +368,22 @@ export default function MyProfilePage() {
                   </span>
                 </div>
                 <h1 className="text-lg xs:text-2xl md:text-3xl font-extrabold tracking-tight truncate">{u?.fullName}</h1>
-                <p className="text-[11px] xs:text-xs md:text-sm text-amber-100/70 font-medium flex items-center mt-0.5 xs:mt-1 truncate">
-                  <Phone className="w-3 h-3 xs:w-3.5 xs:h-3.5 mr-1 xs:mr-1.5 shrink-0" /> <span className="truncate">{u?.phone}</span>
-                </p>
+                <div className="flex flex-wrap items-center gap-3 mt-0.5 xs:mt-1">
+                  <p className="text-[11px] xs:text-xs md:text-sm text-amber-100/70 font-medium flex items-center truncate">
+                    <Phone className="w-3 h-3 xs:w-3.5 xs:h-3.5 mr-1 xs:mr-1.5 shrink-0" /> <span className="truncate">{u?.phone}</span>
+                  </p>
+                  {u?.filesUrl && (
+                    <a
+                      href={getFileUrl(u.filesUrl) || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] xs:text-xs font-semibold text-white bg-white/20 hover:bg-white/30 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors"
+                    >
+                      <FileText className="w-3 h-3 text-amber-200" />
+                      <span>ID Document (PDF)</span>
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -14,6 +14,7 @@ export interface AuthUser {
     id: string;
     name: string;
   };
+  avatarUrl?: string | null;
   filesUrl?: string | null;
   shift?: string | null;
   salary?: number | null;

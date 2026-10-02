@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getImageUrl, getFileUrl } from "@/lib/utils";
-import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,6 +53,7 @@ interface User {
   startDate: string | null;
   lastPaidDate: string | null;
   shift: string | null;
+  avatarUrl?: string | null;
   filesUrl: string | null;
   branch?: {
     name: string;
@@ -87,7 +88,8 @@ function UserAvatar({
   textClass?: string;
 }) {
   const [hasError, setHasError] = useState(false);
-  const src = getImageUrl(url);
+  const isPdf = typeof url === 'string' && url.toLowerCase().endsWith('.pdf');
+  const src = !isPdf && url ? getImageUrl(url) : null;
 
   if (!src || hasError) {
     return (
@@ -355,7 +357,7 @@ export default function UsersPage() {
                   <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
-                        <UserAvatar url={u.filesUrl} name={u.fullName} className="w-10 h-10" />
+                        <UserAvatar url={u.avatarUrl || u.filesUrl} name={u.fullName} className="w-10 h-10" />
                         <div>
                           <p className="font-extrabold text-sm text-[#2C1B10]">{u.fullName}</p>
                           <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
@@ -450,7 +452,7 @@ export default function UsersPage() {
                       <TableRow key={u.id}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
-                            <UserAvatar url={u.filesUrl} name={u.fullName} className="w-9 h-9" />
+                            <UserAvatar url={u.avatarUrl || u.filesUrl} name={u.fullName} className="w-9 h-9" />
                             <div>
                               <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
                               <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
@@ -702,7 +704,7 @@ export default function UsersPage() {
             <div className="space-y-4 py-4">
               <div className="flex items-center space-x-4 pb-4 border-b">
                 <UserAvatar
-                  url={viewingUser.filesUrl}
+                  url={viewingUser.avatarUrl || viewingUser.filesUrl}
                   name={viewingUser.fullName}
                   className="w-16 h-16 rounded-2xl border-2 border-[#E87A18]"
                   textClass="text-xl"
@@ -765,8 +767,14 @@ export default function UsersPage() {
                 <div>
                   <p className="text-zinc-500 font-medium mb-1">Employment Document</p>
                   {viewingUser.filesUrl ? (
-                    <a href={getFileUrl(viewingUser.filesUrl) || "#"} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-semibold bg-blue-50 px-2 py-0.5 rounded inline-block">
-                      Open Uploaded File
+                    <a
+                      href={getFileUrl(viewingUser.filesUrl) || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline font-semibold bg-blue-50 px-2.5 py-1 rounded inline-flex items-center gap-1.5 border border-blue-200"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-blue-600" />
+                      View Identification Document (PDF)
                     </a>
                   ) : (
                     <span className="text-zinc-400">None attached</span>
