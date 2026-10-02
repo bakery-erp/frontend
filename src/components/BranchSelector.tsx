@@ -154,27 +154,53 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
     setSearchQuery('');
   };
 
+  // Helper to remove "Branch" / "branch" / "ቅርንጫፍ" / "Dammee" and append "..."
+  const formatMobileTitle = (rawName: string) => {
+    const trimmed = rawName.trim();
+    const stripped = trimmed.replace(/\s*(branch|ቅርንጫፍ|dammee|dammeessaa)\s*$/i, '').trim();
+    if (stripped.length > 0 && stripped.toLowerCase() !== trimmed.toLowerCase()) {
+      return `${stripped}...`;
+    }
+    if (trimmed.length > 12) {
+      return `${trimmed.slice(0, 11)}...`;
+    }
+    return trimmed;
+  };
+
+  // Active branch title for owner
+  const currentTitle = activeBranch ? activeBranch.name : t('dashboard.allBranches');
+  const mobileCurrentTitle = useMemo(() => {
+    if (!activeBranch) {
+      return t('dashboard.allBranches');
+    }
+    return formatMobileTitle(activeBranch.name);
+  }, [activeBranch, t]);
+
+  const mobileStaffBranchName = useMemo(() => {
+    return formatMobileTitle(staffBranchName);
+  }, [staffBranchName]);
+
   // For non-owners: elegant badge displaying assigned branch
   if (!isOwner) {
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs md:text-sm font-bold bg-[#F4ECE1]/90 text-[#4A2E1B] border border-[#E0D5C3] shadow-2xs select-none ${className}`}
+        className={`inline-flex items-center gap-1.5 px-2 xs:px-2.5 py-1.5 rounded-xl text-xs md:text-sm font-bold bg-[#F4ECE1]/90 text-[#4A2E1B] border border-[#E0D5C3] shadow-2xs select-none ${className}`}
         title={`${t('common.branch')}: ${staffBranchName}`}
       >
         <Store className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-        <span className="truncate max-w-[92px] sm:max-w-[160px] md:max-w-[220px] lg:max-w-none">
+        <span className="sm:hidden truncate max-w-[85px] xs:max-w-[100px]">
+          {mobileStaffBranchName}
+        </span>
+        <span className="hidden sm:inline truncate max-w-[180px] md:max-w-none">
           {staffBranchName}
         </span>
       </div>
     );
   }
 
-  // Active branch title for owner
-  const currentTitle = activeBranch ? activeBranch.name : t('dashboard.allBranches');
-
   return (
     <div className={`relative inline-block text-left ${className}`}>
-      {/* Trigger Button */}
+      {/* Trigger Button - Dropdown */}
       <button
         ref={triggerRef}
         type="button"
@@ -189,7 +215,12 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
         aria-expanded={isOpen}
       >
         <Store className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-        <span className="truncate max-w-[92px] sm:max-w-[160px] md:max-w-[220px] lg:max-w-none">
+        {/* Mobile: Name with ... leaving out "Branch" */}
+        <span className="sm:hidden truncate max-w-[85px] xs:max-w-[100px]">
+          {mobileCurrentTitle}
+        </span>
+        {/* Desktop: Full branch name */}
+        <span className="hidden sm:inline truncate max-w-[180px] md:max-w-[240px] lg:max-w-none">
           {currentTitle}
         </span>
         <ChevronDown
