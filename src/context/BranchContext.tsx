@@ -41,18 +41,26 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!silent && branches.length === 0) setIsLoadingBranches(true);
     try {
       const { data } = await api.get<Branch[]>('/branches');
-      setBranches(data);
+      const validBranches = Array.isArray(data) ? data : [];
+      setBranches(validBranches);
       try {
-        localStorage.setItem('erp_branches', JSON.stringify(data));
+        localStorage.setItem('erp_branches', JSON.stringify(validBranches));
       } catch {}
-      const savedBranch = localStorage.getItem('selectedBranchId');
-      if (savedBranch && savedBranch !== 'ALL') {
-        const exists = Array.isArray(data) && data.some((b) => b.id === savedBranch);
-        if (!exists) {
-          localStorage.removeItem('selectedBranchId');
-          setSelectedBranchIdState(null);
+
+      setSelectedBranchIdState((prev) => {
+        const savedBranch = typeof window !== 'undefined' ? localStorage.getItem('selectedBranchId') : null;
+        const currentTarget = prev || (savedBranch && savedBranch !== 'ALL' ? savedBranch : null);
+        if (currentTarget) {
+          const exists = validBranches.some((b) => b.id === currentTarget);
+          if (!exists) {
+            try {
+              localStorage.setItem('selectedBranchId', 'ALL');
+            } catch {}
+            return null;
+          }
         }
-      }
+        return prev;
+      });
     } catch (e) {
       console.error('Failed to fetch branches:', e);
     } finally {
