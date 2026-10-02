@@ -43,7 +43,7 @@ interface Branch {
 
 export default function BranchesPage() {
   const { user } = useAuth();
-  const { refreshBranches } = useBranch();
+  const { refreshBranches, selectedBranchId, setSelectedBranchId } = useBranch();
   const { t } = useLanguage();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -170,11 +170,16 @@ export default function BranchesPage() {
     try {
       setIsDeleting(true);
       await api.delete(`/branches/${branchToDelete.id}`);
+      if (selectedBranchId === branchToDelete.id) {
+        setSelectedBranchId(null);
+      }
       toast.success(t('branches.toastBranchDeleted') || "Branch and associated data deleted permanently");
       await refreshBranches();
-      queryClient.invalidateQueries({ queryKey: ["branches-list"] });
-      queryClient.invalidateQueries({ queryKey: ["branches"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["branches-list"] }),
+        queryClient.invalidateQueries({ queryKey: ["branches"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
       setIsDeleteDialogOpen(false);
       setBranchToDelete(null);
     } catch (error: any) {
