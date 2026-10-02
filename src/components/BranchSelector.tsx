@@ -158,11 +158,13 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
   if (!isOwner) {
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs md:text-sm font-bold bg-[#F4ECE1]/90 text-[#4A2E1B] border border-[#E0D5C3] shadow-2xs select-none max-w-[150px] xs:max-w-[200px] md:max-w-none ${className}`}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs md:text-sm font-bold bg-[#F4ECE1]/90 text-[#4A2E1B] border border-[#E0D5C3] shadow-2xs select-none ${className}`}
         title={`${t('common.branch')}: ${staffBranchName}`}
       >
         <Store className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-        <span className="truncate">{staffBranchName}</span>
+        <span className="truncate max-w-[92px] sm:max-w-[160px] md:max-w-[220px] lg:max-w-none">
+          {staffBranchName}
+        </span>
       </div>
     );
   }
@@ -177,6 +179,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
         ref={triggerRef}
         type="button"
         onClick={toggleDropdown}
+        title={currentTitle}
         className={`flex items-center gap-1.5 xs:gap-2 px-2.5 xs:px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition-all shadow-2xs focus:outline-none select-none ${
           isOpen
             ? 'bg-[#EAE0D1] border-[#E87A18]/60 ring-2 ring-[#E87A18]/20 text-[#2C1B10]'
@@ -186,7 +189,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({
         aria-expanded={isOpen}
       >
         <Store className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-        <span className="truncate max-w-[100px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-none">
+        <span className="truncate max-w-[92px] sm:max-w-[160px] md:max-w-[220px] lg:max-w-none">
           {currentTitle}
         </span>
         <ChevronDown
