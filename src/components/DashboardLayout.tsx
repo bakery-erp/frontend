@@ -235,9 +235,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Profile Avatar Pill */}
             <Link href="/my-profile" className="flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0">
-              {(user?.avatarUrl || (user?.filesUrl && !user.filesUrl.toLowerCase().endsWith('.pdf'))) && !headerAvatarError ? (
+              {user?.avatarUrl && !headerAvatarError ? (
                 <img
-                  src={getImageUrl(user.avatarUrl || user.filesUrl)!}
+                  src={getImageUrl(user.avatarUrl)!}
                   alt={user.fullName || 'User'}
                   onError={() => setHeaderAvatarError(true)}
                   className="w-8 h-8 xs:w-9 xs:h-9 rounded-xl object-cover border border-[#E87A18]/30 shadow-md"

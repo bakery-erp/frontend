@@ -357,7 +357,7 @@ export default function UsersPage() {
                   <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
-                        <UserAvatar url={u.avatarUrl || u.filesUrl} name={u.fullName} className="w-10 h-10" />
+                        <UserAvatar url={u.avatarUrl} name={u.fullName} className="w-10 h-10" />
                         <div>
                           <p className="font-extrabold text-sm text-[#2C1B10]">{u.fullName}</p>
                           <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
@@ -452,7 +452,7 @@ export default function UsersPage() {
                       <TableRow key={u.id}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
-                            <UserAvatar url={u.avatarUrl || u.filesUrl} name={u.fullName} className="w-9 h-9" />
+                            <UserAvatar url={u.avatarUrl} name={u.fullName} className="w-9 h-9" />
                             <div>
                               <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
                               <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
@@ -704,7 +704,7 @@ export default function UsersPage() {
             <div className="space-y-4 py-4">
               <div className="flex items-center space-x-4 pb-4 border-b">
                 <UserAvatar
-                  url={viewingUser.avatarUrl || viewingUser.filesUrl}
+                  url={viewingUser.avatarUrl}
                   name={viewingUser.fullName}
                   className="w-16 h-16 rounded-2xl border-2 border-[#E87A18]"
                   textClass="text-xl"
