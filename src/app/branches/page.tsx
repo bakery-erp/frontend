@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { Plus, Search, MapPin, MoreVertical, Edit2, Building2, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ interface Branch {
 
 export default function BranchesPage() {
   const { user } = useAuth();
+  const { refreshBranches } = useBranch();
   const { t } = useLanguage();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -85,6 +87,7 @@ export default function BranchesPage() {
       setToggleLoading(id);
       await api.patch(`/branches/${id}`, { isActive: !currentStatus });
       toast.success(currentStatus ? t('branches.toastBranchDeactivated') : t('branches.toastBranchActivated'));
+      await refreshBranches();
       queryClient.invalidateQueries({ queryKey: ["branches-list"] });
       queryClient.invalidateQueries({ queryKey: ["branches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -111,6 +114,7 @@ export default function BranchesPage() {
         await api.post("/branches", formData);
         toast.success(t('branches.toastBranchCreated'));
       }
+      await refreshBranches();
       queryClient.invalidateQueries({ queryKey: ["branches-list"] });
       queryClient.invalidateQueries({ queryKey: ["branches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -167,6 +171,7 @@ export default function BranchesPage() {
       setIsDeleting(true);
       await api.delete(`/branches/${branchToDelete.id}`);
       toast.success(t('branches.toastBranchDeleted') || "Branch and associated data deleted permanently");
+      await refreshBranches();
       queryClient.invalidateQueries({ queryKey: ["branches-list"] });
       queryClient.invalidateQueries({ queryKey: ["branches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
