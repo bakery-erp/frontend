@@ -75,6 +75,40 @@ interface PasswordResetRequest {
   };
 }
 
+function UserAvatar({
+  url,
+  name,
+  className = "w-9 h-9",
+  textClass = "text-xs",
+}: {
+  url?: string | null;
+  name: string;
+  className?: string;
+  textClass?: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+  const src = getImageUrl(url);
+
+  if (!src || hasError) {
+    return (
+      <div
+        className={`${className} rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold ${textClass} shadow-xs shrink-0 select-none`}
+      >
+        {name?.charAt(0) || "U"}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      onError={() => setHasError(true)}
+      className={`${className} rounded-xl object-cover border border-[#E87A18]/30 shadow-xs shrink-0`}
+    />
+  );
+}
+
 const SHIFTS = ["DAY", "NIGHT"];
 
 export default function UsersPage() {
@@ -321,17 +355,7 @@ export default function UsersPage() {
                   <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
-                        {u.filesUrl ? (
-                          <img
-                            src={getImageUrl(u.filesUrl)!}
-                            alt={u.fullName}
-                            className="w-10 h-10 rounded-xl object-cover border border-[#E87A18]/30 shadow-xs"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                            {u.fullName?.charAt(0) || "U"}
-                          </div>
-                        )}
+                        <UserAvatar url={u.filesUrl} name={u.fullName} className="w-10 h-10" />
                         <div>
                           <p className="font-extrabold text-sm text-[#2C1B10]">{u.fullName}</p>
                           <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
@@ -426,17 +450,7 @@ export default function UsersPage() {
                       <TableRow key={u.id}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
-                            {u.filesUrl ? (
-                              <img
-                                src={getImageUrl(u.filesUrl)!}
-                                alt={u.fullName}
-                                className="w-9 h-9 rounded-xl object-cover border border-[#E87A18]/30 shadow-xs"
-                              />
-                            ) : (
-                              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                                {u.fullName?.charAt(0) || "U"}
-                              </div>
-                            )}
+                            <UserAvatar url={u.filesUrl} name={u.fullName} className="w-9 h-9" />
                             <div>
                               <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
                               <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
@@ -687,17 +701,12 @@ export default function UsersPage() {
           {viewingUser && (
             <div className="space-y-4 py-4">
               <div className="flex items-center space-x-4 pb-4 border-b">
-                {viewingUser.filesUrl ? (
-                  <img
-                    src={getImageUrl(viewingUser.filesUrl)!}
-                    alt={viewingUser.fullName}
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-[#E87A18] shadow-sm shrink-0"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-500 shrink-0">
-                    <UserIcon className="w-8 h-8" />
-                  </div>
-                )}
+                <UserAvatar
+                  url={viewingUser.filesUrl}
+                  name={viewingUser.fullName}
+                  className="w-16 h-16 rounded-2xl border-2 border-[#E87A18]"
+                  textClass="text-xl"
+                />
                 <div>
                   <h3 className="text-xl font-bold tracking-tight text-zinc-900">{viewingUser.fullName}</h3>
                   <div className="flex items-center gap-2 mt-1">
