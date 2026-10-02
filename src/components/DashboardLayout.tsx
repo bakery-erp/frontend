@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { getImageUrl } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
+import { BranchSelector } from '@/components/BranchSelector';
 import {
   LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
@@ -199,28 +200,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
 
             <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
-              <Building2 className="w-4 h-4 md:w-5 md:h-5 text-[#8C7361] hidden md:inline shrink-0" />
               <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden md:inline">{t('common.branch')}:</span>
-              {isOwner ? (
-                <select
-                  value={selectedBranchId || 'ALL'}
-                  onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}
-                  className="bg-[#F4ECE1] border border-[#E0D5C3] text-[#2C1B10] text-xs md:text-sm rounded-xl focus:ring-[#E87A18] focus:border-[#E87A18] px-2.5 py-1.5 font-bold truncate max-w-[140px] xs:max-w-[200px] md:max-w-none"
-                >
-                  <option value="ALL">🌐 {t('dashboard.allBranches')}</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      📍 {b.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F4ECE1] text-[#4A2E1B] border border-[#E0D5C3] truncate max-w-[150px] xs:max-w-[220px] md:max-w-none">
-                  <span className="truncate">
-                    📍 {user?.branch?.name && user.branch.name.trim() !== '.' && user.branch.name.trim() !== '' ? user.branch.name : 'Main Bakery'}
-                  </span>
-                </span>
-              )}
+              <BranchSelector />
             </div>
           </div>
 

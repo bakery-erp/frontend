@@ -899,6 +899,8 @@ export const om: TranslationDictionary = {
     colPhone: "Lakkoofsa Bilbilaa",
     colAddress: "Teessoo",
     colStatus: "Haala",
+    manageBranches: "Dammeelee Bulchi",
+    allBranchesDesc: "Ilaalcha waliigalaa dammeelee hunda",
     branchNamePlaceholder: "fkn, Dammee Finfinnee",
     addressPlaceholder: "fkn, 123 Daandii Guddaa, Finfinnee",
     loadingBranches: "Dammeeleen fe'amaa jiru...",

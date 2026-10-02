@@ -899,6 +899,8 @@ export const am: TranslationDictionary = {
     colPhone: "ስልክ ቁጥር",
     colAddress: "አድራሻ",
     colStatus: "ሁኔታ",
+    manageBranches: "ቅርንጫፎችን አስተዳድር",
+    allBranchesDesc: "የሁሉም ቅርንጫፎች የተቀናጀ መረጃ",
     branchNamePlaceholder: "ምሳሌ፡ ቦሌ ቅርንጫፍ",
     addressPlaceholder: "ምሳሌ፡ ቦሌ መድኃኔዓለም፣ አዲስ አበባ",
     loadingBranches: "ቅርንጫፎች በመጫን ላይ...",
