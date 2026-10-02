@@ -16,6 +16,7 @@ interface BranchContextType {
   selectedBranchId: string | null; // null means 'ALL' branches for OWNER
   setSelectedBranchId: (id: string | null) => void;
   isLoadingBranches: boolean;
+  refreshBranches: () => Promise<void>;
 }
 
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
@@ -36,6 +37,38 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectedBranchId, setSelectedBranchIdState] = useState<string | null>(null);
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
 
+  const fetchBranches = async (silent = false) => {
+    if (!silent && branches.length === 0) setIsLoadingBranches(true);
+    try {
+      const { data } = await api.get<Branch[]>('/branches');
+      setBranches(data);
+      try {
+        localStorage.setItem('erp_branches', JSON.stringify(data));
+      } catch {}
+      const savedBranch = localStorage.getItem('selectedBranchId');
+      if (savedBranch && savedBranch !== 'ALL') {
+        const exists = Array.isArray(data) && data.some((b) => b.id === savedBranch);
+        if (!exists) {
+          localStorage.removeItem('selectedBranchId');
+          setSelectedBranchIdState(null);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch branches:', e);
+    } finally {
+      if (!silent) setIsLoadingBranches(false);
+    }
+  };
+
+  const refreshBranches = async () => {
+    if (!user) return;
+    if (user.role === 'OWNER') {
+      await fetchBranches(true);
+    } else if (user.branch) {
+      setBranches([user.branch]);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -43,28 +76,6 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Owner can see all branches or select a specific branch
       const savedBranch = localStorage.getItem('selectedBranchId');
       setSelectedBranchIdState(savedBranch === 'ALL' || !savedBranch ? null : savedBranch);
-
-      const fetchBranches = async () => {
-        if (branches.length === 0) setIsLoadingBranches(true);
-        try {
-          const { data } = await api.get<Branch[]>('/branches');
-          setBranches(data);
-          try {
-            localStorage.setItem('erp_branches', JSON.stringify(data));
-          } catch {}
-          if (savedBranch && savedBranch !== 'ALL') {
-            const exists = Array.isArray(data) && data.some((b) => b.id === savedBranch);
-            if (!exists) {
-              localStorage.removeItem('selectedBranchId');
-              setSelectedBranchIdState(null);
-            }
-          }
-        } catch (e) {
-          console.error('Failed to fetch branches:', e);
-        } finally {
-          setIsLoadingBranches(false);
-        }
-      };
       fetchBranches();
     } else {
       // Admin / Staff locked to their assigned branchId
@@ -73,6 +84,14 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setBranches([user.branch]);
       }
     }
+  }, [user]);
+
+  useEffect(() => {
+    const handleSync = () => {
+      refreshBranches();
+    };
+    window.addEventListener('erp_branches_updated', handleSync);
+    return () => window.removeEventListener('erp_branches_updated', handleSync);
   }, [user]);
 
   const setSelectedBranchId = (id: string | null) => {
@@ -85,7 +104,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   return (
-    <BranchContext.Provider value={{ branches, selectedBranchId, setSelectedBranchId, isLoadingBranches }}>
+    <BranchContext.Provider value={{ branches, selectedBranchId, setSelectedBranchId, isLoadingBranches, refreshBranches }}>
       {children}
     </BranchContext.Provider>
   );
