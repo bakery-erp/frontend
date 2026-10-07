@@ -16,6 +16,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TableSkeleton, CardGridSkeleton } from '@/components/ui/skeletons';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 interface DailySession {
   id: string;
@@ -87,6 +89,27 @@ export default function DailySessionsPage() {
   const [cashFloat, setCashFloat] = useState<string>('');
   const [leftoverCounts, setLeftoverCounts] = useState<Record<string, { quantityRemaining: number | string; damagedQuantity: number | string; damageReason: string }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isFinalizeDirty = Boolean(activeSession) && (
+    Boolean(cashFloat && cashFloat !== String(activeSession?.cashLeftoverAmount || '')) ||
+    Object.values(leftoverCounts).some(
+      (c) => (c.quantityRemaining !== '' && Number(c.quantityRemaining) > 0) ||
+             (c.damagedQuantity !== '' && Number(c.damagedQuantity) > 0)
+    )
+  );
+
+  const {
+    showPrompt: showDiscardFinalizePrompt,
+    setShowPrompt: setShowDiscardFinalizePrompt,
+    confirmAction: confirmDiscardFinalize,
+    guardedAction: guardedCloseFinalize,
+  } = useUnsavedChanges(isFinalizeDirty);
+
+  const handleCloseFinalizeModal = () => {
+    guardedCloseFinalize(() => {
+      setActiveSession(null);
+    });
+  };
 
   // Conversion Modal State
   const [isConversionOpen, setIsConversionOpen] = useState(false);
@@ -769,7 +792,7 @@ export default function DailySessionsPage() {
 
       {/* Finalize Session Dialog */}
       {activeSession && (
-        <Dialog open={true} onOpenChange={() => setActiveSession(null)}>
+        <Dialog open={true} onOpenChange={(open) => { if (!open) handleCloseFinalizeModal(); }}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
@@ -864,7 +887,7 @@ export default function DailySessionsPage() {
               </div>
 
               <DialogFooter className="pt-4 border-t border-zinc-100">
-                <Button type="button" variant="outline" onClick={() => setActiveSession(null)}>{t('common.cancel')}</Button>
+                <Button type="button" variant="outline" onClick={handleCloseFinalizeModal}>{t('common.cancel')}</Button>
                 <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 text-white hover:bg-emerald-700">
                   {isSubmitting ? t('sessions.finalizingInProgress') : t('sessions.executeFinalizeButton')}
                 </Button>
@@ -873,6 +896,20 @@ export default function DailySessionsPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      <ConfirmModal
+        isOpen={showDiscardFinalizePrompt}
+        title={t('common.unsavedChanges') || 'Unsaved Changes'}
+        description="You have entered leftover counts or cash drawer amounts. Are you sure you want to discard them?"
+        confirmText={t('common.discardChanges') || 'Discard Changes'}
+        cancelText={t('common.keepEditing') || 'Keep Editing'}
+        variant="warning"
+        onConfirm={() => {
+          confirmDiscardFinalize();
+          setActiveSession(null);
+        }}
+        onCancel={() => setShowDiscardFinalizePrompt(false)}
+      />
     </DashboardLayout>
   );
 }

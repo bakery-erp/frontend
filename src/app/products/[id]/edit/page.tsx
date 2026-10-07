@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { ArrowLeft, Edit3, DollarSign, Image as ImageIcon, Save } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface ProductCategory {
   id: string;
@@ -57,8 +59,11 @@ export default function EditProductPage() {
   const queryClient = useQueryClient();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormChanged, setIsFormChanged] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+
+  const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormChanged);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['product-edit', productId],
@@ -138,6 +143,7 @@ export default function EditProductPage() {
         queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
         queryClient.invalidateQueries({ queryKey: ['product-conversions'] }),
       ]);
+      setIsFormChanged(false);
       toast.success("Product updated successfully");
       router.push("/products");
     } catch (err: any) {
@@ -177,11 +183,15 @@ export default function EditProductPage() {
       <div className="max-w-3xl mx-auto pb-12">
         {/* Top Header with Back Button */}
         <div className="flex items-center gap-3 mb-6">
-          <Link href="/products">
-            <Button variant="outline" size="icon" className="w-10 h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => guardedAction(() => router.push("/products"))}
+            className="w-10 h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
               Edit Product: {product.name}
@@ -192,7 +202,7 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} onChange={() => setIsFormChanged(true)} className="space-y-6">
           {/* Section 1: Basic Information */}
           <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-3">
@@ -362,7 +372,10 @@ export default function EditProductPage() {
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setSelectedImageUrl(preset.url)}
+                    onClick={() => {
+                      setSelectedImageUrl(preset.url);
+                      setIsFormChanged(true);
+                    }}
                     className={`relative h-20 rounded-xl overflow-hidden border-2 transition-all group ${
                       selectedImageUrl === preset.url
                         ? 'border-[#E87A18] ring-2 ring-[#E87A18]/30 scale-[1.02]'
@@ -385,7 +398,10 @@ export default function EditProductPage() {
                   type="url"
                   placeholder="https://..."
                   value={selectedImageUrl}
-                  onChange={(e) => setSelectedImageUrl(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedImageUrl(e.target.value);
+                    setIsFormChanged(true);
+                  }}
                   className="h-11 rounded-xl border-[#EDE4D5] text-xs font-mono"
                 />
               </div>
@@ -421,19 +437,29 @@ export default function EditProductPage() {
               <Save className="w-4 h-4" />
               Save Product Changes
             </Button>
-            <Link href="/products" className="order-2 sm:order-1 sm:flex-initial">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto"
-              >
-                Cancel
-              </Button>
-            </Link>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => guardedAction(() => router.push("/products"))}
+              className="w-full sm:w-auto order-2 sm:order-1 sm:flex-initial"
+            >
+              Cancel
+            </Button>
           </div>
         </form>
       </div>
+
+      <ConfirmModal
+        isOpen={showPrompt}
+        title="Unsaved Changes"
+        description="You have unsaved product changes. Are you sure you want to discard them and leave?"
+        confirmText="Discard Changes"
+        cancelText="Keep Editing"
+        variant="warning"
+        onConfirm={confirmAction}
+        onCancel={() => setShowPrompt(false)}
+      />
     </DashboardLayout>
   );
 }

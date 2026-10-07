@@ -6,7 +6,8 @@ import { AlertTriangle, Info, HelpCircle } from "lucide-react";
 
 interface ConfirmModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
+  onCancel?: () => void;
   onConfirm: () => void | Promise<void>;
   title?: string;
   description?: string;
@@ -16,9 +17,10 @@ interface ConfirmModalProps {
   isLoading?: boolean;
 }
 
-export default function ConfirmModal({
+export function ConfirmModal({
   isOpen,
   onClose,
+  onCancel,
   onConfirm,
   title = "Are you sure?",
   description = "This action cannot be undone.",
@@ -29,9 +31,14 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
+  const handleClose = () => {
+    if (onClose) onClose();
+    else if (onCancel) onCancel();
+  };
+
   const handleConfirm = async () => {
     await onConfirm();
-    onClose();
+    if (onClose) onClose();
   };
 
   const getIcon = () => {
@@ -59,7 +66,7 @@ export default function ConfirmModal({
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="max-w-md rounded-2xl p-6">
         <DialogHeader className="flex flex-row items-start gap-4 space-y-0 text-left">
           {getIcon()}
@@ -77,7 +84,7 @@ export default function ConfirmModal({
           <Button 
             type="button" 
             variant="outline" 
-            onClick={onClose} 
+            onClick={handleClose} 
             disabled={isLoading}
           >
             {cancelText}
@@ -96,3 +103,5 @@ export default function ConfirmModal({
     </Dialog>
   );
 }
+
+export default ConfirmModal;

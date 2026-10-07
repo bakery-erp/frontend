@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, use, useRef } from "react";
+import { useEffect, useState, useMemo, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
@@ -11,6 +11,8 @@ import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, S
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
+import ConfirmModal from "@/components/ConfirmModal";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 interface Product {
   id: string;
@@ -137,6 +139,18 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [resellPaymentSource, setResellPaymentSource] = useState<'DAILY_CASH' | 'OWNER'>('DAILY_CASH');
   const [resellIsPaid, setResellIsPaid] = useState(true);
   const [isLoggingResell, setIsLoggingResell] = useState(false);
+
+  const isDirty = useMemo(() => {
+    if (isViewOnly) return false;
+    const hasCash = !!(actualCash || actualCbe || actualTelebirr || cashLeftover || notes || exchangeLogs);
+    const hasLeftovers = Object.values(leftovers).some(
+      (l) => (l.quantityRemaining !== "" && Number(l.quantityRemaining) !== 0) || (l.damagedQuantity !== "" && Number(l.damagedQuantity) !== 0)
+    );
+    const hasExpenses = expenseList.length > 0;
+    return hasCash || hasLeftovers || hasExpenses;
+  }, [isViewOnly, actualCash, actualCbe, actualTelebirr, cashLeftover, notes, exchangeLogs, leftovers, expenseList]);
+
+  const { showDiscardModal, guardedAction, confirmDiscard, cancelDiscard } = useUnsavedChanges({ isDirty });
 
   useEffect(() => {
     fetchSessionAndProducts();
@@ -541,7 +555,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6 bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" onClick={() => router.push("/daily-sessions")} className="p-2 rounded-xl text-[#8C7361] hover:bg-[#F4ECE1] shrink-0">
+          <Button
+            variant="ghost"
+            onClick={() => guardedAction(() => router.push("/daily-sessions"))}
+            className="p-2 rounded-xl text-[#8C7361] hover:bg-[#F4ECE1] shrink-0"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="min-w-0 flex-1">
@@ -1598,6 +1616,17 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDiscardModal}
+        onClose={cancelDiscard}
+        onConfirm={confirmDiscard}
+        title="Discard Unsaved Session Data?"
+        description="You have entered uncommitted cash counts, leftovers, or expenses. If you leave now without saving a draft or closing, these changes will be lost."
+        confirmText="Discard and Leave"
+        cancelText="Continue Editing"
+        variant="warning"
+      />
     </DashboardLayout>
   );
 }
