@@ -169,6 +169,17 @@ export default function NewCustomerCreditPage() {
     }
   };
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isFormDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isFormDirty]);
+
   // Calculate Auto Total Birr from Product Line Items
   const calculatedBirrTotal = lineItems.reduce(
     (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),

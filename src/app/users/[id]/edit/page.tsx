@@ -16,6 +16,8 @@ import { getFileUrl, getImageUrl } from "@/lib/utils";
 import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 const ROLES = ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] as const;
 const SHIFTS = ["DAY", "NIGHT"] as const;
@@ -46,12 +48,16 @@ export default function EditUserPage() {
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormChanged, setIsFormChanged] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [startDateVal, setStartDateVal] = useState<string>("");
   const [lastPaidDateVal, setLastPaidDateVal] = useState<string>("");
   const [lastPaidTouched, setLastPaidTouched] = useState<boolean>(false);
 
+  const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormChanged);
+
   const handleStartDateChange = (val: string) => {
+    setIsFormChanged(true);
     setStartDateVal(val);
     if (!lastPaidTouched && !lastPaidDateVal) {
       setLastPaidDateVal(val);
@@ -59,6 +65,7 @@ export default function EditUserPage() {
   };
 
   const handleLastPaidDateChange = (val: string) => {
+    setIsFormChanged(true);
     setLastPaidDateVal(val);
     setLastPaidTouched(true);
   };
@@ -156,6 +163,7 @@ export default function EditUserPage() {
         queryClient.invalidateQueries({ queryKey: ["payroll-users"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       ]);
+      setIsFormChanged(false);
       router.push("/users");
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update user");
@@ -181,11 +189,15 @@ export default function EditUserPage() {
       <div className="max-w-3xl mx-auto pb-12">
         {/* Header with Back Button */}
         <div className="flex items-center gap-3 mb-6">
-          <Link href="/users">
-            <Button variant="outline" size="icon" className="w-10 h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => guardedAction(() => router.push("/users"))}
+            className="w-10 h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
               {t('users.editPersonnel')}: {userData.fullName}
@@ -196,7 +208,7 @@ export default function EditUserPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} onChange={() => setIsFormChanged(true)} className="space-y-6">
           {/* Section 1: Personal & Account Info */}
           <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-3">
@@ -470,19 +482,29 @@ export default function EditUserPage() {
               <Save className="w-4 h-4" />
               {t('users.btnUpdatePersonnel')}
             </Button>
-            <Link href="/users" className="order-2 sm:order-1 sm:flex-initial">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto"
-              >
-                {t('common.cancel')}
-              </Button>
-            </Link>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => guardedAction(() => router.push("/users"))}
+              className="w-full sm:w-auto order-2 sm:order-1 sm:flex-initial"
+            >
+              {t('common.cancel')}
+            </Button>
           </div>
         </form>
       </div>
+
+      <ConfirmModal
+        isOpen={showPrompt}
+        title={t('common.unsavedChanges') || 'Unsaved Changes'}
+        description="You have unsaved employee changes. Are you sure you want to discard them and leave?"
+        confirmText={t('common.discardChanges') || 'Discard Changes'}
+        cancelText={t('common.keepEditing') || 'Keep Editing'}
+        variant="warning"
+        onConfirm={confirmAction}
+        onCancel={() => setShowPrompt(false)}
+      />
     </DashboardLayout>
   );
 }

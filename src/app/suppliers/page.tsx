@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 interface Supplier {
   id: string;
@@ -238,6 +240,20 @@ export default function SuppliersPage() {
   const validDeliveryItemsCount = deliveryItems.filter(
     (i) => i.productId && Number(i.quantityReceived) > 0
   ).length;
+
+  const isDeliveryDirty = isLogDeliveryOpen && deliveryItems.some((i) => i.quantityReceived && Number(i.quantityReceived) > 0);
+  const {
+    showPrompt: showDiscardDeliveryConfirm,
+    setShowPrompt: setShowDiscardDeliveryConfirm,
+    confirmAction: confirmDiscardDelivery,
+    guardedAction: guardedCloseDelivery,
+  } = useUnsavedChanges(isDeliveryDirty);
+
+  const handleCloseDeliveryModal = () => {
+    guardedCloseDelivery(() => {
+      setIsLogDeliveryOpen(false);
+    });
+  };
 
   return (
     <DashboardLayout>
@@ -644,7 +660,7 @@ export default function SuppliersPage() {
 
       {/* Multi-Product Log Delivery Receipt Modal */}
       {isLogDeliveryOpen && (
-        <Dialog open={true} onOpenChange={() => setIsLogDeliveryOpen(false)}>
+        <Dialog open={true} onOpenChange={(open) => { if (!open) handleCloseDeliveryModal(); }}>
           <DialogContent className="bg-white border-[#EDE4D5] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-[#2C1B10] font-extrabold text-lg flex items-center gap-2">
@@ -930,7 +946,7 @@ export default function SuppliersPage() {
                   type="button"
                   variant="outline"
                   size="lg"
-                  onClick={() => setIsLogDeliveryOpen(false)}
+                  onClick={handleCloseDeliveryModal}
                   className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   {t('common.cancel')}
@@ -940,6 +956,20 @@ export default function SuppliersPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      <ConfirmModal
+        isOpen={showDiscardDeliveryConfirm}
+        title={t('common.unsavedChanges') || 'Unsaved Changes'}
+        description="You have entered delivery line items. Are you sure you want to discard this delivery receipt?"
+        confirmText={t('common.discardChanges') || 'Discard Changes'}
+        cancelText={t('common.keepEditing') || 'Keep Editing'}
+        variant="warning"
+        onConfirm={() => {
+          confirmDiscardDelivery();
+          setIsLogDeliveryOpen(false);
+        }}
+        onCancel={() => setShowDiscardDeliveryConfirm(false)}
+      />
     </DashboardLayout>
   );
 }

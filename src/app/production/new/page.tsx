@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
+import ConfirmModal from "@/components/ConfirmModal";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 interface ProductCategory {
   id: string;
@@ -326,6 +328,8 @@ function ProductionFormContent() {
 
   const totalProductsSelectedCount = Object.keys(selectedProducts).length;
   const totalMaterialsSelectedCount = Object.keys(selectedMaterials).length;
+  const isDirty = totalProductsSelectedCount > 0 || totalMaterialsSelectedCount > 0;
+  const { showDiscardModal, guardedAction, confirmDiscard, cancelDiscard } = useUnsavedChanges({ isDirty });
 
   if (isLoading) {
     return (
@@ -346,7 +350,7 @@ function ProductionFormContent() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push("/production")}
+              onClick={() => guardedAction(() => router.push("/production"))}
               className="text-[#8C7361] hover:text-[#2C1B10] mb-1.5 p-0 h-auto flex items-center gap-1 font-bold text-xs"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Production Log
@@ -758,7 +762,7 @@ function ProductionFormContent() {
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={() => router.push("/production")}
+                onClick={() => guardedAction(() => router.push("/production"))}
                 className="flex-1 sm:flex-initial"
               >
                 Cancel
@@ -788,6 +792,17 @@ function ProductionFormContent() {
           </div>
         </form>
       </div>
+
+      <ConfirmModal
+        isOpen={showDiscardModal}
+        onClose={cancelDiscard}
+        onConfirm={confirmDiscard}
+        title="Discard Production Batch?"
+        description="You have selected items and material quantities for this production batch. Are you sure you want to discard your work?"
+        confirmText="Discard and Leave"
+        cancelText="Continue Editing"
+        variant="warning"
+      />
     </DashboardLayout>
   );
 }
