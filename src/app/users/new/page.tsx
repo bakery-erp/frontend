@@ -78,10 +78,9 @@ export default function NewUserPage() {
         return;
       }
 
-      if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
-        toast.error("Identification document must be a PDF (.pdf) file.");
-        setIsSubmitting(false);
-        return;
+      const avatarFile = formData.get("avatar") as File | null;
+      if (!avatarFile || avatarFile.size === 0) {
+        formData.delete("avatar");
       }
 
       // Clean up empty strings
@@ -298,33 +297,53 @@ export default function NewUserPage() {
             </div>
           </div>
 
-          {/* Section 4: Documentation Upload */}
-          <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
+          {/* Section 4: Media & Documents */}
+          <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-6">
             <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-3">
               <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
                 <FileText className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionDocs')}</h2>
-                <p className="text-xs text-[#8C7361]">{t('users.sectionDocsDesc')}</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionDocs') || "Staff Media & Documentation"}</h2>
+                <p className="text-xs text-[#8C7361]">Upload personnel profile photo and official employment identification file</p>
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                {t('users.attachmentFileLabel')} <span className="text-rose-600">*</span>
-              </label>
-              <div className="border-2 border-dashed border-[#EDE4D5] rounded-2xl p-4 sm:p-6 text-center hover:border-[#E87A18] transition-colors bg-[#FAF6F0]/40">
-                <Upload className="w-8 h-8 text-[#8C7361] mx-auto mb-2" />
-                <p className="text-xs text-[#8C7361] mb-2 font-medium">
-                  PDF format only (.pdf, max 15MB)
-                </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Profile Avatar (Optional) */}
+              <div className="border border-[#EDE4D5] rounded-2xl p-4 bg-[#FAF6F0]/30 flex flex-col justify-between">
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] block mb-1">
+                    Profile Picture <span className="text-zinc-400 font-normal">(Optional)</span>
+                  </label>
+                  <p className="text-[11px] text-[#8C7361] mb-3">
+                    Headshot or avatar image (JPG, PNG, WebP). Stored under <span className="font-mono font-semibold text-zinc-600">/uploads/avatars/</span>
+                  </p>
+                </div>
+                <Input
+                  name="avatar"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  className="w-full text-xs cursor-pointer border-[#EDE4D5] bg-white rounded-xl h-10"
+                />
+              </div>
+
+              {/* ID Document (Mandatory) */}
+              <div className="border border-[#EDE4D5] rounded-2xl p-4 bg-[#FAF6F0]/30 flex flex-col justify-between">
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] block mb-1">
+                    {t('users.attachmentFileLabel') || "Identification Document"} <span className="text-rose-600">*</span>
+                  </label>
+                  <p className="text-[11px] text-[#8C7361] mb-3">
+                    Kebele ID, passport, contract, or license (PDF or Image). Stored under <span className="font-mono font-semibold text-zinc-600">/uploads/documents/</span>
+                  </p>
+                </div>
                 <Input
                   name="file"
                   type="file"
                   required
-                  accept=".pdf,application/pdf"
-                  className="max-w-xs mx-auto text-xs cursor-pointer border-[#EDE4D5] bg-white rounded-xl h-10"
+                  accept=".pdf,image/jpeg,image/png,image/webp,image/jpg"
+                  className="w-full text-xs cursor-pointer border-[#EDE4D5] bg-white rounded-xl h-10"
                 />
               </div>
             </div>

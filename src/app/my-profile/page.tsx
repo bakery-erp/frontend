@@ -211,9 +211,9 @@ export default function MyProfilePage() {
       toast.success(t('profile.avatarSuccess'));
       setSelectedFile(null);
       setIsAvatarModalOpen(false);
-      if (res.data && updateUser) {
+      if (res.data?.avatarUrl && updateUser) {
         setHeroAvatarError(false);
-        updateUser({ avatarUrl: res.data.avatarUrl, filesUrl: res.data.filesUrl });
+        updateUser({ avatarUrl: res.data.avatarUrl });
       }
       queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
     } catch (err: any) {
@@ -337,9 +337,9 @@ export default function MyProfilePage() {
                 className="relative group cursor-pointer rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#E87A18] shrink-0"
                 title={t('profile.clickToUpdateAvatar')}
               >
-                {(u?.avatarUrl || (u?.filesUrl && !u.filesUrl.toLowerCase().endsWith('.pdf'))) && !heroAvatarError ? (
+                {u?.avatarUrl && !heroAvatarError ? (
                   <img
-                    src={getImageUrl(u.avatarUrl || u.filesUrl)!}
+                    src={getImageUrl(u.avatarUrl)!}
                     alt={u.fullName}
                     onError={() => setHeroAvatarError(true)}
                     className="w-14 h-14 xs:w-16 xs:h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white/40 shadow-lg group-hover:scale-105 transition-transform"

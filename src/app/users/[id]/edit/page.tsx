@@ -12,7 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { getFileUrl } from "@/lib/utils";
+import { getFileUrl, getImageUrl } from "@/lib/utils";
 import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
@@ -31,6 +31,7 @@ interface UserData {
   startDate: string | null;
   lastPaidDate: string | null;
   shift: string | null;
+  avatarUrl?: string | null;
   filesUrl: string | null;
 }
 
@@ -134,14 +135,13 @@ export default function EditUserPage() {
       }
 
       const file = formData.get("file") as File;
-      if (file && file.size === 0) {
+      if (!file || file.size === 0) {
         formData.delete("file");
-      } else if (file && file.size > 0) {
-        if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
-          toast.error("Identification document must be a PDF (.pdf) file.");
-          setIsSubmitting(false);
-          return;
-        }
+      }
+
+      const avatar = formData.get("avatar") as File;
+      if (!avatar || avatar.size === 0) {
+        formData.delete("avatar");
       }
 
       await api.patch(`/users/${userData.id}`, formData, {
@@ -373,47 +373,88 @@ export default function EditUserPage() {
             </div>
           </div>
 
-          {/* Section 4: Documentation Upload */}
-          <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
+          {/* Section 4: Media & Documents */}
+          <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-6">
             <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-3">
               <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
                 <FileText className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionDocs')}</h2>
-                <p className="text-xs text-[#8C7361]">{t('users.sectionDocsDesc')}</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionDocs') || "Staff Media & Documentation"}</h2>
+                <p className="text-xs text-[#8C7361]">Manage personnel profile picture and official identification document separately</p>
               </div>
             </div>
 
-            <div>
-              {userData.filesUrl && (
-                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
-                  <span className="text-xs font-medium text-blue-900">{t('users.currentDocOnFile')}</span>
-                  <a
-                    href={getFileUrl(userData.filesUrl) || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-bold text-blue-700 hover:underline bg-white px-3 py-1 rounded-lg border border-blue-200"
-                  >
-                    {t('users.viewDocument')}
-                  </a>
-                </div>
-              )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Profile Avatar */}
+              <div className="border border-[#EDE4D5] rounded-2xl p-4 bg-[#FAF6F0]/30 flex flex-col justify-between space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] block mb-1">
+                    Profile Picture <span className="text-zinc-400 font-normal">(/uploads/avatars/)</span>
+                  </label>
+                  <p className="text-[11px] text-[#8C7361] mb-2">
+                    Used for avatar badges and user identity.
+                  </p>
 
-              <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                {userData.filesUrl ? t('users.replaceDocOptional') : t('users.attachmentFileLabel')}
-              </label>
-              <div className="border-2 border-dashed border-[#EDE4D5] rounded-2xl p-4 sm:p-6 text-center hover:border-[#E87A18] transition-colors bg-[#FAF6F0]/40">
-                <Upload className="w-8 h-8 text-[#8C7361] mx-auto mb-2" />
-                <p className="text-xs text-[#8C7361] mb-2 font-medium">
-                  PDF format only (.pdf, max 15MB)
-                </p>
-                <Input
-                  name="file"
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  className="max-w-xs mx-auto text-xs cursor-pointer border-[#EDE4D5] bg-white rounded-xl h-10"
-                />
+                  {userData.avatarUrl && (
+                    <div className="flex items-center gap-3 p-2.5 bg-white border border-[#EDE4D5] rounded-xl mb-3">
+                      <img
+                        src={getImageUrl(userData.avatarUrl)!}
+                        alt={userData.fullName}
+                        className="w-10 h-10 rounded-lg object-cover border border-[#E87A18]/30"
+                      />
+                      <span className="text-xs text-zinc-600 font-medium truncate">Current avatar active</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#8C7361] block mb-1">
+                    {userData.avatarUrl ? "Upload New Profile Picture (Optional)" : "Add Profile Picture (Optional)"}
+                  </label>
+                  <Input
+                    name="avatar"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                    className="w-full text-xs cursor-pointer border-[#EDE4D5] bg-white rounded-xl h-10"
+                  />
+                </div>
+              </div>
+
+              {/* ID Document */}
+              <div className="border border-[#EDE4D5] rounded-2xl p-4 bg-[#FAF6F0]/30 flex flex-col justify-between space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] block mb-1">
+                    Identification Document <span className="text-zinc-400 font-normal">(/uploads/documents/)</span>
+                  </label>
+                  <p className="text-[11px] text-[#8C7361] mb-2">
+                    Official ID, Kebele card, or contract (PDF or Image). Does not alter profile picture.
+                  </p>
+
+                  {userData.filesUrl && (
+                    <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-xl mb-3">
+                      <span className="text-xs font-semibold text-blue-900 truncate">Official Document on File</span>
+                      <a
+                        href={getFileUrl(userData.filesUrl) || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-blue-700 hover:underline bg-white px-2.5 py-1 rounded-lg border border-blue-200 shrink-0 ml-2"
+                      >
+                        {t('users.viewDocument') || "View"}
+                      </a>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#8C7361] block mb-1">
+                    {userData.filesUrl ? "Replace Identification File (Optional)" : "Upload Identification File"}
+                  </label>
+                  <Input
+                    name="file"
+                    type="file"
+                    accept=".pdf,image/jpeg,image/png,image/webp,image/jpg"
+                    className="w-full text-xs cursor-pointer border-[#EDE4D5] bg-white rounded-xl h-10"
+                  />
+                </div>
               </div>
             </div>
           </div>
