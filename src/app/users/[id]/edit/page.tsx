@@ -149,8 +149,13 @@ export default function EditUserPage() {
       });
 
       toast.success(t('users.toastUserUpdated'));
-      queryClient.invalidateQueries({ queryKey: ["users-page"] });
-      queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["users-page"] }),
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+        queryClient.invalidateQueries({ queryKey: ["user", userData.id] }),
+        queryClient.invalidateQueries({ queryKey: ["payroll-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
       router.push("/users");
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update user");

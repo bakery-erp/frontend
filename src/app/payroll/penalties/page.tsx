@@ -60,7 +60,6 @@ export default function PayrollPenaltiesPage() {
         penalties: (penaltiesRes.data || []) as Penalty[],
       };
     },
-    staleTime: 60000,
   });
 
   const users = pageData?.users || [];
@@ -80,6 +79,7 @@ export default function PayrollPenaltiesPage() {
       toast.success(t('common.success'));
       setIsPenaltyOpen(false);
       queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties"] });
       queryClient.invalidateQueries({ queryKey: ["payroll"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
@@ -106,6 +106,7 @@ export default function PayrollPenaltiesPage() {
       setIsEditPenaltyOpen(false);
       setEditingPenalty(null);
       queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties"] });
       queryClient.invalidateQueries({ queryKey: ["payroll"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {

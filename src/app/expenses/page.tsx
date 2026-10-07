@@ -230,7 +230,6 @@ export default function ExpensesPage() {
       }
     },
     enabled: !!canAccess && !!branchId,
-    staleTime: 60000,
   });
 
   // React Query: Expenses

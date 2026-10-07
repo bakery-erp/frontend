@@ -89,6 +89,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const resolvedParams = use(params);
   const router = useRouter();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const isAdminOrOwner = user?.role === "ADMIN" || user?.role === "OWNER";
 
   const [session, setSession] = useState<DailySessionDetail | null>(null);
@@ -411,6 +412,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       await api.post(`/daily-sessions/${resolvedParams.id}/save-draft`, payload);
       toast.success("Draft saved successfully! Leftovers, cash counts, and exchange log are stored.");
       await fetchSessionAndProducts();
+      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to save draft progress");
     } finally {
@@ -426,6 +430,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       await api.patch(`/daily-sessions/${resolvedParams.id}`, payload);
       toast.success("Session edits saved successfully!");
       fetchSessionAndProducts();
+      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to save session edits");
     } finally {
@@ -440,6 +447,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     try {
       await api.post(`/daily-sessions/${resolvedParams.id}/submit-close`, payload);
       toast.success("Session close request submitted to Admin/Owner for approval");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["daily-sessions"] }),
+        queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
       router.push("/daily-sessions");
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to submit close request");
@@ -459,6 +471,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     try {
       await api.post(`/daily-sessions/${resolvedParams.id}/finalize`, payload);
       toast.success("Session close request approved and finalized!");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["daily-sessions"] }),
+        queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+      ]);
       router.push("/daily-sessions");
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to finalize session");
@@ -476,6 +494,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     try {
       await api.post(`/daily-sessions/${resolvedParams.id}/reopen`);
       toast.success("Session reopened to OPEN status");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["daily-sessions"] }),
+        queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
       router.push("/daily-sessions");
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to reopen session");

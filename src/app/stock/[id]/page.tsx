@@ -290,6 +290,7 @@ export default function StockItemDetailPage() {
       setIsEditOpen(false);
       queryClient.invalidateQueries({ queryKey: ['stock-item-history', itemId] });
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error updating stock item");
       console.error(error);

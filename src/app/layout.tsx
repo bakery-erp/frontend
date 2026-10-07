@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LanguageProvider } from "@/context/LanguageContext";
+import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "Bakery ERP Management",
@@ -26,7 +27,9 @@ export default function RootLayout({
             <LanguageProvider>
               <AuthProvider>
                 <BranchProvider>
-                  {children}
+                  <AppShell>
+                    {children}
+                  </AppShell>
                   <Toaster />
                 </BranchProvider>
               </AuthProvider>

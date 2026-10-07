@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -95,6 +96,7 @@ interface StockPurchaseLoan {
 }
 
 export default function StockMovementsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
@@ -104,9 +106,9 @@ export default function StockMovementsPage() {
   useEffect(() => {
     if (user && !isGlobalAdmin) {
       toast.error("Access Restricted: Stock movements are only available to Admin and Owner roles.");
-      window.location.href = "/my-profile";
+      router.replace("/my-profile");
     }
-  }, [user, isGlobalAdmin]);
+  }, [user, isGlobalAdmin, router]);
 
   const [activeTab, setActiveTab] = useState<"movements" | "loans">("movements");
 

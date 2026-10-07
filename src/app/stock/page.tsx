@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -34,6 +35,7 @@ interface StockItem {
 }
 
 export default function StockPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
@@ -42,9 +44,9 @@ export default function StockPage() {
   useEffect(() => {
     if (user && !isGlobalAdmin) {
       toast.error("Access Restricted: Stock inventory is only available to Admin and Owner roles.");
-      window.location.href = "/my-profile";
+      router.replace("/my-profile");
     }
-  }, [user, isGlobalAdmin]);
+  }, [user, isGlobalAdmin, router]);
 
   const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -136,6 +138,8 @@ export default function StockPage() {
       setCreatePaidAmount("");
       setCreateSupplierName("");
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error saving stock item");
@@ -182,6 +186,8 @@ export default function StockPage() {
       setAddPaidAmount("");
       setAddSupplierName("");
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to add stock level");
@@ -211,6 +217,7 @@ export default function StockPage() {
       setReduceAmount("");
       setReduceReason("");
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to reduce stock level");

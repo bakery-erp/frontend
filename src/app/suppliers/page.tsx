@@ -162,6 +162,8 @@ export default function SuppliersPage() {
       toast.success('Supplier registered successfully');
       setIsAddSupplierOpen(false);
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to add supplier');
     } finally {

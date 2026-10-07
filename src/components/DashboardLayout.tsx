@@ -15,7 +15,14 @@ import {
   CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck, CreditCard, HandCoins
 } from 'lucide-react';
 
+export const DashboardLayoutContext = React.createContext<{ isNested: boolean }>({ isNested: false });
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { isNested } = React.useContext(DashboardLayoutContext);
+  if (isNested) {
+    return <>{children}</>;
+  }
+
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { branches, selectedBranchId, setSelectedBranchId } = useBranch();
   const { t } = useLanguage();
@@ -163,101 +170,103 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="min-h-screen bg-[#FAF7EE] text-[#2C1B10] flex p-1.5 xs:p-2.5 sm:p-3 md:p-6 font-sans">
-      {/* Mobile & Tablet Drawer Overlay */}
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
+    <DashboardLayoutContext.Provider value={{ isNested: true }}>
+      <div className="min-h-screen bg-[#FAF7EE] text-[#2C1B10] flex p-1.5 xs:p-2.5 sm:p-3 md:p-6 font-sans">
+        {/* Mobile & Tablet Drawer Overlay */}
+        {isMobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsMobileOpen(false)}
+          />
+        )}
 
-      {/* Mobile & Tablet Sidebar Drawer */}
-      <aside
-        className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-[#4A2E1B] text-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden shadow-2xl ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-      >
-        {sidebarContent}
-      </aside>
+        {/* Mobile & Tablet Sidebar Drawer */}
+        <aside
+          className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-[#4A2E1B] text-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden shadow-2xl ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+        >
+          {sidebarContent}
+        </aside>
 
-      {/* Desktop Sidebar */}
-      <aside className="w-64 bg-[#4A2E1B] text-white rounded-3xl min-h-[calc(100vh-3rem)] hidden lg:flex flex-col fixed left-6 top-6 bottom-6 z-20 shadow-[0_10px_30px_rgba(74,46,27,0.25)] border border-[#5A3A23]">
-        {sidebarContent}
-      </aside>
+        {/* Desktop Sidebar */}
+        <aside className="w-64 bg-[#4A2E1B] text-white rounded-3xl min-h-[calc(100vh-3rem)] hidden lg:flex flex-col fixed left-6 top-6 bottom-6 z-20 shadow-[0_10px_30px_rgba(74,46,27,0.25)] border border-[#5A3A23]">
+          {sidebarContent}
+        </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col w-full pl-0 lg:pl-72 min-h-screen min-w-0">
-        {/* Top Header Bar */}
-        <header className="h-14 xs:h-16 bg-[#FFFDF8]/90 backdrop-blur-md border border-[#EDE4D5] rounded-2xl sticky top-1.5 xs:top-3 md:top-6 z-30 px-2.5 xs:px-4 md:px-6 flex items-center justify-between shadow-[0_4px_20px_rgba(74,46,27,0.04)] mb-3 xs:mb-4 md:mb-6 gap-2">
-          <div className="flex items-center space-x-2 xs:space-x-3 md:space-x-4 min-w-0">
-            <button
-              onClick={() => setIsMobileOpen(true)}
-              className="lg:hidden p-1.5 xs:p-2 rounded-xl bg-[#F4ECE1] text-[#4A2E1B] hover:bg-[#E0D5C3] transition-colors shrink-0"
-              aria-label="Open menu"
-            >
-              <Menu className="w-4 h-4 xs:w-5 xs:h-5" />
-            </button>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col w-full pl-0 lg:pl-72 min-h-screen min-w-0">
+          {/* Top Header Bar */}
+          <header className="h-14 xs:h-16 bg-[#FFFDF8]/90 backdrop-blur-md border border-[#EDE4D5] rounded-2xl sticky top-1.5 xs:top-3 md:top-6 z-30 px-2.5 xs:px-4 md:px-6 flex items-center justify-between shadow-[0_4px_20px_rgba(74,46,27,0.04)] mb-3 xs:mb-4 md:mb-6 gap-2">
+            <div className="flex items-center space-x-2 xs:space-x-3 md:space-x-4 min-w-0">
+              <button
+                onClick={() => setIsMobileOpen(true)}
+                className="lg:hidden p-1.5 xs:p-2 rounded-xl bg-[#F4ECE1] text-[#4A2E1B] hover:bg-[#E0D5C3] transition-colors shrink-0"
+                aria-label="Open menu"
+              >
+                <Menu className="w-4 h-4 xs:w-5 xs:h-5" />
+              </button>
 
-            <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
-              <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden md:inline">{t('common.branch')}:</span>
-              {isOwner ? (
-                <select
-                  value={selectedBranchId || 'ALL'}
-                  onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}
-                  className="bg-[#F4ECE1] border border-[#E0D5C3] text-[#2C1B10] text-xs md:text-sm rounded-xl focus:ring-[#E87A18] focus:border-[#E87A18] px-2.5 py-1.5 font-bold truncate max-w-[120px] sm:max-w-[170px] md:max-w-none"
-                >
-                  <option value="ALL">🌐 {t('dashboard.allBranches')}</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      📍 {b.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F4ECE1] text-[#4A2E1B] border border-[#E0D5C3] truncate max-w-[120px] sm:max-w-[170px] md:max-w-none">
-                  <span className="truncate">
-                    📍 {user?.branch?.name && user.branch.name.trim() !== '.' && user.branch.name.trim() !== '' ? user.branch.name : 'Main Bakery'}
+              <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
+                <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden md:inline">{t('common.branch')}:</span>
+                {isOwner ? (
+                  <select
+                    value={selectedBranchId || 'ALL'}
+                    onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}
+                    className="bg-[#F4ECE1] border border-[#E0D5C3] text-[#2C1B10] text-xs md:text-sm rounded-xl focus:ring-[#E87A18] focus:border-[#E87A18] px-2.5 py-1.5 font-bold truncate max-w-[120px] sm:max-w-[170px] md:max-w-none"
+                  >
+                    <option value="ALL">🌐 {t('dashboard.allBranches')}</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        📍 {b.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F4ECE1] text-[#4A2E1B] border border-[#E0D5C3] truncate max-w-[120px] sm:max-w-[170px] md:max-w-none">
+                    <span className="truncate">
+                      📍 {user?.branch?.name && user.branch.name.trim() !== '.' && user.branch.name.trim() !== '' ? user.branch.name : 'Main Bakery'}
+                    </span>
                   </span>
-                </span>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center space-x-1.5 xs:space-x-2.5 md:space-x-4 shrink-0">
-            {/* Language Selector Dropdown */}
-            <LanguageSelector variant="header" />
+            <div className="flex items-center space-x-1.5 xs:space-x-2.5 md:space-x-4 shrink-0">
+              {/* Language Selector Dropdown */}
+              <LanguageSelector variant="header" />
 
-            {/* Role Badge - shown on md+ to preserve space on mobile */}
-            <span className="hidden md:inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-[#E87A18]/10 text-[#E87A18] border border-[#E87A18]/20 uppercase tracking-wider">
-              {user?.role}
-            </span>
+              {/* Role Badge - shown on md+ to preserve space on mobile */}
+              <span className="hidden md:inline-block px-3 py-1 rounded-full text-[11px] font-extrabold bg-[#E87A18]/10 text-[#E87A18] border border-[#E87A18]/20 uppercase tracking-wider">
+                {user?.role}
+              </span>
 
-            {/* Profile Avatar Pill */}
-            <Link href="/my-profile" className="flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0">
-              {user?.avatarUrl && !headerAvatarError ? (
-                <img
-                  src={getImageUrl(user.avatarUrl)!}
-                  alt={user.fullName || 'User'}
-                  onError={() => setHeaderAvatarError(true)}
-                  className="w-8 h-8 xs:w-9 xs:h-9 rounded-xl object-cover border border-[#E87A18]/30 shadow-md"
-                />
-              ) : (
-                <div className="w-8 h-8 xs:w-9 xs:h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] text-white flex items-center justify-center font-extrabold text-xs xs:text-sm shadow-md border border-white/20">
-                  {user?.fullName?.charAt(0) || 'B'}
-                </div>
-              )}
-            </Link>
-          </div>
-        </header>
+              {/* Profile Avatar Pill */}
+              <Link href="/my-profile" className="flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0">
+                {(user?.avatarUrl || (user?.filesUrl && !user.filesUrl.toLowerCase().endsWith('.pdf'))) && !headerAvatarError ? (
+                  <img
+                    src={getImageUrl(user.avatarUrl || user.filesUrl)!}
+                    alt={user.fullName || 'User'}
+                    onError={() => setHeaderAvatarError(true)}
+                    className="w-8 h-8 xs:w-9 xs:h-9 rounded-xl object-cover border border-[#E87A18]/30 shadow-md"
+                  />
+                ) : (
+                  <div className="w-8 h-8 xs:w-9 xs:h-9 rounded-xl bg-gradient-to-tr from-[#4A2E1B] to-[#E87A18] text-white flex items-center justify-center font-extrabold text-xs xs:text-sm shadow-md border border-white/20">
+                    {user?.fullName?.charAt(0) || 'B'}
+                  </div>
+                )}
+              </Link>
+            </div>
+          </header>
 
-        {/* Page Content View */}
-        <main className="flex-1 px-0.5 xs:px-1 sm:px-2">
-          <div className="max-w-7xl mx-auto space-y-4 xs:space-y-6">
-            {children}
-          </div>
-        </main>
+          {/* Page Content View */}
+          <main className="flex-1 px-0.5 xs:px-1 sm:px-2">
+            <div className="max-w-7xl mx-auto space-y-4 xs:space-y-6">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </DashboardLayoutContext.Provider>
   );
 }
 

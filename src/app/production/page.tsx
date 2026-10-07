@@ -116,7 +116,6 @@ export default function ProductionPage() {
         activeSession: (resSess.data || null) as ActiveSession | null,
       };
     },
-    staleTime: 60 * 1000,
   });
 
   const batches = data?.batches || [];
@@ -285,7 +284,7 @@ export default function ProductionPage() {
         <div className="flex items-center gap-2 xs:gap-3 w-full sm:w-auto">
           {isGlobalAdmin && (
             <Button
-              onClick={() => window.location.href = '/production/history'}
+              onClick={() => router.push('/production/history')}
               variant="outline"
               size="lg"
               className="flex-1 sm:flex-initial"
@@ -294,7 +293,7 @@ export default function ProductionPage() {
             </Button>
           )}
           <Button
-            onClick={() => window.location.href = '/production/new'}
+            onClick={() => router.push('/production/new')}
             disabled={isLoading || !isSessionOpen}
             size="lg"
             className="flex-1 sm:flex-initial"

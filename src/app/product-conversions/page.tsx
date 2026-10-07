@@ -85,7 +85,6 @@ export default function ProductConversionsPage() {
                 sessionStockSummary: summary,
             };
         },
-        staleTime: 60 * 1000,
     });
 
     const conversions = pageData?.conversions || [];

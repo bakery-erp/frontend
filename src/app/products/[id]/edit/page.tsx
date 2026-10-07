@@ -135,6 +135,8 @@ export default function EditProductPage() {
         queryClient.invalidateQueries({ queryKey: ['products'] }),
         queryClient.invalidateQueries({ queryKey: ['product-edit', productId] }),
         queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['product-conversions'] }),
       ]);
       toast.success("Product updated successfully");
       router.push("/products");
