@@ -827,9 +827,12 @@ export const am: TranslationDictionary = {
     noProductsFound: "ከፍለጋዎ ጋር የሚዛመድ ምርት አልተገኘም።",
     totalDelivered: "ጠቅላላ የደረሰ",
     totalProduced: "ጠቅላላ የተመረተ",
+    totalDamaged: "ጠቅላላ የተበላሸ / ብክነት",
     totalVarieties: "የምርት ዓይነቶች",
     colDelivered: "የደረሰ",
     colProduced: "የተመረተ",
+    colSold: "የተሸጠ",
+    colDamaged: "የተበላሸ / ብክነት",
   },
   categories: {
     title: "የምርት ምድቦች",
