@@ -95,7 +95,12 @@ export default function NewUserPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["users-page"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["users-page"] }),
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+        queryClient.invalidateQueries({ queryKey: ["payroll-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
       toast.success(t('users.toastUserCreated'));
       router.push("/users");
     } catch (error: any) {

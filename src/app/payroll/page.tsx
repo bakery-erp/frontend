@@ -133,7 +133,6 @@ export default function PayrollPage() {
       const { data } = await api.get("/users", { params });
       return (data || []).filter((u: User) => u.role !== "OWNER");
     },
-    staleTime: 60000,
   });
 
   const { data: history = [], isLoading: isLoadingHistory } = useQuery<PayrollRecord[]>({
@@ -144,7 +143,6 @@ export default function PayrollPage() {
       return data || [];
     },
     enabled: activeTab === "HISTORY",
-    staleTime: 60000,
   });
 
   const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
@@ -156,7 +154,6 @@ export default function PayrollPage() {
       return data || [];
     },
     enabled: activeTab === "LOANS",
-    staleTime: 60000,
   });
 
   const { data: penalties = [], isLoading: isLoadingPenalties } = useQuery<Penalty[]>({
@@ -167,7 +164,6 @@ export default function PayrollPage() {
       return data || [];
     },
     enabled: activeTab === "PENALTIES",
-    staleTime: 60000,
   });
 
   // RUN PAYROLL STATE
@@ -390,7 +386,9 @@ export default function PayrollPage() {
       setEditingPayroll(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["payroll-history"] }),
-        queryClient.invalidateQueries({ queryKey: ["payroll-page"] }),
+        queryClient.invalidateQueries({ queryKey: ["payroll-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["payroll"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       ]);
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update payroll record");

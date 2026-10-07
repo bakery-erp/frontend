@@ -90,6 +90,8 @@ export default function NewProductPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['products'] }),
         queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['product-conversions'] }),
       ]);
       toast.success("Product created successfully");
       router.push("/products");

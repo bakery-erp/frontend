@@ -67,7 +67,6 @@ export default function PayrollLoansPage() {
         loans: (loansRes.data || []) as Loan[],
       };
     },
-    staleTime: 60000,
   });
 
   const users = pageData?.users || [];
@@ -104,6 +103,7 @@ export default function PayrollLoansPage() {
       toast.success("Loan recorded successfully. Awaiting employee approval.");
       setIsLoanOpen(false);
       queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
       queryClient.invalidateQueries({ queryKey: ["payroll"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
@@ -128,6 +128,7 @@ export default function PayrollLoansPage() {
       setIsEditLoanOpen(false);
       setEditingLoan(null);
       queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
       queryClient.invalidateQueries({ queryKey: ["payroll"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {

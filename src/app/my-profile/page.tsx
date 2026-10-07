@@ -113,7 +113,6 @@ export default function MyProfilePage() {
       return res.data;
     },
     enabled: !!authUser?.id,
-    staleTime: 60000,
   });
 
   // Tab auto-centering ref

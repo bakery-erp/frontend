@@ -137,7 +137,6 @@ function ProductionFormContent() {
         batch: resBatch?.data || null,
       };
     },
-    staleTime: 60 * 1000,
   });
 
   const categories = pageData?.categories || [];
@@ -309,7 +308,10 @@ function ProductionFormContent() {
         queryClient.invalidateQueries({ queryKey: ['production-history'] }),
         queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
         queryClient.invalidateQueries({ queryKey: ['stock'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-items'] }),
         queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
       ]);
       router.push("/production");
     } catch (err: any) {
