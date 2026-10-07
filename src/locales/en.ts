@@ -825,9 +825,12 @@ export const en = {
     noProductsFound: "No products match your search.",
     totalDelivered: "Total Delivered",
     totalProduced: "Total Produced",
+    totalDamaged: "Total Damaged / Loss",
     totalVarieties: "Product Varieties",
     colDelivered: "Delivered",
     colProduced: "Produced",
+    colSold: "Sold",
+    colDamaged: "Damaged / Loss",
   },
   categories: {
     title: "Product Categories",

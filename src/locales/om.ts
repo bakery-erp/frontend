@@ -827,9 +827,12 @@ export const om: TranslationDictionary = {
     noProductsFound: "Oomishni barbaaddan hin argamne.",
     totalDelivered: "Waliigala Dhihaate",
     totalProduced: "Waliigala Oomishame",
+    totalDamaged: "Waliigala Miidhame",
     totalVarieties: "Gosa Oomishaa",
     colDelivered: "Dhihaate",
     colProduced: "Oomishame",
+    colSold: "Gurgurame",
+    colDamaged: "Miidhame / Balleessaa",
   },
   categories: {
     title: "Gosa Oomishaalee",

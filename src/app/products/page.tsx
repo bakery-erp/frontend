@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LayoutGrid, List, Plus, PackageCheck, TrendingUp, ShoppingBag, ShieldAlert, Image as ImageIcon, Truck } from "lucide-react";
+import { LayoutGrid, List, Plus, PackageCheck, TrendingUp, ShoppingBag, ShieldAlert, Image as ImageIcon, Truck, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CardGridSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -118,6 +118,7 @@ export default function ProductsPage() {
   const totalDeliveredItems = products.reduce((sum, p) => sum + (p.totalDelivered || 0), 0);
   const totalProducedItems = products.reduce((sum, p) => sum + (p.totalProduced || 0), 0);
   const totalSoldItems = products.reduce((sum, p) => sum + (p.totalSold || 0), 0);
+  const totalDamagedItems = products.reduce((sum, p) => sum + (p.totalDamaged || 0), 0);
 
   return (
     <DashboardLayout>
@@ -160,7 +161,7 @@ export default function ProductsPage() {
       </div>
 
       {/* House Stock Summary Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5 mb-6">
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1.5 mb-1.5">
             <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('products.colStockStatus')}</p>
@@ -217,6 +218,42 @@ export default function ProductsPage() {
 
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('products.colSold')}</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
+          </div>
+          <div>
+            {isLoading ? (
+              <Skeleton className="h-6 w-20" />
+            ) : (
+              <p className="text-base sm:text-xl font-black text-[#2C1B10] font-mono">
+                {totalSoldItems.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.pcs')}</span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <p className="text-[10px] sm:text-xs font-bold text-rose-700 uppercase tracking-wider leading-tight">{t('products.totalDamaged')}</p>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
+          </div>
+          <div>
+            {isLoading ? (
+              <Skeleton className="h-6 w-16" />
+            ) : (
+              <p className="text-base sm:text-xl font-black text-rose-600 font-mono">
+                {totalDamagedItems.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.pcs')}</span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
             <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('products.totalVarieties')}</p>
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
               <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -228,24 +265,6 @@ export default function ProductsPage() {
             ) : (
               <p className="text-base sm:text-xl font-black text-[#2C1B10] font-mono">
                 {products.length} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.items')}</span>
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="col-span-2 sm:col-span-1 bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1.5 mb-1.5">
-            <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('dashboard.incomeFromSales')}</p>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-          </div>
-          <div>
-            {isLoading ? (
-              <Skeleton className="h-6 w-20" />
-            ) : (
-              <p className="text-base sm:text-xl font-black text-[#2C1B10] font-mono">
-                {totalSoldItems.toLocaleString()} <span className="text-[10px] sm:text-xs font-semibold text-[#8C7361]">{t('common.pcs')}</span>
               </p>
             )}
           </div>
@@ -318,18 +337,24 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3.5 pt-3 border-t border-[#F4ECE1] grid grid-cols-3 gap-1 text-center text-xs text-[#8C7361]">
+                  <div className="mt-3.5 pt-3 border-t border-[#F4ECE1] grid grid-cols-4 gap-1 text-center text-xs text-[#8C7361]">
                     <div>
-                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">Produced</span>
+                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('products.colProduced')}</span>
                       <strong className="text-[#2C1B10]">{prod.totalProduced || 0}</strong>
                     </div>
                     <div>
-                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">Delivered</span>
+                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('products.colDelivered')}</span>
                       <strong className="text-[#E87A18] font-black">{prod.totalDelivered || 0}</strong>
                     </div>
                     <div>
-                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">Sold</span>
+                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('products.colSold')}</span>
                       <strong className="text-[#2C1B10]">{prod.totalSold || 0}</strong>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] uppercase font-bold text-rose-600">{t('products.colDamaged')}</span>
+                      <strong className={`font-black ${(prod.totalDamaged || 0) > 0 ? 'text-rose-600' : 'text-zinc-400'}`}>
+                        {prod.totalDamaged || 0}
+                      </strong>
                     </div>
                   </div>
                   {isAdminOrOwner && (
@@ -398,18 +423,24 @@ export default function ProductsPage() {
                   </div>
 
                   {/* Operational Metrics */}
-                  <div className="mt-2.5 bg-[#FAF6F0] rounded-xl p-2 grid grid-cols-3 gap-1 text-center text-xs">
+                  <div className="mt-2.5 bg-[#FAF6F0] rounded-xl p-2 grid grid-cols-4 gap-1 text-center text-xs">
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">Produced</span>
+                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">{t('products.colProduced')}</span>
                       <strong className="text-[#2C1B10] font-mono">{prod.totalProduced || 0}</strong>
                     </div>
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">Delivered</span>
+                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">{t('products.colDelivered')}</span>
                       <strong className="text-[#E87A18] font-mono font-black">{prod.totalDelivered || 0}</strong>
                     </div>
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">Sold</span>
+                      <span className="block text-[9px] uppercase font-bold text-[#8C7361]">{t('products.colSold')}</span>
                       <strong className="text-[#2C1B10] font-mono">{prod.totalSold || 0}</strong>
+                    </div>
+                    <div>
+                      <span className="block text-[9px] uppercase font-bold text-rose-600">{t('products.colDamaged')}</span>
+                      <strong className={`font-mono font-black ${(prod.totalDamaged || 0) > 0 ? 'text-rose-600' : 'text-zinc-400'}`}>
+                        {prod.totalDamaged || 0}
+                      </strong>
                     </div>
                   </div>
 
@@ -443,7 +474,8 @@ export default function ProductsPage() {
                   <TableHead>{t('products.colPrice')}</TableHead>
                   <TableHead className="text-center">{t('products.colProduced')}</TableHead>
                   <TableHead className="text-center">{t('products.colDelivered')}</TableHead>
-                  <TableHead className="text-center">{t('dashboard.incomeFromSales')}</TableHead>
+                  <TableHead className="text-center">{t('products.colSold')}</TableHead>
+                  <TableHead className="text-center text-rose-700">{t('products.colDamaged')}</TableHead>
                   <TableHead>{t('products.colActive')}</TableHead>
                   {isAdminOrOwner && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
                 </TableRow>
@@ -483,6 +515,15 @@ export default function ProductsPage() {
                       <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalProduced || 0}</TableCell>
                       <TableCell className="text-center font-extrabold text-[#E87A18]">{prod.totalDelivered || 0}</TableCell>
                       <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalSold || 0}</TableCell>
+                      <TableCell className="text-center font-bold">
+                        {(prod.totalDamaged || 0) > 0 ? (
+                          <span className="text-rose-600 font-extrabold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+                            {prod.totalDamaged}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400">0</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${prod.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
                           {prod.isActive ? `✓ ${t('products.activeLabel')}` : t('products.inactiveLabel')}
