@@ -38,6 +38,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
 
   const fetchBranches = async (silent = false) => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('token')) return;
     if (!silent && branches.length === 0) setIsLoadingBranches(true);
     try {
       const { data } = await api.get<Branch[]>('/branches');
@@ -69,7 +70,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const refreshBranches = async () => {
-    if (!user) return;
+    if (!user || (typeof window !== 'undefined' && !localStorage.getItem('token'))) return;
     if (user.role === 'OWNER') {
       await fetchBranches(true);
     } else if (user.branch) {
@@ -79,6 +80,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     if (!user) return;
+    if (typeof window !== 'undefined' && !localStorage.getItem('token')) return;
 
     if (user.role === 'OWNER') {
       // Owner can see all branches or select a specific branch

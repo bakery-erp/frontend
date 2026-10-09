@@ -30,19 +30,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [headerAvatarError, setHeaderAvatarError] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted && !isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isMounted, isLoading, isAuthenticated, router]);
 
   // Close mobile drawer on route change
   useEffect(() => {
     setIsMobileOpen(false);
   }, [pathname]);
 
-  if (isLoading || !isAuthenticated) {
+  if (!isMounted || isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#FAF7EE] flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">

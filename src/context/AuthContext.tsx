@@ -39,27 +39,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('erp_user');
-        return stored ? JSON.parse(stored) : null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
-
-  const [isLoading, setIsLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      const stored = localStorage.getItem('erp_user');
-      // If user is already cached in localStorage, start with isLoading = false for instant load
-      return !!token && !stored;
-    }
-    return true;
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const router = useRouter();
 
@@ -77,7 +58,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem('token');
+      const stored = localStorage.getItem('erp_user');
       if (token) {
+        if (stored) {
+          try {
+            setUser(JSON.parse(stored));
+          } catch {}
+        }
         try {
           const { data } = await api.get<AuthUser>('/auth/me');
           setUser(data);
@@ -99,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleAuthError = () => {
       setUser(null);
       localStorage.removeItem('token');
+      localStorage.removeItem('erp_user');
       router.push('/login');
     };
 
