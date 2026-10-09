@@ -69,10 +69,24 @@ export default function DailySessionsPage() {
 
   // Compute today's session in Ethiopian timezone (UTC+3)
   const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+  const currentBranchFilter = selectedBranchId || user?.branchId;
   const todaySession = sessions.find((s) => {
     const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
-    return sDate === ethTodayYmd;
+    if (sDate !== ethTodayYmd) return false;
+    if (currentBranchFilter) return s.branchId === currentBranchFilter;
+    return true;
   });
+
+  const branchSessionsToday = branches.map((b) => {
+    const sess = sessions.find((s) => {
+      const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
+      return sDate === ethTodayYmd && s.branchId === b.id;
+    });
+    return { branch: b, session: sess };
+  });
+
+  const hasAnyClosedToday = branchSessionsToday.some((bs) => bs.session?.status === 'CLOSED');
+  const hasAnyUnopenedToday = branchSessionsToday.some((bs) => !bs.session);
 
   const displayedSessions = isTodayOnly
     ? sessions.filter((s) => {
@@ -83,6 +97,9 @@ export default function DailySessionsPage() {
 
   // Distinct history sessions (excludes today's active session already highlighted in top banner)
   const historySessions = displayedSessions.filter((s) => s.id !== todaySession?.id);
+
+  // Branch Selection Modal State (when all branches are selected)
+  const [isBranchSelectModalOpen, setIsBranchSelectModalOpen] = useState(false);
 
   // Finalize Session Modal State
   const [activeSession, setActiveSession] = useState<DailySession | null>(null);
@@ -118,23 +135,27 @@ export default function DailySessionsPage() {
   const [conversionQty, setConversionQty] = useState('1');
   const [isConverting, setIsConverting] = useState(false);
 
-  const handleOpenNewSession = async () => {
+  const handleOpenNewSession = async (overrideBranchId?: string) => {
     if (!canManageSessions) {
       toast.error('Only Owners and Admins can start business sessions');
       return;
     }
-    const targetBranch = selectedBranchId || user?.branchId;
+    const targetBranch = overrideBranchId || selectedBranchId || user?.branchId;
     if (!targetBranch) {
+      if (branches.length > 0) {
+        setIsBranchSelectModalOpen(true);
+        return;
+      }
       toast.error('Please select a specific branch to open a daily session');
       return;
     }
-    const todayYmd = new Date().toISOString().slice(0, 10);
     try {
       await api.post('/daily-sessions', {
         branchId: targetBranch,
-        date: todayYmd,
+        date: ethTodayYmd,
       });
       toast.success('Daily session opened successfully');
+      setIsBranchSelectModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -271,13 +292,33 @@ export default function DailySessionsPage() {
             {isTodayOnly ? `${t('common.date')} (Today Active)` : t('common.date')}
           </Button>
 
-          {!isLoading && sessionData && canManageSessions && !todaySession && (
-            <Button
-              onClick={handleOpenNewSession}
-              className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm h-10 px-4 shadow-sm animate-in fade-in duration-150"
-            >
-              <Plus className="w-4 h-4 mr-1.5" /> {t('sessions.startNewSession')}
-            </Button>
+          {!isLoading && sessionData && canManageSessions && (
+            selectedBranchId ? (
+              !todaySession ? (
+                <Button
+                  onClick={() => handleOpenNewSession()}
+                  className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm h-10 px-4 shadow-sm animate-in fade-in duration-150"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" /> {t('sessions.startNewSession')}
+                </Button>
+              ) : todaySession.status === 'CLOSED' ? (
+                <Button
+                  onClick={() => handleReopenSession(todaySession)}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs sm:text-sm h-10 px-4 shadow-sm animate-in fade-in duration-150"
+                >
+                  <RotateCcw className="w-4 h-4 mr-1.5" /> {t('sessions.reopen') || "Reopen Today's Session"}
+                </Button>
+              ) : null
+            ) : (
+              (hasAnyUnopenedToday || hasAnyClosedToday) ? (
+                <Button
+                  onClick={() => setIsBranchSelectModalOpen(true)}
+                  className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm h-10 px-4 shadow-sm animate-in fade-in duration-150"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" /> {hasAnyUnopenedToday ? t('sessions.startNewSession') : "Reopen / Start Session"}
+                </Button>
+              ) : null
+            )
           )}
         </div>
       </div>
@@ -391,15 +432,138 @@ export default function DailySessionsPage() {
                 </Button>
               )}
               {todaySession.status === 'CLOSED' && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=view`)}
-                  className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs h-9 w-full sm:w-auto"
-                >
-                  <Eye className="w-3.5 h-3.5 mr-1" /> {t('sessions.viewCloseReport')}
-                </Button>
+                <>
+                  {canManageSessions && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleReopenSession(todaySession)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs flex-1 sm:flex-initial"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen') || 'Reopen Session'}
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=view`)}
+                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs h-9 w-full sm:w-auto"
+                  >
+                    <Eye className="w-3.5 h-3.5 mr-1" /> {t('sessions.viewCloseReport')}
+                  </Button>
+                </>
               )}
+            </div>
+          </div>
+        ) : !selectedBranchId && branches.length > 1 ? (
+          /* Multi-branch status overview when viewing all branches */
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 mb-6 shadow-xs">
+            <div className="flex items-center justify-between mb-3 border-b border-[#EDE4D5] pb-2.5">
+              <h3 className="font-extrabold text-sm text-[#2C1B10] flex items-center gap-2">
+                <Utensils className="w-4 h-4 text-[#E87A18]" />
+                Today's Branch Business Sessions
+              </h3>
+              <span className="text-xs text-[#8C7361] font-semibold">
+                📅 {ethTodayYmd}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {branchSessionsToday.map(({ branch, session: bSess }) => (
+                <div
+                  key={branch.id}
+                  className="p-3.5 rounded-xl border border-[#EDE4D5] bg-[#FAF6F0]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-[#2C1B10]">{branch.name}</span>
+                      {bSess?.status === 'OPEN' && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Live
+                        </span>
+                      )}
+                      {bSess?.status === 'PAUSED' && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                          Paused
+                        </span>
+                      )}
+                      {bSess?.status === 'CLOSE_PENDING' && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-100 text-purple-900 border border-purple-300">
+                          Pending
+                        </span>
+                      )}
+                      {bSess?.status === 'CLOSED' && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-zinc-200 text-zinc-700">
+                          Closed
+                        </span>
+                      )}
+                      {!bSess && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
+                          Not Started
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#8C7361] mt-1">
+                      {bSess ? `${bSess._count?.sales || 0} sales recorded` : 'No active session running'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {!bSess && canManageSessions && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenNewSession(branch.id)}
+                        className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs h-8 px-3"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" /> Open Session
+                      </Button>
+                    )}
+                    {bSess?.status === 'CLOSED' && canManageSessions && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleReopenSession(bSess)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-8 px-3"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reopen
+                      </Button>
+                    )}
+                    {bSess?.status === 'OPEN' && (
+                      <Button
+                        size="sm"
+                        onClick={() => router.push(`/daily-sessions/${bSess.id}/close?mode=edit`)}
+                        className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 px-3"
+                      >
+                        <Lock className="w-3.5 h-3.5 mr-1" /> Finalize
+                      </Button>
+                    )}
+                    {bSess?.status === 'PAUSED' && canManageSessions && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleReopenSession(bSess)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-8 px-3"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5 mr-1" /> Reopen
+                      </Button>
+                    )}
+                    {bSess?.status === 'CLOSE_PENDING' && (
+                      <Button
+                        size="sm"
+                        onClick={() => router.push(`/daily-sessions/${bSess.id}/close?mode=edit`)}
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-8 px-3"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Review
+                      </Button>
+                    )}
+                    {bSess?.status === 'CLOSED' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/daily-sessions/${bSess.id}/close?mode=view`)}
+                        className="border-[#EDE4D5] text-[#4A2E1B] font-bold rounded-xl text-xs h-8 px-2.5"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ) : (
@@ -417,7 +581,7 @@ export default function DailySessionsPage() {
             </div>
             {canManageSessions && (
               <Button
-                onClick={handleOpenNewSession}
+                onClick={() => handleOpenNewSession()}
                 className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs h-9 px-4 shrink-0 shadow-sm w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4 mr-1.5" /> {t('sessions.startTodaysSession')}
@@ -573,14 +737,26 @@ export default function DailySessionsPage() {
                   )}
 
                   {sess.status === 'CLOSED' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=view`)}
-                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#F4ECE1] font-bold rounded-xl text-xs h-8 w-full"
-                    >
-                      <Eye className="w-3.5 h-3.5 mr-1" /> {t('common.view')}
-                    </Button>
+                    <div className="flex items-center gap-1.5 w-full">
+                      {canManageSessions && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleReopenSession(sess)}
+                          className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold rounded-xl text-xs h-8 flex-1"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen') || "Reopen"}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=view`)}
+                        className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#F4ECE1] font-bold rounded-xl text-xs h-8 flex-1"
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1" /> {t('common.view')}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -708,14 +884,26 @@ export default function DailySessionsPage() {
                       )}
 
                       {sess.status === 'CLOSED' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#F4ECE1] font-bold rounded-xl text-xs"
-                          onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=view`)}
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" /> {t('common.view')}
-                        </Button>
+                        <>
+                          {canManageSessions && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold rounded-xl text-xs"
+                              onClick={() => handleReopenSession(sess)}
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen') || "Reopen"}
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#F4ECE1] font-bold rounded-xl text-xs"
+                            onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=view`)}
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-1" /> {t('common.view')}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </TableCell>
@@ -910,6 +1098,93 @@ export default function DailySessionsPage() {
         }}
         onCancel={() => setShowDiscardFinalizePrompt(false)}
       />
+
+      {/* Branch Selection Modal for Starting / Reopening Sessions */}
+      {isBranchSelectModalOpen && (
+        <Dialog open={true} onOpenChange={() => setIsBranchSelectModalOpen(false)}>
+          <DialogContent className="max-w-md bg-white rounded-2xl p-6 border border-[#EDE4D5]">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <Utensils className="w-5 h-5 text-[#E87A18]" />
+                Select Branch for Daily Session
+              </DialogTitle>
+            </DialogHeader>
+
+            <p className="text-xs text-[#8C7361] -mt-2">
+              Choose which bakery branch to start or reopen for today ({ethTodayYmd}):
+            </p>
+
+            <div className="space-y-3 py-3">
+              {branchSessionsToday.map(({ branch, session: bSess }) => (
+                <div
+                  key={branch.id}
+                  className="p-3.5 rounded-xl border border-[#EDE4D5] bg-[#FAF6F0]/50 flex items-center justify-between gap-3"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-[#2C1B10]">{branch.name}</span>
+                      {bSess?.status === 'OPEN' && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                          Live
+                        </span>
+                      )}
+                      {bSess?.status === 'CLOSED' && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-200 text-zinc-700">
+                          Closed
+                        </span>
+                      )}
+                      {!bSess && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                          Not Started
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-[#8C7361]">
+                      {bSess ? `${bSess._count?.sales || 0} sales recorded` : 'Ready to start'}
+                    </span>
+                  </div>
+
+                  <div>
+                    {!bSess ? (
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenNewSession(branch.id)}
+                        className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs h-8 px-3"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" /> Open
+                      </Button>
+                    ) : bSess.status === 'CLOSED' ? (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          handleReopenSession(bSess);
+                          setIsBranchSelectModalOpen(false);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-8 px-3"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reopen
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-bold text-emerald-700 px-2 py-1">Active</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <DialogFooter className="pt-2 border-t border-[#EDE4D5]">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsBranchSelectModalOpen(false)}
+                className="rounded-xl"
+              >
+                {t('common.cancel')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </DashboardLayout>
   );
 }
