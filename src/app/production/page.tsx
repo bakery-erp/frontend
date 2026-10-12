@@ -286,24 +286,30 @@ export default function ProductionPage() {
           <h1 className="text-xl xs:text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('production.title')}</h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('production.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2 xs:gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 xs:gap-3 w-full sm:w-auto min-w-0">
           {isGlobalAdmin && (
             <Button
               onClick={() => router.push('/production/history')}
               variant="outline"
               size="lg"
-              className="flex-1 sm:flex-initial"
+              className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
             >
-              <History className="w-4 h-4 text-[#E87A18]" /> {t('productionHistory.title')}
+              <History className="w-4 h-4 text-[#E87A18] shrink-0" />
+              <span className="truncate">
+                <span className="hidden xs:inline">Daily </span>History
+              </span>
             </Button>
           )}
           <Button
             onClick={() => router.push('/production/new')}
             disabled={isLoading || !isSessionOpen}
             size="lg"
-            className="flex-1 sm:flex-initial"
+            className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
           >
-            <Plus className="w-4 h-4" /> {t('production.newBatch')}
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="truncate">
+              <span className="hidden xs:inline">Record </span>New Batch
+            </span>
           </Button>
         </div>
       </div>
@@ -318,7 +324,7 @@ export default function ProductionPage() {
       )}
 
       {/* Filter Tabs & Shift Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3 max-w-full overflow-hidden">
         <div className="relative overflow-hidden flex-1 max-w-full">
           {/* Edge gradient hints on small screens */}
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
@@ -437,7 +443,7 @@ export default function ProductionPage() {
 
         {/* Shift Filter Pill Group (Only visible for Owner & Admin) */}
         {isGlobalAdmin && (
-          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 self-start sm:self-auto">
+          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 self-start sm:self-auto max-w-full overflow-x-auto no-scrollbar">
             <button
               onClick={() => setShiftFilter("ALL")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -492,7 +498,7 @@ export default function ProductionPage() {
             <div
               key={batch.id}
               onClick={() => router.push(`/production/${batch.id}`)}
-              className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-3 hover:border-[#4A2E1B]/30 hover:shadow-xs transition-all cursor-pointer"
+              className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-3 hover:border-[#4A2E1B]/30 hover:shadow-xs transition-all cursor-pointer overflow-hidden"
             >
               {/* Card Header: Date, Shift, and Status */}
               <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
@@ -514,9 +520,9 @@ export default function ProductionPage() {
                   <span className="text-xs text-zinc-400 italic">No products</span>
                 ) : (
                   <div className="space-y-1.5">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]">
-                      <span>{batch.items[0].product.name}</span>
-                      <span className="text-[#E87A18] font-black">
+                    <div className="inline-flex max-w-full items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]">
+                      <span className="truncate">{batch.items[0].product.name}</span>
+                      <span className="text-[#E87A18] font-black shrink-0">
                         × {batch.items[0].quantityProduced} {batch.items[0].product.unitType}
                       </span>
                     </div>
@@ -551,8 +557,9 @@ export default function ProductionPage() {
                   <span className="text-xs text-zinc-400 italic">{t('production.noMaterialsDeducted')}</span>
                 ) : (
                   <div className="space-y-1.5">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800">
-                      {batch.materialUsages[0].stockItem.name}: -{Number(batch.materialUsages[0].quantityUsed).toFixed(2)} {batch.materialUsages[0].stockItem.unitType}
+                    <span className="inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800">
+                      <span className="truncate">{batch.materialUsages[0].stockItem.name}:</span>
+                      <span className="shrink-0">-{Number(batch.materialUsages[0].quantityUsed).toFixed(2)} {batch.materialUsages[0].stockItem.unitType}</span>
                     </span>
                     {batch.materialUsages.length > 1 && (
                       <div>
@@ -611,7 +618,7 @@ export default function ProductionPage() {
                     </>
                   )}
 
-                  {batch.status === "PENDING_APPROVAL" && (
+                  {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -794,7 +801,7 @@ export default function ProductionPage() {
                       </>
                     )}
 
-                    {batch.status === "PENDING_APPROVAL" && (
+                    {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
                       <Button
                         size="sm"
                         variant="outline"

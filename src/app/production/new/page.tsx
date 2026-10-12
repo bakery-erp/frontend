@@ -24,7 +24,6 @@ import {
   Clock,
   XCircle,
   ChefHat,
-  ChevronDown,
 } from "lucide-react";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -296,8 +295,8 @@ function ProductionFormContent() {
       });
   }, [selectedMaterials, stockItems]);
 
-  const totalUnitsProduced = useMemo(() => {
-    return selectedProductList.reduce((acc, item) => acc + item.qty, 0);
+  const totalProducedUnits = useMemo(() => {
+    return selectedProductList.reduce((acc, curr) => acc + curr.qty, 0);
   }, [selectedProductList]);
 
   // Submit Request Handler (Opens Confirmation Modal)
@@ -1057,62 +1056,45 @@ function ProductionFormContent() {
               <span>{shift === "NIGHT" ? "🌙 Night Shift" : "☀️ Day Shift"}</span>
             </div>
 
-            {/* High-Level Overview Summary Cards */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200/80">
-                <div className="flex items-center gap-1.5 text-[#8C7361] text-[10px] font-black uppercase tracking-wider mb-1">
-                  <PackageCheck className="w-3.5 h-3.5 text-[#E87A18]" />
-                  <span>Products</span>
-                </div>
-                <div className="text-base sm:text-lg font-black text-[#2C1B10]">
-                  {selectedProductList.length} <span className="text-xs font-semibold text-[#8C7361]">types</span>
-                </div>
-                <div className="text-[11px] font-bold text-[#E87A18]">
-                  {totalUnitsProduced.toLocaleString()} units total
-                </div>
+            {/* High-Level Overview Stats - Clean and compact even for 10+ items */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70 text-center">
+                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Products Baked</span>
+                <span className="text-sm font-black text-[#2C1B10]">
+                  {selectedProductList.length}{" "}
+                  <span className="text-[11px] font-semibold text-[#8C7361]">({totalProducedUnits} units)</span>
+                </span>
               </div>
-
-              <div className="p-3 rounded-2xl bg-indigo-50/80 border border-indigo-200/80">
-                <div className="flex items-center gap-1.5 text-indigo-700 text-[10px] font-black uppercase tracking-wider mb-1">
-                  <Boxes className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Raw Materials</span>
-                </div>
-                <div className="text-base sm:text-lg font-black text-indigo-950">
-                  {selectedMaterialList.length} <span className="text-xs font-semibold text-indigo-700">types</span>
-                </div>
-                <div className="text-[11px] font-bold text-indigo-800 truncate">
-                  {selectedMaterialList.length === 0 ? "None logged" : "Deduction logged"}
-                </div>
+              <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200/70 text-center">
+                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Raw Materials</span>
+                <span className="text-sm font-black text-indigo-950">
+                  {selectedMaterialList.length}{" "}
+                  <span className="text-[11px] font-semibold text-[#8C7361]">used</span>
+                </span>
               </div>
             </div>
 
-            {/* Optional Collapsible Item Breakdown */}
+            {/* Optional Collapsible Detailed Breakdown */}
             <div className="pt-0.5">
               <button
                 type="button"
                 onClick={() => setShowModalBreakdown((prev) => !prev)}
-                className="w-full py-2 px-3 rounded-xl text-xs font-bold text-[#8C7361] hover:text-[#2C1B10] bg-[#FAF6F0] hover:bg-[#F4ECE1] border border-[#EDE4D5] flex items-center justify-between transition-colors cursor-pointer"
+                className="w-full py-2 px-3 rounded-xl bg-[#FAF7EE] hover:bg-[#F3ECE1] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs flex items-center justify-between transition-colors cursor-pointer"
               >
-                <span>
-                  {showModalBreakdown
-                    ? "Hide Item Breakdown"
-                    : `View Item Breakdown (${selectedProductList.length + selectedMaterialList.length})`}
+                <span>{showModalBreakdown ? "Hide Item Breakdown" : "View Item Breakdown"}</span>
+                <span className="text-[11px] text-[#8C7361] font-semibold">
+                  {showModalBreakdown ? "▲ Collapse" : `▼ (${selectedProductList.length + selectedMaterialList.length} items)`}
                 </span>
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${
-                    showModalBreakdown ? "rotate-180" : ""
-                  }`}
-                />
               </button>
 
               {showModalBreakdown && (
-                <div className="mt-2 space-y-2.5 max-h-48 overflow-y-auto pr-1">
-                  {/* Products */}
+                <div className="mt-2.5 space-y-2.5 border-t border-[#EDE4D5] pt-2">
+                  {/* Products Baked Summary */}
                   <div>
                     <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
-                      Products Baked:
+                      Products Baked ({selectedProductList.length}):
                     </span>
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
                       {selectedProductList.map((item) => (
                         <div
                           key={item.product.id}
@@ -1127,13 +1109,17 @@ function ProductionFormContent() {
                     </div>
                   </div>
 
-                  {/* Materials */}
-                  {selectedMaterialList.length > 0 && (
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
-                        Raw Materials Consumed:
-                      </span>
-                      <div className="space-y-1">
+                  {/* Ingredients Consumed Summary */}
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
+                      Raw Materials Consumed ({selectedMaterialList.length}):
+                    </span>
+                    {selectedMaterialList.length === 0 ? (
+                      <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-500 italic">
+                        No materials specified
+                      </div>
+                    ) : (
+                      <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
                         {selectedMaterialList.map((mat) => (
                           <div
                             key={mat.stockItem.id}
@@ -1146,8 +1132,8 @@ function ProductionFormContent() {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
             </div>
