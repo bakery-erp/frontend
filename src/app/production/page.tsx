@@ -75,17 +75,6 @@ export default function ProductionPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionBatchId, setActionBatchId] = useState<string | null>(null);
-  const [openActionDropdownId, setOpenActionDropdownId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handleDocClick = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('[data-actions-menu]')) {
-        setOpenActionDropdownId(null);
-      }
-    };
-    document.addEventListener('click', handleDocClick);
-    return () => document.removeEventListener('click', handleDocClick);
-  }, []);
 
   // Form State
   const [date, setDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
@@ -663,19 +652,19 @@ export default function ProductionPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('production.colDateShift')}</TableHead>
+              <TableHead className="w-40">{t('production.colDateShift')}</TableHead>
               <TableHead>{t('production.colProductsBaked')}</TableHead>
               <TableHead>{t('production.colRawMaterialsConsumed')}</TableHead>
-              <TableHead>{t('production.colBatchStatus')}</TableHead>
-              {isGlobalAdmin && <TableHead>{t('production.colLoggedBy')}</TableHead>}
-              <TableHead className="text-right pr-6 w-16">{t('production.colBatchActions')}</TableHead>
+              <TableHead className="w-36">{t('production.colBatchStatus')}</TableHead>
+              {isGlobalAdmin && <TableHead className="w-36">{t('production.colLoggedBy')}</TableHead>}
+              <TableHead className="text-right pr-6 w-52">{t('production.colBatchActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, idx) => (
                 <TableRow key={idx}>
-                  <TableCell>
+                  <TableCell className="w-40">
                     <Skeleton className="h-4 w-24 mb-1.5" />
                     <Skeleton className="h-3 w-16" />
                   </TableCell>
@@ -686,16 +675,16 @@ export default function ProductionPage() {
                   <TableCell>
                     <Skeleton className="h-4 w-28" />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="w-36">
                     <Skeleton className="h-6 w-24 rounded-full" />
                   </TableCell>
                   {isGlobalAdmin && (
-                    <TableCell>
+                    <TableCell className="w-36">
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
                   )}
-                  <TableCell className="text-right pr-6 w-16">
-                    <Skeleton className="h-8 w-8 ml-auto rounded-xl" />
+                  <TableCell className="text-right pr-6 w-52">
+                    <Skeleton className="h-8 w-24 ml-auto rounded-xl" />
                   </TableCell>
                 </TableRow>
               ))
@@ -786,80 +775,63 @@ export default function ProductionPage() {
                     <span className="text-xs font-bold text-[#2C1B10]">{batch.user.fullName}</span>
                   </TableCell>
                 )}
-                <TableCell className="text-right pr-6 w-16" onClick={(e) => e.stopPropagation()}>
-                  <div className="relative inline-block text-left" data-actions-menu>
-                    <button
-                      type="button"
-                      onClick={() => setOpenActionDropdownId(openActionDropdownId === batch.id ? null : batch.id)}
-                      className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
-                        openActionDropdownId === batch.id
-                          ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
-                          : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
-                      }`}
-                      title="Actions"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-
-                    {openActionDropdownId === batch.id && (
-                      <div className="absolute right-0 top-full mt-1.5 w-44 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95 duration-100">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpenActionDropdownId(null);
-                            router.push(`/production/${batch.id}`);
-                          }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                <TableCell className="text-right pr-6 w-52 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1.5">
+                    {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
+                      <>
+                        <Button
+                          size="sm"
+                          disabled={actionBatchId === batch.id}
+                          onClick={() => handleApprove(batch.id)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs cursor-pointer"
                         >
-                          <Eye className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-                          <span>{t('common.view') || "View Details"}</span>
-                        </button>
-
-                        {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenActionDropdownId(null);
-                              router.push(`/production/new?edit=${batch.id}`);
-                            }}
-                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
-                          >
-                            <Edit className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
-                            <span>{t('common.edit') || "Edit Batch"}</span>
-                          </button>
-                        )}
-
-                        {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
-                          <>
-                            <div className="my-1 border-t border-[#F4ECE1]" />
-                            <button
-                              type="button"
-                              disabled={actionBatchId === batch.id}
-                              onClick={() => {
-                                setOpenActionDropdownId(null);
-                                handleApprove(batch.id);
-                              }}
-                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>{t('common.approve') || "Approve Batch"}</span>
-                            </button>
-                            <button
-                              type="button"
-                              disabled={actionBatchId === batch.id}
-                              onClick={() => {
-                                setOpenActionDropdownId(null);
-                                handleReject(batch.id);
-                              }}
-                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer text-left"
-                            >
-                              <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                              <span>{t('common.reject') || "Reject Batch"}</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>{t('common.approve') || "Approve"}</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={actionBatchId === batch.id}
+                          onClick={() => handleReject(batch.id)}
+                          className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-8 w-8 p-0 rounded-xl shadow-2xs flex items-center justify-center shrink-0 cursor-pointer"
+                          title={t('common.reject') || "Reject"}
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                        </Button>
+                      </>
                     )}
+
+                    {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/production/new?edit=${batch.id}`)}
+                        className={`border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer ${
+                          batch.status === "PENDING_APPROVAL" && isGlobalAdmin ? "w-8 p-0 justify-center" : "px-2.5"
+                        }`}
+                        title={t('common.edit') || "Edit"}
+                      >
+                        <Edit className="w-3.5 h-3.5 text-[#8C7361]" />
+                        {!(batch.status === "PENDING_APPROVAL" && isGlobalAdmin) && (
+                          <span>{t('common.edit') || "Edit"}</span>
+                        )}
+                      </Button>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => router.push(`/production/${batch.id}`)}
+                      className={`border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer ${
+                        batch.status === "PENDING_APPROVAL" && isGlobalAdmin ? "w-8 p-0 justify-center" : "px-2.5"
+                      }`}
+                      title={t('common.view') || "View"}
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                      {!(batch.status === "PENDING_APPROVAL" && isGlobalAdmin) && (
+                        <span>{t('common.view') || "View"}</span>
+                      )}
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
