@@ -23,8 +23,6 @@ import {
   Clock,
   XCircle,
   ChefHat,
-  Plus,
-  Minus,
 } from "lucide-react";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -249,22 +247,6 @@ function ProductionFormContent() {
     }));
   };
 
-  const adjustProductQty = (productId: string, delta: number) => {
-    setSelectedProducts((prev) => {
-      const current = Number(prev[productId] || 0);
-      const updated = Math.max(1, current + delta);
-      return { ...prev, [productId]: String(updated) };
-    });
-  };
-
-  const addProductPreset = (productId: string, amount: number) => {
-    setSelectedProducts((prev) => {
-      const current = Number(prev[productId] || 0);
-      const updated = current + amount;
-      return { ...prev, [productId]: String(updated) };
-    });
-  };
-
   // Material Selection Handlers
   const toggleMaterialSelect = (stockItemId: string) => {
     setSelectedMaterials((prev) => {
@@ -283,22 +265,6 @@ function ProductionFormContent() {
       ...prev,
       [stockItemId]: qty,
     }));
-  };
-
-  const adjustMaterialQty = (stockItemId: string, delta: number) => {
-    setSelectedMaterials((prev) => {
-      const current = Number(prev[stockItemId] || 0);
-      const updated = Math.max(0.1, Number((current + delta).toFixed(2)));
-      return { ...prev, [stockItemId]: String(updated) };
-    });
-  };
-
-  const addMaterialPreset = (stockItemId: string, amount: number) => {
-    setSelectedMaterials((prev) => {
-      const current = Number(prev[stockItemId] || 0);
-      const updated = Number((current + amount).toFixed(2));
-      return { ...prev, [stockItemId]: String(updated) };
-    });
   };
 
   // Submit Handler (Create vs Edit)
@@ -755,7 +721,7 @@ function ProductionFormContent() {
                   : `No products found for ${stationMeta.badge} in this branch or matching search.`}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filteredProducts.map((p) => {
                   const isSelected = selectedProducts[p.id] !== undefined;
                   const qtyVal = selectedProducts[p.id] || "";
@@ -793,58 +759,26 @@ function ProductionFormContent() {
 
                         {isSelected && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E87A18] text-white shrink-0">
-                            Active
+                            Selected
                           </span>
                         )}
                       </div>
 
                       {isSelected && (
-                        <div className="mt-3 pt-3 border-t border-amber-200/70 space-y-2.5" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-extrabold uppercase tracking-wide text-[#4A2E1B]">
-                              Produced Qty:
-                            </span>
-                            <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#EDE4D5] shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => adjustProductQty(p.id, -10)}
-                                className="w-8 h-8 rounded-lg bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#4A2E1B] font-black text-sm flex items-center justify-center active:scale-95 transition-all cursor-pointer"
-                                title="-10"
-                              >
-                                -
-                              </button>
-                              <Input
-                                type="number"
-                                min="1"
-                                value={qtyVal}
-                                onChange={(e) => updateProductQty(p.id, e.target.value)}
-                                className="w-16 h-8 text-center bg-transparent border-0 font-mono font-black text-sm text-[#2C1B10] p-0 focus-visible:ring-0"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => adjustProductQty(p.id, 10)}
-                                className="w-8 h-8 rounded-lg bg-[#E87A18] hover:bg-[#d66f13] text-white font-black text-sm flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
-                                title="+10"
-                              >
-                                +
-                              </button>
-                              <span className="text-[10px] font-bold text-[#8C7361] pr-1.5">{p.unitType}</span>
-                            </div>
-                          </div>
-
-                          {/* Quick Add Preset Chips */}
-                          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
-                            <span className="text-[10px] font-bold text-[#8C7361] shrink-0">Quick Add:</span>
-                            {[10, 25, 50, 100].map((amt) => (
-                              <button
-                                key={amt}
-                                type="button"
-                                onClick={() => addProductPreset(p.id, amt)}
-                                className="px-2 py-1 rounded-lg bg-[#FAF6F0] hover:bg-amber-100 border border-amber-200 text-[#4A2E1B] text-[11px] font-extrabold shrink-0 active:scale-95 transition-all shadow-2xs cursor-pointer"
-                              >
-                                +{amt}
-                              </button>
-                            ))}
+                        <div className="mt-3 pt-3 border-t border-amber-200/70 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs font-bold text-[#4A2E1B]">
+                            Produced Qty:
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="Qty"
+                              value={qtyVal}
+                              onChange={(e) => updateProductQty(p.id, e.target.value)}
+                              className="w-24 h-9 bg-white border-[#EDE4D5] font-bold text-sm text-[#2C1B10] text-right rounded-xl focus:border-[#E87A18]"
+                            />
+                            <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{p.unitType}</span>
                           </div>
                         </div>
                       )}
@@ -905,7 +839,7 @@ function ProductionFormContent() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3 max-h-[420px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3">
               {filteredMaterials.map((mat) => {
                 const isSelected = selectedMaterials[mat.id] !== undefined;
                 const qtyVal = selectedMaterials[mat.id] || "";
@@ -943,57 +877,27 @@ function ProductionFormContent() {
 
                       {isSelected && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-600 text-white shrink-0">
-                          Added
+                          Selected
                         </span>
                       )}
                     </div>
 
                     {isSelected && (
-                      <div className="mt-3 pt-3 border-t border-indigo-200/70 space-y-2.5" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[11px] font-extrabold uppercase tracking-wide text-indigo-950">
-                            Used Amount:
-                          </span>
-                          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-indigo-200 shadow-2xs">
-                            <button
-                              type="button"
-                              onClick={() => adjustMaterialQty(mat.id, -1)}
-                              className="w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-black text-sm flex items-center justify-center active:scale-95 transition-all cursor-pointer"
-                            >
-                              -
-                            </button>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              value={qtyVal}
-                              onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
-                              className="w-16 h-8 text-center bg-transparent border-0 font-mono font-black text-sm text-indigo-950 p-0 focus-visible:ring-0"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => adjustMaterialQty(mat.id, 1)}
-                              className="w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
-                            >
-                              +
-                            </button>
-                            <span className="text-[10px] font-bold text-zinc-500 pr-1.5">{mat.unitType}</span>
-                          </div>
-                        </div>
-
-                        {/* Quick Add Preset Chips */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
-                          <span className="text-[10px] font-bold text-[#8C7361] shrink-0">Quick Add:</span>
-                          {[1, 5, 10, 25].map((amt) => (
-                            <button
-                              key={amt}
-                              type="button"
-                              onClick={() => addMaterialPreset(mat.id, amt)}
-                              className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 text-[11px] font-extrabold shrink-0 active:scale-95 transition-all shadow-2xs cursor-pointer"
-                            >
-                              +{amt}
-                            </button>
-                          ))}
+                      <div className="mt-3 pt-3 border-t border-indigo-200/70 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-xs font-bold text-indigo-950">
+                          Used Amount:
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            placeholder="Qty"
+                            value={qtyVal}
+                            onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
+                            className="w-24 h-9 bg-white border-indigo-200 font-bold text-sm text-indigo-950 text-right rounded-xl focus:border-indigo-600"
+                          />
+                          <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{mat.unitType}</span>
                         </div>
                       </div>
                     )}
