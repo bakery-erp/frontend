@@ -6,10 +6,11 @@ import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { useBranch } from "@/context/BranchContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ArrowLeft, PackagePlus, DollarSign, Image as ImageIcon, Save, Tag } from "lucide-react";
+import { ArrowLeft, PackagePlus, DollarSign, Image as ImageIcon, Save, Tag, Store } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
@@ -41,11 +42,14 @@ const PRODUCT_PRESET_IMAGES = [
 export default function NewProductPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { branches } = useBranch();
   const queryClient = useQueryClient();
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>(PRODUCT_PRESET_IMAGES[0].url);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormChanged, setIsFormChanged] = useState(false);
+  const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
+  const [isAllBranches, setIsAllBranches] = useState<boolean>(true);
 
   const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormChanged);
 
@@ -89,6 +93,7 @@ export default function NewProductPage() {
         buyPrice: isResell && formData.get("buyPrice") ? Number(formData.get("buyPrice")) : undefined,
         imageUrl: selectedImageUrl || undefined,
         isActive: true,
+        branchIds: isAllBranches ? [] : selectedBranchIds,
       };
 
       await api.post("/products", data);
@@ -289,7 +294,88 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* Section 3: Product Visuals */}
+          {/* Section 3: Branch Availability (Option 1) */}
+          <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EDE4D5] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                  <Store className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-extrabold text-[#2C1B10]">Branch Availability</h2>
+                  <p className="text-xs text-[#8C7361]">Select which branch locations produce and sell this product</p>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-extrabold text-[#4A2E1B] cursor-pointer hover:bg-[#F4ECE1] transition-all select-none">
+                <input
+                  type="checkbox"
+                  checked={isAllBranches}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsAllBranches(checked);
+                    if (checked) {
+                      setSelectedBranchIds(branches.map((b) => b.id));
+                    } else {
+                      setSelectedBranchIds([]);
+                    }
+                    setIsFormChanged(true);
+                  }}
+                  className="rounded text-[#E87A18] focus:ring-[#E87A18]"
+                />
+                <span>🌐 All Branches</span>
+              </label>
+            </div>
+
+            {branches.length === 0 ? (
+              <p className="text-xs text-[#8C7361] py-2">No branches found. Product will be available across the system.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {branches.map((b) => {
+                  const isChecked = isAllBranches || selectedBranchIds.includes(b.id);
+                  return (
+                    <label
+                      key={b.id}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all select-none ${
+                        isChecked
+                          ? "bg-amber-50/70 border-[#E87A18] ring-1 ring-[#E87A18]/30 shadow-2xs"
+                          : "bg-white border-[#EDE4D5] text-[#8C7361] hover:border-zinc-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isAllBranches) {
+                            setIsAllBranches(false);
+                            setSelectedBranchIds(branches.filter((item) => item.id !== b.id).map((item) => item.id));
+                          } else {
+                            const next = selectedBranchIds.includes(b.id)
+                              ? selectedBranchIds.filter((id) => id !== b.id)
+                              : [...selectedBranchIds, b.id];
+                            setSelectedBranchIds(next);
+                            if (next.length === branches.length) {
+                              setIsAllBranches(true);
+                            }
+                          }
+                          setIsFormChanged(true);
+                        }}
+                        className="mt-0.5 rounded text-[#E87A18] focus:ring-[#E87A18]"
+                      />
+                      <div className="min-w-0">
+                        <span className="text-xs font-extrabold text-[#2C1B10] block truncate">📍 {b.name}</span>
+                        <span className="text-[10px] text-[#8C7361] block">
+                          {isChecked ? "Available at this branch" : "Disabled at this branch"}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Section 4: Product Visuals */}
           <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-3">
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
