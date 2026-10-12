@@ -211,9 +211,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Menu className="w-4 h-4 xs:w-5 xs:h-5" />
               </button>
 
-              <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
-                <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden md:inline">{t('common.branch')}:</span>
-                {isOwner ? (
+              {isOwner && (
+                <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
+                  <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden md:inline">{t('common.branch')}:</span>
                   <select
                     value={selectedBranchId || 'ALL'}
                     onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}
@@ -226,14 +226,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </option>
                     ))}
                   </select>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F4ECE1] text-[#4A2E1B] border border-[#E0D5C3] truncate max-w-[120px] sm:max-w-[170px] md:max-w-none">
-                    <span className="truncate">
-                      📍 {user?.branch?.name && user.branch.name.trim() !== '.' && user.branch.name.trim() !== '' ? user.branch.name : 'Main Bakery'}
-                    </span>
-                  </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center space-x-1.5 xs:space-x-2.5 md:space-x-4 shrink-0">
