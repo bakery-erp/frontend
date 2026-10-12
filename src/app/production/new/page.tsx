@@ -234,7 +234,7 @@ function ProductionFormContent() {
       if (next[productId] !== undefined) {
         delete next[productId];
       } else {
-        next[productId] = "10"; // Default initial qty 10 Pcs
+        next[productId] = "0"; // Default initial qty 0
       }
       return next;
     });
@@ -254,7 +254,7 @@ function ProductionFormContent() {
       if (next[stockItemId] !== undefined) {
         delete next[stockItemId];
       } else {
-        next[stockItemId] = "1"; // Default 1 unit
+        next[stockItemId] = "0"; // Default initial qty 0
       }
       return next;
     });
@@ -870,7 +870,7 @@ function ProductionFormContent() {
                         <div className="min-w-0 flex-1">
                           <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{mat.name}</h4>
                           <span className="text-[11px] font-semibold text-[#8C7361] block">
-                            In stock: <strong className="text-indigo-900">{mat.currentQuantity} {mat.unitType}</strong>
+                            Unit: <strong className="text-indigo-950">{mat.unitType}</strong>
                           </span>
                         </div>
                       </div>
