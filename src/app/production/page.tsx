@@ -611,7 +611,7 @@ export default function ProductionPage() {
                     </>
                   )}
 
-                  {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
+                  {batch.status === "PENDING_APPROVAL" && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -794,7 +794,7 @@ export default function ProductionPage() {
                       </>
                     )}
 
-                    {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
+                    {batch.status === "PENDING_APPROVAL" && (
                       <Button
                         size="sm"
                         variant="outline"
