@@ -23,7 +23,10 @@ import {
   Clock,
   XCircle,
   ChefHat,
+  Plus,
+  Minus,
 } from "lucide-react";
+import { formatEthDate } from "@/lib/ethiopianDate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -246,6 +249,22 @@ function ProductionFormContent() {
     }));
   };
 
+  const adjustProductQty = (productId: string, delta: number) => {
+    setSelectedProducts((prev) => {
+      const current = Number(prev[productId] || 0);
+      const updated = Math.max(1, current + delta);
+      return { ...prev, [productId]: String(updated) };
+    });
+  };
+
+  const addProductPreset = (productId: string, amount: number) => {
+    setSelectedProducts((prev) => {
+      const current = Number(prev[productId] || 0);
+      const updated = current + amount;
+      return { ...prev, [productId]: String(updated) };
+    });
+  };
+
   // Material Selection Handlers
   const toggleMaterialSelect = (stockItemId: string) => {
     setSelectedMaterials((prev) => {
@@ -264,6 +283,22 @@ function ProductionFormContent() {
       ...prev,
       [stockItemId]: qty,
     }));
+  };
+
+  const adjustMaterialQty = (stockItemId: string, delta: number) => {
+    setSelectedMaterials((prev) => {
+      const current = Number(prev[stockItemId] || 0);
+      const updated = Math.max(0.1, Number((current + delta).toFixed(2)));
+      return { ...prev, [stockItemId]: String(updated) };
+    });
+  };
+
+  const addMaterialPreset = (stockItemId: string, amount: number) => {
+    setSelectedMaterials((prev) => {
+      const current = Number(prev[stockItemId] || 0);
+      const updated = Number((current + amount).toFixed(2));
+      return { ...prev, [stockItemId]: String(updated) };
+    });
   };
 
   // Submit Handler (Create vs Edit)
@@ -351,7 +386,7 @@ function ProductionFormContent() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-6 pb-12">
+      <div className="max-w-6xl mx-auto space-y-4 xs:space-y-6 pb-28 md:pb-12">
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
           <div className="min-w-0 flex-1">
@@ -495,8 +530,47 @@ function ProductionFormContent() {
             </div>
           </div>
 
-          {/* Shift & Date Header Configuration */}
-          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
+          {/* Mobile Compact Shift & Date Bar (< md) */}
+          <div className="md:hidden bg-white p-3 rounded-2xl border border-[#EDE4D5] shadow-xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 font-bold text-xs">
+                📅
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-[#2C1B10] truncate">
+                  {formatEthDate(date)}
+                </div>
+                <span className="text-[10px] text-[#8C7361] font-semibold">
+                  {isGlobalAdmin ? "Admin Log" : "Today's Batch"}
+                </span>
+              </div>
+            </div>
+
+            {/* Shift toggle pill on mobile */}
+            <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0">
+              <button
+                type="button"
+                onClick={() => setShift("DAY")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shift === "DAY" ? "bg-amber-500 text-zinc-950 shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                ☀️ Day
+              </button>
+              <button
+                type="button"
+                onClick={() => setShift("NIGHT")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shift === "NIGHT" ? "bg-indigo-600 text-white shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                🌙 Night
+              </button>
+            </div>
+          </div>
+
+          {/* Shift & Date Header Configuration (Desktop md+) */}
+          <div className="hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
                 Production Date {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
@@ -556,109 +630,111 @@ function ProductionFormContent() {
               </span>
             </div>
 
-            {/* Category & Subcategory Filter Tabs with Auto-Center */}
-            <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
-                <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
-              </div>
-              {/* Main Category Row */}
-              <div className="relative w-full overflow-hidden">
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
-                <div
-                  className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  <button
-                    ref={(el) => {
-                      parentCatTabRefs.current["ALL"] = el;
-                    }}
-                    type="button"
-                    onClick={() => {
-                      setSelectedParentCatId("ALL");
-                      setSelectedSubCatId("ALL");
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
-                      selectedParentCatId === "ALL"
-                        ? "bg-[#4A2E1B] text-white shadow-xs"
-                        : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                    }`}
-                  >
-                    All Categories ({products.length})
-                  </button>
-                  {parentCategories.map((cat) => {
-                    const catCount = products.filter(
-                      (p) => p.category?.parentId === cat.id || p.category?.id === cat.id
-                    ).length;
-                    return (
-                      <button
-                        key={cat.id}
-                        ref={(el) => {
-                          parentCatTabRefs.current[cat.id] = el;
-                        }}
-                        type="button"
-                        onClick={() => {
-                          setSelectedParentCatId(cat.id);
-                          setSelectedSubCatId("ALL");
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
-                          selectedParentCatId === cat.id
-                            ? "bg-[#4A2E1B] text-white shadow-xs"
-                            : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                        }`}
-                      >
-                        {cat.name} ({catCount})
-                      </button>
-                    );
-                  })}
+            {/* Category & Subcategory Filter Tabs (shown when multiple categories exist) */}
+            {parentCategories.length > 1 && (
+              <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
+                  <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
                 </div>
-              </div>
-
-              {/* Sub-Category Filter Row if applicable */}
-              {subCategories.length > 0 && (
-                <div className="relative w-full overflow-hidden pt-2.5 border-t border-[#EDE4D5]">
+                {/* Main Category Row */}
+                <div className="relative w-full overflow-hidden">
                   <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
                   <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
                   <div
                     className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
-                    <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
                     <button
                       ref={(el) => {
-                        subCatTabRefs.current["ALL"] = el;
+                        parentCatTabRefs.current["ALL"] = el;
                       }}
                       type="button"
-                      onClick={() => setSelectedSubCatId("ALL")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-                        selectedSubCatId === "ALL"
-                          ? "bg-[#E87A18] text-white"
-                          : "bg-white text-[#8C7361] border border-[#EDE4D5]"
+                      onClick={() => {
+                        setSelectedParentCatId("ALL");
+                        setSelectedSubCatId("ALL");
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                        selectedParentCatId === "ALL"
+                          ? "bg-[#4A2E1B] text-white shadow-xs"
+                          : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
                       }`}
                     >
-                      All Sub-categories
+                      All Categories ({products.length})
                     </button>
-                    {subCategories.map((sub) => (
+                    {parentCategories.map((cat) => {
+                      const catCount = products.filter(
+                        (p) => p.category?.parentId === cat.id || p.category?.id === cat.id
+                      ).length;
+                      return (
+                        <button
+                          key={cat.id}
+                          ref={(el) => {
+                            parentCatTabRefs.current[cat.id] = el;
+                          }}
+                          type="button"
+                          onClick={() => {
+                            setSelectedParentCatId(cat.id);
+                            setSelectedSubCatId("ALL");
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                            selectedParentCatId === cat.id
+                              ? "bg-[#4A2E1B] text-white shadow-xs"
+                              : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
+                          }`}
+                        >
+                          {cat.name} ({catCount})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Sub-Category Filter Row if applicable */}
+                {subCategories.length > 0 && (
+                  <div className="relative w-full overflow-hidden pt-2.5 border-t border-[#EDE4D5]">
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                    <div
+                      className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
                       <button
-                        key={sub.id}
                         ref={(el) => {
-                          subCatTabRefs.current[sub.id] = el;
+                          subCatTabRefs.current["ALL"] = el;
                         }}
                         type="button"
-                        onClick={() => setSelectedSubCatId(sub.id)}
+                        onClick={() => setSelectedSubCatId("ALL")}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-                          selectedSubCatId === sub.id
+                          selectedSubCatId === "ALL"
                             ? "bg-[#E87A18] text-white"
                             : "bg-white text-[#8C7361] border border-[#EDE4D5]"
                         }`}
                       >
-                        {sub.name}
+                        All Sub-categories
                       </button>
-                    ))}
+                      {subCategories.map((sub) => (
+                        <button
+                          key={sub.id}
+                          ref={(el) => {
+                            subCatTabRefs.current[sub.id] = el;
+                          }}
+                          type="button"
+                          onClick={() => setSelectedSubCatId(sub.id)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
+                            selectedSubCatId === sub.id
+                              ? "bg-[#E87A18] text-white"
+                              : "bg-white text-[#8C7361] border border-[#EDE4D5]"
+                          }`}
+                        >
+                          {sub.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Product Search & Multi-Select Grid */}
             <div className="relative">
@@ -679,7 +755,7 @@ function ProductionFormContent() {
                   : `No products found for ${stationMeta.badge} in this branch or matching search.`}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[460px] overflow-y-auto pr-1">
                 {filteredProducts.map((p) => {
                   const isSelected = selectedProducts[p.id] !== undefined;
                   const qtyVal = selectedProducts[p.id] || "";
@@ -687,44 +763,89 @@ function ProductionFormContent() {
                   return (
                     <div
                       key={p.id}
-                      className={`p-3.5 rounded-xl border transition-all ${
+                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
                         isSelected
-                          ? "bg-amber-50/70 border-[#E87A18] ring-1 ring-[#E87A18] shadow-2xs"
-                          : "bg-white border-[#EDE4D5] hover:border-zinc-300"
+                          ? "bg-amber-50/80 border-[#E87A18] ring-2 ring-[#E87A18]/20 shadow-sm"
+                          : "bg-white border-[#EDE4D5] hover:border-zinc-300 shadow-2xs"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <label
-                          onClick={() => toggleProductSelect(p.id)}
-                          className="flex items-start gap-2.5 cursor-pointer flex-1 select-none"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleProductSelect(p.id)}
-                            className="mt-0.5 rounded text-[#E87A18] focus:ring-[#E87A18]"
-                          />
-                          <div>
-                            <h4 className="font-extrabold text-xs text-[#2C1B10] line-clamp-1">{p.name}</h4>
-                            <span className="text-[10px] font-semibold text-[#8C7361] block">
-                              {p.category?.name || "Bakery"} ({p.unitType})
+                      <div
+                        onClick={() => toggleProductSelect(p.id)}
+                        className="flex items-start justify-between gap-2.5 cursor-pointer select-none"
+                      >
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <div
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                              isSelected
+                                ? "bg-[#E87A18] text-white shadow-2xs"
+                                : "border-2 border-[#EDE4D5] bg-[#FAF6F0]"
+                            }`}
+                          >
+                            {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{p.name}</h4>
+                            <span className="text-[11px] font-semibold text-[#8C7361] block">
+                              {p.category?.name || "Bakery"} • <strong className="text-[#4A2E1B]">{p.unitType}</strong>
                             </span>
                           </div>
-                        </label>
+                        </div>
+
+                        {isSelected && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E87A18] text-white shrink-0">
+                            Active
+                          </span>
+                        )}
                       </div>
 
                       {isSelected && (
-                        <div className="pt-2 border-t border-amber-200/60 flex items-center gap-2">
-                          <span className="text-[10px] font-extrabold uppercase text-[#4A2E1B]">Produced:</span>
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="Qty"
-                            value={qtyVal}
-                            onChange={(e) => updateProductQty(p.id, e.target.value)}
-                            className="h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-amber-900"
-                          />
-                          <span className="text-[10px] font-bold text-zinc-500">{p.unitType}</span>
+                        <div className="mt-3 pt-3 border-t border-amber-200/70 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-extrabold uppercase tracking-wide text-[#4A2E1B]">
+                              Produced Qty:
+                            </span>
+                            <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#EDE4D5] shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => adjustProductQty(p.id, -10)}
+                                className="w-8 h-8 rounded-lg bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#4A2E1B] font-black text-sm flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+                                title="-10"
+                              >
+                                -
+                              </button>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={qtyVal}
+                                onChange={(e) => updateProductQty(p.id, e.target.value)}
+                                className="w-16 h-8 text-center bg-transparent border-0 font-mono font-black text-sm text-[#2C1B10] p-0 focus-visible:ring-0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => adjustProductQty(p.id, 10)}
+                                className="w-8 h-8 rounded-lg bg-[#E87A18] hover:bg-[#d66f13] text-white font-black text-sm flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
+                                title="+10"
+                              >
+                                +
+                              </button>
+                              <span className="text-[10px] font-bold text-[#8C7361] pr-1.5">{p.unitType}</span>
+                            </div>
+                          </div>
+
+                          {/* Quick Add Preset Chips */}
+                          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                            <span className="text-[10px] font-bold text-[#8C7361] shrink-0">Quick Add:</span>
+                            {[10, 25, 50, 100].map((amt) => (
+                              <button
+                                key={amt}
+                                type="button"
+                                onClick={() => addProductPreset(p.id, amt)}
+                                className="px-2 py-1 rounded-lg bg-[#FAF6F0] hover:bg-amber-100 border border-amber-200 text-[#4A2E1B] text-[11px] font-extrabold shrink-0 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                              >
+                                +{amt}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -784,7 +905,7 @@ function ProductionFormContent() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3 max-h-[350px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3 max-h-[420px] overflow-y-auto pr-1">
               {filteredMaterials.map((mat) => {
                 const isSelected = selectedMaterials[mat.id] !== undefined;
                 const qtyVal = selectedMaterials[mat.id] || "";
@@ -792,45 +913,88 @@ function ProductionFormContent() {
                 return (
                   <div
                     key={mat.id}
-                    className={`p-3.5 rounded-xl border transition-all ${
+                    className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
                       isSelected
-                        ? "bg-indigo-50/70 border-indigo-500 ring-1 ring-indigo-500 shadow-2xs"
-                        : "bg-white border-[#EDE4D5] hover:border-zinc-300"
+                        ? "bg-indigo-50/80 border-indigo-500 ring-2 ring-indigo-500/20 shadow-sm"
+                        : "bg-white border-[#EDE4D5] hover:border-zinc-300 shadow-2xs"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <label
-                        onClick={() => toggleMaterialSelect(mat.id)}
-                        className="flex items-start gap-2.5 cursor-pointer flex-1 select-none"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleMaterialSelect(mat.id)}
-                          className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-600"
-                        />
-                        <div>
-                          <h4 className="font-extrabold text-xs text-[#2C1B10] line-clamp-1">{mat.name}</h4>
-                          <span className="text-[10px] font-semibold text-[#8C7361] block">
-                            Stock: {mat.currentQuantity} {mat.unitType}
+                    <div
+                      onClick={() => toggleMaterialSelect(mat.id)}
+                      className="flex items-start justify-between gap-2.5 cursor-pointer select-none"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                            isSelected
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "border-2 border-[#EDE4D5] bg-[#FAF6F0]"
+                          }`}
+                        >
+                          {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{mat.name}</h4>
+                          <span className="text-[11px] font-semibold text-[#8C7361] block">
+                            In stock: <strong className="text-indigo-900">{mat.currentQuantity} {mat.unitType}</strong>
                           </span>
                         </div>
-                      </label>
+                      </div>
+
+                      {isSelected && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-600 text-white shrink-0">
+                          Added
+                        </span>
+                      )}
                     </div>
 
                     {isSelected && (
-                      <div className="pt-2 border-t border-indigo-200 flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase text-indigo-900 shrink-0">Used:</span>
-                        <Input
-                          type="number"
-                          step="0.001"
-                          min="0.001"
-                          placeholder="Qty"
-                          value={qtyVal}
-                          onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
-                          className="h-9 xs:h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-indigo-950"
-                        />
-                        <span className="text-[10px] font-bold text-zinc-500 shrink-0">{mat.unitType}</span>
+                      <div className="mt-3 pt-3 border-t border-indigo-200/70 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-extrabold uppercase tracking-wide text-indigo-950">
+                            Used Amount:
+                          </span>
+                          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-indigo-200 shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => adjustMaterialQty(mat.id, -1)}
+                              className="w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-black text-sm flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              value={qtyVal}
+                              onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
+                              className="w-16 h-8 text-center bg-transparent border-0 font-mono font-black text-sm text-indigo-950 p-0 focus-visible:ring-0"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => adjustMaterialQty(mat.id, 1)}
+                              className="w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
+                            >
+                              +
+                            </button>
+                            <span className="text-[10px] font-bold text-zinc-500 pr-1.5">{mat.unitType}</span>
+                          </div>
+                        </div>
+
+                        {/* Quick Add Preset Chips */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                          <span className="text-[10px] font-bold text-[#8C7361] shrink-0">Quick Add:</span>
+                          {[1, 5, 10, 25].map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => addMaterialPreset(mat.id, amt)}
+                              className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 text-[11px] font-extrabold shrink-0 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                            >
+                              +{amt}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -839,8 +1003,8 @@ function ProductionFormContent() {
             </div>
           </div>
 
-          {/* SUMMARY PANEL & SUBMISSION */}
-          <div className={`bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm ${mobileStep === 2 ? 'flex' : 'hidden md:flex'}`}>
+          {/* SUMMARY PANEL & SUBMISSION (Desktop md+) */}
+          <div className="hidden md:flex bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm">
             <div>
               <h3 className="font-extrabold text-sm text-[#2C1B10]">
                 {isEditMode ? "Save changes to this production batch?" : "Ready to submit production batch?"}
@@ -856,22 +1020,7 @@ function ProductionFormContent() {
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={() => {
-                  setMobileStep(1);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="md:hidden flex-1"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
                 onClick={() => guardedAction(() => router.push("/production"))}
-                className="hidden md:inline-flex"
               >
                 Cancel
               </Button>
@@ -897,6 +1046,69 @@ function ProductionFormContent() {
                   : "Submit for Approval"}
               </Button>
             </div>
+          </div>
+
+          {/* Mobile Sticky Bottom Action Bar (< md) */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {mobileStep === 1 ? (
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-[#2C1B10] block">
+                    {totalProductsSelectedCount} Product{totalProductsSelectedCount === 1 ? '' : 's'} Selected
+                  </span>
+                  <span className="text-[10px] text-[#8C7361] font-semibold truncate block">
+                    Step 1 of 2: Products Baked
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={totalProductsSelectedCount === 0}
+                  onClick={() => {
+                    const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+                    if (!hasProductWithQty) {
+                      toast.error("Please enter a produced quantity for at least one product.");
+                      return;
+                    }
+                    setMobileStep(2);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-xs h-11 px-4 rounded-xl flex items-center gap-1.5 shadow-md shrink-0 cursor-pointer"
+                >
+                  <span>Next: Ingredients</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    setMobileStep(1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="h-11 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shrink-0 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Products</span>
+                </Button>
+                <Button
+                  type="submit"
+                  size="lg"
+                  loading={isSubmitting}
+                  loadingText={isEditMode ? "Saving..." : "Submitting..."}
+                  disabled={totalProductsSelectedCount === 0 || (!isEditMode && !isSessionOpen)}
+                  className="flex-1 h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="truncate">
+                    {isEditMode ? "Save Batch" : isGlobalAdmin ? "Approve Batch" : "Submit for Approval"}
+                  </span>
+                </Button>
+              </div>
+            )}
           </div>
         </form>
       </div>
