@@ -41,7 +41,7 @@ export default function ProductionPage() {
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
   const queryClient = useQueryClient();
 
-  const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "PENDING">("ALL");
+  const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "PENDING" | "COMPLETED" | "REJECTED">("ALL");
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
@@ -258,14 +258,29 @@ export default function ProductionPage() {
     });
   }, [batches, isGlobalAdmin, user?.id]);
 
-  const pendingCount = roleBatches.filter((b) => b.status === "PENDING_APPROVAL").length;
-  const todayCount = roleBatches.filter((b) => (b.date || b.createdAt || "").startsWith(todayYmd)).length;
+  const todayBatches = useMemo(() => {
+    return roleBatches.filter((b) => (b.date || b.createdAt || "").startsWith(todayYmd));
+  }, [roleBatches, todayYmd]);
 
-  const filteredBatches = roleBatches
+  const pendingCount = roleBatches.filter((b) => b.status === "PENDING_APPROVAL").length;
+  const todayCount = todayBatches.length;
+
+  const todayPendingCount = todayBatches.filter((b) => b.status === "PENDING_APPROVAL").length;
+  const todayCompletedCount = todayBatches.filter((b) => b.status === "COMPLETED").length;
+  const todayRejectedCount = todayBatches.filter((b) => b.status === "REJECTED").length;
+
+  const filteredBatches = (isGlobalAdmin ? roleBatches : todayBatches)
     .filter((b) => {
-      if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
-      if (filterTab === "TODAY") return (b.date || b.createdAt || "").startsWith(todayYmd);
-      return true;
+      if (isGlobalAdmin) {
+        if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
+        if (filterTab === "TODAY") return (b.date || b.createdAt || "").startsWith(todayYmd);
+        return true;
+      } else {
+        if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
+        if (filterTab === "COMPLETED") return b.status === "COMPLETED";
+        if (filterTab === "REJECTED") return b.status === "REJECTED";
+        return true;
+      }
     })
     .filter((b) => {
       if (shiftFilter !== "ALL") return b.shift === shiftFilter;
@@ -323,47 +338,110 @@ export default function ProductionPage() {
             className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            <button
-              ref={(el) => { tabRefs.current["ALL"] = el; }}
-              onClick={() => setFilterTab("ALL")}
-              className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-                filterTab === "ALL"
-                  ? "bg-[#2C1B10] text-white shadow-xs"
-                  : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
-              }`}
-            >
-              {t('production.allBatches')} ({roleBatches.length})
-            </button>
-            <button
-              ref={(el) => { tabRefs.current["TODAY"] = el; }}
-              onClick={() => setFilterTab("TODAY")}
-              className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                filterTab === "TODAY"
-                  ? "bg-emerald-700 text-white shadow-xs"
-                  : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-              }`}
-            >
-              📅 {t('production.todayBatches')} ({todayCount})
-            </button>
-            <button
-              ref={(el) => { tabRefs.current["PENDING"] = el; }}
-              onClick={() => setFilterTab("PENDING")}
-              className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                filterTab === "PENDING"
-                  ? "bg-amber-600 text-white shadow-xs"
-                  : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              {t('production.pendingApprovals')}
-              {pendingCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
-                }`}>
-                  {pendingCount}
-                </span>
-              )}
-            </button>
+            {isGlobalAdmin ? (
+              <>
+                <button
+                  ref={(el) => { tabRefs.current["ALL"] = el; }}
+                  onClick={() => setFilterTab("ALL")}
+                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                    filterTab === "ALL"
+                      ? "bg-[#2C1B10] text-white shadow-xs"
+                      : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
+                  }`}
+                >
+                  {t('production.allBatches')} ({roleBatches.length})
+                </button>
+                <button
+                  ref={(el) => { tabRefs.current["TODAY"] = el; }}
+                  onClick={() => setFilterTab("TODAY")}
+                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                    filterTab === "TODAY"
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                  }`}
+                >
+                  📅 {t('production.todayBatches')} ({todayCount})
+                </button>
+                <button
+                  ref={(el) => { tabRefs.current["PENDING"] = el; }}
+                  onClick={() => setFilterTab("PENDING")}
+                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                    filterTab === "PENDING"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  {t('production.pendingApprovals')}
+                  {pendingCount > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
+                    }`}>
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  ref={(el) => { tabRefs.current["ALL"] = el; }}
+                  onClick={() => setFilterTab("ALL")}
+                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                    filterTab === "ALL"
+                      ? "bg-[#2C1B10] text-white shadow-xs"
+                      : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
+                  }`}
+                >
+                  📅 Today ({todayBatches.length})
+                </button>
+                <button
+                  ref={(el) => { tabRefs.current["PENDING"] = el; }}
+                  onClick={() => setFilterTab("PENDING")}
+                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                    filterTab === "PENDING"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  Pending
+                  {todayPendingCount > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
+                    }`}>
+                      {todayPendingCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  ref={(el) => { tabRefs.current["COMPLETED"] = el; }}
+                  onClick={() => setFilterTab("COMPLETED")}
+                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                    filterTab === "COMPLETED"
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Approved ({todayCompletedCount})
+                </button>
+                {todayRejectedCount > 0 && (
+                  <button
+                    ref={(el) => { tabRefs.current["REJECTED"] = el; }}
+                    onClick={() => setFilterTab("REJECTED")}
+                    className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                      filterTab === "REJECTED"
+                        ? "bg-rose-700 text-white shadow-xs"
+                        : "text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200"
+                    }`}
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Rejected ({todayRejectedCount})
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
