@@ -1057,7 +1057,7 @@ export const en = {
     title: "My Profile & Employment Details",
     subtitle: "View your personal account information, branch assignment, salary, and loan balance.",
     baseSalary: "Base Salary",
-    loanBalance: "Outstanding Loan Balance",
+    loanBalance: "Loan Balance",
     penaltiesTotal: "Active Penalties",
     personalInfoTitle: "Personal Account Information",
     monthlyBaseRate: "Monthly base rate",

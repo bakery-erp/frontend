@@ -359,11 +359,13 @@ export default function MyProfilePage() {
                   <Badge className="bg-[#E87A18] text-white text-[10px] xs:text-xs px-2 xs:px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
                     {u?.role?.replace('_', ' ') || t('common.employee')}
                   </Badge>
-                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full truncate max-w-[150px] xs:max-w-none">
-                    <Building2 className="w-3 h-3 mr-1 shrink-0" />
-                    <span className="truncate">
-                      {u?.branch?.name && u.branch.name.trim() !== '.' && u.branch.name.trim() !== '' ? u.branch.name : t('common.mainBakery')}
-                    </span>
+                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
+                    <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
+                    <span>{u?.shift ? `${u.shift} Shift` : t('common.standard')}</span>
+                  </span>
+                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
+                    <Calendar className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
+                    <span>{u?.startDate ? formatEthDate(u.startDate) : t('common.na')}</span>
                   </span>
                 </div>
                 <h1 className="text-lg xs:text-2xl md:text-3xl font-extrabold tracking-tight truncate">{u?.fullName}</h1>
@@ -386,37 +388,40 @@ export default function MyProfilePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 xs:gap-3 w-full md:w-auto bg-white/10 p-2.5 xs:p-4 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10">
-              <div>
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.baseSalary')}</span>
-                <span className="text-xs xs:text-sm font-extrabold truncate block">{money(u?.salary)}</span>
+            <div className="grid grid-cols-2 gap-3 xs:gap-5 w-full md:w-auto bg-white/10 p-3 xs:p-4 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10">
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.baseSalary')}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block">{money(u?.salary)}</span>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.loanBalance')}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-amber-300">{money(totalLoanBalance)}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.shiftLabel')}</span>
-                <span className="text-xs xs:text-sm font-extrabold flex items-center truncate">
-                  <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
-                  <span className="truncate">{u?.shift || t('common.standard')}</span>
-                </span>
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.startDateLabel')}</span>
-                <span className="text-xs xs:text-sm font-extrabold flex items-center">
-                  <Calendar className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
-                  <span>{u?.startDate ? formatEthDate(u.startDate) : t('common.na')}</span>
-                </span>
+
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.penaltiesTotal')}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-rose-300">{money(totalPenaltyAmount)}</span>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.pendingApprovals')}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-amber-300">{pendingCount}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Key Metrics Summary Cards ── */}
+      {/* ── Key Metrics Summary Cards (Hidden on Mobile) ── */}
       {loading && !data ? (
-        <div className="mb-5 xs:mb-8">
+        <div className="hidden md:block mb-5 xs:mb-8">
           <KpiCardsSkeleton count={4} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 xs:mb-8">
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 xs:mb-8">
           <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
               <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.baseSalary')}</CardTitle>
