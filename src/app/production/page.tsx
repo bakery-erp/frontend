@@ -13,7 +13,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
-import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, X, Edit } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, X, Edit, MoreVertical } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isProductAllowedForRole, getStationMeta } from "@/lib/roleProductMapping";
@@ -286,24 +286,30 @@ export default function ProductionPage() {
           <h1 className="text-xl xs:text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('production.title')}</h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('production.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2 xs:gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 xs:gap-3 w-full sm:w-auto min-w-0">
           {isGlobalAdmin && (
             <Button
               onClick={() => router.push('/production/history')}
               variant="outline"
               size="lg"
-              className="flex-1 sm:flex-initial"
+              className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
             >
-              <History className="w-4 h-4 text-[#E87A18]" /> {t('productionHistory.title')}
+              <History className="w-4 h-4 text-[#E87A18] shrink-0" />
+              <span className="truncate">
+                <span className="hidden xs:inline">Daily </span>History
+              </span>
             </Button>
           )}
           <Button
             onClick={() => router.push('/production/new')}
             disabled={isLoading || !isSessionOpen}
             size="lg"
-            className="flex-1 sm:flex-initial"
+            className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
           >
-            <Plus className="w-4 h-4" /> {t('production.newBatch')}
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="truncate">
+              <span className="hidden xs:inline">Record </span>New Batch
+            </span>
           </Button>
         </div>
       </div>
@@ -318,7 +324,7 @@ export default function ProductionPage() {
       )}
 
       {/* Filter Tabs & Shift Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3 max-w-full overflow-hidden">
         <div className="relative overflow-hidden flex-1 max-w-full">
           {/* Edge gradient hints on small screens */}
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
@@ -437,7 +443,7 @@ export default function ProductionPage() {
 
         {/* Shift Filter Pill Group (Only visible for Owner & Admin) */}
         {isGlobalAdmin && (
-          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 self-start sm:self-auto">
+          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 self-start sm:self-auto max-w-full overflow-x-auto no-scrollbar">
             <button
               onClick={() => setShiftFilter("ALL")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -492,7 +498,7 @@ export default function ProductionPage() {
             <div
               key={batch.id}
               onClick={() => router.push(`/production/${batch.id}`)}
-              className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-3 hover:border-[#4A2E1B]/30 hover:shadow-xs transition-all cursor-pointer"
+              className="bg-white rounded-2xl border border-[#EDE4D5] p-3.5 xs:p-4 shadow-xs space-y-3 hover:border-[#4A2E1B]/30 hover:shadow-xs transition-all cursor-pointer overflow-hidden"
             >
               {/* Card Header: Date, Shift, and Status */}
               <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
@@ -514,9 +520,9 @@ export default function ProductionPage() {
                   <span className="text-xs text-zinc-400 italic">No products</span>
                 ) : (
                   <div className="space-y-1.5">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]">
-                      <span>{batch.items[0].product.name}</span>
-                      <span className="text-[#E87A18] font-black">
+                    <div className="inline-flex max-w-full items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]">
+                      <span className="truncate">{batch.items[0].product.name}</span>
+                      <span className="text-[#E87A18] font-black shrink-0">
                         × {batch.items[0].quantityProduced} {batch.items[0].product.unitType}
                       </span>
                     </div>
@@ -551,8 +557,9 @@ export default function ProductionPage() {
                   <span className="text-xs text-zinc-400 italic">{t('production.noMaterialsDeducted')}</span>
                 ) : (
                   <div className="space-y-1.5">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800">
-                      {batch.materialUsages[0].stockItem.name}: -{Number(batch.materialUsages[0].quantityUsed).toFixed(2)} {batch.materialUsages[0].stockItem.unitType}
+                    <span className="inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800">
+                      <span className="truncate">{batch.materialUsages[0].stockItem.name}:</span>
+                      <span className="shrink-0">-{Number(batch.materialUsages[0].quantityUsed).toFixed(2)} {batch.materialUsages[0].stockItem.unitType}</span>
                     </span>
                     {batch.materialUsages.length > 1 && (
                       <div>
@@ -645,19 +652,19 @@ export default function ProductionPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('production.colDateShift')}</TableHead>
+              <TableHead className="w-40">{t('production.colDateShift')}</TableHead>
               <TableHead>{t('production.colProductsBaked')}</TableHead>
               <TableHead>{t('production.colRawMaterialsConsumed')}</TableHead>
-              <TableHead>{t('production.colBatchStatus')}</TableHead>
-              {isGlobalAdmin && <TableHead>{t('production.colLoggedBy')}</TableHead>}
-              <TableHead className="text-right pr-6">{t('production.colBatchActions')}</TableHead>
+              <TableHead className="w-36">{t('production.colBatchStatus')}</TableHead>
+              {isGlobalAdmin && <TableHead className="w-36">{t('production.colLoggedBy')}</TableHead>}
+              <TableHead className="text-right pr-6 w-52">{t('production.colBatchActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, idx) => (
                 <TableRow key={idx}>
-                  <TableCell>
+                  <TableCell className="w-40">
                     <Skeleton className="h-4 w-24 mb-1.5" />
                     <Skeleton className="h-3 w-16" />
                   </TableCell>
@@ -668,16 +675,16 @@ export default function ProductionPage() {
                   <TableCell>
                     <Skeleton className="h-4 w-28" />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="w-36">
                     <Skeleton className="h-6 w-24 rounded-full" />
                   </TableCell>
                   {isGlobalAdmin && (
-                    <TableCell>
+                    <TableCell className="w-36">
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
                   )}
-                  <TableCell className="text-right pr-6">
-                    <Skeleton className="h-8 w-20 ml-auto rounded-xl" />
+                  <TableCell className="text-right pr-6 w-52">
+                    <Skeleton className="h-8 w-24 ml-auto rounded-xl" />
                   </TableCell>
                 </TableRow>
               ))
@@ -768,7 +775,7 @@ export default function ProductionPage() {
                     <span className="text-xs font-bold text-[#2C1B10]">{batch.user.fullName}</span>
                   </TableCell>
                 )}
-                <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="text-right pr-6 w-52 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1.5">
                     {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
                       <>
@@ -776,20 +783,20 @@ export default function ProductionPage() {
                           size="sm"
                           disabled={actionBatchId === batch.id}
                           onClick={() => handleApprove(batch.id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs cursor-pointer"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          {t('common.approve') || "Approve"}
+                          <span>{t('common.approve') || "Approve"}</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           disabled={actionBatchId === batch.id}
                           onClick={() => handleReject(batch.id)}
-                          className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs"
+                          className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-8 w-8 p-0 rounded-xl shadow-2xs flex items-center justify-center shrink-0 cursor-pointer"
+                          title={t('common.reject') || "Reject"}
                         >
                           <XCircle className="w-3.5 h-3.5" />
-                          {t('common.reject') || "Reject"}
                         </Button>
                       </>
                     )}
@@ -799,11 +806,15 @@ export default function ProductionPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => router.push(`/production/new?edit=${batch.id}`)}
-                        className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs"
+                        className={`border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer ${
+                          batch.status === "PENDING_APPROVAL" && isGlobalAdmin ? "w-8 p-0 justify-center" : "px-2.5"
+                        }`}
                         title={t('common.edit') || "Edit"}
                       >
                         <Edit className="w-3.5 h-3.5 text-[#8C7361]" />
-                        {t('common.edit') || "Edit"}
+                        {!(batch.status === "PENDING_APPROVAL" && isGlobalAdmin) && (
+                          <span>{t('common.edit') || "Edit"}</span>
+                        )}
                       </Button>
                     )}
 
@@ -811,10 +822,15 @@ export default function ProductionPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => router.push(`/production/${batch.id}`)}
-                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs"
+                      className={`border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer ${
+                        batch.status === "PENDING_APPROVAL" && isGlobalAdmin ? "w-8 p-0 justify-center" : "px-2.5"
+                      }`}
+                      title={t('common.view') || "View"}
                     >
                       <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                      {t('common.view') || "View"}
+                      {!(batch.status === "PENDING_APPROVAL" && isGlobalAdmin) && (
+                        <span>{t('common.view') || "View"}</span>
+                      )}
                     </Button>
                   </div>
                 </TableCell>

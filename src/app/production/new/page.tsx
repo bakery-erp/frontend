@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   PackageCheck,
@@ -24,6 +25,7 @@ import {
   XCircle,
   ChefHat,
 } from "lucide-react";
+import { formatEthDate } from "@/lib/ethiopianDate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -74,6 +76,8 @@ function ProductionFormContent() {
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showModalBreakdown, setShowModalBreakdown] = useState(false);
   const [originalBatchStatus, setOriginalBatchStatus] = useState<string | null>(null);
 
   // Form Header State
@@ -233,7 +237,7 @@ function ProductionFormContent() {
       if (next[productId] !== undefined) {
         delete next[productId];
       } else {
-        next[productId] = "10"; // Default initial qty 10 Pcs
+        next[productId] = "0"; // Default initial qty 0
       }
       return next;
     });
@@ -253,7 +257,7 @@ function ProductionFormContent() {
       if (next[stockItemId] !== undefined) {
         delete next[stockItemId];
       } else {
-        next[stockItemId] = "1"; // Default 1 unit
+        next[stockItemId] = "0"; // Default initial qty 0
       }
       return next;
     });
@@ -266,22 +270,64 @@ function ProductionFormContent() {
     }));
   };
 
-  // Submit Handler (Create vs Edit)
-  const handleSubmitBatch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Selected items summary lists for modal and submit
+  const selectedProductList = useMemo(() => {
+    return Object.entries(selectedProducts)
+      .filter(([_, qty]) => Number(qty) > 0)
+      .map(([productId, qty]) => {
+        const prod = products.find((p) => p.id === productId);
+        return {
+          product: prod || { id: productId, name: "Product", unitType: "unit" },
+          qty: Number(qty),
+        };
+      });
+  }, [selectedProducts, products]);
+
+  const selectedMaterialList = useMemo(() => {
+    return Object.entries(selectedMaterials)
+      .filter(([_, qty]) => Number(qty) > 0)
+      .map(([stockItemId, qty]) => {
+        const mat = stockItems.find((s) => s.id === stockItemId);
+        return {
+          stockItem: mat || { id: stockItemId, name: "Raw Material", unitType: "unit" },
+          qty: Number(qty),
+        };
+      });
+  }, [selectedMaterials, stockItems]);
+
+  const totalProducedUnits = useMemo(() => {
+    return selectedProductList.reduce((acc, curr) => acc + curr.qty, 0);
+  }, [selectedProductList]);
+
+  // Submit Request Handler (Opens Confirmation Modal)
+  const handleRequestSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     const productEntries = Object.entries(selectedProducts)
-      .filter(([_, qty]) => Number(qty) > 0)
-      .map(([productId, qty]) => ({ productId, quantityProduced: Number(qty) }));
+      .filter(([_, qty]) => Number(qty) > 0);
 
     if (productEntries.length === 0) {
-      toast.error("Please select at least one product and specify quantity produced.");
+      toast.error("Please specify a produced quantity greater than 0 for at least one product.");
       return;
     }
 
-    const materialEntries = Object.entries(selectedMaterials)
-      .filter(([_, qty]) => Number(qty) > 0)
-      .map(([stockItemId, qty]) => ({ stockItemId, quantityUsed: Number(qty) }));
+    setShowModalBreakdown(false);
+    setShowSubmitModal(true);
+  };
+
+  // Execution Handler after Modal Confirmation
+  const executeSubmitBatch = async () => {
+    setShowSubmitModal(false);
+
+    const productEntries = selectedProductList.map((item) => ({
+      productId: item.product.id!,
+      quantityProduced: item.qty,
+    }));
+
+    const materialEntries = selectedMaterialList.map((item) => ({
+      stockItemId: item.stockItem.id!,
+      quantityUsed: item.qty,
+    }));
 
     setIsSubmitting(true);
     try {
@@ -351,7 +397,7 @@ function ProductionFormContent() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-6 pb-12">
+      <div className="max-w-6xl mx-auto space-y-4 xs:space-y-6 pb-28 md:pb-12">
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
           <div className="min-w-0 flex-1">
@@ -446,7 +492,7 @@ function ProductionFormContent() {
           </div>
         )}
 
-        <form onSubmit={handleSubmitBatch} className="space-y-4 xs:space-y-6">
+        <form onSubmit={handleRequestSubmit} className="space-y-4 xs:space-y-6">
           {/* Mobile 2-Step Wizard Indicator (md:hidden) */}
           <div className="md:hidden bg-white p-2.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
             <div className="flex items-center gap-2">
@@ -495,8 +541,47 @@ function ProductionFormContent() {
             </div>
           </div>
 
-          {/* Shift & Date Header Configuration */}
-          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
+          {/* Mobile Compact Shift & Date Bar (< md) */}
+          <div className="md:hidden bg-white p-3 rounded-2xl border border-[#EDE4D5] shadow-xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 font-bold text-xs">
+                📅
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-[#2C1B10] truncate">
+                  {formatEthDate(date)}
+                </div>
+                <span className="text-[10px] text-[#8C7361] font-semibold">
+                  {isGlobalAdmin ? "Admin Log" : "Today's Batch"}
+                </span>
+              </div>
+            </div>
+
+            {/* Shift toggle pill on mobile */}
+            <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0">
+              <button
+                type="button"
+                onClick={() => setShift("DAY")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shift === "DAY" ? "bg-amber-500 text-zinc-950 shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                ☀️ Day
+              </button>
+              <button
+                type="button"
+                onClick={() => setShift("NIGHT")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shift === "NIGHT" ? "bg-indigo-600 text-white shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                🌙 Night
+              </button>
+            </div>
+          </div>
+
+          {/* Shift & Date Header Configuration (Desktop md+) */}
+          <div className="hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
                 Production Date {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
@@ -556,109 +641,111 @@ function ProductionFormContent() {
               </span>
             </div>
 
-            {/* Category & Subcategory Filter Tabs with Auto-Center */}
-            <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
-                <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
-              </div>
-              {/* Main Category Row */}
-              <div className="relative w-full overflow-hidden">
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
-                <div
-                  className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  <button
-                    ref={(el) => {
-                      parentCatTabRefs.current["ALL"] = el;
-                    }}
-                    type="button"
-                    onClick={() => {
-                      setSelectedParentCatId("ALL");
-                      setSelectedSubCatId("ALL");
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
-                      selectedParentCatId === "ALL"
-                        ? "bg-[#4A2E1B] text-white shadow-xs"
-                        : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                    }`}
-                  >
-                    All Categories ({products.length})
-                  </button>
-                  {parentCategories.map((cat) => {
-                    const catCount = products.filter(
-                      (p) => p.category?.parentId === cat.id || p.category?.id === cat.id
-                    ).length;
-                    return (
-                      <button
-                        key={cat.id}
-                        ref={(el) => {
-                          parentCatTabRefs.current[cat.id] = el;
-                        }}
-                        type="button"
-                        onClick={() => {
-                          setSelectedParentCatId(cat.id);
-                          setSelectedSubCatId("ALL");
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
-                          selectedParentCatId === cat.id
-                            ? "bg-[#4A2E1B] text-white shadow-xs"
-                            : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                        }`}
-                      >
-                        {cat.name} ({catCount})
-                      </button>
-                    );
-                  })}
+            {/* Category & Subcategory Filter Tabs (shown when multiple categories exist) */}
+            {parentCategories.length > 1 && (
+              <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
+                  <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
                 </div>
-              </div>
-
-              {/* Sub-Category Filter Row if applicable */}
-              {subCategories.length > 0 && (
-                <div className="relative w-full overflow-hidden pt-2.5 border-t border-[#EDE4D5]">
+                {/* Main Category Row */}
+                <div className="relative w-full overflow-hidden">
                   <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
                   <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
                   <div
                     className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
-                    <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
                     <button
                       ref={(el) => {
-                        subCatTabRefs.current["ALL"] = el;
+                        parentCatTabRefs.current["ALL"] = el;
                       }}
                       type="button"
-                      onClick={() => setSelectedSubCatId("ALL")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-                        selectedSubCatId === "ALL"
-                          ? "bg-[#E87A18] text-white"
-                          : "bg-white text-[#8C7361] border border-[#EDE4D5]"
+                      onClick={() => {
+                        setSelectedParentCatId("ALL");
+                        setSelectedSubCatId("ALL");
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                        selectedParentCatId === "ALL"
+                          ? "bg-[#4A2E1B] text-white shadow-xs"
+                          : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
                       }`}
                     >
-                      All Sub-categories
+                      All Categories ({products.length})
                     </button>
-                    {subCategories.map((sub) => (
+                    {parentCategories.map((cat) => {
+                      const catCount = products.filter(
+                        (p) => p.category?.parentId === cat.id || p.category?.id === cat.id
+                      ).length;
+                      return (
+                        <button
+                          key={cat.id}
+                          ref={(el) => {
+                            parentCatTabRefs.current[cat.id] = el;
+                          }}
+                          type="button"
+                          onClick={() => {
+                            setSelectedParentCatId(cat.id);
+                            setSelectedSubCatId("ALL");
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                            selectedParentCatId === cat.id
+                              ? "bg-[#4A2E1B] text-white shadow-xs"
+                              : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
+                          }`}
+                        >
+                          {cat.name} ({catCount})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Sub-Category Filter Row if applicable */}
+                {subCategories.length > 0 && (
+                  <div className="relative w-full overflow-hidden pt-2.5 border-t border-[#EDE4D5]">
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                    <div
+                      className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
                       <button
-                        key={sub.id}
                         ref={(el) => {
-                          subCatTabRefs.current[sub.id] = el;
+                          subCatTabRefs.current["ALL"] = el;
                         }}
                         type="button"
-                        onClick={() => setSelectedSubCatId(sub.id)}
+                        onClick={() => setSelectedSubCatId("ALL")}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-                          selectedSubCatId === sub.id
+                          selectedSubCatId === "ALL"
                             ? "bg-[#E87A18] text-white"
                             : "bg-white text-[#8C7361] border border-[#EDE4D5]"
                         }`}
                       >
-                        {sub.name}
+                        All Sub-categories
                       </button>
-                    ))}
+                      {subCategories.map((sub) => (
+                        <button
+                          key={sub.id}
+                          ref={(el) => {
+                            subCatTabRefs.current[sub.id] = el;
+                          }}
+                          type="button"
+                          onClick={() => setSelectedSubCatId(sub.id)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
+                            selectedSubCatId === sub.id
+                              ? "bg-[#E87A18] text-white"
+                              : "bg-white text-[#8C7361] border border-[#EDE4D5]"
+                          }`}
+                        >
+                          {sub.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Product Search & Multi-Select Grid */}
             <div className="relative">
@@ -679,7 +766,7 @@ function ProductionFormContent() {
                   : `No products found for ${stationMeta.badge} in this branch or matching search.`}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filteredProducts.map((p) => {
                   const isSelected = selectedProducts[p.id] !== undefined;
                   const qtyVal = selectedProducts[p.id] || "";
@@ -687,44 +774,57 @@ function ProductionFormContent() {
                   return (
                     <div
                       key={p.id}
-                      className={`p-3.5 rounded-xl border transition-all ${
+                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
                         isSelected
-                          ? "bg-amber-50/70 border-[#E87A18] ring-1 ring-[#E87A18] shadow-2xs"
-                          : "bg-white border-[#EDE4D5] hover:border-zinc-300"
+                          ? "bg-amber-50/80 border-[#E87A18] ring-2 ring-[#E87A18]/20 shadow-sm"
+                          : "bg-white border-[#EDE4D5] hover:border-zinc-300 shadow-2xs"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <label
-                          onClick={() => toggleProductSelect(p.id)}
-                          className="flex items-start gap-2.5 cursor-pointer flex-1 select-none"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleProductSelect(p.id)}
-                            className="mt-0.5 rounded text-[#E87A18] focus:ring-[#E87A18]"
-                          />
-                          <div>
-                            <h4 className="font-extrabold text-xs text-[#2C1B10] line-clamp-1">{p.name}</h4>
-                            <span className="text-[10px] font-semibold text-[#8C7361] block">
-                              {p.category?.name || "Bakery"} ({p.unitType})
+                      <div
+                        onClick={() => toggleProductSelect(p.id)}
+                        className="flex items-start justify-between gap-2.5 cursor-pointer select-none"
+                      >
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <div
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                              isSelected
+                                ? "bg-[#E87A18] text-white shadow-2xs"
+                                : "border-2 border-[#EDE4D5] bg-[#FAF6F0]"
+                            }`}
+                          >
+                            {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{p.name}</h4>
+                            <span className="text-[11px] font-semibold text-[#8C7361] block">
+                              {p.category?.name || "Bakery"} • <strong className="text-[#4A2E1B]">{p.unitType}</strong>
                             </span>
                           </div>
-                        </label>
+                        </div>
+
+                        {isSelected && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E87A18] text-white shrink-0">
+                            Selected
+                          </span>
+                        )}
                       </div>
 
                       {isSelected && (
-                        <div className="pt-2 border-t border-amber-200/60 flex items-center gap-2">
-                          <span className="text-[10px] font-extrabold uppercase text-[#4A2E1B]">Produced:</span>
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="Qty"
-                            value={qtyVal}
-                            onChange={(e) => updateProductQty(p.id, e.target.value)}
-                            className="h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-amber-900"
-                          />
-                          <span className="text-[10px] font-bold text-zinc-500">{p.unitType}</span>
+                        <div className="mt-3 pt-3 border-t border-amber-200/70 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs font-bold text-[#4A2E1B]">
+                            Produced Qty:
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="Qty"
+                              value={qtyVal}
+                              onChange={(e) => updateProductQty(p.id, e.target.value)}
+                              className="w-24 h-9 bg-white border-[#EDE4D5] font-bold text-sm text-[#2C1B10] text-right rounded-xl focus:border-[#E87A18]"
+                            />
+                            <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{p.unitType}</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -732,27 +832,6 @@ function ProductionFormContent() {
                 })}
               </div>
             )}
-
-            {/* Mobile Next Step Button */}
-            <div className="md:hidden pt-3 border-t border-[#F4ECE1]">
-              <Button
-                type="button"
-                size="lg"
-                onClick={() => {
-                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
-                  if (!hasProductWithQty) {
-                    toast.error("Please enter a produced quantity for at least one product before proceeding.");
-                    return;
-                  }
-                  setMobileStep(2);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-[#4A2E1B] hover:bg-[#3D2516] text-white"
-              >
-                <span>Next: Select Raw Materials</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
 
           {/* SECTION 2: RAW MATERIAL / INGREDIENT SELECTION */}
@@ -784,7 +863,7 @@ function ProductionFormContent() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3 max-h-[350px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3">
               {filteredMaterials.map((mat) => {
                 const isSelected = selectedMaterials[mat.id] !== undefined;
                 const qtyVal = selectedMaterials[mat.id] || "";
@@ -792,45 +871,58 @@ function ProductionFormContent() {
                 return (
                   <div
                     key={mat.id}
-                    className={`p-3.5 rounded-xl border transition-all ${
+                    className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
                       isSelected
-                        ? "bg-indigo-50/70 border-indigo-500 ring-1 ring-indigo-500 shadow-2xs"
-                        : "bg-white border-[#EDE4D5] hover:border-zinc-300"
+                        ? "bg-indigo-50/80 border-indigo-500 ring-2 ring-indigo-500/20 shadow-sm"
+                        : "bg-white border-[#EDE4D5] hover:border-zinc-300 shadow-2xs"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <label
-                        onClick={() => toggleMaterialSelect(mat.id)}
-                        className="flex items-start gap-2.5 cursor-pointer flex-1 select-none"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleMaterialSelect(mat.id)}
-                          className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-600"
-                        />
-                        <div>
-                          <h4 className="font-extrabold text-xs text-[#2C1B10] line-clamp-1">{mat.name}</h4>
-                          <span className="text-[10px] font-semibold text-[#8C7361] block">
-                            Stock: {mat.currentQuantity} {mat.unitType}
+                    <div
+                      onClick={() => toggleMaterialSelect(mat.id)}
+                      className="flex items-start justify-between gap-2.5 cursor-pointer select-none"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                            isSelected
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "border-2 border-[#EDE4D5] bg-[#FAF6F0]"
+                          }`}
+                        >
+                          {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{mat.name}</h4>
+                          <span className="text-[11px] font-semibold text-[#8C7361] block">
+                            Unit: <strong className="text-indigo-950">{mat.unitType}</strong>
                           </span>
                         </div>
-                      </label>
+                      </div>
+
+                      {isSelected && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-600 text-white shrink-0">
+                          Selected
+                        </span>
+                      )}
                     </div>
 
                     {isSelected && (
-                      <div className="pt-2 border-t border-indigo-200 flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase text-indigo-900 shrink-0">Used:</span>
-                        <Input
-                          type="number"
-                          step="0.001"
-                          min="0.001"
-                          placeholder="Qty"
-                          value={qtyVal}
-                          onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
-                          className="h-9 xs:h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-indigo-950"
-                        />
-                        <span className="text-[10px] font-bold text-zinc-500 shrink-0">{mat.unitType}</span>
+                      <div className="mt-3 pt-3 border-t border-indigo-200/70 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-xs font-bold text-indigo-950">
+                          Used Amount:
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            placeholder="Qty"
+                            value={qtyVal}
+                            onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
+                            className="w-24 h-9 bg-white border-indigo-200 font-bold text-sm text-indigo-950 text-right rounded-xl focus:border-indigo-600"
+                          />
+                          <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{mat.unitType}</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -839,8 +931,8 @@ function ProductionFormContent() {
             </div>
           </div>
 
-          {/* SUMMARY PANEL & SUBMISSION */}
-          <div className={`bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm ${mobileStep === 2 ? 'flex' : 'hidden md:flex'}`}>
+          {/* SUMMARY PANEL & SUBMISSION (Desktop md+) */}
+          <div className="hidden md:flex bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm">
             <div>
               <h3 className="font-extrabold text-sm text-[#2C1B10]">
                 {isEditMode ? "Save changes to this production batch?" : "Ready to submit production batch?"}
@@ -856,22 +948,7 @@ function ProductionFormContent() {
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={() => {
-                  setMobileStep(1);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="md:hidden flex-1"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
                 onClick={() => guardedAction(() => router.push("/production"))}
-                className="hidden md:inline-flex"
               >
                 Cancel
               </Button>
@@ -898,8 +975,191 @@ function ProductionFormContent() {
               </Button>
             </div>
           </div>
+
+          {/* Mobile Sticky Bottom Action Bar (< md) */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {mobileStep === 1 ? (
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-[#2C1B10] block">
+                    {totalProductsSelectedCount} Product{totalProductsSelectedCount === 1 ? '' : 's'} Selected
+                  </span>
+                  <span className="text-[10px] text-[#8C7361] font-semibold truncate block">
+                    Step 1 of 2: Products Baked
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={totalProductsSelectedCount === 0}
+                  onClick={() => {
+                    const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+                    if (!hasProductWithQty) {
+                      toast.error("Please enter a produced quantity for at least one product.");
+                      return;
+                    }
+                    setMobileStep(2);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-xs h-11 px-4 rounded-xl flex items-center gap-1.5 shadow-md shrink-0 cursor-pointer"
+                >
+                  <span>Next: Ingredients</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    setMobileStep(1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="h-11 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shrink-0 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Products</span>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleRequestSubmit()}
+                  disabled={totalProductsSelectedCount === 0 || (!isEditMode && !isSessionOpen)}
+                  className="flex-1 h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="truncate">
+                    {isEditMode ? "Save Batch" : isGlobalAdmin ? "Approve Batch" : "Submit for Approval"}
+                  </span>
+                </Button>
+              </div>
+            )}
+          </div>
         </form>
       </div>
+
+      {/* Submit Confirmation Dialog */}
+      <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
+        <DialogContent className="sm:max-w-md bg-white rounded-3xl border border-[#EDE4D5] p-5 xs:p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              {isEditMode ? "Confirm Batch Updates" : "Confirm Production Batch"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3.5 my-2 text-xs">
+            {/* Shift & Date Info */}
+            <div className="p-2.5 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-[#4A2E1B] font-bold">
+              <span>📅 {formatEthDate(date)}</span>
+              <span>{shift === "NIGHT" ? "🌙 Night Shift" : "☀️ Day Shift"}</span>
+            </div>
+
+            {/* High-Level Overview Stats - Clean and compact even for 10+ items */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70 text-center">
+                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Products Baked</span>
+                <span className="text-sm font-black text-[#2C1B10]">
+                  {selectedProductList.length}{" "}
+                  <span className="text-[11px] font-semibold text-[#8C7361]">({totalProducedUnits} units)</span>
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200/70 text-center">
+                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Raw Materials</span>
+                <span className="text-sm font-black text-indigo-950">
+                  {selectedMaterialList.length}{" "}
+                  <span className="text-[11px] font-semibold text-[#8C7361]">used</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Optional Collapsible Detailed Breakdown */}
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => setShowModalBreakdown((prev) => !prev)}
+                className="w-full py-2 px-3 rounded-xl bg-[#FAF7EE] hover:bg-[#F3ECE1] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs flex items-center justify-between transition-colors cursor-pointer"
+              >
+                <span>{showModalBreakdown ? "Hide Item Breakdown" : "View Item Breakdown"}</span>
+                <span className="text-[11px] text-[#8C7361] font-semibold">
+                  {showModalBreakdown ? "▲ Collapse" : `▼ (${selectedProductList.length + selectedMaterialList.length} items)`}
+                </span>
+              </button>
+
+              {showModalBreakdown && (
+                <div className="mt-2.5 space-y-2.5 border-t border-[#EDE4D5] pt-2">
+                  {/* Products Baked Summary */}
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
+                      Products Baked ({selectedProductList.length}):
+                    </span>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                      {selectedProductList.map((item) => (
+                        <div
+                          key={item.product.id}
+                          className="flex items-center justify-between p-2 rounded-lg bg-amber-50/70 border border-amber-200/60 font-bold"
+                        >
+                          <span className="text-[#2C1B10] truncate mr-2">{item.product.name}</span>
+                          <span className="text-[#E87A18] whitespace-nowrap">
+                            {item.qty} {item.product.unitType}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Ingredients Consumed Summary */}
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
+                      Raw Materials Consumed ({selectedMaterialList.length}):
+                    </span>
+                    {selectedMaterialList.length === 0 ? (
+                      <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-500 italic">
+                        No materials specified
+                      </div>
+                    ) : (
+                      <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                        {selectedMaterialList.map((mat) => (
+                          <div
+                            key={mat.stockItem.id}
+                            className="flex items-center justify-between p-2 rounded-lg bg-indigo-50/70 border border-indigo-200/60 font-bold text-indigo-950"
+                          >
+                            <span className="truncate mr-2">{mat.stockItem.name}</span>
+                            <span className="whitespace-nowrap">
+                              {mat.qty} {mat.stockItem.unitType}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse xs:flex-row gap-2 pt-2 border-t border-[#F4ECE1]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSubmitModal(false)}
+              className="w-full xs:w-auto rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold cursor-pointer"
+            >
+              Review / Edit
+            </Button>
+            <Button
+              type="button"
+              loading={isSubmitting}
+              onClick={executeSubmitBatch}
+              className="w-full xs:w-auto flex-1 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{isEditMode ? "Yes, Save Changes" : isGlobalAdmin ? "Yes, Approve Batch" : "Yes, Submit Batch"}</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmModal
         isOpen={showDiscardModal}
