@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { isProductAllowedForRole } from '@/lib/roleProductMapping';
 
 interface Product {
   id: string;
@@ -79,11 +80,13 @@ export default function MobileSambusaStation() {
     try {
       const branchParam = user?.branchId ? { branchId: user.branchId } : {};
       const [prodRes, sessRes] = await Promise.all([
-        api.get('/products?isActive=true'),
+        api.get('/products', { params: { isActive: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
         api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);
 
-      const producedProducts = (prodRes.data || []).filter((p: Product) => p.category?.type !== 'RESELL');
+      const producedProducts = (prodRes.data || []).filter((p: Product) =>
+        isProductAllowedForRole(p, 'SAMBUSA_WORKER')
+      );
       setProducts(producedProducts);
       setActiveSession(sessRes.data);
 

@@ -22,11 +22,17 @@ import {
   Edit3,
   Clock,
   XCircle,
+  ChefHat,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import {
+  isCategoryAllowedForRole,
+  isProductAllowedForRole,
+  getStationMeta,
+} from "@/lib/roleProductMapping";
 
 interface ProductCategory {
   id: string;
@@ -107,8 +113,10 @@ function ProductionFormContent() {
     }
   }, [selectedSubCatId]);
 
+  const stationMeta = useMemo(() => getStationMeta(user?.role), [user?.role]);
+
   const { data: pageData, isLoading } = useQuery({
-    queryKey: ['production-new-form', selectedBranchId, editBatchId],
+    queryKey: ['production-new-form', selectedBranchId, editBatchId, user?.role],
     queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
@@ -124,14 +132,12 @@ function ProductionFormContent() {
       const allCats: ProductCategory[] = resCat.data || [];
       const filteredCats = isGlobalAdmin
         ? allCats
-        : allCats.filter((c) => c.type !== "RESELL");
+        : allCats.filter((c) => isCategoryAllowedForRole(c, user?.role));
 
       const allProds: Product[] = resProd.data || [];
       const filteredProds = isGlobalAdmin
         ? allProds
-        : allProds.filter(
-            (p: Product) => (p.category ? p.category.type !== "RESELL" : true)
-          );
+        : allProds.filter((p: Product) => isProductAllowedForRole(p, user?.role));
 
       return {
         categories: filteredCats,
@@ -376,6 +382,12 @@ function ProductionFormContent() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {!isGlobalAdmin && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold whitespace-nowrap border shadow-2xs ${stationMeta.badgeColor}`}>
+                <ChefHat className="w-3.5 h-3.5 shrink-0" />
+                {stationMeta.badge}
+              </span>
+            )}
             {isEditMode && originalBatchStatus && (
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
@@ -452,7 +464,9 @@ function ProductionFormContent() {
                 }`}>
                   1
                 </span>
-                <span className="truncate">1. Products ({totalProductsSelectedCount})</span>
+                <span className="truncate">
+                  {user?.role === 'CAKE_WORKER' ? '1. Cakes' : user?.role === 'SAMBUSA_WORKER' ? '1. Sambusa' : '1. Products'} ({totalProductsSelectedCount})
+                </span>
               </button>
 
               <button
@@ -521,10 +535,19 @@ function ProductionFormContent() {
             <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
                 <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <Utensils className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" /> 1. Select Bakery Products & Quantities
+                  <Utensils className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" />
+                  {user?.role === 'CAKE_WORKER'
+                    ? '1. Select Cakes & Pastries'
+                    : user?.role === 'SAMBUSA_WORKER'
+                    ? '1. Select Sambusa & Snack Products'
+                    : '1. Select Bakery Products & Quantities'}
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
-                  Filter by category / subcategory and check all items baked in this batch.
+                  {user?.role === 'CAKE_WORKER'
+                    ? 'Select cakes and pastries produced in this batch.'
+                    : user?.role === 'SAMBUSA_WORKER'
+                    ? 'Select sambusa, fetira, or snack items prepared in this batch.'
+                    : 'Filter by category / subcategory and check all items baked in this batch.'}
                 </p>
               </div>
 
@@ -651,7 +674,9 @@ function ProductionFormContent() {
 
             {filteredProducts.length === 0 ? (
               <div className="text-center py-8 border border-dashed border-[#EDE4D5] rounded-xl text-xs text-[#8C7361]">
-                No products match the selected category filter or search query.
+                {isGlobalAdmin
+                  ? "No products match the selected category filter or search query."
+                  : `No products found for ${stationMeta.badge} in this branch or matching search.`}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-1">

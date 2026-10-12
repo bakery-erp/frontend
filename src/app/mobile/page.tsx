@@ -83,8 +83,14 @@ export default function MobileWorkspaceSelector() {
               <ChefHat className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">Baker Station</h3>
-              <p className="text-xs text-zinc-400 mt-0.5">Quick batch entry, stock deduct, item conversions</p>
+              <h3 className="font-bold text-base text-white">
+                {user.role === 'CAKE_WORKER' ? 'Cake & Pastry Station' : 'Baker Station'}
+              </h3>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                {user.role === 'CAKE_WORKER'
+                  ? 'Quick batch entry for cakes, cupcakes, and sweet pastries'
+                  : 'Quick batch entry, stock deduct, item conversions'}
+              </p>
             </div>
           </div>
           <ArrowRight className="w-5 h-5 text-zinc-500" />

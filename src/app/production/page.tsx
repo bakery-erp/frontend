@@ -16,6 +16,7 @@ import { formatEthDate } from "@/lib/ethiopianDate";
 import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, X, MoreVertical, Edit, ArrowUpRight } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isProductAllowedForRole, getStationMeta } from "@/lib/roleProductMapping";
 
 interface Branch { id: string; name: string; }
 interface Product { id: string; name: string; unitType: string; category?: { type: string } }
@@ -93,7 +94,7 @@ export default function ProductionPage() {
   const [materials, setMaterials] = useState<{ stockItemId: string; quantityUsed: string }[]>([]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["production-page", selectedBranchId],
+    queryKey: ["production-page", selectedBranchId, user?.role],
     queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
@@ -107,7 +108,7 @@ export default function ProductionPage() {
 
       const filteredProds = isGlobalAdmin
         ? (resProd.data || [])
-        : (resProd.data || []).filter((p: Product) => (p.category ? p.category.type !== "RESELL" : true));
+        : (resProd.data || []).filter((p: Product) => isProductAllowedForRole(p, user?.role));
 
       return {
         batches: (resBatches.data || []) as ProductionBatch[],

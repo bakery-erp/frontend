@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { isProductAllowedForRole, getStationMeta } from '@/lib/roleProductMapping';
 
 interface Product {
   id: string;
@@ -98,21 +99,22 @@ export default function MobileBakerStation() {
     try {
       const branchParam = user?.branchId ? { branchId: user.branchId } : {};
       const [prodRes, stockRes, sessRes] = await Promise.all([
-        api.get('/products?isActive=true'),
-        api.get('/stock-items'),
+        api.get('/products', { params: { isActive: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
+        api.get('/stock-items', { params: branchParam }),
         api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);
 
-      // Filter products for Bakery output (exclude resell drinks/water)
-      const bakeryProducts = (prodRes.data || []).filter(
-        (p: Product) => p.category?.type !== 'RESELL'
+      // Filter products strictly for the worker's production role (Baker or Cake Worker)
+      const targetRole = user?.role === 'CAKE_WORKER' ? 'CAKE_WORKER' : 'BAKER';
+      const scopedProducts = (prodRes.data || []).filter(
+        (p: Product) => isProductAllowedForRole(p, targetRole)
       );
-      setProducts(bakeryProducts);
+      setProducts(scopedProducts);
       setStockItems(stockRes.data || []);
       setActiveSession(sessRes.data);
 
-      if (bakeryProducts.length > 0) {
-        setSelectedProductId(bakeryProducts[0].id);
+      if (scopedProducts.length > 0) {
+        setSelectedProductId(scopedProducts[0].id);
       }
 
       // Initialize materials map
@@ -216,7 +218,8 @@ export default function MobileBakerStation() {
           </Link>
           <div>
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
-              <ChefHat className="w-4 h-4 text-amber-400" /> Baker Station
+              <ChefHat className={`w-4 h-4 ${user?.role === 'CAKE_WORKER' ? 'text-pink-400' : 'text-amber-400'}`} />
+              {user?.role === 'CAKE_WORKER' ? 'Cake Station' : 'Baker Station'}
             </h1>
             <p className="text-[11px] text-zinc-400">{user?.fullName || 'Baker'} • {user?.role}</p>
           </div>
