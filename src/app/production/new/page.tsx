@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   PackageCheck,
@@ -75,6 +76,7 @@ function ProductionFormContent() {
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [originalBatchStatus, setOriginalBatchStatus] = useState<string | null>(null);
 
   // Form Header State
@@ -267,22 +269,59 @@ function ProductionFormContent() {
     }));
   };
 
-  // Submit Handler (Create vs Edit)
-  const handleSubmitBatch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Selected items summary lists for modal and submit
+  const selectedProductList = useMemo(() => {
+    return Object.entries(selectedProducts)
+      .filter(([_, qty]) => Number(qty) > 0)
+      .map(([productId, qty]) => {
+        const prod = products.find((p) => p.id === productId);
+        return {
+          product: prod || { id: productId, name: "Product", unitType: "unit" },
+          qty: Number(qty),
+        };
+      });
+  }, [selectedProducts, products]);
+
+  const selectedMaterialList = useMemo(() => {
+    return Object.entries(selectedMaterials)
+      .filter(([_, qty]) => Number(qty) > 0)
+      .map(([stockItemId, qty]) => {
+        const mat = stockItems.find((s) => s.id === stockItemId);
+        return {
+          stockItem: mat || { id: stockItemId, name: "Raw Material", unitType: "unit" },
+          qty: Number(qty),
+        };
+      });
+  }, [selectedMaterials, stockItems]);
+
+  // Submit Request Handler (Opens Confirmation Modal)
+  const handleRequestSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     const productEntries = Object.entries(selectedProducts)
-      .filter(([_, qty]) => Number(qty) > 0)
-      .map(([productId, qty]) => ({ productId, quantityProduced: Number(qty) }));
+      .filter(([_, qty]) => Number(qty) > 0);
 
     if (productEntries.length === 0) {
-      toast.error("Please select at least one product and specify quantity produced.");
+      toast.error("Please specify a produced quantity greater than 0 for at least one product.");
       return;
     }
 
-    const materialEntries = Object.entries(selectedMaterials)
-      .filter(([_, qty]) => Number(qty) > 0)
-      .map(([stockItemId, qty]) => ({ stockItemId, quantityUsed: Number(qty) }));
+    setShowSubmitModal(true);
+  };
+
+  // Execution Handler after Modal Confirmation
+  const executeSubmitBatch = async () => {
+    setShowSubmitModal(false);
+
+    const productEntries = selectedProductList.map((item) => ({
+      productId: item.product.id!,
+      quantityProduced: item.qty,
+    }));
+
+    const materialEntries = selectedMaterialList.map((item) => ({
+      stockItemId: item.stockItem.id!,
+      quantityUsed: item.qty,
+    }));
 
     setIsSubmitting(true);
     try {
@@ -447,7 +486,7 @@ function ProductionFormContent() {
           </div>
         )}
 
-        <form onSubmit={handleSubmitBatch} className="space-y-4 xs:space-y-6">
+        <form onSubmit={handleRequestSubmit} className="space-y-4 xs:space-y-6">
           {/* Mobile 2-Step Wizard Indicator (md:hidden) */}
           <div className="md:hidden bg-white p-2.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
             <div className="flex items-center gap-2">
@@ -787,27 +826,6 @@ function ProductionFormContent() {
                 })}
               </div>
             )}
-
-            {/* Mobile Next Step Button */}
-            <div className="md:hidden pt-3 border-t border-[#F4ECE1]">
-              <Button
-                type="button"
-                size="lg"
-                onClick={() => {
-                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
-                  if (!hasProductWithQty) {
-                    toast.error("Please enter a produced quantity for at least one product before proceeding.");
-                    return;
-                  }
-                  setMobileStep(2);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-[#4A2E1B] hover:bg-[#3D2516] text-white"
-              >
-                <span>Next: Select Raw Materials</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
 
           {/* SECTION 2: RAW MATERIAL / INGREDIENT SELECTION */}
@@ -999,10 +1017,8 @@ function ProductionFormContent() {
                   <span>Products</span>
                 </Button>
                 <Button
-                  type="submit"
-                  size="lg"
-                  loading={isSubmitting}
-                  loadingText={isEditMode ? "Saving..." : "Submitting..."}
+                  type="button"
+                  onClick={() => handleRequestSubmit()}
                   disabled={totalProductsSelectedCount === 0 || (!isEditMode && !isSessionOpen)}
                   className="flex-1 h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                 >
@@ -1016,6 +1032,92 @@ function ProductionFormContent() {
           </div>
         </form>
       </div>
+
+      {/* Submit Confirmation Dialog */}
+      <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
+        <DialogContent className="sm:max-w-md bg-white rounded-3xl border border-[#EDE4D5] p-5 xs:p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              {isEditMode ? "Confirm Batch Updates" : "Confirm Production Batch"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3.5 my-2 text-xs">
+            {/* Shift & Date Info */}
+            <div className="p-2.5 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-[#4A2E1B] font-bold">
+              <span>📅 {formatEthDate(date)}</span>
+              <span>{shift === "NIGHT" ? "🌙 Night Shift" : "☀️ Day Shift"}</span>
+            </div>
+
+            {/* Products Baked Summary */}
+            <div>
+              <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
+                Products Baked ({selectedProductList.length}):
+              </span>
+              <div className="space-y-1 max-h-36 overflow-y-auto">
+                {selectedProductList.map((item) => (
+                  <div
+                    key={item.product.id}
+                    className="flex items-center justify-between p-2 rounded-lg bg-amber-50/70 border border-amber-200/60 font-bold"
+                  >
+                    <span className="text-[#2C1B10] truncate mr-2">{item.product.name}</span>
+                    <span className="text-[#E87A18] whitespace-nowrap">
+                      {item.qty} {item.product.unitType}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Ingredients Consumed Summary */}
+            <div>
+              <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
+                Raw Materials Consumed ({selectedMaterialList.length}):
+              </span>
+              {selectedMaterialList.length === 0 ? (
+                <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-500 italic">
+                  No materials specified
+                </div>
+              ) : (
+                <div className="space-y-1 max-h-28 overflow-y-auto">
+                  {selectedMaterialList.map((mat) => (
+                    <div
+                      key={mat.stockItem.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-indigo-50/70 border border-indigo-200/60 font-bold text-indigo-950"
+                    >
+                      <span className="truncate mr-2">{mat.stockItem.name}</span>
+                      <span className="whitespace-nowrap">
+                        {mat.qty} {mat.stockItem.unitType}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse xs:flex-row gap-2 pt-2 border-t border-[#F4ECE1]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSubmitModal(false)}
+              className="w-full xs:w-auto rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold cursor-pointer"
+            >
+              Review / Edit
+            </Button>
+            <Button
+              type="button"
+              loading={isSubmitting}
+              onClick={executeSubmitBatch}
+              className="w-full xs:w-auto flex-1 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{isEditMode ? "Yes, Save Changes" : isGlobalAdmin ? "Yes, Approve Batch" : "Yes, Submit Batch"}</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmModal
         isOpen={showDiscardModal}
