@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...((isOwner || isAdmin) ? [{ icon: Users, label: t('nav.users'), href: '/users' }] : []),
     ...((isOwner || isAdmin || role === 'BAKER' || role === 'CAKE_WORKER' || role === 'SAMBUSA_WORKER') ? [
       { icon: ChefHat, label: t('nav.production'), href: '/production' },
-      { icon: History, label: t('nav.dailyProductHistory'), href: '/production/history' }
+      ...((isOwner || isAdmin) ? [{ icon: History, label: t('nav.dailyProductHistory'), href: '/production/history' }] : [])
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: CalendarDays, label: t('nav.dailySessions'), href: '/daily-sessions' },

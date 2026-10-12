@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Layers,
   Utensils,
   Boxes,
@@ -74,6 +75,7 @@ function ProductionFormContent() {
     new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)
   );
   const [shift, setShift] = useState<"DAY" | "NIGHT">("DAY");
+  const [mobileStep, setMobileStep] = useState<1 | 2>(1);
 
   // Selection & Filter State
   const [selectedParentCatId, setSelectedParentCatId] = useState<string>("ALL");
@@ -433,6 +435,52 @@ function ProductionFormContent() {
         )}
 
         <form onSubmit={handleSubmitBatch} className="space-y-4 xs:space-y-6">
+          {/* Mobile 2-Step Wizard Indicator (md:hidden) */}
+          <div className="md:hidden bg-white p-2.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMobileStep(1)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-extrabold transition-all ${
+                  mobileStep === 1
+                    ? "bg-[#4A2E1B] text-white shadow-xs"
+                    : "bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0 ${
+                  mobileStep === 1 ? "bg-white text-[#4A2E1B]" : "bg-[#4A2E1B] text-white"
+                }`}>
+                  1
+                </span>
+                <span className="truncate">1. Products ({totalProductsSelectedCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+                  if (!hasProductWithQty) {
+                    toast.error("Please select at least one baked product first.");
+                    return;
+                  }
+                  setMobileStep(2);
+                }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-extrabold transition-all ${
+                  mobileStep === 2
+                    ? "bg-[#4A2E1B] text-white shadow-xs"
+                    : "bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0 ${
+                  mobileStep === 2 ? "bg-white text-[#4A2E1B]" : "bg-[#8C7361] text-white"
+                }`}>
+                  2
+                </span>
+                <span className="truncate">2. Ingredients ({totalMaterialsSelectedCount})</span>
+              </button>
+            </div>
+          </div>
+
           {/* Shift & Date Header Configuration */}
           <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
@@ -469,7 +517,7 @@ function ProductionFormContent() {
           </div>
 
           {/* SECTION 1: PRODUCT CATEGORY FILTER & MULTI-PRODUCT SELECTION */}
-          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5">
+          <div className={`bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5 ${mobileStep === 1 ? 'block' : 'hidden md:block'}`}>
             <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
                 <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
@@ -659,10 +707,31 @@ function ProductionFormContent() {
                 })}
               </div>
             )}
+
+            {/* Mobile Next Step Button */}
+            <div className="md:hidden pt-3 border-t border-[#F4ECE1]">
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => {
+                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+                  if (!hasProductWithQty) {
+                    toast.error("Please enter a produced quantity for at least one product before proceeding.");
+                    return;
+                  }
+                  setMobileStep(2);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-[#4A2E1B] hover:bg-[#3D2516] text-white"
+              >
+                <span>Next: Select Raw Materials</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* SECTION 2: RAW MATERIAL / INGREDIENT SELECTION */}
-          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5">
+          <div className={`bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5 ${mobileStep === 2 ? 'block' : 'hidden md:block'}`}>
             <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
                 <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
@@ -746,7 +815,7 @@ function ProductionFormContent() {
           </div>
 
           {/* SUMMARY PANEL & SUBMISSION */}
-          <div className="bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm">
+          <div className={`bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm ${mobileStep === 2 ? 'flex' : 'hidden md:flex'}`}>
             <div>
               <h3 className="font-extrabold text-sm text-[#2C1B10]">
                 {isEditMode ? "Save changes to this production batch?" : "Ready to submit production batch?"}
@@ -762,8 +831,22 @@ function ProductionFormContent() {
                 type="button"
                 variant="outline"
                 size="lg"
+                onClick={() => {
+                  setMobileStep(1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="md:hidden flex-1"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
                 onClick={() => guardedAction(() => router.push("/production"))}
-                className="flex-1 sm:flex-initial"
+                className="hidden md:inline-flex"
               >
                 Cancel
               </Button>
