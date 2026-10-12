@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -50,6 +50,13 @@ export default function NewProductPage() {
   const [isFormChanged, setIsFormChanged] = useState(false);
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
   const [isAllBranches, setIsAllBranches] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (user && user.role !== 'OWNER') {
+      toast.error('Product creation is restricted to the owner only');
+      router.replace('/products');
+    }
+  }, [user, router]);
 
   const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormChanged);
 

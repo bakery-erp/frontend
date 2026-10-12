@@ -68,6 +68,13 @@ export default function EditProductPage() {
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
   const [isAllBranches, setIsAllBranches] = useState<boolean>(true);
 
+  useEffect(() => {
+    if (user && user.role !== 'OWNER') {
+      toast.error('Product editing is restricted to the owner only');
+      router.replace('/products');
+    }
+  }, [user, router]);
+
   const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormChanged);
 
   const { data, isLoading, error } = useQuery({
