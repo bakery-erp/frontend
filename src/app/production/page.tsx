@@ -707,16 +707,6 @@ export default function ProductionPage() {
                       <span className="hidden xs:inline">{t('common.edit') || "Edit"}</span>
                     </Button>
                   )}
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => router.push(`/production/${batch.id}`)}
-                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                    {t('common.view') || 'View'}
-                  </Button>
                 </div>
               </div>
             </div>
@@ -734,7 +724,7 @@ export default function ProductionPage() {
               <TableHead>{t('production.colRawMaterialsConsumed')}</TableHead>
               {isGlobalAdmin && <TableHead className="w-32">{t('production.colLoggedBy')}</TableHead>}
               {user?.role === 'OWNER' && <TableHead className="w-36">{t('production.adminReviewStatus')}</TableHead>}
-              <TableHead className="text-right pr-6 w-48">{t('production.colBatchActions')}</TableHead>
+              <TableHead className="text-right pr-6 w-36">{t('production.colBatchActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -762,7 +752,7 @@ export default function ProductionPage() {
                       <Skeleton className="h-4 w-20" />
                     </TableCell>
                   )}
-                  <TableCell className="text-right pr-6 w-48">
+                  <TableCell className="text-right pr-6 w-36">
                     <Skeleton className="h-8 w-24 ml-auto rounded-xl" />
                   </TableCell>
                 </TableRow>
@@ -901,7 +891,7 @@ export default function ProductionPage() {
                     </span>
                   </TableCell>
                 )}
-                <TableCell className="text-right pr-6 w-48 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="text-right pr-6 w-36 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1.5">
                     {isGlobalAdmin && !isBatchSeenByMe(batch) && (
                       <Button
@@ -946,17 +936,6 @@ export default function ProductionPage() {
                         <span>{t('common.edit') || "Edit"}</span>
                       </Button>
                     )}
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => router.push(`/production/${batch.id}`)}
-                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
-                      title={t('common.view') || "View"}
-                    >
-                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                      <span>{t('common.view') || "View"}</span>
-                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
