@@ -336,6 +336,20 @@ function ProductionFormContent() {
   const handleRequestSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
+    // On mobile (< 768px), if the user is in Step 1, pressing Go/Enter should proceed to Step 2 (Ingredients)
+    // and NEVER jump directly to the confirmation modal without selecting raw materials
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    if (isMobile && mobileStep === 1) {
+      const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+      if (!hasProductWithQty) {
+        toast.error(t("production.toastSpecifyAtLeastOne"));
+        return;
+      }
+      setMobileStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     const productEntries = Object.entries(selectedProducts)
       .filter(([_, qty]) => Number(qty) > 0);
 
@@ -849,6 +863,17 @@ function ProductionFormContent() {
                               value={qtyVal}
                               onFocus={(e) => e.target.select()}
                               onChange={(e) => updateProductQty(p.id, e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  (e.target as HTMLElement).blur();
+                                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+                                  if (typeof window !== "undefined" && window.innerWidth < 768 && hasProductWithQty) {
+                                    setMobileStep(2);
+                                    window.scrollTo({ top: 0, behavior: "smooth" });
+                                  }
+                                }
+                              }}
                               onBlur={(e) => {
                                 if (e.target.value === "") updateProductQty(p.id, "0");
                               }}
@@ -952,6 +977,12 @@ function ProductionFormContent() {
                             value={qtyVal}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                (e.target as HTMLElement).blur();
+                              }
+                            }}
                             onBlur={(e) => {
                               if (e.target.value === "") updateMaterialQty(mat.id, "0");
                             }}
@@ -1069,7 +1100,7 @@ function ProductionFormContent() {
 
       {/* Submit Confirmation Dialog */}
       <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
-        <DialogContent className="sm:max-w-md bg-white rounded-3xl border border-[#EDE4D5] p-5 xs:p-6 shadow-2xl">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl border border-[#EDE4D5] p-4 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg font-black text-[#2C1B10] flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -1084,20 +1115,39 @@ function ProductionFormContent() {
               <span>{shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}</span>
             </div>
 
-            {/* High-Level Overview Stats - Clean and compact even for 10+ items */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70 text-center">
-                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t("production.summaryProductsProduced")}</span>
-                <span className="text-sm font-black text-[#2C1B10]">
-                  {selectedProductList.length}{" "}
-                  <span className="text-[11px] font-semibold text-[#8C7361]">({totalProducedUnits} {t("production.totalBakedUnits")})</span>
+            {/* High-Level Overview Stats - Short, punchy, and zero truncation */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-center flex flex-col justify-center min-w-0">
+                <span className="text-[11px] uppercase font-black text-amber-900 tracking-wide block">
+                  {t("production.modalProductsLabel") || "Products"}
+                </span>
+                <div className="mt-1 flex items-baseline justify-center gap-1">
+                  <span className="text-base sm:text-lg font-black text-[#2C1B10]">
+                    {selectedProductList.length}
+                  </span>
+                  <span className="text-xs font-bold text-[#8C7361]">
+                    {t("production.modalItemsCount") || "items"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold text-[#E87A18] block mt-0.5">
+                  {totalProducedUnits} {t("production.modalTotalUnits") || "total pcs"}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200/70 text-center">
-                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t("production.summaryMaterialsDeducted")}</span>
-                <span className="text-sm font-black text-indigo-950">
-                  {selectedMaterialList.length}{" "}
-                  <span className="text-[11px] font-semibold text-[#8C7361]">{t("production.ingredientsCount")}</span>
+
+              <div className="p-3 rounded-2xl bg-indigo-50/90 border border-indigo-200/80 text-center flex flex-col justify-center min-w-0">
+                <span className="text-[11px] uppercase font-black text-indigo-900 tracking-wide block">
+                  {t("production.modalMaterialsLabel") || "Raw Materials"}
+                </span>
+                <div className="mt-1 flex items-baseline justify-center gap-1">
+                  <span className="text-base sm:text-lg font-black text-indigo-950">
+                    {selectedMaterialList.length}
+                  </span>
+                  <span className="text-xs font-bold text-indigo-700">
+                    {t("production.modalItemsCount") || "items"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold text-indigo-600 block mt-0.5">
+                  {t("production.modalToDeduct") || "to deduct"}
                 </span>
               </div>
             </div>
@@ -1167,12 +1217,12 @@ function ProductionFormContent() {
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col-reverse xs:flex-row gap-2 pt-2 border-t border-[#F4ECE1]">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-[#F4ECE1]">
             <Button
               type="button"
               variant="outline"
               onClick={() => setShowSubmitModal(false)}
-              className="w-full xs:w-auto rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold cursor-pointer"
+              className="w-full sm:w-auto h-11 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold cursor-pointer"
             >
               {t("production.btnKeepEditingBatch")}
             </Button>
@@ -1180,9 +1230,9 @@ function ProductionFormContent() {
               type="button"
               loading={isSubmitting}
               onClick={executeSubmitBatch}
-              className="w-full xs:w-auto flex-1 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black cursor-pointer"
+              className="w-full sm:flex-1 h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{isEditMode ? t("production.btnSubmitChanges") : t("production.btnConfirmSubmitBatch")}</span>
             </Button>
           </DialogFooter>
