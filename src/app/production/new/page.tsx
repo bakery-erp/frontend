@@ -496,49 +496,48 @@ function ProductionFormContent() {
         <form onSubmit={handleRequestSubmit} className="space-y-4 xs:space-y-6">
           {/* Mobile Step Header (Option 1: Focused Step 1 / Step 2 Banner) */}
           <div className="md:hidden bg-white p-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-black text-[#2C1B10]">
-              {mobileStep === 1 ? (
+            {mobileStep === 1 ? (
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="w-5 h-5 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-[10px] font-black shrink-0">
                     1
                   </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-[#2C1B10] truncate">
+                  <span className="text-xs sm:text-sm font-extrabold text-[#2C1B10]">
                     {t("production.step1Title") || "Step 1: Products Baked"}
                   </span>
                 </div>
-              ) : (
-                <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 shrink-0">
+                  {totalProductsSelectedCount} {t("common.selected") || "Selected"}
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setMobileStep(1);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
-                    className="flex items-center gap-1 text-[#8C7361] hover:text-[#2C1B10] font-bold text-xs p-1 -ml-1 rounded-lg hover:bg-[#FAF6F0] cursor-pointer shrink-0"
+                    className="inline-flex items-center gap-1.5 text-[#E87A18] hover:text-[#4A2E1B] font-extrabold text-xs transition-colors cursor-pointer py-0.5 -ml-0.5"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5 text-[#E87A18]" />
-                    <span>{t("common.back") || "Back"}</span>
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>{t("production.btnBackToProducts") || "Back to Products"}</span>
                   </button>
-                  <span className="text-zinc-300 shrink-0">•</span>
+                  <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-indigo-50 text-indigo-900 border-indigo-200 shrink-0">
+                    {totalMaterialsSelectedCount} {t("common.selected") || "Selected"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
                   <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black shrink-0">
                     2
                   </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-[#2C1B10] truncate">
-                    {t("production.step2Title") || "Step 2: Ingredients Used"}
+                  <span className="text-xs sm:text-sm font-extrabold text-[#2C1B10]">
+                    {t("production.step2Title") || "Step 2: Raw Materials"}
                   </span>
                 </div>
-              )}
-
-              <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border shrink-0 ${
-                mobileStep === 1
-                  ? "bg-amber-50 text-amber-900 border-amber-200"
-                  : "bg-indigo-50 text-indigo-900 border-indigo-200"
-              }`}>
-                {mobileStep === 1
-                  ? `${totalProductsSelectedCount} ${t("common.selected") || "Selected"}`
-                  : `${totalMaterialsSelectedCount} ${t("common.selected") || "Selected"}`}
-              </span>
-            </div>
+              </div>
+            )}
 
             {/* Visual Step Progress Bar (50% on Step 1, 100% on Step 2) */}
             <div className="w-full bg-[#FAF6F0] h-1.5 rounded-full overflow-hidden border border-[#EDE4D5]">

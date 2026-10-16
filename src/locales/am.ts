@@ -591,7 +591,7 @@ export const am: TranslationDictionary = {
     noStockItemsFound: "ምንም የጥሬ ዕቃ ክምችት አልተገኘም።",
     btnProceedToMaterials: "ወደ ጥሬ ዕቃዎች ቀጥል ({count})",
     step1Title: "ደረጃ 1፦ የተመረቱ ምርቶች",
-    step2Title: "ደረጃ 2፦ የወጡ ጥሬ ዕቃዎች",
+    step2Title: "ደረጃ 2፦ ጥሬ ዕቃዎች",
     selectProductsPrompt: "ለመቀጠል ከላይ ምርቶችን ይምረጡ",
     btnNextMaterials: "ቀጣይ፦ ጥሬ ዕቃዎች",
     btnSaveBatch: "የምርት ምድቡን መዝግብ",

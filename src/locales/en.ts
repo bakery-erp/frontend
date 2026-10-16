@@ -589,7 +589,7 @@ export const en = {
     noStockItemsFound: "No stock raw materials found.",
     btnProceedToMaterials: "Proceed to Raw Materials ({count})",
     step1Title: "Step 1: Products Baked",
-    step2Title: "Step 2: Raw Materials Used",
+    step2Title: "Step 2: Raw Materials",
     selectProductsPrompt: "Select products above to continue",
     btnNextMaterials: "Next: Raw Materials",
     btnSaveBatch: "Save Production Batch",
