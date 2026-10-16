@@ -248,41 +248,6 @@ export default function ProductionPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "PENDING_APPROVAL":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-            <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" /> {t('production.statusPendingApproval')}
-          </span>
-        );
-      case "COMPLETED":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> {t('production.statusCompleted')}
-          </span>
-        );
-      case "STARTED":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
-            {t('production.statusStarted')}
-          </span>
-        );
-      case "REJECTED":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
-            <XCircle className="w-3.5 h-3.5 text-red-600" /> {t('production.statusRejected')}
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-800">
-            {status}
-          </span>
-        );
-    }
-  };
-
 
   const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
 
@@ -555,7 +520,6 @@ export default function ProductionPage() {
                     {batch.shift === "NIGHT" ? `🌙 ${t('production.nightShiftFull')}` : `☀️ ${t('production.dayShiftFull')}`}
                   </span>
                 </div>
-                <div>{getStatusBadge(batch.status)}</div>
               </div>
 
               {/* Collapsible Flagged Clarification Notice */}
@@ -768,7 +732,6 @@ export default function ProductionPage() {
               <TableHead className="w-40">{t('production.colDateShift')}</TableHead>
               <TableHead>{t('production.colProductsBaked')}</TableHead>
               <TableHead>{t('production.colRawMaterialsConsumed')}</TableHead>
-              <TableHead className="w-32">{t('production.colBatchStatus')}</TableHead>
               {isGlobalAdmin && <TableHead className="w-32">{t('production.colLoggedBy')}</TableHead>}
               {user?.role === 'OWNER' && <TableHead className="w-36">{t('production.adminReviewStatus')}</TableHead>}
               <TableHead className="text-right pr-6 w-48">{t('production.colBatchActions')}</TableHead>
@@ -789,9 +752,6 @@ export default function ProductionPage() {
                   <TableCell>
                     <Skeleton className="h-4 w-28" />
                   </TableCell>
-                  <TableCell className="w-32">
-                    <Skeleton className="h-6 w-24 rounded-full" />
-                  </TableCell>
                   {isGlobalAdmin && (
                     <TableCell className="w-32">
                       <Skeleton className="h-4 w-24" />
@@ -809,7 +769,7 @@ export default function ProductionPage() {
               ))
             ) : filteredBatches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isGlobalAdmin ? (user?.role === 'OWNER' ? 7 : 6) : 5} className="text-center py-8 text-[#8C7361] font-medium">
+                <TableCell colSpan={isGlobalAdmin ? (user?.role === 'OWNER' ? 6 : 5) : 4} className="text-center py-8 text-[#8C7361] font-medium">
                   {filterTab === "UNSEEN"
                     ? "All batches have been reviewed by you! 🎉"
                     : filterTab === "FLAGGED"
@@ -924,9 +884,6 @@ export default function ProductionPage() {
                       )}
                     </div>
                   )}
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(batch.status)}
                 </TableCell>
                 {isGlobalAdmin && (
                   <TableCell className="w-32">

@@ -193,40 +193,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "PENDING_APPROVAL":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
-            <Clock className="w-4 h-4 animate-pulse text-amber-700" /> {t("production.statusPendingApproval")}
-          </span>
-        );
-      case "COMPLETED":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-700" /> {t("production.statusCompleted")}
-          </span>
-        );
-      case "STARTED":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-900 border border-blue-300 shadow-2xs">
-            {t("production.statusStarted")}
-          </span>
-        );
-      case "REJECTED":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-900 border border-red-300 shadow-2xs">
-            <XCircle className="w-4 h-4 text-red-700" /> {t("production.statusRejected")}
-          </span>
-        );
-      default:
-        return (
-          <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-zinc-100 text-zinc-800">
-            {status}
-          </span>
-        );
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -356,7 +323,6 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
                     {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}
                   </span>
-                  <div>{getStatusBadge(batch.status)}</div>
                   {batch.isFlagged && (
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
                       🚩 Flagged
@@ -430,7 +396,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
           )}
 
           {/* Metric KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-[#F4ECE1]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 pt-6 border-t border-[#F4ECE1]">
             <div className="bg-[#FAF6F0]/80 rounded-2xl p-4 border border-[#EDE4D5]/80">
               <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
                 {t("production.tabProducts")}
@@ -464,21 +430,10 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               <div className="text-lg font-black text-[#2C1B10] mt-1 flex items-center gap-1.5">
                 {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}
               </div>
-              <span className="text-xs font-semibold text-[#8C7361] mt-0.5 block">
-                {batch.user.fullName}
-              </span>
-            </div>
-
-            <div className="bg-[#FAF6F0]/80 rounded-2xl p-4 border border-[#EDE4D5]/80">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
-                {t("production.colStatus")}
-              </span>
-              <div className="mt-1.5">
-                {getStatusBadge(batch.status)}
+              <div className="flex items-center justify-between text-xs font-semibold text-[#8C7361] mt-0.5">
+                <span>{batch.user.fullName}</span>
+                <span className="font-mono text-[10px] text-[#8C7361]/80">ID: {batch.id.slice(0, 8)}...</span>
               </div>
-              <span className="text-xs font-semibold text-[#8C7361] mt-1 block">
-                ID: <span className="font-mono text-[10px]">{batch.id.slice(0, 8)}...</span>
-              </span>
             </div>
           </div>
 
