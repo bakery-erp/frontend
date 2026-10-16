@@ -48,13 +48,17 @@ export default function ProductionPage() {
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
   const queryClient = useQueryClient();
 
-  const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "UNSEEN" | "FLAGGED" | "PENDING" | "COMPLETED" | "REJECTED">("ALL");
+  const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "UNSEEN" | "FLAGGED">("ALL");
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
   const [expandedMaterialsBatches, setExpandedMaterialsBatches] = useState<Record<string, boolean>>({});
+  const [expandedFlagNotes, setExpandedFlagNotes] = useState<Record<string, boolean>>({});
 
-
+  const toggleExpandFlagNote = (batchId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedFlagNotes((prev) => ({ ...prev, [batchId]: !prev[batchId] }));
+  };
 
   const toggleExpandBatch = (batchId: string) => {
     setExpandedBatches((prev) => ({ ...prev, [batchId]: !prev[batchId] }));
@@ -163,12 +167,8 @@ export default function ProductionPage() {
     };
 
     try {
-      const res = await api.post("/production-batches", data);
-      if (res.data.status === "PENDING_APPROVAL") {
-        toast.success("Production report submitted for approval by Admin/Owner");
-      } else {
-        toast.success("Production batch created & stock updated");
-      }
+      await api.post("/production-batches", data);
+      toast.success("Production batch created & stock updated");
       setIsAddOpen(false);
       setItems([]);
       setMaterials([]);
@@ -184,44 +184,6 @@ export default function ProductionPage() {
       console.error(error);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleApprove = async (batchId: string) => {
-    setActionBatchId(batchId);
-    try {
-      await api.post(`/production-batches/${batchId}/approve`);
-      toast.success("Batch approved & stock levels updated!");
-      queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
-      queryClient.invalidateQueries({ queryKey: ["production-modal-data"] });
-      queryClient.invalidateQueries({ queryKey: ["production-history"] });
-      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to approve batch");
-    } finally {
-      setActionBatchId(null);
-    }
-  };
-
-  const handleReject = async (batchId: string) => {
-    setActionBatchId(batchId);
-    try {
-      await api.post(`/production-batches/${batchId}/reject`);
-      toast.success("Batch rejected");
-      queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
-      queryClient.invalidateQueries({ queryKey: ["production-modal-data"] });
-      queryClient.invalidateQueries({ queryKey: ["production-history"] });
-      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to reject batch");
-    } finally {
-      setActionBatchId(null);
     }
   };
 
@@ -286,41 +248,6 @@ export default function ProductionPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "PENDING_APPROVAL":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-            <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" /> {t('production.statusPendingApproval')}
-          </span>
-        );
-      case "COMPLETED":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> {t('production.statusCompleted')}
-          </span>
-        );
-      case "STARTED":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
-            {t('production.statusStarted')}
-          </span>
-        );
-      case "REJECTED":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
-            <XCircle className="w-3.5 h-3.5 text-red-600" /> {t('production.statusRejected')}
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-800">
-            {status}
-          </span>
-        );
-    }
-  };
-
 
   const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
 
@@ -339,7 +266,6 @@ export default function ProductionPage() {
     return roleBatches.filter((b) => (b.date || b.createdAt || "").startsWith(todayYmd));
   }, [roleBatches, todayYmd]);
 
-  const pendingCount = roleBatches.filter((b) => b.status === "PENDING_APPROVAL").length;
   const todayCount = todayBatches.length;
 
   const unseenCount = useMemo(() => {
@@ -351,22 +277,14 @@ export default function ProductionPage() {
     return roleBatches.filter((b) => !!b.isFlagged).length;
   }, [roleBatches]);
 
-  const todayPendingCount = todayBatches.filter((b) => b.status === "PENDING_APPROVAL").length;
-  const todayCompletedCount = todayBatches.filter((b) => b.status === "COMPLETED").length;
-  const todayRejectedCount = todayBatches.filter((b) => b.status === "REJECTED").length;
-
   const filteredBatches = (isGlobalAdmin ? roleBatches : todayBatches)
     .filter((b) => {
       if (isGlobalAdmin) {
         if (filterTab === "UNSEEN") return !isBatchSeenByMe(b);
         if (filterTab === "FLAGGED") return !!b.isFlagged;
-        if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
         if (filterTab === "TODAY") return (b.date || b.createdAt || "").startsWith(todayYmd);
         return true;
       } else {
-        if (filterTab === "PENDING") return b.status === "PENDING_APPROVAL";
-        if (filterTab === "COMPLETED") return b.status === "COMPLETED";
-        if (filterTab === "REJECTED") return b.status === "REJECTED";
         return true;
       }
     })
@@ -494,25 +412,6 @@ export default function ProductionPage() {
                     </span>
                   )}
                 </button>
-                <button
-                  ref={(el) => { tabRefs.current["PENDING"] = el; }}
-                  onClick={() => setFilterTab("PENDING")}
-                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                    filterTab === "PENDING"
-                      ? "bg-amber-600 text-white shadow-xs"
-                      : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
-                  }`}
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  {t('production.pendingApprovals')}
-                  {pendingCount > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                      filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
-                    }`}>
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
               </>
             ) : (
               <>
@@ -527,51 +426,6 @@ export default function ProductionPage() {
                 >
                   📅 Today ({todayBatches.length})
                 </button>
-                <button
-                  ref={(el) => { tabRefs.current["PENDING"] = el; }}
-                  onClick={() => setFilterTab("PENDING")}
-                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                    filterTab === "PENDING"
-                      ? "bg-amber-600 text-white shadow-xs"
-                      : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
-                  }`}
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  Pending
-                  {todayPendingCount > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                      filterTab === "PENDING" ? "bg-white text-amber-800" : "bg-amber-600 text-white"
-                    }`}>
-                      {todayPendingCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  ref={(el) => { tabRefs.current["COMPLETED"] = el; }}
-                  onClick={() => setFilterTab("COMPLETED")}
-                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                    filterTab === "COMPLETED"
-                      ? "bg-emerald-700 text-white shadow-xs"
-                      : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-                  }`}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Approved ({todayCompletedCount})
-                </button>
-                {todayRejectedCount > 0 && (
-                  <button
-                    ref={(el) => { tabRefs.current["REJECTED"] = el; }}
-                    onClick={() => setFilterTab("REJECTED")}
-                    className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                      filterTab === "REJECTED"
-                        ? "bg-rose-700 text-white shadow-xs"
-                        : "text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200"
-                    }`}
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                    Rejected ({todayRejectedCount})
-                  </button>
-                )}
               </>
             )}
           </div>
@@ -627,10 +481,8 @@ export default function ProductionPage() {
           </div>
         ) : filteredBatches.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            {filterTab === "PENDING"
-              ? t('production.noPendingBatches')
-              : filterTab === "UNSEEN"
-              ? (t('production.seenBatches') ? "All batches have been reviewed by you! 🎉" : "All batches reviewed")
+            {filterTab === "UNSEEN"
+              ? "All batches have been reviewed by you! 🎉"
               : filterTab === "FLAGGED"
               ? "No batches are flagged for questions."
               : t('production.noBatches')}
@@ -648,7 +500,7 @@ export default function ProductionPage() {
                   : "border-[#EDE4D5]"
               }`}
             >
-              {/* Card Header: Date, Shift, Seen Status, Flag Badge, and Status */}
+              {/* Card Header: Date, Shift, Seen Status, Flag Badge */}
               <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -660,7 +512,7 @@ export default function ProductionPage() {
                     )}
                     {batch.isFlagged && (
                       <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
-                        🚩 Flagged
+                        🚩 {t('production.flaggedBatches')}
                       </span>
                     )}
                   </div>
@@ -668,34 +520,42 @@ export default function ProductionPage() {
                     {batch.shift === "NIGHT" ? `🌙 ${t('production.nightShiftFull')}` : `☀️ ${t('production.dayShiftFull')}`}
                   </span>
                 </div>
-                <div>{getStatusBadge(batch.status)}</div>
               </div>
 
-              {/* Flagged Clarification Notice */}
+              {/* Collapsible Flagged Clarification Notice */}
               {batch.isFlagged && (
-                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 text-xs flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-2 min-w-0">
-                    <span className="text-base shrink-0 mt-0.5">🚩</span>
-                    <div className="min-w-0">
-                      <div className="font-black text-rose-900 text-xs">
-                        {batch.flaggedBy ? `${batch.flaggedBy}: ` : ""}{batch.flagReason || "Attention / Clarification needed"}
-                      </div>
-                      {batch.flaggedAt && (
-                        <div className="text-[10px] text-rose-600 mt-0.5 font-medium">
-                          {formatEthDate(batch.flaggedAt)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {isGlobalAdmin && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => handleToggleFlag(batch, e)}
-                      className="border-rose-300 text-rose-700 bg-white hover:bg-rose-100 font-bold text-[11px] h-7 px-2 rounded-lg shrink-0"
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => toggleExpandFlagNote(batch.id, e)}
+                      className="flex items-center gap-1.5 text-left font-bold text-rose-900 truncate hover:text-rose-950 flex-1 min-w-0"
                     >
-                      {t('production.clearFlag')}
-                    </Button>
+                      <span className="text-sm shrink-0">🚩</span>
+                      <span className="truncate">{batch.flagReason || "Attention needed"}</span>
+                      <span className="text-[10px] text-rose-600 font-extrabold shrink-0 underline ml-0.5">
+                        {expandedFlagNotes[batch.id] ? "▲" : "..."}
+                      </span>
+                    </button>
+                    {isGlobalAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => handleToggleFlag(batch, e)}
+                        className="border-rose-300 text-rose-700 bg-white hover:bg-rose-100 font-bold text-[10px] h-6 px-2 rounded-lg shrink-0"
+                      >
+                        {t('production.clearFlag')}
+                      </Button>
+                    )}
+                  </div>
+                  {expandedFlagNotes[batch.id] && (
+                    <div className="mt-2 pt-2 border-t border-rose-200/80 text-[11px] text-rose-800 space-y-1">
+                      <p className="font-semibold leading-relaxed whitespace-pre-wrap">{batch.flagReason}</p>
+                      <div className="text-[10px] text-rose-600 flex items-center justify-between pt-0.5">
+                        <span>{t('production.flaggedNotice', { name: batch.flaggedBy || 'Management' })}</span>
+                        {batch.flaggedAt && <span>{formatEthDate(batch.flaggedAt)}</span>}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -772,15 +632,16 @@ export default function ProductionPage() {
                 )}
               </div>
 
-              {/* Dual Review Status for Admin & Owner */}
-              {isGlobalAdmin && (
-                <div className="flex items-center gap-3 text-[11px] font-bold pt-2 border-t border-[#F4ECE1]">
-                  <span className={batch.adminSeenAt ? "text-emerald-700" : "text-amber-700"}>
-                    Admin: {batch.adminSeenAt ? "✓ Seen" : "⏳ Unseen"}
-                  </span>
-                  <span className="text-zinc-300">•</span>
-                  <span className={batch.ownerSeenAt ? "text-emerald-700" : "text-amber-700"}>
-                    Owner: {batch.ownerSeenAt ? "✓ Seen" : "⏳ Unseen"}
+              {/* Owner-Only Admin Checked Indicator */}
+              {user?.role === "OWNER" && (
+                <div className="flex items-center justify-between text-[11px] font-bold pt-2 border-t border-[#F4ECE1]">
+                  <span className="text-[#8C7361]">{t('production.adminReviewStatus')}:</span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border ${
+                    batch.adminSeenAt
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : "bg-amber-50 text-amber-800 border-amber-200"
+                  }`}>
+                    {batch.adminSeenAt ? `✓ ${t('production.seenForMe')}` : `⏳ ${t('production.notReviewedYet')}`}
                   </span>
                 </div>
               )}
@@ -797,61 +658,44 @@ export default function ProductionPage() {
 
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end" onClick={(e) => e.stopPropagation()}>
                   {isGlobalAdmin && !isBatchSeenByMe(batch) && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={markingSeenId === batch.id}
-                      onClick={(e) => handleMarkSeen(batch.id, e)}
-                      className="border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 font-bold text-xs h-8 px-2 rounded-xl flex items-center gap-1 shadow-2xs"
-                      title={t('production.markAsSeen')}
-                    >
-                      <Check className="w-3.5 h-3.5 text-sky-600" />
-                      <span className="hidden xs:inline">{t('production.markAsSeen')}</span>
-                    </Button>
-                  )}
-
-                  {isGlobalAdmin && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => handleToggleFlag(batch, e)}
-                      className={`font-bold text-xs h-8 px-2 rounded-xl flex items-center gap-1 shadow-2xs ${
-                        batch.isFlagged
-                          ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
-                          : "border-zinc-200 text-[#8C7361] hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
-                      }`}
-                      title={batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}
-                    >
-                      <span className="text-xs">🚩</span>
-                      <span className="hidden xs:inline">{batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}</span>
-                    </Button>
-                  )}
-
-                  {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
                     <>
                       <Button
                         size="sm"
-                        disabled={actionBatchId === batch.id}
-                        onClick={() => handleApprove(batch.id)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs"
+                        variant="outline"
+                        disabled={markingSeenId === batch.id}
+                        onClick={(e) => handleMarkSeen(batch.id, e)}
+                        className="border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs"
+                        title={t('production.markAsSeen')}
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span className="hidden xs:inline">{t('common.approve') || 'Approve'}</span>
+                        <Check className="w-3.5 h-3.5 text-sky-600" />
+                        <span>{t('production.markAsSeen')}</span>
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={actionBatchId === batch.id}
-                        onClick={() => handleReject(batch.id)}
-                        className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-8 px-2 rounded-xl shadow-2xs"
+                        onClick={(e) => handleToggleFlag(batch, e)}
+                        className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-8 w-8 p-0 rounded-xl flex items-center justify-center shadow-2xs"
+                        title={t('production.flagBatch')}
                       >
-                        <XCircle className="w-3.5 h-3.5" />
-                        <span className="hidden xs:inline">{t('common.reject') || 'Reject'}</span>
+                        <span className="text-xs">🚩</span>
                       </Button>
                     </>
                   )}
 
-                  {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
+                  {isGlobalAdmin && batch.isFlagged && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => handleToggleFlag(batch, e)}
+                      className="border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 font-bold text-xs h-8 px-2 rounded-xl flex items-center gap-1 shadow-2xs"
+                      title={t('production.clearFlag')}
+                    >
+                      <span className="text-xs">🚩</span>
+                      <span>{t('production.clearFlag')}</span>
+                    </Button>
+                  )}
+
+                  {isGlobalAdmin && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -863,16 +707,6 @@ export default function ProductionPage() {
                       <span className="hidden xs:inline">{t('common.edit') || "Edit"}</span>
                     </Button>
                   )}
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => router.push(`/production/${batch.id}`)}
-                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                    {t('common.view') || 'View'}
-                  </Button>
                 </div>
               </div>
             </div>
@@ -888,9 +722,9 @@ export default function ProductionPage() {
               <TableHead className="w-40">{t('production.colDateShift')}</TableHead>
               <TableHead>{t('production.colProductsBaked')}</TableHead>
               <TableHead>{t('production.colRawMaterialsConsumed')}</TableHead>
-              <TableHead className="w-36">{t('production.colBatchStatus')}</TableHead>
-              {isGlobalAdmin && <TableHead className="w-36">{t('production.colLoggedBy')}</TableHead>}
-              <TableHead className="text-right pr-6 w-52">{t('production.colBatchActions')}</TableHead>
+              {isGlobalAdmin && <TableHead className="w-32">{t('production.colLoggedBy')}</TableHead>}
+              {user?.role === 'OWNER' && <TableHead className="w-36">{t('production.adminReviewStatus')}</TableHead>}
+              <TableHead className="text-right pr-6 w-36">{t('production.colBatchActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -908,25 +742,25 @@ export default function ProductionPage() {
                   <TableCell>
                     <Skeleton className="h-4 w-28" />
                   </TableCell>
-                  <TableCell className="w-36">
-                    <Skeleton className="h-6 w-24 rounded-full" />
-                  </TableCell>
                   {isGlobalAdmin && (
-                    <TableCell className="w-36">
+                    <TableCell className="w-32">
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
                   )}
-                  <TableCell className="text-right pr-6 w-52">
+                  {user?.role === 'OWNER' && (
+                    <TableCell className="w-36">
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                  )}
+                  <TableCell className="text-right pr-6 w-36">
                     <Skeleton className="h-8 w-24 ml-auto rounded-xl" />
                   </TableCell>
                 </TableRow>
               ))
             ) : filteredBatches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isGlobalAdmin ? 6 : 5} className="text-center py-8 text-[#8C7361] font-medium">
-                  {filterTab === "PENDING"
-                    ? t('production.noPendingBatches')
-                    : filterTab === "UNSEEN"
+                <TableCell colSpan={isGlobalAdmin ? (user?.role === 'OWNER' ? 6 : 5) : 4} className="text-center py-8 text-[#8C7361] font-medium">
+                  {filterTab === "UNSEEN"
                     ? "All batches have been reviewed by you! 🎉"
                     : filterTab === "FLAGGED"
                     ? "No batches are flagged for questions."
@@ -954,16 +788,27 @@ export default function ProductionPage() {
                       </span>
                     )}
                     {batch.isFlagged && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
-                        🚩 Flagged
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+                        <span>🚩</span>
+                        <span>{t('production.flagged') || 'Flagged'}</span>
+                        {batch.flagReason && (
+                          <button
+                            type="button"
+                            onClick={(e) => toggleExpandFlagNote(batch.id, e)}
+                            className="text-rose-700 hover:text-rose-900 underline font-black ml-0.5 cursor-pointer text-[10px]"
+                            title={expandedFlagNotes[batch.id] ? (t('production.hideNote') || 'Hide note') : (t('production.viewNote') || 'View note')}
+                          >
+                            {expandedFlagNotes[batch.id] ? (t('production.hideNote') || '▲') : '...'}
+                          </button>
+                        )}
                       </span>
                     )}
                   </div>
                   <div className="text-xs font-semibold text-[#8C7361] mt-0.5">{batch.shift === "NIGHT" ? t('production.nightShiftFull') : t('production.dayShiftFull')}</div>
-                  {batch.isFlagged && (
-                    <div className="mt-1 text-[11px] font-semibold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 inline-flex items-center gap-1 max-w-xs truncate" title={batch.flagReason || ""}>
-                      <span>🚩</span>
-                      <span className="truncate">{batch.flagReason || "Attention requested"}</span>
+                  {batch.isFlagged && batch.flagReason && expandedFlagNotes[batch.id] && (
+                    <div className="mt-1.5 text-xs font-medium text-rose-900 bg-rose-50/90 p-2 rounded-lg border border-rose-200 max-w-xs shadow-xs animate-in fade-in duration-150">
+                      <div className="text-[10px] uppercase tracking-wider font-bold text-rose-600 mb-0.5">Note:</div>
+                      {batch.flagReason}
                     </div>
                   )}
                 </TableCell>
@@ -1030,23 +875,23 @@ export default function ProductionPage() {
                     </div>
                   )}
                 </TableCell>
-                <TableCell>
-                  {getStatusBadge(batch.status)}
-                </TableCell>
                 {isGlobalAdmin && (
-                  <TableCell>
+                  <TableCell className="w-32">
                     <span className="text-xs font-bold text-[#2C1B10] block">{batch.user.fullName}</span>
-                    <div className="flex flex-col gap-0.5 text-[10px] mt-1 font-medium">
-                      <span className={batch.adminSeenAt ? "text-emerald-700 font-bold" : "text-amber-700"}>
-                        Admin: {batch.adminSeenAt ? "✓ Seen" : "⏳ Unseen"}
-                      </span>
-                      <span className={batch.ownerSeenAt ? "text-emerald-700 font-bold" : "text-amber-700"}>
-                        Owner: {batch.ownerSeenAt ? "✓ Seen" : "⏳ Unseen"}
-                      </span>
-                    </div>
                   </TableCell>
                 )}
-                <TableCell className="text-right pr-6 w-52 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                {user?.role === 'OWNER' && (
+                  <TableCell className="w-36">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
+                      batch.adminSeenAt
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                        : "bg-amber-50 text-amber-800 border-amber-200"
+                    }`}>
+                      {batch.adminSeenAt ? `✓ ${t('production.adminChecked') || 'Admin: Checked'}` : `⏳ ${t('production.adminUnchecked') || 'Admin: Unchecked'}`}
+                    </span>
+                  </TableCell>
+                )}
+                <TableCell className="text-right pr-6 w-36 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1.5">
                     {isGlobalAdmin && !isBatchSeenByMe(batch) && (
                       <Button
@@ -1058,11 +903,11 @@ export default function ProductionPage() {
                         title={t('production.markAsSeen')}
                       >
                         <Check className="w-3.5 h-3.5 text-sky-600" />
-                        <span className="hidden lg:inline">{t('production.markAsSeen')}</span>
+                        <span>{t('production.markAsSeen')}</span>
                       </Button>
                     )}
 
-                    {isGlobalAdmin && (
+                    {isGlobalAdmin && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -1075,65 +920,22 @@ export default function ProductionPage() {
                         title={batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}
                       >
                         <span className="text-xs">🚩</span>
-                        <span className="hidden lg:inline">{batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}</span>
+                        <span>{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
                       </Button>
                     )}
 
-                    {isGlobalAdmin && batch.status === "PENDING_APPROVAL" && (
-                      <>
-                        <Button
-                          size="sm"
-                          disabled={actionBatchId === batch.id}
-                          onClick={() => handleApprove(batch.id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs cursor-pointer"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{t('common.approve') || "Approve"}</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={actionBatchId === batch.id}
-                          onClick={() => handleReject(batch.id)}
-                          className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-8 w-8 p-0 rounded-xl shadow-2xs flex items-center justify-center shrink-0 cursor-pointer"
-                          title={t('common.reject') || "Reject"}
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                        </Button>
-                      </>
-                    )}
-
-                    {(batch.status === "PENDING_APPROVAL" || isGlobalAdmin) && (
+                    {isGlobalAdmin && (
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => router.push(`/production/new?edit=${batch.id}`)}
-                        className={`border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer ${
-                          batch.status === "PENDING_APPROVAL" && isGlobalAdmin ? "w-8 p-0 justify-center" : "px-2.5"
-                        }`}
+                        className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
                         title={t('common.edit') || "Edit"}
                       >
                         <Edit className="w-3.5 h-3.5 text-[#8C7361]" />
-                        {!(batch.status === "PENDING_APPROVAL" && isGlobalAdmin) && (
-                          <span>{t('common.edit') || "Edit"}</span>
-                        )}
+                        <span>{t('common.edit') || "Edit"}</span>
                       </Button>
                     )}
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => router.push(`/production/${batch.id}`)}
-                      className={`border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer ${
-                        batch.status === "PENDING_APPROVAL" && isGlobalAdmin ? "w-8 p-0 justify-center" : "px-2.5"
-                      }`}
-                      title={t('common.view') || "View"}
-                    >
-                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                      {!(batch.status === "PENDING_APPROVAL" && isGlobalAdmin) && (
-                        <span>{t('common.view') || "View"}</span>
-                      )}
-                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
