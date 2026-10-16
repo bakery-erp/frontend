@@ -494,53 +494,59 @@ function ProductionFormContent() {
         )}
 
         <form onSubmit={handleRequestSubmit} className="space-y-4 xs:space-y-6">
-          {/* Mobile 2-Step Wizard Indicator (md:hidden) */}
-          <div className="md:hidden bg-white p-2.5 rounded-2xl border border-[#EDE4D5] shadow-xs w-full max-w-full overflow-hidden">
-            <div className="flex items-center gap-2 w-full">
-              <button
-                type="button"
-                onClick={() => setMobileStep(1)}
-                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                  mobileStep === 1
-                    ? "bg-[#4A2E1B] text-white shadow-xs"
-                    : "bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
-                }`}
-              >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0 ${
-                  mobileStep === 1 ? "bg-white text-[#4A2E1B]" : "bg-[#4A2E1B] text-white"
-                }`}>
-                  1
-                </span>
-                <span className="truncate">
-                  {t("production.tabStepProducts").replace(/^[0-9]+\.\s*/, "")} ({totalProductsSelectedCount})
-                </span>
-              </button>
+          {/* Mobile Step Header (Option 1: Focused Step 1 / Step 2 Banner) */}
+          <div className="md:hidden bg-white p-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-black text-[#2C1B10]">
+              {mobileStep === 1 ? (
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-5 h-5 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-[10px] font-black shrink-0">
+                    1
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold text-[#2C1B10] truncate">
+                    {t("production.step1Title") || "Step 1: Products Baked"}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileStep(1);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="flex items-center gap-1 text-[#8C7361] hover:text-[#2C1B10] font-bold text-xs p-1 -ml-1 rounded-lg hover:bg-[#FAF6F0] cursor-pointer shrink-0"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 text-[#E87A18]" />
+                    <span>{t("common.back") || "Back"}</span>
+                  </button>
+                  <span className="text-zinc-300 shrink-0">•</span>
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black shrink-0">
+                    2
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold text-[#2C1B10] truncate">
+                    {t("production.step2Title") || "Step 2: Ingredients Used"}
+                  </span>
+                </div>
+              )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
-                  if (!hasProductWithQty) {
-                    toast.error(t("production.toastSpecifyAtLeastOne"));
-                    return;
-                  }
-                  setMobileStep(2);
-                }}
-                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                  mobileStep === 2
-                    ? "bg-[#4A2E1B] text-white shadow-xs"
-                    : "bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
+              <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border shrink-0 ${
+                mobileStep === 1
+                  ? "bg-amber-50 text-amber-900 border-amber-200"
+                  : "bg-indigo-50 text-indigo-900 border-indigo-200"
+              }`}>
+                {mobileStep === 1
+                  ? `${totalProductsSelectedCount} ${t("common.selected") || "Selected"}`
+                  : `${totalMaterialsSelectedCount} ${t("common.selected") || "Selected"}`}
+              </span>
+            </div>
+
+            {/* Visual Step Progress Bar (50% on Step 1, 100% on Step 2) */}
+            <div className="w-full bg-[#FAF6F0] h-1.5 rounded-full overflow-hidden border border-[#EDE4D5]">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  mobileStep === 1 ? "w-1/2 bg-[#E87A18]" : "w-full bg-emerald-600"
                 }`}
-              >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold shrink-0 ${
-                  mobileStep === 2 ? "bg-white text-[#4A2E1B]" : "bg-[#8C7361] text-white"
-                }`}>
-                  2
-                </span>
-                <span className="truncate">
-                  {t("production.tabStepMaterials").replace(/^[0-9]+\.\s*/, "")} ({totalMaterialsSelectedCount})
-                </span>
-              </button>
+              />
             </div>
           </div>
 
@@ -970,36 +976,30 @@ function ProductionFormContent() {
           {/* Mobile Sticky Bottom Action Bar (< md) */}
           <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {mobileStep === 1 ? (
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="text-xs font-black text-[#2C1B10] block">
-                    {totalProductsSelectedCount} {t("production.colProductsBaked")}
-                  </span>
-                  <span className="text-[10px] text-[#8C7361] font-semibold truncate block">
-                    {t("production.tabStepProducts")}
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={totalProductsSelectedCount === 0}
-                  onClick={() => {
-                    const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
-                    if (!hasProductWithQty) {
-                      toast.error(t("production.toastSpecifyAtLeastOne"));
-                      return;
-                    }
-                    setMobileStep(2);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-xs h-11 px-4 rounded-xl flex items-center gap-1.5 shadow-md shrink-0 cursor-pointer"
-                >
-                  <span>{t("production.btnProceedToMaterials", { count: totalMaterialsSelectedCount })}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
+              <Button
+                type="button"
+                size="lg"
+                disabled={totalProductsSelectedCount === 0}
+                onClick={() => {
+                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+                  if (!hasProductWithQty) {
+                    toast.error(t("production.toastSpecifyAtLeastOne"));
+                    return;
+                  }
+                  setMobileStep(2);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm h-12 rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <span>
+                  {totalProductsSelectedCount > 0
+                    ? `${t("production.btnNextMaterials") || "Next: Raw Materials"} (${totalProductsSelectedCount})`
+                    : (t("production.selectProductsPrompt") || "Select products above")}
+                </span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </Button>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full">
                 <Button
                   type="button"
                   variant="outline"
@@ -1008,20 +1008,20 @@ function ProductionFormContent() {
                     setMobileStep(1);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="h-11 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shrink-0 cursor-pointer"
+                  className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>{t("production.btnBackToProducts")}</span>
+                  <span>{t("common.back") || "Back"}</span>
                 </Button>
                 <Button
                   type="button"
                   onClick={() => handleRequestSubmit()}
                   disabled={totalProductsSelectedCount === 0 || (!isEditMode && !isSessionOpen)}
-                  className="flex-1 h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                  className="flex-1 h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span className="truncate">
-                    {isEditMode ? t("production.btnSubmitChanges") : t("production.btnConfirmSubmitBatch")}
+                    {isEditMode ? (t("production.btnSubmitChanges") || "Save Changes") : (t("production.btnSaveBatch") || "Save Production Batch")}
                   </span>
                 </Button>
               </div>
