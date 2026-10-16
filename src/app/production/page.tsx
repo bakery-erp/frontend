@@ -520,6 +520,17 @@ export default function ProductionPage() {
                     {batch.shift === "NIGHT" ? `🌙 ${t('production.nightShiftFull')}` : `☀️ ${t('production.dayShiftFull')}`}
                   </span>
                 </div>
+
+                {/* Owner-Only Admin Checked Indicator (Tiny pill at the top right) */}
+                {user?.role === "OWNER" && (
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border shrink-0 ${
+                    batch.adminSeenAt
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : "bg-amber-50 text-amber-800 border-amber-200"
+                  }`}>
+                    {batch.adminSeenAt ? `✓ ${t('production.adminChecked') || 'Admin: Checked'}` : `⏳ ${t('production.adminUnchecked') || 'Admin: Unchecked'}`}
+                  </span>
+                )}
               </div>
 
               {/* Collapsible Flagged Clarification Notice */}
@@ -632,19 +643,6 @@ export default function ProductionPage() {
                 )}
               </div>
 
-              {/* Owner-Only Admin Checked Indicator */}
-              {user?.role === "OWNER" && (
-                <div className="flex items-center justify-between text-[11px] font-bold pt-2 border-t border-[#F4ECE1]">
-                  <span className="text-[#8C7361]">{t('production.adminReviewStatus')}:</span>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border ${
-                    batch.adminSeenAt
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                      : "bg-amber-50 text-amber-800 border-amber-200"
-                  }`}>
-                    {batch.adminSeenAt ? `✓ ${t('production.seenForMe')}` : `⏳ ${t('production.notReviewedYet')}`}
-                  </span>
-                </div>
-              )}
 
               {/* Card Footer: Logged by & Direct Action Buttons */}
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F4ECE1]">
