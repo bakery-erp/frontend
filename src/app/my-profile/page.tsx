@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format } from 'date-fns';
-import { formatEthDate, getEthMonthName } from '@/lib/ethiopianDate';
+import { formatEthDate, getEthMonthName, EthDateTime } from '@/lib/ethiopianDate';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from '@/components/ui/skeletons';
@@ -247,14 +247,22 @@ export default function MyProfilePage() {
   const pendingPayrolls = payrolls.filter((pr) => pr.status === 'PENDING_APPROVAL');
   const pendingCount = pendingLoans.length + pendingPenalties.length + pendingPayrolls.length;
 
-  // Totals calculations (only open/approved loans & penalties)
+  // Current Ethiopian period & Net calculations for this month
+  const currentEth = EthDateTime.fromEuropeanDate(new Date());
+  const currentMonthPayroll = payrolls.find(
+    (pr) => pr.year === currentEth.year && pr.month === currentEth.month
+  );
+
   const totalLoanBalance = loans
     .filter((l) => l.status === 'OPEN')
     .reduce((acc, l) => acc + Number(l.remainingBalance || 0), 0);
-  const totalPenaltyAmount = penalties
-    .filter((p) => p.status !== 'REJECTED')
-    .reduce((acc, p) => acc + Number(p.amount || 0), 0);
-  const totalPayrollPaid = payrolls.reduce((acc, pr) => acc + Number(pr.finalAmount || 0), 0);
+  const activePenalties = penalties.filter((p) => p.status !== 'REJECTED' && !p.isDeducted);
+  const totalPenaltyAmount = activePenalties.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  
+  const baseSalary = Number(u?.salary || 0);
+  const netThisMonth = currentMonthPayroll
+    ? Number(currentMonthPayroll.finalAmount || 0)
+    : Math.max(0, baseSalary - totalLoanBalance - totalPenaltyAmount);
 
   return (
     <DashboardLayout>
@@ -342,8 +350,8 @@ export default function MyProfilePage() {
                   <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-rose-300">{money(totalPenaltyAmount)}</span>
                 </div>
                 <div className="pt-2 border-t border-white/10">
-                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.totalReceived') || "Net Disbursed"}</span>
-                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-emerald-300">{money(totalPayrollPaid)}</span>
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.netSalaryThisMonth') || "Net (This Month)"}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-emerald-300">{money(netThisMonth)}</span>
                 </div>
               </div>
             </div>
@@ -395,20 +403,24 @@ export default function MyProfilePage() {
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{money(totalPenaltyAmount)}</div>
-              <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.loggedPenaltiesCount', { count: penalties.length })}</p>
+              <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.loggedPenaltiesCount', { count: activePenalties.length })}</p>
             </CardContent>
           </Card>
 
           <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
-              <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.totalReceived') || "Total Net Disbursed"}</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.netSalaryThisMonth') || "Net Salary (This Month)"}</CardTitle>
               <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="h-5 w-5" />
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-3.5 pt-0">
-              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight">{money(totalPayrollPaid)}</div>
-              <p className="text-xs text-[#8C7361] font-semibold mt-1">{payrolls.length} {t('profile.tabPayroll', { count: payrolls.length }) || 'payslips recorded'}</p>
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight">{money(netThisMonth)}</div>
+              <p className="text-xs text-[#8C7361] font-semibold mt-1">
+                {currentMonthPayroll
+                  ? (t('profile.payslipRecorded', { month: getEthMonthName(currentEth.month) }) || `Payslip recorded for ${getEthMonthName(currentEth.month)}`)
+                  : (t('profile.netSalaryThisMonthSub') || 'After loan & penalty deductions')}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -636,7 +648,7 @@ export default function MyProfilePage() {
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.totalAdvance')}</span>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.loanAmount') || t('profile.totalAdvance') || "Loan Amount"}</span>
                               <span className="font-bold text-[#2C1B10]">{money(l.totalAmount)}</span>
                             </div>
                             <div>

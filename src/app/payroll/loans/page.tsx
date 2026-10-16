@@ -52,7 +52,6 @@ export default function PayrollLoansPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [typeFilter, setTypeFilter] = useState("ALL");
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ["payroll-loans-page", selectedBranchId],
@@ -85,13 +84,10 @@ export default function PayrollLoansPage() {
     if (statusFilter !== "ALL" && l.status !== statusFilter) {
       return false;
     }
-    if (typeFilter !== "ALL" && l.type !== typeFilter) {
-      return false;
-    }
     return true;
   });
 
-  const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL" || typeFilter !== "ALL";
+  const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL";
 
   const handleAddLoan = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -100,7 +96,7 @@ export default function PayrollLoansPage() {
     const isSigned = fd.get("isSigned") === "on";
     try {
       await api.post("/loans", {
-        type: fd.get("type") || "STAFF_LOAN",
+        type: "STAFF_LOAN",
         userId: fd.get("userId"),
         totalAmount: fd.get("amount"),
         isSigned,
@@ -237,19 +233,6 @@ export default function PayrollLoansPage() {
             </select>
           </div>
 
-          {/* Type Filter */}
-          <div className="w-full sm:w-44">
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full h-10 rounded-xl border border-[#EDE4D5] bg-[#FAF6F0]/50 px-3 text-xs sm:text-sm font-semibold text-[#2C1B10] focus:outline-none"
-            >
-              <option value="ALL">All Types</option>
-              <option value="STAFF_LOAN">Staff Loan</option>
-              <option value="SALARY_ADVANCE">Salary Advance</option>
-            </select>
-          </div>
-
           {/* Reset Filters */}
           {hasActiveFilters && (
             <Button
@@ -258,7 +241,6 @@ export default function PayrollLoansPage() {
               onClick={() => {
                 setSearchTerm("");
                 setStatusFilter("ALL");
-                setTypeFilter("ALL");
               }}
               className="h-10 px-3 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0"
             >
@@ -306,10 +288,7 @@ export default function PayrollLoansPage() {
                 <div className="min-w-0 flex-1">
                   <h3 className="font-extrabold text-[#2C1B10] text-sm sm:text-base truncate">{l.user?.fullName}</h3>
                   <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                    <Badge className={`font-bold text-[10px] shrink-0 ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                      {l.type === "STAFF_LOAN" ? t('payroll.staffLoan') : t('payroll.salaryAdvance')}
-                    </Badge>
-                    <span className="text-[11px] text-[#8C7361] whitespace-nowrap">• {formatEthDate(l.createdAt)}</span>
+                    <span className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(l.createdAt)}</span>
                   </div>
                 </div>
                 {getApprovalBadge(l.status)}
@@ -372,7 +351,6 @@ export default function PayrollLoansPage() {
             <TableRow>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('common.date')}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colStaffMember')}</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">{t('profile.type')}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colLoanAmount')}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colRemainingBalance')}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('common.status')}</TableHead>
@@ -385,7 +363,6 @@ export default function PayrollLoansPage() {
                 <TableRow key={idx}>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
@@ -396,7 +373,7 @@ export default function PayrollLoansPage() {
               ))
             ) : filteredLoans.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
+                <TableCell colSpan={6} className="text-center py-10 text-[#8C7361] font-medium">
                   {loans.length === 0 ? t('payroll.emptyLoans') : "No loans match the selected filters."}
                 </TableCell>
               </TableRow>
@@ -408,11 +385,6 @@ export default function PayrollLoansPage() {
                   </TableCell>
                   <TableCell className="font-bold text-[#2C1B10]">
                     {l.user?.fullName}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`font-bold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                      {l.type === "STAFF_LOAN" ? t('payroll.staffLoan') : t('payroll.salaryAdvance')}
-                    </Badge>
                   </TableCell>
                   <TableCell className="font-semibold text-[#8C7361] font-mono">{l.totalAmount} {t('common.currency')}</TableCell>
                   <TableCell className="font-extrabold text-[#2C1B10] font-mono">
@@ -470,13 +442,6 @@ export default function PayrollLoansPage() {
                       {u.fullName} ({u.role})
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('profile.type')}</label>
-                <select name="type" required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                  <option value="STAFF_LOAN">{t('payroll.staffLoan')}</option>
-                  <option value="SALARY_ADVANCE">{t('payroll.salaryAdvance')}</option>
                 </select>
               </div>
               <div>
@@ -613,10 +578,6 @@ export default function PayrollLoansPage() {
                 <div className="flex justify-between">
                   <span className="text-[#8C7361]">{t('payroll.colStaffMember')}:</span>
                   <strong className="text-[#2C1B10]">{loanToSign.user?.fullName}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#8C7361]">{t('profile.type')}:</span>
-                  <strong>{loanToSign.type === "STAFF_LOAN" ? t('payroll.staffLoan') : t('payroll.salaryAdvance')}</strong>
                 </div>
                 <div className="flex justify-between border-t border-[#EDE4D5]/70 pt-1">
                   <span className="text-[#8C7361]">{t('payroll.colLoanAmount')}:</span>

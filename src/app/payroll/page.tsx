@@ -278,7 +278,7 @@ export default function PayrollPage() {
     const isSigned = fd.get("isSigned") === "on";
     try {
       await api.post("/loans", {
-        type: fd.get("type") || "STAFF_LOAN",
+        type: "STAFF_LOAN",
         userId: fd.get("userId"),
         totalAmount: fd.get("amount"),
         isSigned,
@@ -650,19 +650,12 @@ export default function PayrollPage() {
                               <div key={loan.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-white p-2.5 rounded-lg border border-amber-200">
                                 <div className="min-w-0 flex-1">
                                   <span className="font-semibold text-zinc-800 block truncate">
-                                    {loan.type === "STAFF_LOAN"
-                                      ? "Staff Loan (Multi-Month Installment)"
-                                      : loan.type === "SALARY_ADVANCE"
-                                      ? "Salary Advance"
-                                      : "Employee Loan"}
+                                    Staff Loan
                                   </span>
                                   <span className="text-zinc-500 block text-[11px] mt-0.5">
                                     Unpaid Balance: <strong className="text-amber-800">{loan.remainingBalance} ETB</strong> (Original: {loan.totalAmount} ETB)
                                   </span>
                                 </div>
-                                <Badge className={`shrink-0 self-start sm:self-auto ${loan.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"}`}>
-                                  {loan.type === "STAFF_LOAN" ? "Long-Term Monthly Loan" : "Salary Advance"}
-                                </Badge>
                               </div>
                             ))}
                           </div>
@@ -1094,12 +1087,6 @@ export default function PayrollPage() {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Badge className={`font-semibold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-50 text-blue-800 border-blue-200" : "bg-purple-50 text-purple-800 border-purple-200"}`}>
-                      {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
-                    </Badge>
-                  </div>
-
                   <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-[#EDE4D5]">
                     <div>
                       <span className="text-[#8C7361] block">Original Amount:</span>
@@ -1138,7 +1125,6 @@ export default function PayrollPage() {
                 <TableRow>
                   <TableHead>Date Issued</TableHead>
                   <TableHead>Employee</TableHead>
-                  <TableHead>Loan Type</TableHead>
                   <TableHead>Original Amount</TableHead>
                   <TableHead>Remaining Balance</TableHead>
                   <TableHead>Loan Status</TableHead>
@@ -1154,7 +1140,6 @@ export default function PayrollPage() {
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       {(user?.role === "OWNER" || user?.role === "ADMIN") && (
                         <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 ml-auto rounded-xl" /></TableCell>
                       )}
@@ -1162,7 +1147,7 @@ export default function PayrollPage() {
                   ))
                 ) : loans.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                    <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
                       No employee loans currently recorded.
                     </TableCell>
                   </TableRow>
@@ -1174,11 +1159,6 @@ export default function PayrollPage() {
                       </TableCell>
                       <TableCell className="font-bold text-[#2C1B10]">
                         {l.user?.fullName}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`font-bold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                          {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
-                        </Badge>
                       </TableCell>
                       <TableCell className="font-semibold text-[#8C7361]">{l.totalAmount} ETB</TableCell>
                       <TableCell className="font-extrabold text-[#2C1B10]">
@@ -1408,13 +1388,6 @@ export default function PayrollPage() {
                       {u.fullName}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Loan Classification / Type</label>
-                <select name="type" required className="w-full h-11 border border-[#EDE4D5] rounded-xl px-3 text-sm bg-white">
-                  <option value="STAFF_LOAN">Staff Loan (Multi-Month Installment)</option>
-                  <option value="SALARY_ADVANCE">Salary Advance (Pre-payment of current month salary)</option>
                 </select>
               </div>
               <div>
