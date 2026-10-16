@@ -30,6 +30,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   isCategoryAllowedForRole,
   isProductAllowedForRole,
@@ -72,6 +73,7 @@ function ProductionFormContent() {
 
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
@@ -307,7 +309,7 @@ function ProductionFormContent() {
       .filter(([_, qty]) => Number(qty) > 0);
 
     if (productEntries.length === 0) {
-      toast.error("Please specify a produced quantity greater than 0 for at least one product.");
+      toast.error(t("production.toastSpecifyAtLeastOne"));
       return;
     }
 
@@ -342,7 +344,7 @@ function ProductionFormContent() {
         };
 
         await api.patch(`/production-batches/${editBatchId}`, payload);
-        toast.success("Production batch updated successfully!");
+        toast.success(t("production.toastBatchUpdatedSuccess"));
       } else {
         const payload = {
           branchId: selectedBranchId || undefined,
@@ -354,9 +356,9 @@ function ProductionFormContent() {
 
         const res = await api.post("/production-batches", payload);
         if (res.data.status === "PENDING_APPROVAL") {
-          toast.success("Production batch logged! Submitted for Admin/Owner approval.");
+          toast.success(t("production.toastBatchSubmittedApproval"));
         } else {
-          toast.success("Production batch created & inventory updated successfully!");
+          toast.success(t("production.toastBatchCreatedSuccess"));
         }
       }
       await Promise.all([
@@ -373,7 +375,7 @@ function ProductionFormContent() {
     } catch (err: any) {
       toast.error(
         err.response?.data?.error ||
-          (isEditMode ? "Failed to update production batch" : "Failed to log production batch")
+          (isEditMode ? t("production.toastBatchUpdateFailed") : t("production.toastBatchCreateFailed"))
       );
     } finally {
       setIsSubmitting(false);
@@ -407,23 +409,23 @@ function ProductionFormContent() {
               onClick={() => guardedAction(() => router.push("/production"))}
               className="text-[#8C7361] hover:text-[#2C1B10] mb-1.5 p-0 h-auto flex items-center gap-1 font-bold text-xs"
             >
-              <ArrowLeft className="w-4 h-4" /> Back to Production Log
+              <ArrowLeft className="w-4 h-4" /> {t("production.backToProductionLog")}
             </Button>
             <h1 className="text-lg xs:text-xl sm:text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
               {isEditMode ? (
                 <>
-                  <Edit3 className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> Edit Production Batch
+                  <Edit3 className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> {t("production.editBatchTitleModal")}
                 </>
               ) : (
                 <>
-                  <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> Multi-Item Production Batch Entry
+                  <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> {t("production.multiItemBatchTitle")}
                 </>
               )}
             </h1>
             <p className="text-xs text-[#8C7361] mt-1 max-w-2xl">
               {isEditMode
-                ? "Update products baked, quantities produced, or raw materials consumed for this batch."
-                : "Select product categories, sub-categories, baked items, and raw materials consumed during this shift."}
+                ? t("production.editBatchSubtitle")
+                : t("production.multiItemBatchSubtitle")}
             </p>
           </div>
 
@@ -450,11 +452,11 @@ function ProductionFormContent() {
                 {originalBatchStatus === "COMPLETED" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
                 {originalBatchStatus === "REJECTED" && <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
                 {originalBatchStatus === "PENDING_APPROVAL"
-                  ? "Pending Approval"
+                  ? t("production.statusPendingApproval")
                   : originalBatchStatus === "COMPLETED"
-                  ? "Approved / Completed"
+                  ? t("production.statusCompleted")
                   : originalBatchStatus === "REJECTED"
-                  ? "Rejected"
+                  ? t("production.statusRejected")
                   : originalBatchStatus}
               </span>
             )}
@@ -474,7 +476,7 @@ function ProductionFormContent() {
                     : isSessionOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
                 }`}
               />
-              {isLoading ? "Checking Session..." : isSessionOpen ? "Session Open" : "Session Closed"}
+              {isLoading ? t("common.loading") : isSessionOpen ? t("sessions.statusOpen") : t("sessions.statusClosed")}
             </span>
           </div>
         </div>
@@ -511,7 +513,7 @@ function ProductionFormContent() {
                   1
                 </span>
                 <span className="truncate">
-                  {user?.role === 'CAKE_WORKER' ? '1. Cakes' : user?.role === 'SAMBUSA_WORKER' ? '1. Sambusa' : '1. Products'} ({totalProductsSelectedCount})
+                  {t("production.tabStepProducts")} ({totalProductsSelectedCount})
                 </span>
               </button>
 
@@ -520,7 +522,7 @@ function ProductionFormContent() {
                 onClick={() => {
                   const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
                   if (!hasProductWithQty) {
-                    toast.error("Please select at least one baked product first.");
+                    toast.error(t("production.toastSpecifyAtLeastOne"));
                     return;
                   }
                   setMobileStep(2);
@@ -536,7 +538,7 @@ function ProductionFormContent() {
                 }`}>
                   2
                 </span>
-                <span className="truncate">2. Ingredients ({totalMaterialsSelectedCount})</span>
+                <span className="truncate">{t("production.tabStepMaterials")} ({totalMaterialsSelectedCount})</span>
               </button>
             </div>
           </div>
@@ -552,7 +554,7 @@ function ProductionFormContent() {
                   {formatEthDate(date)}
                 </div>
                 <span className="text-[10px] text-[#8C7361] font-semibold">
-                  {isGlobalAdmin ? "Admin Log" : "Today's Batch"}
+                  {isGlobalAdmin ? "Admin" : t("production.todayBatches")}
                 </span>
               </div>
             </div>
@@ -566,7 +568,7 @@ function ProductionFormContent() {
                   shift === "DAY" ? "bg-amber-500 text-zinc-950 shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
                 }`}
               >
-                ☀️ Day
+                ☀️ {t("production.dayShift")}
               </button>
               <button
                 type="button"
@@ -575,7 +577,7 @@ function ProductionFormContent() {
                   shift === "NIGHT" ? "bg-indigo-600 text-white shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
                 }`}
               >
-                🌙 Night
+                🌙 {t("production.nightShift")}
               </button>
             </div>
           </div>
@@ -584,7 +586,7 @@ function ProductionFormContent() {
           <div className="hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                Production Date {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
+                {t("common.date")} {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
               </label>
               <Input
                 type="date"
@@ -596,21 +598,21 @@ function ProductionFormContent() {
               />
               {!isGlobalAdmin && (
                 <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">
-                  🔒 Date is automatically set to today system log time.
+                  🔒 {t("production.systemDateLabel", { date: new Date().toLocaleDateString() })}
                 </p>
               )}
             </div>
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                Work Shift
+                {t("production.colShift")}
               </label>
               <select
                 value={shift}
                 onChange={(e) => setShift(e.target.value as any)}
                 className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
               >
-                <option value="DAY">Day Shift (Pagal / Day)</option>
-                <option value="NIGHT">Night Shift (Rati / Night)</option>
+                <option value="DAY">{t("production.dayShiftFull")}</option>
+                <option value="NIGHT">{t("production.nightShiftFull")}</option>
               </select>
             </div>
           </div>
@@ -621,23 +623,15 @@ function ProductionFormContent() {
               <div>
                 <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                   <Utensils className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" />
-                  {user?.role === 'CAKE_WORKER'
-                    ? '1. Select Cakes & Pastries'
-                    : user?.role === 'SAMBUSA_WORKER'
-                    ? '1. Select Sambusa & Snack Products'
-                    : '1. Select Bakery Products & Quantities'}
+                  {t("production.tabStepProducts")}
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
-                  {user?.role === 'CAKE_WORKER'
-                    ? 'Select cakes and pastries produced in this batch.'
-                    : user?.role === 'SAMBUSA_WORKER'
-                    ? 'Select sambusa, fetira, or snack items prepared in this batch.'
-                    : 'Filter by category / subcategory and check all items baked in this batch.'}
+                  {t("production.multiItemBatchSubtitle")}
                 </p>
               </div>
 
               <span className="text-xs font-extrabold px-3 py-1 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
-                {totalProductsSelectedCount} Products Selected
+                {totalProductsSelectedCount} {t("production.tabProducts")}
               </span>
             </div>
 
@@ -645,7 +639,7 @@ function ProductionFormContent() {
             {parentCategories.length > 1 && (
               <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
-                  <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
+                  <Layers className="w-4 h-4 text-[#E87A18]" /> {t("products.colCategory")}:
                 </div>
                 {/* Main Category Row */}
                 <div className="relative w-full overflow-hidden">
@@ -670,7 +664,7 @@ function ProductionFormContent() {
                           : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
                       }`}
                     >
-                      All Categories ({products.length})
+                      {t("production.filterParentCatAll")} ({products.length})
                     </button>
                     {parentCategories.map((cat) => {
                       const catCount = products.filter(
@@ -709,7 +703,7 @@ function ProductionFormContent() {
                       className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
                       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
-                      <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
+                      <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">{t("categories.colSubcategories")}:</span>
                       <button
                         ref={(el) => {
                           subCatTabRefs.current["ALL"] = el;
@@ -722,7 +716,7 @@ function ProductionFormContent() {
                             : "bg-white text-[#8C7361] border border-[#EDE4D5]"
                         }`}
                       >
-                        All Sub-categories
+                        {t("production.filterSubCatAll")}
                       </button>
                       {subCategories.map((sub) => (
                         <button
@@ -752,7 +746,7 @@ function ProductionFormContent() {
               <Search className="w-4 h-4 absolute left-3 top-3 text-[#8C7361]" />
               <Input
                 type="text"
-                placeholder="Search products by name or type..."
+                placeholder={t("production.searchProductsInput")}
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 className="pl-9 bg-white border-[#EDE4D5] rounded-xl text-xs"
@@ -761,9 +755,7 @@ function ProductionFormContent() {
 
             {filteredProducts.length === 0 ? (
               <div className="text-center py-8 border border-dashed border-[#EDE4D5] rounded-xl text-xs text-[#8C7361]">
-                {isGlobalAdmin
-                  ? "No products match the selected category filter or search query."
-                  : `No products found for ${stationMeta.badge} in this branch or matching search.`}
+                {t("production.noProductsMatchCategory")}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -804,7 +796,7 @@ function ProductionFormContent() {
 
                         {isSelected && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E87A18] text-white shrink-0">
-                            Selected
+                            {t("common.selected") || "Selected"}
                           </span>
                         )}
                       </div>
@@ -812,7 +804,7 @@ function ProductionFormContent() {
                       {isSelected && (
                         <div className="mt-3 pt-3 border-t border-amber-200/70 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
                           <span className="text-xs font-bold text-[#4A2E1B]">
-                            Produced Qty:
+                            {t("production.producedQtyInputLabel")}:
                           </span>
                           <div className="flex items-center gap-1.5">
                             <Input
@@ -839,15 +831,15 @@ function ProductionFormContent() {
             <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
                 <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <Boxes className="w-4 h-4 xs:w-5 xs:h-5 text-indigo-600" /> 2. Select Consumed Raw Materials & Ingredients
+                  <Boxes className="w-4 h-4 xs:w-5 xs:h-5 text-indigo-600" /> {t("production.tabStepMaterials")}
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
-                  Multi-select flour, sugar, yeast, oil, and packaging materials consumed for this production.
+                  {t("production.multiItemBatchSubtitle")}
                 </p>
               </div>
 
               <span className="text-xs font-extrabold px-3 py-1 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
-                {totalMaterialsSelectedCount} Ingredients Selected
+                {totalMaterialsSelectedCount} {t("production.ingredientsCount")}
               </span>
             </div>
 
@@ -856,7 +848,7 @@ function ProductionFormContent() {
               <Search className="w-4 h-4 absolute left-3 top-3 text-[#8C7361]" />
               <Input
                 type="text"
-                placeholder="Search raw materials (flour, sugar, yeast, oil...)..."
+                placeholder={t("production.searchMaterialsInput")}
                 value={materialSearch}
                 onChange={(e) => setMaterialSearch(e.target.value)}
                 className="pl-9 bg-white border-[#EDE4D5] rounded-xl text-xs"
@@ -894,14 +886,14 @@ function ProductionFormContent() {
                         <div className="min-w-0 flex-1">
                           <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{mat.name}</h4>
                           <span className="text-[11px] font-semibold text-[#8C7361] block">
-                            Unit: <strong className="text-indigo-950">{mat.unitType}</strong>
+                            {t("production.unit")}: <strong className="text-indigo-950">{mat.unitType}</strong>
                           </span>
                         </div>
                       </div>
 
                       {isSelected && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-600 text-white shrink-0">
-                          Selected
+                          {t("common.selected") || "Selected"}
                         </span>
                       )}
                     </div>
@@ -909,7 +901,7 @@ function ProductionFormContent() {
                     {isSelected && (
                       <div className="mt-3 pt-3 border-t border-indigo-200/70 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
                         <span className="text-xs font-bold text-indigo-950">
-                          Used Amount:
+                          {t("production.usedQtyInputLabel")}:
                         </span>
                         <div className="flex items-center gap-1.5">
                           <Input
@@ -935,11 +927,11 @@ function ProductionFormContent() {
           <div className="hidden md:flex bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm">
             <div>
               <h3 className="font-extrabold text-sm text-[#2C1B10]">
-                {isEditMode ? "Save changes to this production batch?" : "Ready to submit production batch?"}
+                {isEditMode ? t("production.btnSubmitChanges") : t("production.btnReviewSubmitBatch")}
               </h3>
               <p className="text-xs text-[#8C7361] mt-0.5">
-                Selected <strong className="text-[#4A2E1B]">{totalProductsSelectedCount} products</strong> and{" "}
-                <strong className="text-[#4A2E1B]">{totalMaterialsSelectedCount} materials</strong> for shift log.
+                {t("production.colProductsBaked")}: <strong className="text-[#4A2E1B]">{totalProductsSelectedCount}</strong> •{" "}
+                {t("production.colRawMaterialsConsumed")}: <strong className="text-[#4A2E1B]">{totalMaterialsSelectedCount}</strong>
               </p>
             </div>
 
@@ -950,14 +942,14 @@ function ProductionFormContent() {
                 size="lg"
                 onClick={() => guardedAction(() => router.push("/production"))}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
 
               <Button
                 type="submit"
                 size="lg"
                 loading={isSubmitting}
-                loadingText={isEditMode ? "Updating Batch..." : "Submitting..."}
+                loadingText={isEditMode ? t("production.submittingBatch") : t("production.submittingBatch")}
                 disabled={
                   totalProductsSelectedCount === 0 ||
                   (!isEditMode && !isSessionOpen)
@@ -966,12 +958,12 @@ function ProductionFormContent() {
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {isEditMode
-                  ? "Save & Update Batch"
+                  ? t("production.btnSubmitChanges")
                   : !isSessionOpen
-                  ? "Session Closed"
+                  ? t("sessions.statusClosed")
                   : isGlobalAdmin
-                  ? "Submit & Approve Batch"
-                  : "Submit for Approval"}
+                  ? t("production.btnConfirmSubmitBatch")
+                  : t("production.statusPendingApproval")}
               </Button>
             </div>
           </div>
@@ -982,10 +974,10 @@ function ProductionFormContent() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <span className="text-xs font-black text-[#2C1B10] block">
-                    {totalProductsSelectedCount} Product{totalProductsSelectedCount === 1 ? '' : 's'} Selected
+                    {totalProductsSelectedCount} {t("production.colProductsBaked")}
                   </span>
                   <span className="text-[10px] text-[#8C7361] font-semibold truncate block">
-                    Step 1 of 2: Products Baked
+                    {t("production.tabStepProducts")}
                   </span>
                 </div>
                 <Button
@@ -995,7 +987,7 @@ function ProductionFormContent() {
                   onClick={() => {
                     const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
                     if (!hasProductWithQty) {
-                      toast.error("Please enter a produced quantity for at least one product.");
+                      toast.error(t("production.toastSpecifyAtLeastOne"));
                       return;
                     }
                     setMobileStep(2);
@@ -1003,7 +995,7 @@ function ProductionFormContent() {
                   }}
                   className="bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-xs h-11 px-4 rounded-xl flex items-center gap-1.5 shadow-md shrink-0 cursor-pointer"
                 >
-                  <span>Next: Ingredients</span>
+                  <span>{t("production.btnProceedToMaterials", { count: totalMaterialsSelectedCount })}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -1020,7 +1012,7 @@ function ProductionFormContent() {
                   className="h-11 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shrink-0 cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Products</span>
+                  <span>{t("production.btnBackToProducts")}</span>
                 </Button>
                 <Button
                   type="button"
@@ -1030,7 +1022,7 @@ function ProductionFormContent() {
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span className="truncate">
-                    {isEditMode ? "Save Batch" : isGlobalAdmin ? "Approve Batch" : "Submit for Approval"}
+                    {isEditMode ? t("production.btnSubmitChanges") : isGlobalAdmin ? t("production.btnConfirmSubmitBatch") : t("production.statusPendingApproval")}
                   </span>
                 </Button>
               </div>
@@ -1045,7 +1037,7 @@ function ProductionFormContent() {
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg font-black text-[#2C1B10] flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              {isEditMode ? "Confirm Batch Updates" : "Confirm Production Batch"}
+              {isEditMode ? t("production.editBatchTitleModal") : t("production.confirmModalBatchTitle")}
             </DialogTitle>
           </DialogHeader>
 
@@ -1053,23 +1045,23 @@ function ProductionFormContent() {
             {/* Shift & Date Info */}
             <div className="p-2.5 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-[#4A2E1B] font-bold">
               <span>📅 {formatEthDate(date)}</span>
-              <span>{shift === "NIGHT" ? "🌙 Night Shift" : "☀️ Day Shift"}</span>
+              <span>{shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}</span>
             </div>
 
             {/* High-Level Overview Stats - Clean and compact even for 10+ items */}
             <div className="grid grid-cols-2 gap-2">
               <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70 text-center">
-                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Products Baked</span>
+                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t("production.summaryProductsProduced")}</span>
                 <span className="text-sm font-black text-[#2C1B10]">
                   {selectedProductList.length}{" "}
-                  <span className="text-[11px] font-semibold text-[#8C7361]">({totalProducedUnits} units)</span>
+                  <span className="text-[11px] font-semibold text-[#8C7361]">({totalProducedUnits} {t("production.totalBakedUnits")})</span>
                 </span>
               </div>
               <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200/70 text-center">
-                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Raw Materials</span>
+                <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t("production.summaryMaterialsDeducted")}</span>
                 <span className="text-sm font-black text-indigo-950">
                   {selectedMaterialList.length}{" "}
-                  <span className="text-[11px] font-semibold text-[#8C7361]">used</span>
+                  <span className="text-[11px] font-semibold text-[#8C7361]">{t("production.ingredientsCount")}</span>
                 </span>
               </div>
             </div>
@@ -1081,9 +1073,9 @@ function ProductionFormContent() {
                 onClick={() => setShowModalBreakdown((prev) => !prev)}
                 className="w-full py-2 px-3 rounded-xl bg-[#FAF7EE] hover:bg-[#F3ECE1] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs flex items-center justify-between transition-colors cursor-pointer"
               >
-                <span>{showModalBreakdown ? "Hide Item Breakdown" : "View Item Breakdown"}</span>
+                <span>{showModalBreakdown ? t("production.showLess") : t("production.tabAll")}</span>
                 <span className="text-[11px] text-[#8C7361] font-semibold">
-                  {showModalBreakdown ? "▲ Collapse" : `▼ (${selectedProductList.length + selectedMaterialList.length} items)`}
+                  {showModalBreakdown ? "▲" : `▼ (${selectedProductList.length + selectedMaterialList.length})`}
                 </span>
               </button>
 
@@ -1092,7 +1084,7 @@ function ProductionFormContent() {
                   {/* Products Baked Summary */}
                   <div>
                     <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
-                      Products Baked ({selectedProductList.length}):
+                      {t("production.colProductsBaked")} ({selectedProductList.length}):
                     </span>
                     <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
                       {selectedProductList.map((item) => (
@@ -1112,11 +1104,11 @@ function ProductionFormContent() {
                   {/* Ingredients Consumed Summary */}
                   <div>
                     <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
-                      Raw Materials Consumed ({selectedMaterialList.length}):
+                      {t("production.colRawMaterialsConsumed")} ({selectedMaterialList.length}):
                     </span>
                     {selectedMaterialList.length === 0 ? (
                       <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-500 italic">
-                        No materials specified
+                        {t("production.noMaterialsDeducted")}
                       </div>
                     ) : (
                       <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
@@ -1146,7 +1138,7 @@ function ProductionFormContent() {
               onClick={() => setShowSubmitModal(false)}
               className="w-full xs:w-auto rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold cursor-pointer"
             >
-              Review / Edit
+              {t("production.btnKeepEditingBatch")}
             </Button>
             <Button
               type="button"
@@ -1155,7 +1147,7 @@ function ProductionFormContent() {
               className="w-full xs:w-auto flex-1 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{isEditMode ? "Yes, Save Changes" : isGlobalAdmin ? "Yes, Approve Batch" : "Yes, Submit Batch"}</span>
+              <span>{isEditMode ? t("production.btnSubmitChanges") : t("production.btnConfirmSubmitBatch")}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1165,10 +1157,10 @@ function ProductionFormContent() {
         isOpen={showDiscardModal}
         onClose={cancelDiscard}
         onConfirm={confirmDiscard}
-        title="Discard Production Batch?"
-        description="You have selected items and material quantities for this production batch. Are you sure you want to discard your work?"
-        confirmText="Discard and Leave"
-        cancelText="Continue Editing"
+        title={t("products.unsavedModalTitle")}
+        description={t("products.unsavedModalDesc")}
+        confirmText={t("products.discardChangesBtn")}
+        cancelText={t("products.keepEditingBtn")}
         variant="warning"
       />
     </DashboardLayout>
