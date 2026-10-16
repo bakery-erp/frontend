@@ -398,7 +398,7 @@ function ProductionFormContent() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-4 xs:space-y-6 pb-28 md:pb-12">
+      <div className="w-full max-w-6xl mx-auto space-y-4 xs:space-y-6 pb-28 md:pb-12 min-w-0 overflow-x-hidden">
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
           <div className="min-w-0 flex-1">
@@ -495,12 +495,12 @@ function ProductionFormContent() {
 
         <form onSubmit={handleRequestSubmit} className="space-y-4 xs:space-y-6">
           {/* Mobile 2-Step Wizard Indicator (md:hidden) */}
-          <div className="md:hidden bg-white p-2.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
-            <div className="flex items-center gap-2">
+          <div className="md:hidden bg-white p-2.5 rounded-2xl border border-[#EDE4D5] shadow-xs w-full max-w-full overflow-hidden">
+            <div className="flex items-center gap-2 w-full">
               <button
                 type="button"
                 onClick={() => setMobileStep(1)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-extrabold transition-all ${
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                   mobileStep === 1
                     ? "bg-[#4A2E1B] text-white shadow-xs"
                     : "bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
@@ -512,7 +512,7 @@ function ProductionFormContent() {
                   1
                 </span>
                 <span className="truncate">
-                  {t("production.tabStepProducts")} ({totalProductsSelectedCount})
+                  {t("production.tabStepProducts").replace(/^[0-9]+\.\s*/, "")} ({totalProductsSelectedCount})
                 </span>
               </button>
 
@@ -526,7 +526,7 @@ function ProductionFormContent() {
                   }
                   setMobileStep(2);
                 }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-extrabold transition-all ${
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                   mobileStep === 2
                     ? "bg-[#4A2E1B] text-white shadow-xs"
                     : "bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]"
@@ -537,7 +537,9 @@ function ProductionFormContent() {
                 }`}>
                   2
                 </span>
-                <span className="truncate">{t("production.tabStepMaterials")} ({totalMaterialsSelectedCount})</span>
+                <span className="truncate">
+                  {t("production.tabStepMaterials").replace(/^[0-9]+\.\s*/, "")} ({totalMaterialsSelectedCount})
+                </span>
               </button>
             </div>
           </div>

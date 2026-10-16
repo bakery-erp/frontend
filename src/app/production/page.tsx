@@ -339,100 +339,82 @@ export default function ProductionPage() {
         </div>
       )}
 
-      {/* Filter Tabs & Shift Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3 max-w-full overflow-hidden">
-        <div className="relative overflow-hidden flex-1 max-w-full">
-          {/* Edge gradient hints on small screens */}
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+      {/* Filter Tabs & Shift Selector (Only for Admin & Owner) */}
+      {isGlobalAdmin && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3 max-w-full overflow-hidden">
+          <div className="relative overflow-hidden flex-1 max-w-full">
+            {/* Edge gradient hints on small screens */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
 
-          <div
-            className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {isGlobalAdmin ? (
-              <>
-                <button
-                  ref={(el) => { tabRefs.current["ALL"] = el; }}
-                  onClick={() => setFilterTab("ALL")}
-                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-                    filterTab === "ALL"
-                      ? "bg-[#2C1B10] text-white shadow-xs"
-                      : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
-                  }`}
-                >
-                  {t('production.allBatches')} ({roleBatches.length})
-                </button>
-                <button
-                  ref={(el) => { tabRefs.current["TODAY"] = el; }}
-                  onClick={() => setFilterTab("TODAY")}
-                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                    filterTab === "TODAY"
-                      ? "bg-emerald-700 text-white shadow-xs"
-                      : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-                  }`}
-                >
-                  📅 {t('production.todayBatches')} ({todayCount})
-                </button>
-                <button
-                  ref={(el) => { tabRefs.current["UNSEEN"] = el; }}
-                  onClick={() => setFilterTab("UNSEEN")}
-                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                    filterTab === "UNSEEN"
-                      ? "bg-sky-700 text-white shadow-xs"
-                      : "text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200"
-                  }`}
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  {t('production.unseenBatches')}
-                  {unseenCount > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                      filterTab === "UNSEEN" ? "bg-white text-sky-800" : "bg-sky-600 text-white"
-                    }`}>
-                      {unseenCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  ref={(el) => { tabRefs.current["FLAGGED"] = el; }}
-                  onClick={() => setFilterTab("FLAGGED")}
-                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                    filterTab === "FLAGGED"
-                      ? "bg-rose-700 text-white shadow-xs"
-                      : "text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200"
-                  }`}
-                >
-                  <Flag className="w-3.5 h-3.5" />
-                  {t('production.flaggedBatches')}
-                  {flaggedCount > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                      filterTab === "FLAGGED" ? "bg-white text-rose-800" : "bg-rose-600 text-white"
-                    }`}>
-                      {flaggedCount}
-                    </span>
-                  )}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  ref={(el) => { tabRefs.current["ALL"] = el; }}
-                  onClick={() => setFilterTab("ALL")}
-                  className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-                    filterTab === "ALL"
-                      ? "bg-[#2C1B10] text-white shadow-xs"
-                      : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
-                  }`}
-                >
-                  📅 Today ({todayBatches.length})
-                </button>
-              </>
-            )}
+            <div
+              className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              <button
+                ref={(el) => { tabRefs.current["ALL"] = el; }}
+                onClick={() => setFilterTab("ALL")}
+                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                  filterTab === "ALL"
+                    ? "bg-[#2C1B10] text-white shadow-xs"
+                    : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
+                }`}
+              >
+                {t('production.allBatches')} ({roleBatches.length})
+              </button>
+              <button
+                ref={(el) => { tabRefs.current["TODAY"] = el; }}
+                onClick={() => setFilterTab("TODAY")}
+                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  filterTab === "TODAY"
+                    ? "bg-emerald-700 text-white shadow-xs"
+                    : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                }`}
+              >
+                📅 {t('production.todayBatches')} ({todayCount})
+              </button>
+              <button
+                ref={(el) => { tabRefs.current["UNSEEN"] = el; }}
+                onClick={() => setFilterTab("UNSEEN")}
+                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  filterTab === "UNSEEN"
+                    ? "bg-sky-700 text-white shadow-xs"
+                    : "text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200"
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                {t('production.unseenBatches')}
+                {unseenCount > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    filterTab === "UNSEEN" ? "bg-white text-sky-800" : "bg-sky-600 text-white"
+                  }`}>
+                    {unseenCount}
+                  </span>
+                )}
+              </button>
+              <button
+                ref={(el) => { tabRefs.current["FLAGGED"] = el; }}
+                onClick={() => setFilterTab("FLAGGED")}
+                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  filterTab === "FLAGGED"
+                    ? "bg-rose-700 text-white shadow-xs"
+                    : "text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200"
+                }`}
+              >
+                <Flag className="w-3.5 h-3.5" />
+                {t('production.flaggedBatches')}
+                {flaggedCount > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    filterTab === "FLAGGED" ? "bg-white text-rose-800" : "bg-rose-600 text-white"
+                  }`}>
+                    {flaggedCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Shift Filter Pill Group (Only visible for Owner & Admin) */}
-        {isGlobalAdmin && (
+          {/* Shift Filter Pill Group */}
           <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 self-start sm:self-auto max-w-full overflow-x-auto no-scrollbar">
             <button
               onClick={() => setShiftFilter("ALL")}
@@ -459,8 +441,8 @@ export default function ProductionPage() {
               🌙 {t('production.nightShift')}
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Mobile Card List (block on < md) ── */}
       <div className="space-y-3 block md:hidden mb-6">
