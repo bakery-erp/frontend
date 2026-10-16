@@ -82,17 +82,35 @@ export default function ProductionPage() {
   const [items, setItems] = useState<{ productId: string; quantityProduced: string }[]>([]);
   const [materials, setMaterials] = useState<{ stockItemId: string; quantityUsed: string }[]>([]);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["production-page", selectedBranchId, user?.role],
+  // 1. Fast primary query for batches table and active session (loads in ~300ms)
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ["production-page-batches", selectedBranchId],
     queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
 
-      const [resBatches, resProd, resStock, resSess] = await Promise.all([
+      const [resBatches, resSess] = await Promise.all([
         api.get(`/production-batches${branchQuery}`),
-        api.get(`/products${branchQuery}`),
-        api.get(`/stock-items${branchQuery}`),
         api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null })),
+      ]);
+
+      return {
+        batches: (resBatches.data || []) as ProductionBatch[],
+        activeSession: (resSess.data || null) as ActiveSession | null,
+      };
+    },
+  });
+
+  // 2. Lightweight modal data (products and stock items) with minimal=true
+  const { data: modalData } = useQuery({
+    queryKey: ["production-modal-data", selectedBranchId, user?.role],
+    queryFn: async () => {
+      const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
+      const minimalParam = branchQuery ? `${branchQuery}&minimal=true` : "?minimal=true";
+
+      const [resProd, resStock] = await Promise.all([
+        api.get(`/products${minimalParam}`),
+        api.get(`/stock-items${branchQuery}`),
       ]);
 
       const filteredProds = isGlobalAdmin
@@ -100,18 +118,17 @@ export default function ProductionPage() {
         : (resProd.data || []).filter((p: Product) => isProductAllowedForRole(p, user?.role));
 
       return {
-        batches: (resBatches.data || []) as ProductionBatch[],
         products: filteredProds as Product[],
         stockItems: (resStock.data || []) as StockItem[],
-        activeSession: (resSess.data || null) as ActiveSession | null,
       };
     },
+    staleTime: 60 * 1000,
   });
 
-  const batches = data?.batches || [];
-  const products = data?.products || [];
-  const stockItems = data?.stockItems || [];
-  const activeSession = data?.activeSession || null;
+  const batches = pageData?.batches || [];
+  const activeSession = pageData?.activeSession || null;
+  const products = modalData?.products || [];
+  const stockItems = modalData?.stockItems || [];
 
   const isSessionOpen = activeSession?.status === "OPEN";
   const sessionStatusLabel = !activeSession
@@ -149,7 +166,8 @@ export default function ProductionPage() {
       setIsAddOpen(false);
       setItems([]);
       setMaterials([]);
-      queryClient.invalidateQueries({ queryKey: ["production-page"] });
+      queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
+      queryClient.invalidateQueries({ queryKey: ["production-modal-data"] });
       queryClient.invalidateQueries({ queryKey: ["production-history"] });
       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -168,7 +186,8 @@ export default function ProductionPage() {
     try {
       await api.post(`/production-batches/${batchId}/approve`);
       toast.success("Batch approved & stock levels updated!");
-      queryClient.invalidateQueries({ queryKey: ["production-page"] });
+      queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
+      queryClient.invalidateQueries({ queryKey: ["production-modal-data"] });
       queryClient.invalidateQueries({ queryKey: ["production-history"] });
       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -186,7 +205,8 @@ export default function ProductionPage() {
     try {
       await api.post(`/production-batches/${batchId}/reject`);
       toast.success("Batch rejected");
-      queryClient.invalidateQueries({ queryKey: ["production-page"] });
+      queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
+      queryClient.invalidateQueries({ queryKey: ["production-modal-data"] });
       queryClient.invalidateQueries({ queryKey: ["production-history"] });
       queryClient.invalidateQueries({ queryKey: ["stock-items"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -314,7 +334,7 @@ export default function ProductionPage() {
         </div>
       </div>
 
-      {!isLoading && !!data && !isSessionOpen && (
+      {!isLoading && !!pageData && !isSessionOpen && (
         <div className="mb-4 xs:mb-6 p-3.5 xs:p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
           <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
           <span>

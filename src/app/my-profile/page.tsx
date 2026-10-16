@@ -108,6 +108,8 @@ export default function MyProfilePage() {
 
   const { data = null, isLoading: loading } = useQuery<DashboardData | null>({
     queryKey: ['my-profile-dashboard', authUser?.id],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const res = await api.get('/users/me/dashboard');
       return res.data;

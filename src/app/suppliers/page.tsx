@@ -67,13 +67,14 @@ export default function SuppliersPage() {
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['suppliers-page', selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = {};
       if (selectedBranchId) params.branchId = selectedBranchId;
       const [supRes, delRes, prodRes] = await Promise.all([
         api.get('/suppliers', { params }),
         api.get('/supplier-deliveries', { params }),
-        api.get('/products'),
+        api.get('/products?minimal=true'),
       ]);
       const resellOnly = (prodRes.data || []).filter((p: any) => p.category?.type === 'RESELL');
       const filteredProd = resellOnly.length > 0 ? resellOnly : (prodRes.data || []).filter((p: any) => p.category?.type !== 'PRODUCED');

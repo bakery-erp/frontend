@@ -183,7 +183,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     try {
       const [resSess, resProd, resFinCat] = await Promise.all([
         api.get(`/daily-sessions/${resolvedParams.id}`),
-        api.get(`/products?isActive=true`),
+        api.get(`/products?isActive=true&minimal=true`),
         api.get(`/financial-categories?type=EXPENSE`).catch(() => ({ data: [] })),
       ]);
       const s: DailySessionDetail = resSess.data;

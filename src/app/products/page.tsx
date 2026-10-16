@@ -76,6 +76,7 @@ export default function ProductsPage() {
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['products', selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (selectedBranchId) params.branchId = selectedBranchId;

@@ -95,6 +95,7 @@ export default function StockPage() {
 
   const { data: items = [], isLoading } = useQuery<StockItem[]>({
     queryKey: ['stock-items', selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const endpoint = selectedBranchId 
         ? `/stock-items?branchId=${selectedBranchId}` 

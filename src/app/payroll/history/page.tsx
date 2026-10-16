@@ -51,6 +51,7 @@ export default function PayrollHistoryPage() {
 
   const { data: history = [], isLoading } = useQuery<PayrollRecord[]>({
     queryKey: ["payroll-history", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/payroll", { params });

@@ -123,13 +123,16 @@ function ProductionFormContent() {
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['production-new-form', selectedBranchId, editBatchId, user?.role],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
+      const minimalParam = branchQuery ? `${branchQuery}&minimal=true` : "?minimal=true";
 
       const [resCat, resProd, resStock, resSess, resBatch] = await Promise.all([
         api.get("/product-categories"),
-        api.get(`/products${branchQuery}`),
+        api.get(`/products${minimalParam}`),
         api.get(`/stock-items${branchQuery}`),
         api.get("/daily-sessions/active", sessionParams).catch(() => ({ data: null })),
         editBatchId ? api.get(`/production-batches/${editBatchId}`).catch(() => ({ data: null })) : Promise.resolve({ data: null }),

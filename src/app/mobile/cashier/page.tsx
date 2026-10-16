@@ -43,7 +43,7 @@ export default function MobileCashierStation() {
     try {
       const [sessRes, prodRes] = await Promise.all([
         api.get('/daily-sessions/active').catch(() => ({ data: null })),
-        api.get('/products?isActive=true'),
+        api.get('/products?isActive=true&minimal=true'),
       ]);
       
       setActiveSession(sessRes.data || null);
