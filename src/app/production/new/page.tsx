@@ -248,11 +248,35 @@ function ProductionFormContent() {
     });
   };
 
+  // Helper to format quantity inputs so typing replaces default '0'
+  const formatQtyInput = (rawVal: string, prevVal: string): string => {
+    if (rawVal === "") return "";
+
+    // If previous was "0" and user typed to the left of 0 (e.g., typed "2" -> "20")
+    if (prevVal === "0" && rawVal.length === 2 && rawVal.endsWith("0")) {
+      return rawVal.slice(0, 1);
+    }
+
+    // If user typed "00", keep as single "0"
+    if (rawVal === "00") return "0";
+
+    // If input starts with "0" followed by a non-zero digit (e.g., "02" -> "2", "05" -> "5", but keep "0." / "0.5")
+    if (/^0[1-9]/.test(rawVal)) {
+      return rawVal.replace(/^0+/, "");
+    }
+
+    return rawVal;
+  };
+
   const updateProductQty = (productId: string, qty: string) => {
-    setSelectedProducts((prev) => ({
-      ...prev,
-      [productId]: qty,
-    }));
+    setSelectedProducts((prev) => {
+      const prevVal = prev[productId] || "";
+      const formatted = formatQtyInput(qty, prevVal);
+      return {
+        ...prev,
+        [productId]: formatted,
+      };
+    });
   };
 
   // Material Selection Handlers
@@ -269,10 +293,14 @@ function ProductionFormContent() {
   };
 
   const updateMaterialQty = (stockItemId: string, qty: string) => {
-    setSelectedMaterials((prev) => ({
-      ...prev,
-      [stockItemId]: qty,
-    }));
+    setSelectedMaterials((prev) => {
+      const prevVal = prev[stockItemId] || "";
+      const formatted = formatQtyInput(qty, prevVal);
+      return {
+        ...prev,
+        [stockItemId]: formatted,
+      };
+    });
   };
 
   // Selected items summary lists for modal and submit
@@ -815,10 +843,15 @@ function ProductionFormContent() {
                           <div className="flex items-center gap-1.5">
                             <Input
                               type="number"
-                              min="1"
-                              placeholder="Qty"
+                              inputMode="numeric"
+                              min="0"
+                              placeholder="0"
                               value={qtyVal}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) => updateProductQty(p.id, e.target.value)}
+                              onBlur={(e) => {
+                                if (e.target.value === "") updateProductQty(p.id, "0");
+                              }}
                               className="w-24 h-9 bg-white border-[#EDE4D5] font-bold text-sm text-[#2C1B10] text-right rounded-xl focus:border-[#E87A18]"
                             />
                             <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{p.unitType}</span>
@@ -912,11 +945,16 @@ function ProductionFormContent() {
                         <div className="flex items-center gap-1.5">
                           <Input
                             type="number"
+                            inputMode="decimal"
                             step="0.01"
-                            min="0.01"
-                            placeholder="Qty"
+                            min="0"
+                            placeholder="0"
                             value={qtyVal}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
+                            onBlur={(e) => {
+                              if (e.target.value === "") updateMaterialQty(mat.id, "0");
+                            }}
                             className="w-24 h-9 bg-white border-indigo-200 font-bold text-sm text-indigo-950 text-right rounded-xl focus:border-indigo-600"
                           />
                           <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{mat.unitType}</span>
