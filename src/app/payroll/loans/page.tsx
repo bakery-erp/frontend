@@ -45,6 +45,8 @@ export default function PayrollLoansPage() {
   const [isLoanOpen, setIsLoanOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
+  const [loanToSign, setLoanToSign] = useState<Loan | null>(null);
+  const [isSigning, setIsSigning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters
@@ -330,7 +332,7 @@ export default function PayrollLoansPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleApproveLoan(l.id)}
+                      onClick={() => setLoanToSign(l)}
                       className="flex-1 h-8 text-xs font-bold bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
                     >
                       ✍️ {t('payroll.markAsSigned')}
@@ -425,7 +427,7 @@ export default function PayrollLoansPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleApproveLoan(l.id)}
+                          onClick={() => setLoanToSign(l)}
                           className="font-bold text-xs bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-2xs"
                         >
                           ✍️ {t('payroll.markAsSigned')}
@@ -590,6 +592,78 @@ export default function PayrollLoansPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* CONFIRM PHYSICAL SIGNATURE DIALOG */}
+      {loanToSign && (
+        <Dialog open={true} onOpenChange={(open) => !open && setLoanToSign(null)}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                ✍️ {t('payroll.confirmSignTitle')}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-3 text-sm text-[#4A2E1B] space-y-3">
+              <p className="leading-relaxed">
+                {t('payroll.confirmSignDesc').replace('{name}', loanToSign.user?.fullName || 'the employee')}
+              </p>
+              <div className="p-3 bg-[#FAF6F0] rounded-xl border border-[#EDE4D5] text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361]">{t('payroll.colStaffMember')}:</span>
+                  <strong className="text-[#2C1B10]">{loanToSign.user?.fullName}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361]">{t('profile.type')}:</span>
+                  <strong>{loanToSign.type === "STAFF_LOAN" ? t('payroll.staffLoan') : t('payroll.salaryAdvance')}</strong>
+                </div>
+                <div className="flex justify-between border-t border-[#EDE4D5]/70 pt-1">
+                  <span className="text-[#8C7361]">{t('payroll.colLoanAmount')}:</span>
+                  <strong className="text-emerald-800 font-mono font-black">{loanToSign.totalAmount} {t('common.currency')}</strong>
+                </div>
+              </div>
+              <p className="text-xs text-[#8C7361]">
+                Please ensure you have physically collected the signed paper slip before confirming.
+              </p>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+              <Button
+                type="button"
+                size="lg"
+                loading={isSigning}
+                onClick={async () => {
+                  if (!loanToSign) return;
+                  setIsSigning(true);
+                  try {
+                    await api.post(`/loans/${loanToSign.id}/approve`);
+                    toast.success(t('payroll.markedSignedSuccess') || "Marked as signed successfully");
+                    setLoanToSign(null);
+                    queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+                    queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
+                    queryClient.invalidateQueries({ queryKey: ["payroll"] });
+                    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+                  } catch (err: any) {
+                    toast.error(err.response?.data?.error || "Failed to mark loan as signed");
+                  } finally {
+                    setIsSigning(false);
+                  }
+                }}
+                className="w-full sm:w-auto order-1 sm:order-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+              >
+                ✍️ {t('payroll.confirmSignBtn')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={isSigning}
+                onClick={() => setLoanToSign(null)}
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                {t('common.cancel')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
