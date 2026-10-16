@@ -116,6 +116,8 @@ export default function StockItemDetailPage() {
 
   const { data, isLoading } = useQuery<HistoryData>({
     queryKey: ['stock-item-history', itemId],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const res = await api.get(`/stock-items/${itemId}/history`);
       return res.data;

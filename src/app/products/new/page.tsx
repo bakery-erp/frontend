@@ -64,6 +64,8 @@ export default function NewProductPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['product-new-metadata'],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const [resCat, resFinCat] = await Promise.all([
         api.get("/product-categories"),

@@ -100,6 +100,7 @@ export default function DailyProductHistoryPage() {
 
   const { data: historyData, isLoading } = useQuery({
     queryKey: ["production-history", branchId, startDate, endDate, productFilter, search],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (branchId) params.append("branchId", branchId);

@@ -54,6 +54,7 @@ export default function PayrollLoansPage() {
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ["payroll-loans-page", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const loanParams: any = { type: "STAFF" };

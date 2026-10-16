@@ -121,6 +121,7 @@ export default function Dashboard() {
 
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ['dashboard', selectedBranchId, todayYmd],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = { from: todayYmd, to: todayYmd };
       if (selectedBranchId) {

@@ -41,6 +41,7 @@ export default function ProductCategoriesPage() {
 
   const { data: categories = [], isLoading } = useQuery<Category[]>({
     queryKey: ["product-categories"],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const res = await api.get("/product-categories");
       return res.data || [];

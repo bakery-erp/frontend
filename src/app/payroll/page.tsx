@@ -128,6 +128,7 @@ export default function PayrollPage() {
 
   const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["payroll-users", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/users", { params });
@@ -137,6 +138,7 @@ export default function PayrollPage() {
 
   const { data: history = [], isLoading: isLoadingHistory } = useQuery<PayrollRecord[]>({
     queryKey: ["payroll-history", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/payroll", { params });
@@ -147,6 +149,7 @@ export default function PayrollPage() {
 
   const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
     queryKey: ["payroll-loans", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = { type: "STAFF" };
       if (selectedBranchId) params.branchId = selectedBranchId;
@@ -158,6 +161,7 @@ export default function PayrollPage() {
 
   const { data: penalties = [], isLoading: isLoadingPenalties } = useQuery<Penalty[]>({
     queryKey: ["payroll-penalties", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/penalties", { params });

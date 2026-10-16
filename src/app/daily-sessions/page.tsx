@@ -53,12 +53,13 @@ export default function DailySessionsPage() {
 
   const { data: sessionData, isLoading } = useQuery<{ sessions: DailySession[]; products: Product[] }>({
     queryKey: ['daily-sessions', selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = {};
       if (selectedBranchId) params.branchId = selectedBranchId;
       const [sessRes, prodRes] = await Promise.all([
         api.get('/daily-sessions', { params }),
-        api.get('/products?isActive=true'),
+        api.get('/products?isActive=true&minimal=true'),
       ]);
       return { sessions: sessRes.data, products: prodRes.data };
     },

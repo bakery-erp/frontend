@@ -235,6 +235,7 @@ export default function ExpensesPage() {
   // React Query: Expenses
   const { data: expenses = [], isLoading } = useQuery<Expense[]>({
     queryKey: ["expenses", selectedBranchId, filterFrom, filterTo, typeFilter],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = { from: filterFrom, to: filterTo };
       if (selectedBranchId) params.branchId = selectedBranchId;

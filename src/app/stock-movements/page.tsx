@@ -159,6 +159,7 @@ export default function StockMovementsPage() {
 
   const { data: movements = [], isLoading: isLoadingMovements } = useQuery<StockMovement[]>({
     queryKey: ['stock-movements', selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const endpoint = selectedBranchId 
         ? `/stock-movements?branchId=${selectedBranchId}` 
@@ -170,6 +171,7 @@ export default function StockMovementsPage() {
 
   const { data: loans = [], isLoading: isLoadingLoans } = useQuery<StockPurchaseLoan[]>({
     queryKey: ['stock-loans', selectedBranchId, loanStatusFilter],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       let endpoint = `/stock-movements/loans/list?`;
       if (selectedBranchId) endpoint += `branchId=${selectedBranchId}&`;

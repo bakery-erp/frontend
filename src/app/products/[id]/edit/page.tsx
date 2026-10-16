@@ -81,6 +81,8 @@ export default function EditProductPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['product-edit', productId],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const [prodRes, catRes, finCatRes] = await Promise.all([
         api.get(`/products/${productId}`).catch(async () => {

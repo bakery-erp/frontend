@@ -91,6 +91,8 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
 
   const { data: batch, isLoading, isError } = useQuery<ProductionBatchDetail>({
     queryKey: ["production-batch-detail", batchId],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const res = await api.get(`/production-batches/${batchId}`);
       return res.data;

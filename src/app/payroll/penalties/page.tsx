@@ -49,6 +49,7 @@ export default function PayrollPenaltiesPage() {
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ["payroll-penalties-page", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const [usersRes, penaltiesRes] = await Promise.all([

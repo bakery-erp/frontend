@@ -214,6 +214,7 @@ export default function CustomerCreditsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['customer-credits-page', selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const [resCredits, resCustomers] = await Promise.all([

@@ -101,7 +101,7 @@ export default function MobileBakerStation() {
     try {
       const branchParam = user?.branchId ? { branchId: user.branchId } : {};
       const [prodRes, stockRes, sessRes] = await Promise.all([
-        api.get('/products', { params: { isActive: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
+        api.get('/products', { params: { isActive: true, minimal: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
         api.get('/stock-items', { params: branchParam }),
         api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);

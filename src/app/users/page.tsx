@@ -125,6 +125,7 @@ export default function UsersPage() {
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ["users-page", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (selectedBranchId) {

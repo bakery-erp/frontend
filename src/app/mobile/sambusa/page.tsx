@@ -82,7 +82,7 @@ export default function MobileSambusaStation() {
     try {
       const branchParam = user?.branchId ? { branchId: user.branchId } : {};
       const [prodRes, sessRes] = await Promise.all([
-        api.get('/products', { params: { isActive: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
+        api.get('/products', { params: { isActive: true, minimal: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
         api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);
 
