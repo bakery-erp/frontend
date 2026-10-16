@@ -121,6 +121,19 @@ function ProductionFormContent() {
 
   const stationMeta = useMemo(() => getStationMeta(user?.role), [user?.role]);
 
+  const stationBadgeLabel = useMemo(() => {
+    switch (user?.role) {
+      case "BAKER":
+        return t("production.stationBaker") || "Baker Station";
+      case "CAKE_WORKER":
+        return t("production.stationCake") || "Cake Station";
+      case "SAMBUSA_WORKER":
+        return t("production.stationSambusa") || "Sambusa Station";
+      default:
+        return t("production.stationAll") || "All Stations";
+    }
+  }, [user?.role, t]);
+
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['production-new-form', selectedBranchId, editBatchId, user?.role],
     placeholderData: (prev) => prev,
@@ -474,7 +487,7 @@ function ProductionFormContent() {
             {!isGlobalAdmin && (
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold whitespace-nowrap border shadow-2xs ${stationMeta.badgeColor}`}>
                 <ChefHat className="w-3.5 h-3.5 shrink-0" />
-                {stationMeta.badge}
+                {stationBadgeLabel}
               </span>
             )}
             {isEditMode && originalBatchStatus && (
@@ -674,7 +687,7 @@ function ProductionFormContent() {
                   {t("production.tabStepProducts")}
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
-                  {t("production.multiItemBatchSubtitle")}
+                  {t("production.stepProductsSubtitle") || "Select products and enter produced quantities."}
                 </p>
               </div>
 
@@ -898,7 +911,7 @@ function ProductionFormContent() {
                   <Boxes className="w-4 h-4 xs:w-5 xs:h-5 text-indigo-600" /> {t("production.tabStepMaterials")}
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
-                  {t("production.multiItemBatchSubtitle")}
+                  {t("production.stepMaterialsSubtitle") || "Review and adjust raw materials used."}
                 </p>
               </div>
 
