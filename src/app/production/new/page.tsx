@@ -1115,24 +1115,39 @@ function ProductionFormContent() {
               <span>{shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}</span>
             </div>
 
-            {/* High-Level Overview Stats - Clean and compact even for 10+ items */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70 text-center min-w-0">
-                <span className="text-[10px] uppercase font-extrabold text-[#8C7361] block leading-tight truncate">
-                  {t("production.colProductsBaked")}
+            {/* High-Level Overview Stats - Short, punchy, and zero truncation */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-center flex flex-col justify-center min-w-0">
+                <span className="text-[11px] uppercase font-black text-amber-900 tracking-wide block">
+                  {t("production.modalProductsLabel") || "Products"}
                 </span>
-                <span className="text-sm font-black text-[#2C1B10] block mt-0.5 truncate">
-                  {selectedProductList.length}{" "}
-                  <span className="text-[11px] font-semibold text-[#8C7361]">({totalProducedUnits} {t("production.totalBakedUnits")})</span>
+                <div className="mt-1 flex items-baseline justify-center gap-1">
+                  <span className="text-base sm:text-lg font-black text-[#2C1B10]">
+                    {selectedProductList.length}
+                  </span>
+                  <span className="text-xs font-bold text-[#8C7361]">
+                    {t("production.modalItemsCount") || "items"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold text-[#E87A18] block mt-0.5">
+                  {totalProducedUnits} {t("production.modalTotalUnits") || "total pcs"}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200/70 text-center min-w-0">
-                <span className="text-[10px] uppercase font-extrabold text-[#8C7361] block leading-tight truncate">
-                  {t("production.colRawMaterialsConsumed")}
+
+              <div className="p-3 rounded-2xl bg-indigo-50/90 border border-indigo-200/80 text-center flex flex-col justify-center min-w-0">
+                <span className="text-[11px] uppercase font-black text-indigo-900 tracking-wide block">
+                  {t("production.modalMaterialsLabel") || "Raw Materials"}
                 </span>
-                <span className="text-sm font-black text-indigo-950 block mt-0.5 truncate">
-                  {selectedMaterialList.length}{" "}
-                  <span className="text-[11px] font-semibold text-[#8C7361]">{t("production.ingredientsCount")}</span>
+                <div className="mt-1 flex items-baseline justify-center gap-1">
+                  <span className="text-base sm:text-lg font-black text-indigo-950">
+                    {selectedMaterialList.length}
+                  </span>
+                  <span className="text-xs font-bold text-indigo-700">
+                    {t("production.modalItemsCount") || "items"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold text-indigo-600 block mt-0.5">
+                  {t("production.modalToDeduct") || "to deduct"}
                 </span>
               </div>
             </div>
