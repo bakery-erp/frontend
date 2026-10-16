@@ -358,11 +358,7 @@ function ProductionFormContent() {
         };
 
         const res = await api.post("/production-batches", payload);
-        if (res.data.status === "PENDING_APPROVAL") {
-          toast.success(t("production.toastBatchSubmittedApproval"));
-        } else {
-          toast.success(t("production.toastBatchCreatedSuccess"));
-        }
+        toast.success(t("production.toastBatchCreatedSuccess") || "Production batch created successfully");
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['production-page'] }),
@@ -964,9 +960,7 @@ function ProductionFormContent() {
                   ? t("production.btnSubmitChanges")
                   : !isSessionOpen
                   ? t("sessions.statusClosed")
-                  : isGlobalAdmin
-                  ? t("production.btnConfirmSubmitBatch")
-                  : t("production.statusPendingApproval")}
+                  : t("production.btnConfirmSubmitBatch")}
               </Button>
             </div>
           </div>
@@ -1025,7 +1019,7 @@ function ProductionFormContent() {
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span className="truncate">
-                    {isEditMode ? t("production.btnSubmitChanges") : isGlobalAdmin ? t("production.btnConfirmSubmitBatch") : t("production.statusPendingApproval")}
+                    {isEditMode ? t("production.btnSubmitChanges") : t("production.btnConfirmSubmitBatch")}
                   </span>
                 </Button>
               </div>
