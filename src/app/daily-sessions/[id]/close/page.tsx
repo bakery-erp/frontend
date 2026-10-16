@@ -5,6 +5,7 @@ import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3, FileText, X, Check } from "lucide-react";
@@ -91,6 +92,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const resolvedParams = use(params);
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const isAdminOrOwner = user?.role === "ADMIN" || user?.role === "OWNER";
 
@@ -1547,7 +1549,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               onClick={() => router.push("/daily-sessions")}
               className="w-full sm:w-auto order-last sm:order-first"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
@@ -1557,13 +1559,13 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   type="button"
                   onClick={handleSaveDraft}
                   loading={isSavingDraft}
-                  loadingText="Saving Draft..."
+                  loadingText={t("sessions.savingDraftBtn")}
                   disabled={isViewOnly}
                   variant="outline"
                   className="border-amber-400 text-amber-900 bg-amber-50 hover:bg-amber-100 justify-center"
                 >
                   <Save className="w-4 h-4 mr-1.5 text-amber-700" />
-                  Save Draft Progress
+                  {t("sessions.btnSaveDraftClose")}
                 </Button>
               )}
 
@@ -1575,7 +1577,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 variant="brand"
                 className="justify-center"
               >
-                <Save className="w-4 h-4 mr-1.5" /> Save Session Edits
+                <Save className="w-4 h-4 mr-1.5" /> {t("common.save")}
               </Button>
 
               {/* Cashier Submit Request */}
@@ -1586,7 +1588,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   disabled={isViewOnly}
                   className="justify-center"
                 >
-                  Submit for Admin Approval
+                  {t("sessions.btnFinalizeClose")}
                 </Button>
               )}
 
@@ -1598,7 +1600,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   variant="success"
                   className="justify-center"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Approve & Finalize Close
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> {t("sessions.btnFinalizeClose")}
                 </Button>
               )}
 
@@ -1609,7 +1611,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   variant="destructiveOutline"
                   className="justify-center"
                 >
-                  Reopen Session
+                  {t("sessions.reopenSession")}
                 </Button>
               )}
             </div>
@@ -1621,10 +1623,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         isOpen={showDiscardModal}
         onClose={cancelDiscard}
         onConfirm={confirmDiscard}
-        title="Discard Unsaved Session Data?"
-        description="You have entered uncommitted cash counts, leftovers, or expenses. If you leave now without saving a draft or closing, these changes will be lost."
-        confirmText="Discard and Leave"
-        cancelText="Continue Editing"
+        title={t("products.unsavedModalTitle")}
+        description={t("products.unsavedModalDesc")}
+        confirmText={t("products.discardChangesBtn")}
+        cancelText={t("products.keepEditingBtn")}
         variant="warning"
       />
     </DashboardLayout>

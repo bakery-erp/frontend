@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ProductCategory {
   id: string;
@@ -43,6 +44,7 @@ export default function NewProductPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { branches } = useBranch();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>(PRODUCT_PRESET_IMAGES[0].url);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
@@ -53,10 +55,10 @@ export default function NewProductPage() {
 
   useEffect(() => {
     if (user && user.role !== 'OWNER') {
-      toast.error('Product creation is restricted to the owner only');
+      toast.error(t("products.toastRestrictedOwner"));
       router.replace('/products');
     }
-  }, [user, router]);
+  }, [user, router, t]);
 
   const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormChanged);
 
@@ -111,10 +113,10 @@ export default function NewProductPage() {
         queryClient.invalidateQueries({ queryKey: ['product-conversions'] }),
       ]);
       setIsFormChanged(false);
-      toast.success("Product created successfully");
+      toast.success(t("products.toastProductCreated"));
       router.push("/products");
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to create product");
+      toast.error(err.response?.data?.error || t("products.toastFailedCreate"));
     } finally {
       setIsSubmitting(false);
     }
@@ -146,10 +148,10 @@ export default function NewProductPage() {
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-              Add New Product
+              {t("products.addNewProductTitle")}
             </h1>
             <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-              Register a bakery good, snack, or retail product into your store catalog
+              {t("products.productSubtitleNew")}
             </p>
           </div>
         </div>
@@ -162,19 +164,19 @@ export default function NewProductPage() {
                 <PackagePlus className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Product Information</h2>
-                <p className="text-xs text-[#8C7361]">Item identity, flavor, and classification</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionBasicInfo")}</h2>
+                <p className="text-xs text-[#8C7361]">{t("products.sectionBasicInfoDesc")}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Product Name <span className="text-rose-600">*</span>
+                  {t("products.productNameReq")} <span className="text-rose-600">*</span>
                 </label>
                 <Input
                   name="name"
-                  placeholder="e.g. Special White Bread"
+                  placeholder={t("products.productNamePlaceholder")}
                   required
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
                 />
@@ -182,7 +184,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Category <span className="text-rose-600">*</span>
+                  {t("products.categorySelect")} <span className="text-rose-600">*</span>
                 </label>
                 <select
                   name="categoryId"
@@ -191,7 +193,7 @@ export default function NewProductPage() {
                   onChange={(e) => setSelectedCategoryId(e.target.value)}
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  <option value="" disabled>Select Category...</option>
+                  <option value="" disabled>{t("products.selectCategoryPlaceholder")}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {formatCategoryLabel(c)} ({c.type})
@@ -202,7 +204,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Unit Type <span className="text-rose-600">*</span>
+                  {t("products.unitTypeLabel")} <span className="text-rose-600">*</span>
                 </label>
                 <select
                   name="unitType"
@@ -210,19 +212,19 @@ export default function NewProductPage() {
                   defaultValue="PIECE"
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  <option value="PIECE">Piece (Item)</option>
-                  <option value="KG">Kilogram (Kg)</option>
-                  <option value="LITER">Liter (L)</option>
+                  <option value="PIECE">{t("products.unitTypePiece")}</option>
+                  <option value="KG">{t("products.unitTypeKg")}</option>
+                  <option value="LITER">{t("products.unitTypeLiter")}</option>
                 </select>
               </div>
 
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Flavor / Variant (Optional)
+                  {t("products.flavorVariant")}
                 </label>
                 <Input
                   name="flavor"
-                  placeholder="e.g. Chocolate / Sesame / Whole Wheat"
+                  placeholder={t("products.flavorPlaceholder")}
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
                 />
               </div>
@@ -236,15 +238,15 @@ export default function NewProductPage() {
                 <DollarSign className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Pricing & Revenue Category</h2>
-                <p className="text-xs text-[#8C7361]">Customer selling price and wholesale purchase cost</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionPricing")}</h2>
+                <p className="text-xs text-[#8C7361]">{t("products.sectionPricingDesc")}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Selling Base Price (ETB) <span className="text-rose-600">*</span>
+                  {t("products.basePriceLabel")} <span className="text-rose-600">*</span>
                 </label>
                 <Input
                   name="basePrice"
@@ -261,7 +263,7 @@ export default function NewProductPage() {
               {isResell ? (
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                    Buying Cost / Unit Buy Price (ETB) <span className="text-[#8C7361] font-normal">(Optional)</span>
+                    {t("products.buyingCostLabel")} <span className="text-[#8C7361] font-normal">{t("products.optionalTag")}</span>
                   </label>
                   <Input
                     name="buyPrice"
@@ -272,25 +274,25 @@ export default function NewProductPage() {
                     onFocus={(e) => e.target.select()}
                     className="h-11 rounded-xl border-[#EDE4D5] text-sm font-mono"
                   />
-                  <p className="mt-1 text-[11px] text-zinc-500">Wholesale cost paid to supplier for this resell item.</p>
+                  <p className="mt-1 text-[11px] text-zinc-500">{t("products.buyingCostHelp")}</p>
                 </div>
               ) : (
                 <div className="flex flex-col justify-center rounded-xl border border-dashed border-[#EDE4D5] bg-[#FAF6F0] p-3 text-xs text-[#8C7361]">
-                  <span className="font-bold text-[#2C1B10] block mb-0.5">In-House Produced Item</span>
-                  <span>Buying cost applies only to external RESELL items. Produced goods are manufactured from raw ingredients.</span>
+                  <span className="font-bold text-[#2C1B10] block mb-0.5">{t("products.inHouseProducedTitle")}</span>
+                  <span>{t("products.inHouseProducedDesc")}</span>
                 </div>
               )}
 
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Financial Revenue Category (P&L Tracking)
+                  {t("products.revenueCategoryLabel")}
                 </label>
                 <select
                   name="financialCategoryId"
                   defaultValue=""
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  <option value="">None (Standard sales tracking)</option>
+                  <option value="">{t("products.revenueCategoryNone")}</option>
                   {financialCategories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -309,8 +311,8 @@ export default function NewProductPage() {
                   <Store className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-extrabold text-[#2C1B10]">Branch Availability</h2>
-                  <p className="text-xs text-[#8C7361]">Select which branch locations produce and sell this product</p>
+                  <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionBranchAvailability")}</h2>
+                  <p className="text-xs text-[#8C7361]">{t("products.sectionBranchAvailabilityDesc")}</p>
                 </div>
               </div>
 
@@ -330,12 +332,12 @@ export default function NewProductPage() {
                   }}
                   className="rounded text-[#E87A18] focus:ring-[#E87A18]"
                 />
-                <span>🌐 All Branches</span>
+                <span>🌐 {t("products.allBranchesCheckbox")}</span>
               </label>
             </div>
 
             {branches.length === 0 ? (
-              <p className="text-xs text-[#8C7361] py-2">No branches found. Product will be available across the system.</p>
+              <p className="text-xs text-[#8C7361] py-2">{t("products.noBranchesFound")}</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {branches.map((b) => {
@@ -372,7 +374,7 @@ export default function NewProductPage() {
                       <div className="min-w-0">
                         <span className="text-xs font-extrabold text-[#2C1B10] block truncate">📍 {b.name}</span>
                         <span className="text-[10px] text-[#8C7361] block">
-                          {isChecked ? "Available at this branch" : "Disabled at this branch"}
+                          {isChecked ? t("products.availableAtBranch") : t("products.disabledAtBranch")}
                         </span>
                       </div>
                     </label>
@@ -389,14 +391,14 @@ export default function NewProductPage() {
                 <ImageIcon className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Product Visuals & Image</h2>
-                <p className="text-xs text-[#8C7361]">Select a preset icon image or specify a custom URL</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionVisuals")}</h2>
+                <p className="text-xs text-[#8C7361]">{t("products.sectionVisualsDesc")}</p>
               </div>
             </div>
 
             <div>
               <label className="text-xs font-bold text-[#2C1B10] block mb-2">
-                Choose from Bakery Presets:
+                {t("products.chooseFromPresets")}
               </label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
                 {PRODUCT_PRESET_IMAGES.map((preset, idx) => (
@@ -423,7 +425,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Custom Image URL (Optional)
+                  {t("products.customImageUrlLabel")}
                 </label>
                 <Input
                   type="url"
@@ -444,12 +446,12 @@ export default function NewProductPage() {
             <Button
               type="submit"
               loading={isSubmitting}
-              loadingText="Saving Product..."
+              loadingText={t("products.savingProductBtn")}
               size="lg"
               className="order-1 sm:order-2 flex-1"
             >
               <Save className="w-4 h-4" />
-              Create Product
+              {t("products.createProductBtn")}
             </Button>
             <Button
               type="button"
@@ -458,7 +460,7 @@ export default function NewProductPage() {
               onClick={() => guardedAction(() => router.push("/products"))}
               className="w-full sm:w-auto order-2 sm:order-1 sm:flex-initial"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </form>
@@ -466,10 +468,10 @@ export default function NewProductPage() {
 
       <ConfirmModal
         isOpen={showPrompt}
-        title="Unsaved Changes"
-        description="You have unsaved product details. Are you sure you want to discard them and leave?"
-        confirmText="Discard Changes"
-        cancelText="Keep Editing"
+        title={t("products.unsavedModalTitle")}
+        description={t("products.unsavedModalDesc")}
+        confirmText={t("products.discardChangesBtn")}
+        cancelText={t("products.keepEditingBtn")}
         variant="warning"
         onConfirm={confirmAction}
         onCancel={() => setShowPrompt(false)}

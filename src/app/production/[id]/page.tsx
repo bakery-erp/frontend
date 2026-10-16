@@ -214,10 +214,10 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
           <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-200">
             <AlertTriangle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-extrabold text-[#2C1B10]">Batch Not Found</h2>
-          <p className="text-sm text-[#8C7361]">The requested production batch could not be loaded or has been deleted.</p>
+          <h2 className="text-xl font-extrabold text-[#2C1B10]">{t("production.batchNotFoundTitle")}</h2>
+          <p className="text-sm text-[#8C7361]">{t("production.batchNotFoundDesc")}</p>
           <Button onClick={() => router.push("/production")} variant="outline" className="rounded-xl">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Production Log
+            <ArrowLeft className="w-4 h-4 mr-2" /> {t("production.backToProductionLog")}
           </Button>
         </div>
       </DashboardLayout>
@@ -323,12 +323,12 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>System Date: {batch.date}</span>
+                    <span>{t("production.systemDateLabel", { date: batch.date })}</span>
                   </span>
                   {batch.branch && (
                     <>
                       <span>•</span>
-                      <span>Branch: <strong className="text-[#2C1B10]">{batch.branch.name}</strong></span>
+                      <span>{t("production.branchLabel", { branch: batch.branch.name })}</span>
                     </>
                   )}
                 </div>
@@ -342,7 +342,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               <div className="flex items-center gap-2.5">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                 <span className="font-semibold">
-                  This production batch is currently awaiting management approval. Raw inventory will be deducted once approved.
+                  {t("production.pendingApprovalBanner")}
                 </span>
               </div>
               {isGlobalAdmin && (
@@ -377,10 +377,10 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               </span>
               <div className="text-2xl font-black text-[#2C1B10] mt-1">
                 {batch.items.length}{" "}
-                <span className="text-xs font-bold text-[#8C7361]">distinct</span>
+                <span className="text-xs font-bold text-[#8C7361]">{t("production.distinctItemsCount")}</span>
               </div>
               <span className="text-xs font-bold text-[#E87A18] mt-0.5 block">
-                {totalProducedUnits.toLocaleString()} total units baked
+                {totalProducedUnits.toLocaleString()} {t("production.totalUnitsBakedSub")}
               </span>
             </div>
 
@@ -390,10 +390,10 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               </span>
               <div className="text-2xl font-black text-[#2C1B10] mt-1">
                 {batch.materialUsages.length}{" "}
-                <span className="text-xs font-bold text-[#8C7361]">ingredients</span>
+                <span className="text-xs font-bold text-[#8C7361]">{t("production.ingredientsCount")}</span>
               </div>
               <span className="text-xs font-bold text-rose-700 mt-0.5 block">
-                -{totalMaterialsUsed.toFixed(2)} total deducted
+                -{totalMaterialsUsed.toFixed(2)} {t("production.totalDeductedSub")}
               </span>
             </div>
 
@@ -402,7 +402,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                 {t("production.colShift")}
               </span>
               <div className="text-lg font-black text-[#2C1B10] mt-1 flex items-center gap-1.5">
-                {batch.shift === "NIGHT" ? "🌙 Night Shift" : "☀️ Day Shift"}
+                {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}
               </div>
               <span className="text-xs font-semibold text-[#8C7361] mt-0.5 block">
                 {batch.user.fullName}
@@ -434,7 +434,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                 <h2 className="text-base sm:text-lg font-black text-[#2C1B10]">
                   {t("production.tabProducts")} ({batch.items.length})
                 </h2>
-                <p className="text-xs text-[#8C7361]">All bakery finished products outputted in this batch</p>
+                <p className="text-xs text-[#8C7361]">{t("production.allFinishedProductsSub")}</p>
               </div>
             </div>
 
@@ -444,7 +444,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               <Input
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Search products..."
+                placeholder={t("production.searchProductsTable")}
                 className="h-9 pl-8 pr-7 text-xs rounded-xl bg-[#FAF6F0] border-[#EDE4D5] focus:border-[#4A2E1B]"
               />
               {productSearch && (
@@ -461,7 +461,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
 
           {filteredProducts.length === 0 ? (
             <div className="text-center py-10 text-xs text-[#8C7361] bg-[#FAF6F0]/50 rounded-2xl border border-dashed border-[#EDE4D5]">
-              {productSearch ? "No products match your search filter." : "No products recorded in this batch."}
+              {t("production.noItemsMatchSearch")}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -470,7 +470,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                   <TableRow>
                     <TableHead className="w-12 text-center">#</TableHead>
                     <TableHead>{t("production.colProduct")}</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>{t("products.category")}</TableHead>
                     <TableHead className="text-right">{t("production.colQuantityProduced")}</TableHead>
                     <TableHead className="text-right">Batch Share</TableHead>
                   </TableRow>
@@ -531,7 +531,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                 <h2 className="text-base sm:text-lg font-black text-[#2C1B10]">
                   {t("production.colRawMaterialsConsumed")} ({batch.materialUsages.length})
                 </h2>
-                <p className="text-xs text-[#8C7361]">Ingredients deducted from stock upon batch approval</p>
+                <p className="text-xs text-[#8C7361]">{t("production.allRawMaterialsSub")}</p>
               </div>
             </div>
 
@@ -541,7 +541,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               <Input
                 value={materialSearch}
                 onChange={(e) => setMaterialSearch(e.target.value)}
-                placeholder="Search raw materials..."
+                placeholder={t("production.searchIngredientsTable")}
                 className="h-9 pl-8 pr-7 text-xs rounded-xl bg-[#FAF6F0] border-[#EDE4D5] focus:border-[#4A2E1B]"
               />
               {materialSearch && (
@@ -558,7 +558,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
 
           {filteredMaterials.length === 0 ? (
             <div className="text-center py-10 text-xs text-[#8C7361] bg-[#FAF6F0]/50 rounded-2xl border border-dashed border-[#EDE4D5]">
-              {materialSearch ? "No ingredients match your search filter." : t("production.noMaterialsDeducted")}
+              {materialSearch ? t("production.noItemsMatchSearch") : t("production.noMaterialsDeducted")}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -566,9 +566,9 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12 text-center">#</TableHead>
-                    <TableHead>Ingredient / Stock Item</TableHead>
-                    <TableHead>Unit Type</TableHead>
-                    <TableHead className="text-right">Quantity Deducted</TableHead>
+                    <TableHead>{t("stock.colItemName")}</TableHead>
+                    <TableHead>{t("production.unit")}</TableHead>
+                    <TableHead className="text-right">{t("production.usedQtyInputLabel")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

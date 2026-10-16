@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useRouter } from 'next/navigation';
 import { ChefHat, ShoppingBag, Flame, Store, LogOut, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function MobileWorkspaceSelector() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function MobileWorkspaceSelector() {
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center font-medium">
-        Loading Mobile Workspace...
+        {t("mobile.loadingWorkspace")}
       </div>
     );
   }
@@ -41,7 +43,7 @@ export default function MobileWorkspaceSelector() {
             <Store className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-extrabold tracking-tight">Bakery Mobile</h1>
+            <h1 className="text-lg font-extrabold tracking-tight">{t("mobile.mobileWorkspaceTitle")}</h1>
             <p className="text-xs text-zinc-400">{user.fullName} ({user.role})</p>
           </div>
         </div>
@@ -53,7 +55,7 @@ export default function MobileWorkspaceSelector() {
       {/* Role Selection Cards */}
       <div className="my-auto space-y-4 py-8">
         <p className="text-xs font-semibold uppercase tracking-wider text-amber-400 text-center mb-2">
-          Select Your Mobile Station
+          {t("mobile.selectMobileStation")}
         </p>
 
         {/* Cashier Station Card */}
@@ -66,8 +68,8 @@ export default function MobileWorkspaceSelector() {
               <ShoppingBag className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">Cashier & Leftovers Station</h3>
-              <p className="text-xs text-zinc-400 mt-0.5">Session close, cash drawer float, leftover counting</p>
+              <h3 className="font-bold text-base text-white">{t("mobile.cashierStationTitle")}</h3>
+              <p className="text-xs text-zinc-400 mt-0.5">{t("mobile.cashierStationSubtitle")}</p>
             </div>
           </div>
           <ArrowRight className="w-5 h-5 text-zinc-500" />
@@ -84,12 +86,12 @@ export default function MobileWorkspaceSelector() {
             </div>
             <div>
               <h3 className="font-bold text-base text-white">
-                {user.role === 'CAKE_WORKER' ? 'Cake & Pastry Station' : 'Baker Station'}
+                {user.role === 'CAKE_WORKER' ? t("mobile.cakeStationTitle") : t("mobile.bakerStationTitle")}
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
                 {user.role === 'CAKE_WORKER'
-                  ? 'Quick batch entry for cakes, cupcakes, and sweet pastries'
-                  : 'Quick batch entry, stock deduct, item conversions'}
+                  ? t("mobile.cakeStationSubtitle")
+                  : t("mobile.bakerStationSubtitle")}
               </p>
             </div>
           </div>
@@ -106,8 +108,8 @@ export default function MobileWorkspaceSelector() {
               <Flame className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">Sambusa Station</h3>
-              <p className="text-xs text-zinc-400 mt-0.5">Shift output entry for Sambusa & fried items</p>
+              <h3 className="font-bold text-base text-white">{t("mobile.sambusaStationTitle")}</h3>
+              <p className="text-xs text-zinc-400 mt-0.5">{t("mobile.sambusaStationSubtitle")}</p>
             </div>
           </div>
           <ArrowRight className="w-5 h-5 text-zinc-500" />
@@ -117,7 +119,7 @@ export default function MobileWorkspaceSelector() {
       {/* Auto Launch Button */}
       <div className="pb-4">
         <Button onClick={handleAutoRoute} className="w-full h-14 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-base rounded-xl shadow-lg shadow-amber-500/20">
-          Launch My Station ({user.role})
+          {t("mobile.launchStationBtn", { role: user.role })}
         </Button>
       </div>
     </div>

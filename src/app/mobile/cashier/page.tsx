@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
 import { ArrowLeft, ShoppingBag, Lock, Plus, Minus, DollarSign, CheckCircle2 } from 'lucide-react';
@@ -25,6 +26,7 @@ interface ActiveSession {
 
 export default function MobileCashierStation() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [leftoverCounts, setLeftoverCounts] = useState<Record<string, number>>({});
@@ -85,7 +87,7 @@ export default function MobileCashierStation() {
         leftoverRecords: leftoversPayload,
       });
 
-      toast.success('Session close request submitted for Admin approval!');
+      toast.success(t("sessions.toastSessionSubmitPending"));
       fetchCashierData();
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to submit session close');
@@ -104,7 +106,7 @@ export default function MobileCashierStation() {
           </Link>
           <div>
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center">
-              <ShoppingBag className="w-4 h-4 mr-1.5 text-emerald-400" /> Cashier & Leftovers
+              <ShoppingBag className="w-4 h-4 mr-1.5 text-emerald-400" /> {t("mobile.cashierStationTitle")}
             </h1>
             <p className="text-[11px] text-zinc-400">{user?.branch?.name || 'Branch Session'}</p>
           </div>
@@ -115,7 +117,7 @@ export default function MobileCashierStation() {
             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 animate-pulse' 
             : 'bg-zinc-800 text-zinc-400 border-zinc-700'
         }`}>
-          {activeSession ? 'Session Open' : 'Session Closed'}
+          {activeSession ? t("sessions.statusOpen") : t("sessions.statusClosed")}
         </span>
       </div>
 
@@ -124,9 +126,9 @@ export default function MobileCashierStation() {
         {!activeSession ? (
           <div className="my-12 text-center p-8 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
             <Lock className="w-12 h-12 text-zinc-600 mx-auto" />
-            <h2 className="text-lg font-bold text-white">No Active Open Session</h2>
+            <h2 className="text-lg font-bold text-white">{t("sessions.noActiveSession")}</h2>
             <p className="text-xs text-zinc-400 max-w-xs mx-auto">
-              Ask your Branch Admin or Owner to start a new business session for today.
+              {t("sessions.noActiveSessionDesc")}
             </p>
           </div>
         ) : (
@@ -134,11 +136,11 @@ export default function MobileCashierStation() {
             {/* Step 1: Cash Drawer Float Pad */}
             <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center">
-                <DollarSign className="w-4 h-4 mr-1" /> Remaining Cash Float (ETB)
+                <DollarSign className="w-4 h-4 mr-1" /> {t("mobile.leftoverStarterFloatTitle")}
               </label>
               <input
                 type="number"
-                placeholder="0.00"
+                placeholder={t("mobile.enterCashFloatPlaceholder")}
                 value={cashFloat}
                 onChange={(e) => setCashFloat(e.target.value)}
                 className="w-full h-14 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-xl font-mono font-bold text-emerald-400 focus:outline-none focus:border-amber-500"
@@ -149,7 +151,7 @@ export default function MobileCashierStation() {
             <div className="space-y-3">
               <div className="flex justify-between items-center px-1">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Unsold Food Leftovers Counter
+                  {t("sessions.tabLeftoverCount")}
                 </h3>
                 <span className="text-[11px] text-zinc-500">Tap + / - to count</span>
               </div>
@@ -203,7 +205,7 @@ export default function MobileCashierStation() {
             href={`/daily-sessions/${activeSession.id}/close`}
             className="w-full h-14 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-extrabold text-base rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
           >
-            <Lock className="w-5 h-5" /> Open Full Close Form & Submit for Approval
+            <Lock className="w-5 h-5" /> {t("sessions.reviewApproveClose")}
           </Link>
         </div>
       )}
