@@ -47,6 +47,8 @@ export default function PayrollHistoryPage() {
   const queryClient = useQueryClient();
   const [editingPayroll, setEditingPayroll] = useState<PayrollRecord | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [payrollToSign, setPayrollToSign] = useState<PayrollRecord | null>(null);
+  const [isSigning, setIsSigning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: history = [], isLoading } = useQuery<PayrollRecord[]>({
@@ -190,7 +192,7 @@ export default function PayrollHistoryPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleApprovePayroll(r.id)}
+                        onClick={() => setPayrollToSign(r)}
                         className="h-8 px-2.5 text-xs font-bold bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
                       >
                         ✍️ {t('payroll.markAsSigned')}
@@ -300,7 +302,7 @@ export default function PayrollHistoryPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleApprovePayroll(r.id)}
+                          onClick={() => setPayrollToSign(r)}
                           className="font-bold text-xs bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-2xs"
                         >
                           ✍️ {t('payroll.markAsSigned')}
@@ -420,6 +422,77 @@ export default function PayrollHistoryPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* CONFIRM PHYSICAL SIGNATURE DIALOG */}
+      {payrollToSign && (
+        <Dialog open={true} onOpenChange={(open) => !open && setPayrollToSign(null)}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                ✍️ {t('payroll.confirmSignTitle')}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-3 text-sm text-[#4A2E1B] space-y-3">
+              <p className="leading-relaxed">
+                {t('payroll.confirmSignDesc').replace('{name}', payrollToSign.user?.fullName || 'the employee')}
+              </p>
+              <div className="p-3 bg-[#FAF6F0] rounded-xl border border-[#EDE4D5] text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361]">{t('payroll.colStaffMember')}:</span>
+                  <strong className="text-[#2C1B10]">{payrollToSign.user?.fullName}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361]">{t('profile.colPeriod')}:</span>
+                  <strong>{getEthMonthName(payrollToSign.month)} {payrollToSign.year}</strong>
+                </div>
+                <div className="flex justify-between border-t border-[#EDE4D5]/70 pt-1">
+                  <span className="text-[#8C7361]">{t('payroll.colNetSalary')}:</span>
+                  <strong className="text-emerald-800 font-mono font-black">{payrollToSign.finalAmount} ETB</strong>
+                </div>
+              </div>
+              <p className="text-xs text-[#8C7361]">
+                Please ensure you have physically collected the signed payroll receipt / payslip before confirming.
+              </p>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+              <Button
+                type="button"
+                size="lg"
+                loading={isSigning}
+                onClick={async () => {
+                  if (!payrollToSign) return;
+                  setIsSigning(true);
+                  try {
+                    await api.post(`/payroll/${payrollToSign.id}/approve`);
+                    toast.success(t('payroll.markedSignedSuccess') || "Marked as signed successfully");
+                    setPayrollToSign(null);
+                    queryClient.invalidateQueries({ queryKey: ["payroll-history"] });
+                    queryClient.invalidateQueries({ queryKey: ["payroll"] });
+                    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+                  } catch (err: any) {
+                    toast.error(err.response?.data?.error || "Failed to mark payroll as signed");
+                  } finally {
+                    setIsSigning(false);
+                  }
+                }}
+                className="w-full sm:w-auto order-1 sm:order-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+              >
+                ✍️ {t('payroll.confirmSignBtn')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={isSigning}
+                onClick={() => setPayrollToSign(null)}
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                {t('common.cancel')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
