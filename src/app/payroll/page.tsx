@@ -194,6 +194,7 @@ export default function PayrollPage() {
   const [isEditPayrollOpen, setIsEditPayrollOpen] = useState(false);
 
   // LOAN STATE
+  const [isSignedPayroll, setIsSignedPayroll] = useState(true);
   const [isLoanOpen, setIsLoanOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
@@ -249,9 +250,10 @@ export default function PayrollPage() {
         bonus: bonus,
         finalAmount: finalToUse,
         paymentDate: new Date().toISOString(),
+        isSigned: isSignedPayroll,
       });
 
-      toast.success("Payroll processed and recorded successfully");
+      toast.success(isSignedPayroll ? (t('payroll.markedSignedSuccess') || "Payroll processed and marked as signed") : "Payroll processed successfully");
       setCalcData(null);
       setSelectedUser("");
       queryClient.invalidateQueries({ queryKey: ["payroll-history"] });
@@ -273,13 +275,15 @@ export default function PayrollPage() {
     e.preventDefault();
     setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
+    const isSigned = fd.get("isSigned") === "on";
     try {
       await api.post("/loans", {
         type: fd.get("type") || "STAFF_LOAN",
         userId: fd.get("userId"),
         totalAmount: fd.get("amount"),
+        isSigned,
       });
-      toast.success("Loan recorded successfully");
+      toast.success(isSigned ? (t('payroll.markedSignedSuccess') || "Loan recorded as signed") : "Loan recorded successfully");
       setIsLoanOpen(false);
       queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
@@ -323,14 +327,16 @@ export default function PayrollPage() {
     e.preventDefault();
     setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
+    const isSigned = fd.get("isSigned") === "on";
     try {
       await api.post("/penalties", {
         userId: fd.get("userId"),
         amount: fd.get("amount"),
         reason: fd.get("reason"),
         date: fd.get("date"),
+        isSigned,
       });
-      toast.success("Penalty added successfully");
+      toast.success(isSigned ? (t('payroll.markedSignedSuccess') || "Penalty recorded as signed") : "Penalty added successfully");
       setIsPenaltyOpen(false);
       queryClient.invalidateQueries({ queryKey: ["payroll-penalties"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
@@ -795,6 +801,21 @@ export default function PayrollPage() {
                             onChange={(e) => setCustomFinalAmount(e.target.value)}
                           />
                         </div>
+                      </div>
+
+                      {/* Signature Confirmation */}
+                      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
+                        <input
+                          type="checkbox"
+                          id="payrollRunIsSigned"
+                          checked={isSignedPayroll}
+                          onChange={(e) => setIsSignedPayroll(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 rounded text-[#4A2E1B] focus:ring-[#4A2E1B] border-zinc-300"
+                        />
+                        <label htmlFor="payrollRunIsSigned" className="text-xs text-[#2C1B10] cursor-pointer">
+                          <span className="font-bold block">✍️ {t('payroll.signedCheckboxLabel')}</span>
+                          <span className="text-[#8C7361] text-[11px] block">{t('payroll.signedCheckboxDesc')}</span>
+                        </label>
                       </div>
 
                       {/* Submit Action */}
@@ -1409,6 +1430,19 @@ export default function PayrollPage() {
                   required
                 />
               </div>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
+                <input
+                  type="checkbox"
+                  name="isSigned"
+                  id="payrollPageLoanIsSigned"
+                  defaultChecked
+                  className="mt-0.5 w-4 h-4 rounded text-[#4A2E1B] focus:ring-[#4A2E1B] border-zinc-300"
+                />
+                <label htmlFor="payrollPageLoanIsSigned" className="text-xs text-[#2C1B10] cursor-pointer">
+                  <span className="font-bold block">✍️ {t('payroll.signedCheckboxLabel')}</span>
+                  <span className="text-[#8C7361] text-[11px] block">{t('payroll.signedCheckboxDesc')}</span>
+                </label>
+              </div>
             </div>
             <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">
               <Button
@@ -1545,6 +1579,19 @@ export default function PayrollPage() {
               <div>
                 <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Date of Offense</label>
                 <EthDatePicker name="date" />
+              </div>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
+                <input
+                  type="checkbox"
+                  name="isSigned"
+                  id="payrollPagePenaltyIsSigned"
+                  defaultChecked
+                  className="mt-0.5 w-4 h-4 rounded text-[#4A2E1B] focus:ring-[#4A2E1B] border-zinc-300"
+                />
+                <label htmlFor="payrollPagePenaltyIsSigned" className="text-xs text-[#2C1B10] cursor-pointer">
+                  <span className="font-bold block">✍️ {t('payroll.signedCheckboxLabel')}</span>
+                  <span className="text-[#8C7361] text-[11px] block">{t('payroll.signedCheckboxDesc')}</span>
+                </label>
               </div>
             </div>
             <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">

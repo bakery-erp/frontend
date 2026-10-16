@@ -699,14 +699,14 @@ export default function MyProfilePage() {
                       const isPaid = l.status === 'PAID';
                       const isPending = l.status === 'PENDING_APPROVAL';
                       const isRejected = l.status === 'REJECTED';
-                      const statusLabel = isPaid ? t('common.paidInFull') : isPending ? t('common.pendingApproval') : isRejected ? t('common.rejected') : t('common.active');
+                      const statusLabel = isPaid ? t('common.paidInFull') : isPending ? (t('payroll.pendingPaperSignature') || t('common.pendingApproval')) : isRejected ? t('common.rejected') : (t('payroll.signedOnPaper') || t('common.active'));
                       const statusBadgeClass = isPaid
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         : isPending
                         ? 'bg-amber-100 text-amber-800 border-amber-300'
                         : isRejected
                         ? 'bg-rose-100 text-rose-800 border-rose-300'
-                        : 'bg-indigo-100 text-indigo-800 border-indigo-300';
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-300';
 
                       return (
                         <div key={l.id} className="bg-[#FFFDF8] border border-[#EDE4D5] rounded-2xl p-3.5 shadow-xs space-y-2.5">
@@ -759,14 +759,14 @@ export default function MyProfilePage() {
                           const isPaid = l.status === 'PAID';
                           const isPending = l.status === 'PENDING_APPROVAL';
                           const isRejected = l.status === 'REJECTED';
-                          const statusLabel = isPaid ? t('common.paidInFull') : isPending ? t('common.pendingApproval') : isRejected ? t('common.rejected') : t('common.active');
+                          const statusLabel = isPaid ? t('common.paidInFull') : isPending ? (t('payroll.pendingPaperSignature') || t('common.pendingApproval')) : isRejected ? t('common.rejected') : (t('payroll.signedOnPaper') || t('common.active'));
                           const statusBadgeClass = isPaid
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : isPending
                             ? 'bg-amber-100 text-amber-800 border-amber-300'
                             : isRejected
                             ? 'bg-rose-100 text-rose-800 border-rose-300'
-                            : 'bg-indigo-100 text-indigo-800 border-indigo-300';
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300';
 
                           return (
                             <TableRow key={l.id}>
