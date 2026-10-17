@@ -106,6 +106,32 @@ export default function MyProfilePage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties' | 'settings'>('payroll');
 
+  const getRoleLabel = (role?: string) => {
+    if (!role) return t('common.employee');
+    const roleKeyMap: Record<string, string> = {
+      OWNER: 'users.roleOwner',
+      ADMIN: 'users.roleAdmin',
+      BAKER: 'users.roleBaker',
+      CAKE_WORKER: 'users.roleCakeWorker',
+      SAMBUSA_WORKER: 'users.roleSambusaWorker',
+      SALESPERSON: 'users.roleSalesperson',
+      CASHIER: 'users.roleCashier',
+      FINANCE_OFFICER: 'users.roleFinanceOfficer',
+      DELIVERY_MAN: 'users.roleDeliveryMan',
+      STOCK_KEEPER: 'users.roleStockKeeper',
+      AUDITOR: 'users.roleAuditor',
+    };
+    const key = roleKeyMap[role];
+    return key ? t(key as any) : role.replace('_', ' ');
+  };
+
+  const getShiftLabel = (shift?: string | null) => {
+    if (!shift) return t('common.standard');
+    if (shift === 'DAY') return `☀️ ${t('production.dayShiftFull')}`;
+    if (shift === 'NIGHT') return `🌙 ${t('production.nightShiftFull')}`;
+    return `${shift} Shift`;
+  };
+
   const { data = null, isLoading: loading } = useQuery<DashboardData | null>({
     queryKey: ['my-profile-dashboard', authUser?.id],
     placeholderData: (prev) => prev,
@@ -301,11 +327,11 @@ export default function MyProfilePage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mb-1">
                   <Badge className="bg-[#E87A18] text-white text-[10px] xs:text-xs px-2 xs:px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
-                    {u?.role?.replace('_', ' ') || t('common.employee')}
+                    {getRoleLabel(u?.role)}
                   </Badge>
                   <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
                     <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
-                    <span>{u?.shift ? `${u.shift} Shift` : t('common.standard')}</span>
+                    <span>{getShiftLabel(u?.shift)}</span>
                   </span>
                   <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
                     <Calendar className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
@@ -325,7 +351,7 @@ export default function MyProfilePage() {
                       className="text-[10px] xs:text-xs font-semibold text-white bg-white/20 hover:bg-white/30 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors"
                     >
                       <FileText className="w-3 h-3 text-amber-200" />
-                      <span>ID Document (PDF)</span>
+                      <span>{t('profile.idDocumentPdf') || "ID Document (PDF)"}</span>
                     </a>
                   )}
                 </div>

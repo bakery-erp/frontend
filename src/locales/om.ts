@@ -657,6 +657,12 @@ export const om: TranslationDictionary = {
     notReviewedYet: "Hin ilaalletu",
     viewNote: "Yaada",
     hideNote: "Dhoysi",
+    edited: "Gulaalame",
+    editHistoryTitle: "Seenaa Gulaallii Oomishaa",
+    lastEdited: "Yeroo dhumaaf kan gulaalame",
+    productsModified: "Oomishaalee Gulaalaman",
+    materialsModified: "Meeshaalee Dheedhii Gulaalaman",
+    noChangesRecorded: "Gulaallii kanaaf garaagarummaan hin galmoofne.",
   },
   productionHistory: {
     title: "Seenaa Oomisha Guyyaa",
@@ -1383,6 +1389,7 @@ export const om: TranslationDictionary = {
     selectFilePrompt: "Mee jalqaba faayilii suuraa filadhaa",
     passwordsDoNotMatch: "Jechi icciitii haaraan wal hin fakkatu",
     enterBothPasswords: "Mee jecha icciitii ammaa fi haaraa galchaa",
+    idDocumentPdf: "Waraqaa Eenyummaa (PDF)",
   },
   auth: {
     signInTitle: "Gara Daabboo ERP Seeni",

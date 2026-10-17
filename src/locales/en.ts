@@ -655,6 +655,12 @@ export const en = {
     notReviewedYet: "Unchecked",
     viewNote: "Note",
     hideNote: "Hide",
+    edited: "Edited",
+    editHistoryTitle: "Batch Edit History",
+    lastEdited: "Last modified",
+    productsModified: "Products Modified",
+    materialsModified: "Raw Materials Modified",
+    noChangesRecorded: "No item diffs recorded for this edit.",
   },
   productionHistory: {
     title: "Daily Production History",
@@ -1381,6 +1387,7 @@ export const en = {
     selectFilePrompt: "Please select an image file first",
     passwordsDoNotMatch: "New passwords do not match",
     enterBothPasswords: "Please enter current and new password",
+    idDocumentPdf: "ID Document (PDF)",
   },
   auth: {
     signInTitle: "Sign in to Bakery ERP",
