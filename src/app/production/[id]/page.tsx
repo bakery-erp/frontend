@@ -57,6 +57,23 @@ interface MaterialUsage {
   };
 }
 
+interface ItemChange {
+  name: string;
+  oldQty: number;
+  newQty: number;
+  diff: number;
+  unit: string;
+}
+
+interface EditRevision {
+  editedAt: string;
+  editorId: string;
+  editorName: string;
+  editorRole: string;
+  itemChanges: ItemChange[];
+  materialChanges: ItemChange[];
+}
+
 interface ProductionBatchDetail {
   id: string;
   date: string;
@@ -65,6 +82,9 @@ interface ProductionBatchDetail {
   createdAt: string;
   updatedAt?: string;
   userId?: string;
+  isEdited?: boolean;
+  editedAt?: string | null;
+  editHistory?: EditRevision[] | null;
   adminSeenAt?: string | null;
   ownerSeenAt?: string | null;
   isFlagged?: boolean;
@@ -294,7 +314,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               </Button>
             )}
 
-            {isGlobalAdmin && (
+            {(isGlobalAdmin || user?.id === batch.userId || user?.id === batch.user?.id) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -323,6 +343,11 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
                     {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}
                   </span>
+                  {batch.isEdited && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                      ✏️ {t("production.edited") || "Edited"}
+                    </span>
+                  )}
                   {batch.isFlagged && (
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
                       🚩 Flagged
@@ -462,6 +487,128 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
             </div>
           )}
         </div>
+
+        {/* ── Edit History Audit Section ── */}
+        {batch.isEdited && (
+          <div className="bg-amber-50/60 border border-amber-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">✏️</span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-amber-950">
+                    {t("production.editHistoryTitle") || "Batch Edit History"}
+                  </h3>
+                  <p className="text-[11px] font-medium text-amber-800/80">
+                    {batch.editedAt ? `${t("production.lastEdited") || "Last modified"}: ${formatEthDate(batch.editedAt)}` : ""}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-200/70 text-amber-900 border border-amber-300">
+                {Array.isArray(batch.editHistory) && batch.editHistory.length > 0
+                  ? `${batch.editHistory.length} Revision${batch.editHistory.length > 1 ? "s" : ""}`
+                  : (t("production.edited") || "Edited")}
+              </span>
+            </div>
+
+            {Array.isArray(batch.editHistory) && batch.editHistory.length > 0 ? (
+              <div className="space-y-3">
+                {batch.editHistory.slice().reverse().map((rev, revIdx) => (
+                  <div
+                    key={revIdx}
+                    className="bg-white/95 rounded-2xl p-4 border border-amber-200/80 shadow-2xs space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                        <span className="font-extrabold text-[#2C1B10]">{rev.editorName}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900">
+                          {rev.editorRole}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-medium text-[#8C7361]">
+                        {formatEthDate(rev.editedAt)}
+                      </span>
+                    </div>
+
+                    {/* Changed Items */}
+                    {rev.itemChanges && rev.itemChanges.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
+                          {t("production.productsModified") || "Products Modified"}:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {rev.itemChanges.map((ic, iIdx) => (
+                            <div
+                              key={iIdx}
+                              className="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-semibold"
+                            >
+                              <span className="text-[#2C1B10] truncate">{ic.name}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-[#8C7361] line-through text-[11px]">
+                                  {ic.oldQty}
+                                </span>
+                                <span className="text-[#8C7361]">➔</span>
+                                <span className="font-bold text-[#2C1B10]">
+                                  {ic.newQty} {ic.unit}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
+                                    ic.diff > 0
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-rose-100 text-rose-800"
+                                  }`}
+                                >
+                                  {ic.diff > 0 ? `+${ic.diff}` : ic.diff}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Changed Materials */}
+                    {rev.materialChanges && rev.materialChanges.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
+                          {t("production.materialsModified") || "Raw Materials Modified"}:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {rev.materialChanges.map((mc, mIdx) => (
+                            <div
+                              key={mIdx}
+                              className="flex items-center justify-between gap-2 p-2 rounded-xl bg-rose-50/60 border border-rose-100 text-xs font-semibold"
+                            >
+                              <span className="text-rose-950 truncate">{mc.name}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-rose-600/70 line-through text-[11px]">
+                                  {mc.oldQty}
+                                </span>
+                                <span className="text-rose-500">➔</span>
+                                <span className="font-bold text-rose-950">
+                                  {mc.newQty} {mc.unit}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
+                                    mc.diff > 0
+                                      ? "bg-rose-100 text-rose-800"
+                                      : "bg-emerald-100 text-emerald-800"
+                                  }`}
+                                >
+                                  {mc.diff > 0 ? `+${mc.diff}` : mc.diff}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {/* Section 1: Products Baked Table */}
         <div className="bg-white rounded-3xl border border-[#EDE4D5] p-5 sm:p-7 shadow-xs space-y-4">

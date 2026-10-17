@@ -29,6 +29,10 @@ interface ProductionBatch {
   shift: "DAY" | "NIGHT" | null;
   status: "PENDING_APPROVAL" | "STARTED" | "COMPLETED" | "REJECTED";
   createdAt: string;
+  userId?: string;
+  isEdited?: boolean;
+  editedAt?: string | null;
+  editHistory?: any;
   adminSeenAt?: string | null;
   ownerSeenAt?: string | null;
   isFlagged?: boolean;
@@ -487,6 +491,11 @@ export default function ProductionPage() {
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-extrabold text-sm text-[#2C1B10]">{formatEthDate(batch.date)}</span>
+                    {batch.isEdited && (
+                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+                        ✏️ {t('production.edited') || "Edited"}
+                      </span>
+                    )}
                     {isGlobalAdmin && !isBatchSeenByMe(batch) && (
                       <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800 border border-sky-300">
                         🔵 {t('production.unseenForMe')}
@@ -675,16 +684,19 @@ export default function ProductionPage() {
                     </Button>
                   )}
 
-                  {isGlobalAdmin && (
+                  {(isGlobalAdmin || user?.id === batch.user?.id || user?.id === batch.userId) && (
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => router.push(`/production/new?edit=${batch.id}`)}
-                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl flex items-center gap-1 shadow-2xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/production/new?edit=${batch.id}`);
+                      }}
+                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs cursor-pointer"
                       title={t('common.edit') || "Edit"}
                     >
                       <Edit className="w-3.5 h-3.5 text-[#8C7361]" />
-                      <span className="hidden xs:inline">{t('common.edit') || "Edit"}</span>
+                      <span>{t('common.edit') || "Edit"}</span>
                     </Button>
                   )}
                 </div>
@@ -762,6 +774,11 @@ export default function ProductionPage() {
                 <TableCell>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-bold text-[#2C1B10]">{formatEthDate(batch.date)}</span>
+                    {batch.isEdited && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+                        ✏️ {t('production.edited') || "Edited"}
+                      </span>
+                    )}
                     {isGlobalAdmin && !isBatchSeenByMe(batch) && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800 border border-sky-300">
                         🔵 {t('production.unseenForMe')}
@@ -904,11 +921,14 @@ export default function ProductionPage() {
                       </Button>
                     )}
 
-                    {isGlobalAdmin && (
+                    {(isGlobalAdmin || user?.id === batch.user?.id || user?.id === batch.userId) && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => router.push(`/production/new?edit=${batch.id}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/production/new?edit=${batch.id}`);
+                        }}
                         className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
                         title={t('common.edit') || "Edit"}
                       >

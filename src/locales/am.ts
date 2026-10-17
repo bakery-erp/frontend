@@ -657,6 +657,12 @@ export const am: TranslationDictionary = {
     notReviewedYet: "አልታየም",
     viewNote: "ማስታወሻ",
     hideNote: "ደብቅ",
+    edited: "የተስተካከለ",
+    editHistoryTitle: "የምርት ማሻሻያ ታሪክ",
+    lastEdited: "መጨረሻ የተስተካከለው",
+    productsModified: "የተስተካከሉ ምርቶች",
+    materialsModified: "የተስተካከሉ ጥሬ ዕቃዎች",
+    noChangesRecorded: "ለዚህ ማሻሻያ የተመዘገበ ዝርዝር ልዩነት የለም።",
   },
   productionHistory: {
     title: "ዕለታዊ የምርት ታሪክ",
@@ -1383,6 +1389,7 @@ export const am: TranslationDictionary = {
     selectFilePrompt: "እባክዎ መጀመሪያ የምስል ፋይል ይምረጡ",
     passwordsDoNotMatch: "አዲሱ የይለፍ ቃል እርስ በእርስ አይመሳሰልም",
     enterBothPasswords: "እባክዎ የአሁኑንና አዲሱን የይለፍ ቃል ያስገቡ",
+    idDocumentPdf: "የመታወቂያ ሰነድ (PDF)",
   },
   auth: {
     signInTitle: "ወደ ዳቦ ቤት ERP ይግቡ",

@@ -417,6 +417,8 @@ function ProductionFormContent() {
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['production-page'] }),
+        queryClient.invalidateQueries({ queryKey: ['production-page-batches'] }),
+        queryClient.invalidateQueries({ queryKey: ['production-batch-detail'] }),
         queryClient.invalidateQueries({ queryKey: ['production-history'] }),
         queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
         queryClient.invalidateQueries({ queryKey: ['stock'] }),
