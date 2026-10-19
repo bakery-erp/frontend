@@ -51,6 +51,12 @@ export default function DailySessionsPage() {
   
   const canManageSessions = user?.role === 'OWNER' || user?.role === 'ADMIN';
 
+  useEffect(() => {
+    if (user && !canManageSessions) {
+      router.replace('/customer-credits');
+    }
+  }, [user, canManageSessions, router]);
+
   const { data: sessionData, isLoading } = useQuery<{ sessions: DailySession[]; products: Product[] }>({
     queryKey: ['daily-sessions', selectedBranchId],
     placeholderData: (prev) => prev,

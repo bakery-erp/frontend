@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.user.role === 'EMPLOYEE') {
       router.push('/my-profile');
     } else if (data.user.role === 'CASHIER') {
-      router.push('/daily-sessions');
+      router.push('/customer-credits');
     } else if (data.user.role === 'BAKER' || data.user.role === 'CAKE_WORKER' || data.user.role === 'SAMBUSA_WORKER') {
       router.push('/production');
     } else {

@@ -73,8 +73,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { icon: ChefHat, label: t('nav.production'), href: '/production' },
       ...((isOwner || isAdmin) ? [{ icon: History, label: t('nav.dailyProductHistory'), href: '/production/history' }] : [])
     ] : []),
-    ...((isOwner || isAdmin || role === 'CASHIER') ? [
+    ...((isOwner || isAdmin) ? [
       { icon: CalendarDays, label: t('nav.dailySessions'), href: '/daily-sessions' },
+    ] : []),
+    ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: CreditCard, label: t('nav.customerCreditSales'), href: '/customer-credits' }
     ] : []),
     ...((isOwner || isAdmin) ? [

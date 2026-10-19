@@ -520,7 +520,7 @@ function ProductionFormContent() {
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs bg-emerald-50 text-emerald-900 border-emerald-300"
             >
               <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-500 animate-pulse" />
-              {isSessionOpen ? t("sessions.statusOpen") : "Day-Based Production"}
+              Day-Based Production
             </span>
           </div>
         </div>

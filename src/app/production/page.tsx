@@ -338,7 +338,7 @@ export default function ProductionPage() {
           )}
           <Button
             onClick={() => router.push('/production/new')}
-            disabled={isLoading || !isSessionOpen}
+            disabled={isLoading}
             size="lg"
             className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
           >

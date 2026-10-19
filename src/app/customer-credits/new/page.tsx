@@ -116,22 +116,30 @@ export default function NewCustomerCreditPage() {
 
       // Products & Session
       const data = sessionRes.data;
-      if (data && data.hasActiveSession) {
-        setHasActiveSession(true);
-        setSessionDate(data.sessionDate || "");
-        if (data.sessionDate) {
-          setCreditDate(data.sessionDate);
-        }
-        const prods: InShopProduct[] = data.products || [];
-        setProducts(prods);
-        if (prods.length > 0) {
-          const firstInStock = prods.find((p) => p.availableStock > 0) || prods[0];
-          setLineItems([{ productId: firstInStock.id, quantity: "", unitPrice: Number(firstInStock.basePrice || 0) }]);
-        }
-      } else {
-        setHasActiveSession(false);
-        setProducts([]);
-        setLineItems([]);
+      let prods: InShopProduct[] = data?.products || [];
+
+      if (prods.length === 0) {
+        try {
+          const fallbackProdsRes = await api.get(`/products${branchQuery ? `${branchQuery}&minimal=true` : '?minimal=true'}`);
+          prods = (fallbackProdsRes.data || []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            unitType: p.unitType,
+            basePrice: Number(p.basePrice || 0),
+            availableStock: p.currentStock ?? 100,
+          }));
+        } catch {}
+      }
+
+      setHasActiveSession(true);
+      setSessionDate(data?.sessionDate || new Date().toISOString().slice(0, 10));
+      if (data?.sessionDate) {
+        setCreditDate(data.sessionDate);
+      }
+      setProducts(prods);
+      if (prods.length > 0) {
+        const firstInStock = prods.find((p) => p.availableStock > 0) || prods[0];
+        setLineItems([{ productId: firstInStock.id, quantity: "", unitPrice: Number(firstInStock.basePrice || 0) }]);
       }
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to load initial data");

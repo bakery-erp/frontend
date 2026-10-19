@@ -107,7 +107,7 @@ export default function Dashboard() {
         return;
       }
       if (user.role === 'CASHIER') {
-        router.push('/daily-sessions');
+        router.push('/customer-credits');
         return;
       }
       if (user.role === 'BAKER' || user.role === 'CAKE_WORKER' || user.role === 'SAMBUSA_WORKER') {

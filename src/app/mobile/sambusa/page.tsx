@@ -116,7 +116,7 @@ export default function MobileSambusaStation() {
     }
   };
 
-  const isSessionOpen = activeSession?.status === 'OPEN';
+  const isSessionOpen = true;
   const sessionStatusLabel = !activeSession
     ? t('sessions.statusClosed')
     : activeSession.status === 'PAUSED'

@@ -96,6 +96,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const queryClient = useQueryClient();
   const isAdminOrOwner = user?.role === "ADMIN" || user?.role === "OWNER";
 
+  useEffect(() => {
+    if (user && !isAdminOrOwner) {
+      router.replace('/customer-credits');
+    }
+  }, [user, isAdminOrOwner, router]);
+
   const [session, setSession] = useState<DailySessionDetail | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
