@@ -245,10 +245,6 @@ export default function NewCustomerCreditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (hasActiveSession === false) {
-      toast.error("Cannot log credit: No active daily session is open for this branch. Please open a session first.");
-      return;
-    }
 
     if (customerMode === "EXISTING") {
       if (!selectedCustomerId) {
@@ -361,27 +357,6 @@ export default function NewCustomerCreditPage() {
           </div>
         </div>
 
-        {/* No Active Session Banner */}
-        {hasActiveSession === false && (
-          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-extrabold text-amber-900">{t("credits.noSessionBanner")}</h3>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  {t("credits.noSessionHelp")}
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              onClick={() => router.push("/daily-sessions")}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shrink-0"
-            >
-              {t("credits.goToSessions")}
-            </Button>
-          </div>
-        )}
 
         {/* Responsive Form Card */}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -572,7 +547,7 @@ export default function NewCustomerCreditPage() {
               <Button
                 type="button"
                 onClick={handleAddLineItem}
-                disabled={hasActiveSession === false || products.length === 0}
+                disabled={products.length === 0}
                 variant="brand"
                 size="sm"
                 className="self-start sm:self-auto"
@@ -592,7 +567,7 @@ export default function NewCustomerCreditPage() {
                 <Button
                   type="button"
                   onClick={handleAddLineItem}
-                  disabled={hasActiveSession === false || products.length === 0}
+                  disabled={products.length === 0}
                   variant="outline"
                   size="sm"
                   className="rounded-xl border-[#E87A18] text-[#E87A18] font-bold text-xs disabled:opacity-50"
@@ -848,7 +823,7 @@ export default function NewCustomerCreditPage() {
               type="submit"
               size="lg"
               loading={isSubmitting}
-              disabled={hasActiveSession === false || hasOverStockError || lineItems.length === 0}
+              disabled={hasOverStockError || lineItems.length === 0}
               className="w-full sm:w-auto"
             >
               <Check className="w-4 h-4" />

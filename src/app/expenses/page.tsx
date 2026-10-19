@@ -259,10 +259,6 @@ export default function ExpensesPage() {
   };
 
   const openCreateForm = () => {
-    if (!activeSession) {
-      toast.error("No active open session found for this branch. Please open a daily session before recording expenses.");
-      return;
-    }
     resetForm();
     setShowForm(true);
   };
@@ -315,10 +311,6 @@ export default function ExpensesPage() {
   };
 
   const handleSubmit = async () => {
-    if (!editingId && !activeSession) {
-      toast.error(t('expenses.sessionRequiredError'));
-      return;
-    }
 
     if (!formAmount || parseFloat(formAmount) <= 0) {
       toast.error(t('expenses.amountRequiredError'));
@@ -423,7 +415,6 @@ export default function ExpensesPage() {
           )}
           <Button
             onClick={openCreateForm}
-            disabled={!activeSession}
             size="default"
           >
             <Plus className="w-3.5 h-3.5 shrink-0" />
@@ -433,52 +424,29 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Mandatory Active Daily Session Status Banner */}
-      {!isLoadingSession && (
-        activeSession ? (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-100 rounded-xl text-emerald-700">
-                <Wallet className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-emerald-950">{t('sessions.statusOpen')}</span>
-                  <span className="bg-emerald-200 text-emerald-800 text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full">
-                    {t('dashboard.liveSessionActive')}
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-700 mt-0.5">
-                  {t('expenses.attachedToSession')} <span className="font-mono font-bold">#{activeSession.id.slice(-6)}</span>
-                </p>
-              </div>
+      {/* Active Daily Session Status Banner (if open) */}
+      {!isLoadingSession && activeSession && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 rounded-xl text-emerald-700">
+              <Wallet className="w-5 h-5" />
             </div>
-            <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/60 px-3 py-1.5 rounded-xl border border-emerald-200/60">
-              {t('expenses.openedAt')} {new Date(activeSession.createdAt || (activeSession as any).openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-emerald-950">{t('sessions.statusOpen')}</span>
+                <span className="bg-emerald-200 text-emerald-800 text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full">
+                  {t('dashboard.liveSessionActive')}
+                </span>
+              </div>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                {t('expenses.attachedToSession')} <span className="font-mono font-bold">#{activeSession.id.slice(-6)}</span>
+              </p>
             </div>
           </div>
-        ) : (
-          <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-xl text-amber-700">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm text-amber-950">{t('expenses.noActiveSessionTitle')}</h4>
-                <p className="text-xs text-amber-800 mt-0.5">
-                  {t('expenses.noActiveSessionDesc')}
-                </p>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => router.push("/daily-sessions")}
-              className="bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-xl text-xs px-4"
-            >
-              <CalendarDays className="w-3.5 h-3.5 mr-1.5" /> {t('nav.dailySessions')}
-            </Button>
+          <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/60 px-3 py-1.5 rounded-xl border border-emerald-200/60">
+            {t('expenses.openedAt')} {new Date(activeSession.createdAt || (activeSession as any).openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
-        )
+        </div>
       )}
 
       {/* Create / Edit Form Modal/Card - Positioned on Top for Immediate Focus */}
@@ -491,7 +459,7 @@ export default function ExpensesPage() {
                   {editingId ? t('expenses.editExpenseRecord') : t('expenses.recordNewExpense')}
                 </CardTitle>
                 <CardDescription className="text-xs text-zinc-500 mt-0.5">
-                  {t('expenses.modalRecordDesc')} <span className="font-mono font-bold text-emerald-700">#{activeSession?.id.slice(-6)}</span>
+                  {t('expenses.modalRecordDesc')} {activeSession?.id && <span className="font-mono font-bold text-emerald-700">#{activeSession.id.slice(-6)}</span>}
                 </CardDescription>
               </div>
               <Button variant="ghost" size="sm" onClick={resetForm} className="rounded-xl">

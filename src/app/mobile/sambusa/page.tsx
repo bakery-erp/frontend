@@ -121,7 +121,6 @@ export default function MobileSambusaStation() {
     : 'OPEN';
 
   const updateCount = (productId: string, delta: number) => {
-    if (!isSessionOpen) return;
     setProducedCounts((prev) => {
       const current = prev[productId] || 0;
       const updated = Math.max(0, current + delta);
@@ -130,10 +129,6 @@ export default function MobileSambusaStation() {
   };
 
   const handleSubmitSambusaShift = async () => {
-    if (!isSessionOpen) {
-      toast.error(`Cannot log production: Daily session is ${sessionStatusLabel}`);
-      return;
-    }
 
     setIsSubmitting(true);
     const itemsPayload = Object.entries(producedCounts)
@@ -191,14 +186,8 @@ export default function MobileSambusaStation() {
           </div>
         </div>
 
-        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase border ${
-          isSessionOpen
-            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 animate-pulse'
-            : activeSession?.status === 'PAUSED'
-            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-            : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-        }`}>
-          Session {sessionStatusLabel}
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+          TODAY • {selectedShift} SHIFT
         </span>
       </div>
 
@@ -225,7 +214,7 @@ export default function MobileSambusaStation() {
               className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                 selectedShift === 'NIGHT'
                   ? 'bg-indigo-600 text-white shadow-md font-extrabold'
-                  : 'text-zinc-400 hover:text-white'
+              : 'text-zinc-400 hover:text-white'
               }`}
             >
               <Moon className="w-3.5 h-3.5" /> Night Shift (ማታ)
@@ -261,18 +250,6 @@ export default function MobileSambusaStation() {
 
       {/* Main Content Area */}
       <div className="p-4 flex-1 space-y-4 overflow-y-auto">
-        {!isLoading && !isSessionOpen && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center space-x-3 text-rose-300 text-xs font-semibold">
-            {activeSession?.status === 'PAUSED' ? (
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-            ) : (
-              <Lock className="w-5 h-5 text-rose-400 shrink-0" />
-            )}
-            <span>
-              Daily session is <strong>{sessionStatusLabel}</strong>. Production logging is disabled until session is opened.
-            </span>
-          </div>
-        )}
 
         {/* TAB 1: LOG SAMBUSA */}
         {activeTab === 'NEW_BATCH' && (
@@ -294,9 +271,8 @@ export default function MobileSambusaStation() {
                     <div className="flex items-center space-x-1.5 xs:space-x-3 bg-zinc-950 border border-zinc-800 p-1.5 xs:p-2 rounded-xl shrink-0">
                       <button
                         type="button"
-                        disabled={!isSessionOpen}
                         onClick={() => updateCount(p.id, -5)}
-                        className="w-9 h-9 xs:w-10 xs:h-10 bg-zinc-900 text-zinc-300 disabled:opacity-40 rounded-lg font-bold text-xs xs:text-sm active:scale-95 transition-all"
+                        className="w-9 h-9 xs:w-10 xs:h-10 bg-zinc-900 text-zinc-300 rounded-lg font-bold text-xs xs:text-sm active:scale-95 transition-all"
                       >
                         -5
                       </button>
@@ -305,9 +281,8 @@ export default function MobileSambusaStation() {
                       </span>
                       <button
                         type="button"
-                        disabled={!isSessionOpen}
                         onClick={() => updateCount(p.id, 5)}
-                        className="w-9 h-9 xs:w-10 xs:h-10 bg-rose-500 text-white disabled:opacity-40 rounded-lg font-bold shadow-md shadow-rose-500/20 text-xs xs:text-sm active:scale-95 transition-all"
+                        className="w-9 h-9 xs:w-10 xs:h-10 bg-rose-500 text-white rounded-lg font-bold shadow-md shadow-rose-500/20 text-xs xs:text-sm active:scale-95 transition-all"
                       >
                         +5
                       </button>
@@ -319,13 +294,11 @@ export default function MobileSambusaStation() {
 
             <Button
               onClick={handleSubmitSambusaShift}
-              disabled={isSubmitting || !isSessionOpen}
+              disabled={isSubmitting}
               className="w-full h-14 bg-rose-500 hover:bg-rose-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-extrabold text-base rounded-xl shadow-lg shadow-rose-500/20"
             >
               {isSubmitting
                 ? 'Logging...'
-                : !isSessionOpen
-                ? `Logging Disabled (${sessionStatusLabel})`
                 : `Submit ${selectedShift} Shift Sambusa Production`}
             </Button>
           </div>

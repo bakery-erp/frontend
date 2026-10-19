@@ -399,38 +399,14 @@ function ProductionFormContent() {
               </span>
             )}
             <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
-                isLoading
-                  ? "bg-zinc-100 text-zinc-600 border-zinc-200"
-                  : isSessionOpen
-                  ? "bg-emerald-50 text-emerald-900 border-emerald-300"
-                  : "bg-amber-50 text-amber-900 border-amber-300"
-              }`}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs bg-emerald-50 text-emerald-900 border-emerald-300"
             >
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 ${
-                  isLoading
-                    ? "bg-zinc-400 animate-pulse"
-                    : isSessionOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
-                }`}
-              />
-              {isLoading ? "Checking Session..." : isSessionOpen ? "Session Open" : "Session Closed"}
+              <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-500 animate-pulse" />
+              {isSessionOpen ? "Session Open" : "Day-Based Production"}
             </span>
           </div>
         </div>
 
-        {/* Warning if no active open session (only for new batches) */}
-        {!isLoading && !!pageData && !isSessionOpen && !isEditMode && (
-          <div className="p-3.5 xs:p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5 xs:gap-3 shadow-xs">
-            <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-extrabold text-sm">Active Session Required</h4>
-              <p className="text-xs text-amber-800 mt-0.5">
-                Daily session is currently paused or closed. You can review categories and select items, but logging new production requires an active open session.
-              </p>
-            </div>
-          </div>
-        )}
 
         <form onSubmit={handleSubmitBatch} className="space-y-4 xs:space-y-6">
           {/* Shift & Date Header Configuration */}
@@ -773,17 +749,12 @@ function ProductionFormContent() {
                 size="lg"
                 loading={isSubmitting}
                 loadingText={isEditMode ? "Updating Batch..." : "Submitting..."}
-                disabled={
-                  totalProductsSelectedCount === 0 ||
-                  (!isEditMode && !isSessionOpen)
-                }
+                disabled={totalProductsSelectedCount === 0}
                 className="flex-1 sm:flex-initial"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {isEditMode
                   ? "Save & Update Batch"
-                  : !isSessionOpen
-                  ? "Session Closed"
                   : isGlobalAdmin
                   ? "Submit & Approve Batch"
                   : "Submit for Approval"}

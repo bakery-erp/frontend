@@ -77,7 +77,7 @@ export const en = {
     users: "Users & Staff",
     production: "Production Batches",
     dailyProductHistory: "Daily Product History",
-    dailySessions: "Daily Sessions",
+    dailySessions: "Daily Register & Drawer",
     customerCreditSales: "Customer Credit Sales",
     categories: "Product Categories",
     products: "Products",

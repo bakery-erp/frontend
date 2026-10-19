@@ -140,14 +140,8 @@ export default function MobileBakerStation() {
     }
   };
 
-  const isSessionOpen = activeSession?.status === 'OPEN';
-  const sessionStatusLabel = !activeSession
-    ? 'CLOSED'
-    : activeSession.status === 'PAUSED'
-    ? 'PAUSED'
-    : activeSession.status === 'CLOSE_PENDING'
-    ? 'CLOSING'
-    : 'OPEN';
+  const isSessionOpen = true;
+  const sessionStatusLabel = 'ACTIVE';
 
   const updateMaterialQty = (stockItemId: string, delta: number) => {
     setMaterialsUsed((prev) => {
@@ -161,11 +155,6 @@ export default function MobileBakerStation() {
     e.preventDefault();
     if (!selectedProductId) {
       toast.error('Please select a product');
-      return;
-    }
-
-    if (!isSessionOpen) {
-      toast.error(`Daily session is ${sessionStatusLabel}. Cannot log production.`);
       return;
     }
 
@@ -223,16 +212,8 @@ export default function MobileBakerStation() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <span
-            className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase border ${
-              isSessionOpen
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 animate-pulse'
-                : activeSession?.status === 'PAUSED'
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-            }`}
-          >
-            {sessionStatusLabel}
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+            TODAY • {selectedShift} SHIFT
           </span>
         </div>
       </div>
@@ -296,19 +277,6 @@ export default function MobileBakerStation() {
 
       {/* Main Content Area */}
       <div className="p-4 flex-1 space-y-5 overflow-y-auto">
-        {!isLoading && !isSessionOpen && (
-          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center space-x-3 text-amber-300 text-xs font-semibold">
-            {activeSession?.status === 'PAUSED' ? (
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-            ) : (
-              <Lock className="w-5 h-5 text-rose-400 shrink-0" />
-            )}
-            <span>
-              Daily session is <strong>{sessionStatusLabel}</strong>. Batch logging is disabled until session is opened.
-            </span>
-          </div>
-        )}
-
         {/* TAB 1: NEW BATCH FORM */}
         {activeTab === 'NEW_BATCH' && (
           <form onSubmit={handleCreateBatch} className="space-y-5">
@@ -319,10 +287,9 @@ export default function MobileBakerStation() {
               </label>
 
               <select
-                disabled={!isSessionOpen}
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(e.target.value)}
-                className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm font-bold text-white focus:outline-none focus:border-amber-500 disabled:opacity-50"
+                className="w-full h-12 bg-zinc-950 border border-zinc-800 rounded-xl px-3 text-sm font-bold text-white focus:outline-none focus:border-amber-500"
               >
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -408,13 +375,11 @@ export default function MobileBakerStation() {
 
             <Button
               type="submit"
-              disabled={isSubmitting || !isSessionOpen}
+              disabled={isSubmitting}
               className="w-full h-14 bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-zinc-950 font-extrabold text-base rounded-xl shadow-lg shadow-amber-500/20"
             >
               {isSubmitting
                 ? 'Logging Batch...'
-                : !isSessionOpen
-                ? `Logging Disabled (${sessionStatusLabel})`
                 : `Submit ${selectedShift} Shift Batch`}
             </Button>
           </form>

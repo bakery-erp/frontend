@@ -79,7 +79,7 @@ export const am: TranslationDictionary = {
     users: "ሠራተኞችና ተጠቃሚዎች",
     production: "የምርት ምድቦች",
     dailyProductHistory: "ዕለታዊ የምርት ታሪክ",
-    dailySessions: "ዕለታዊ ክፍለ ጊዜ",
+    dailySessions: "ዕለታዊ መዝገብና ካዝና",
     customerCreditSales: "የደንበኞች የብድር ሽያጭ",
     categories: "የምርት ምድቦች (ዓይነት)",
     products: "የዳቦና ኬክ ምርቶች",

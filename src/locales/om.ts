@@ -79,7 +79,7 @@ export const om: TranslationDictionary = {
     users: "Hojjettoota & Ittifayyadamtoota",
     production: "Garee Oomishaa",
     dailyProductHistory: "Seenaa Oomishaa Guyyaa",
-    dailySessions: "Yeroo Hojii Guyyaa",
+    dailySessions: "Galmee Guyyaa & Saanduqa",
     customerCreditSales: "Gurgurtaa Liqii Maamilaa",
     categories: "Gosa Oomishaa",
     products: "Oomishaalee Daabboo",

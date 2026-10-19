@@ -285,7 +285,7 @@ export default function ProductConversionsPage() {
                     </Button>
                     <Button
                         onClick={handleOpenAdd}
-                        disabled={isLoading || !isSessionOpen}
+                        disabled={isLoading}
                         size="default"
                     >
                         <Plus className="w-4 h-4" /> {t('conversions.btnNewConversion')}
@@ -293,14 +293,6 @@ export default function ProductConversionsPage() {
                 </div>
             </div>
 
-            {!isLoading && !!pageData && !isSessionOpen && (
-                <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
-                    <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-                    <span>
-                        Daily business session is currently <strong>{sessionStatusLabel}</strong>. Creating product conversions is disabled until the session is reopened.
-                    </span>
-                </div>
-            )}
 
             {/* Filter Tabs: All, Today, History */}
             <div className="relative mb-4 overflow-hidden">
@@ -678,9 +670,9 @@ export default function ProductConversionsPage() {
                                     type="submit"
                                     size="lg"
                                     loading={isSubmitting}
-                                    disabled={!isSessionOpen || isExceedingStock}
+                                    disabled={isExceedingStock}
                                 >
-                                    {!isSessionOpen ? `Disabled (${sessionStatusLabel})` : isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
+                                    {isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>

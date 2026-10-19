@@ -303,14 +303,6 @@ export default function ProductionPage() {
         </div>
       </div>
 
-      {!isLoading && !!data && !isSessionOpen && (
-        <div className="mb-4 xs:mb-6 p-3.5 xs:p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
-          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-          <span>
-            {t('production.sessionClosedWarning', { status: sessionStatusLabel })}
-          </span>
-        </div>
-      )}
 
       {/* Filter Tabs & Shift Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3">
@@ -970,8 +962,8 @@ export default function ProductionPage() {
 
               <DialogFooter className="gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-                <Button type="submit" loading={isSubmitting} loadingText="Submitting..." disabled={!isSessionOpen}>
-                  {!isSessionOpen ? `Disabled (${sessionStatusLabel})` : (isGlobalAdmin ? "Submit & Approve" : "Submit for Approval")}
+                <Button type="submit" loading={isSubmitting} loadingText="Submitting...">
+                  {isGlobalAdmin ? "Submit & Approve" : "Submit for Approval"}
                 </Button>
               </DialogFooter>
             </form>
