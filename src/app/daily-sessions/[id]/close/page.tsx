@@ -219,7 +219,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         setIsViewOnly(false);
       }
 
-      setSessionLabel(s.label || `Session - ${new Date(s.date).toISOString().split("T")[0]}`);
+      const defaultDayLabel = `Daily Closing - ${new Date(s.date).toISOString().split("T")[0]}`;
+      const cleanLabel = s.label && !s.label.startsWith("Session -") ? s.label : defaultDayLabel;
+      setSessionLabel(cleanLabel);
       setActualCash(s.actualCashAmount != null ? String(s.actualCashAmount) : "");
       setActualCbe(s.actualCbeAmount != null ? String(s.actualCbeAmount) : "");
       setActualTelebirr(s.actualTelebirrAmount != null ? String(s.actualTelebirrAmount) : "");
@@ -575,7 +577,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               <Tag className="w-4 h-4 text-[#E87A18] shrink-0" />
               <Input
                 type="text"
-                placeholder="Session Name / Label (e.g. Morning Shift)"
+                placeholder="Daily Closing Label (e.g. Daily Closing - 2026-10-19)"
                 value={sessionLabel}
                 disabled={isViewOnly}
                 onChange={(e) => setSessionLabel(e.target.value)}

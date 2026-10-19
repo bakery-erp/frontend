@@ -116,14 +116,7 @@ export default function MobileSambusaStation() {
     }
   };
 
-  const isSessionOpen = true;
-  const sessionStatusLabel = !activeSession
-    ? t('sessions.statusClosed')
-    : activeSession.status === 'PAUSED'
-    ? t('sessions.statusPaused')
-    : activeSession.status === 'CLOSE_PENDING'
-    ? t('sessions.statusPending')
-    : t('sessions.statusOpen');
+
 
   const shiftLabel = selectedShift === 'DAY' ? t('production.dayShiftFull') : t('production.nightShiftFull');
 

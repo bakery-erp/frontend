@@ -144,14 +144,7 @@ export default function ProductionPage() {
   const products = modalData?.products || [];
   const stockItems = modalData?.stockItems || [];
 
-  const isSessionOpen = activeSession?.status === "OPEN";
-  const sessionStatusLabel = !activeSession
-    ? "CLOSED"
-    : activeSession.status === "PAUSED"
-    ? "PAUSED"
-    : activeSession.status === "CLOSE_PENDING"
-    ? "CLOSING"
-    : "OPEN";
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
