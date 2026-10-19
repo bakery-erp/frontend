@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useBranch } from '@/context/BranchContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
-import { CalendarDays, Plus, Lock, Utensils, RefreshCw, AlertTriangle, PauseCircle, PlayCircle, Edit3, Eye, CheckCircle2, RotateCcw } from 'lucide-react';
+import { CalendarDays, Plus, Lock, Utensils, RefreshCw, AlertTriangle, Edit3, Eye, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -171,17 +171,7 @@ export default function DailySessionsPage() {
     }
   };
 
-  const handlePauseSession = async (session: DailySession) => {
-    if (!canManageSessions) return;
-    try {
-      await api.post(`/daily-sessions/${session.id}/pause`);
-      toast.success('Business session paused');
-      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to pause session');
-    }
-  };
+
 
   const handleReopenSession = async (session: DailySession) => {
     if (!canManageSessions) return;
@@ -336,33 +326,26 @@ export default function DailySessionsPage() {
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 mb-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5 min-w-0">
               <div className={`p-3 rounded-2xl shrink-0 ${
-                todaySession.status === 'OPEN'
-                  ? 'bg-emerald-50 text-emerald-600'
-                  : todaySession.status === 'PAUSED'
-                  ? 'bg-amber-50 text-amber-600'
-                  : 'bg-zinc-100 text-zinc-600'
+                todaySession.status === 'CLOSED'
+                  ? 'bg-zinc-100 text-zinc-600'
+                  : 'bg-emerald-50 text-emerald-600'
               }`}>
-                {todaySession.status === 'OPEN' ? (
-                  <PlayCircle className="w-6 h-6" />
-                ) : todaySession.status === 'PAUSED' ? (
-                  <PauseCircle className="w-6 h-6" />
-                ) : (
+                {todaySession.status === 'CLOSED' ? (
                   <Lock className="w-6 h-6" />
+                ) : (
+                  <CalendarDays className="w-6 h-6" />
                 )}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-extrabold text-base text-[#2C1B10]">
-                    {todaySession.label || `Today's Session`}
+                    {todaySession.label && !todaySession.label.startsWith('Session -')
+                      ? todaySession.label
+                      : `Daily Closing — ${new Date(todaySession.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`}
                   </h3>
                   {todaySession.status === 'OPEN' && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('sessions.liveSessionOpen')}
-                    </span>
-                  )}
-                  {todaySession.status === 'PAUSED' && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                      <PauseCircle className="w-3.5 h-3.5 text-amber-600" /> {t('sessions.statusPaused')}
                     </span>
                   )}
                   {todaySession.status === 'CLOSE_PENDING' && (
@@ -387,46 +370,14 @@ export default function DailySessionsPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap sm:flex-nowrap">
-              {todaySession.status === 'OPEN' && (
-                <>
-                  {canManageSessions && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handlePauseSession(todaySession)}
-                      className="border-amber-300 text-amber-800 hover:bg-amber-50 font-bold rounded-xl text-xs h-9 flex-1 sm:flex-initial"
-                    >
-                      <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.pause')}
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
-                    className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-9 shadow-xs flex-1 sm:flex-initial"
-                  >
-                    <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
-                  </Button>
-                </>
-              )}
-              {todaySession.status === 'PAUSED' && (
-                <>
-                  {canManageSessions && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleReopenSession(todaySession)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs flex-1 sm:flex-initial"
-                    >
-                      <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen')}
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
-                    className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-9 shadow-xs flex-1 sm:flex-initial"
-                  >
-                    <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
-                  </Button>
-                </>
+              {todaySession.status !== 'CLOSED' && (
+                <Button
+                  size="sm"
+                  onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
+                  className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-9 shadow-xs w-full sm:w-auto"
+                >
+                  <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
+                </Button>
               )}
               {todaySession.status === 'CLOSE_PENDING' && (
                 <Button
@@ -486,11 +437,6 @@ export default function DailySessionsPage() {
                           Live
                         </span>
                       )}
-                      {bSess?.status === 'PAUSED' && (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                          Paused
-                        </span>
-                      )}
                       {bSess?.status === 'CLOSE_PENDING' && (
                         <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-100 text-purple-900 border border-purple-300">
                           Pending
@@ -537,15 +483,6 @@ export default function DailySessionsPage() {
                         className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 px-3"
                       >
                         <Lock className="w-3.5 h-3.5 mr-1" /> Finalize
-                      </Button>
-                    )}
-                    {bSess?.status === 'PAUSED' && canManageSessions && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleReopenSession(bSess)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-8 px-3"
-                      >
-                        <PlayCircle className="w-3.5 h-3.5 mr-1" /> Reopen
                       </Button>
                     )}
                     {bSess?.status === 'CLOSE_PENDING' && (
@@ -638,7 +575,9 @@ export default function DailySessionsPage() {
                 <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
                   <div>
                     <h3 className="font-extrabold text-sm text-[#2C1B10]">
-                      {sess.label || `Session - ${formattedDate}`}
+                      {sess.label && !sess.label.startsWith('Session -')
+                        ? sess.label
+                        : `Daily Closing — ${formattedDate}`}
                     </h3>
                     <div className="flex items-center gap-1.5 text-xs text-[#8C7361] mt-0.5 font-medium">
                       <CalendarDays className="w-3.5 h-3.5" />
@@ -654,11 +593,7 @@ export default function DailySessionsPage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" /> {t('sessions.statusOpen')}
                       </span>
                     )}
-                    {sess.status === 'PAUSED' && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                        <PauseCircle className="w-3 h-3 text-amber-600" /> {t('sessions.statusPaused')}
-                      </span>
-                    )}
+
                     {sess.status === 'CLOSE_PENDING' && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-900 border border-purple-300 animate-pulse">
                         <AlertTriangle className="w-3 h-3 text-purple-700" /> {t('sessions.statusPending')}
@@ -689,47 +624,13 @@ export default function DailySessionsPage() {
 
                 <div className="pt-1 flex items-center gap-2 flex-wrap">
                   {sess.status === 'OPEN' && (
-                    <>
-                      {canManageSessions && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handlePauseSession(sess)}
-                          className="border-amber-300 text-amber-800 hover:bg-amber-50 font-bold rounded-xl text-xs h-8 flex-1"
-                        >
-                          <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.pause')}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
-                        className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 shadow-xs flex-1"
-                      >
-                        <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
-                      </Button>
-                    </>
-                  )}
-
-                  {sess.status === 'PAUSED' && (
-                    <>
-                      {canManageSessions && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleReopenSession(sess)}
-                          className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold rounded-xl text-xs h-8 flex-1"
-                        >
-                          <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen')}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
-                        className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 shadow-xs flex-1"
-                      >
-                        <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
-                      </Button>
-                    </>
+                    <Button
+                      size="sm"
+                      onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
+                      className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 shadow-xs w-full"
+                    >
+                      <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
+                    </Button>
                   )}
 
                   {sess.status === 'CLOSE_PENDING' && (
@@ -806,7 +707,9 @@ export default function DailySessionsPage() {
               return (
                 <TableRow key={sess.id}>
                   <TableCell className="font-bold text-[#2C1B10]">
-                    {sess.label || `Session - ${formattedDate}`}
+                    {sess.label && !sess.label.startsWith('Session -')
+                      ? sess.label
+                      : `Daily Closing — ${formattedDate}`}
                   </TableCell>
                   <TableCell className="font-semibold text-xs text-[#8C7361]">
                     <div className="flex items-center">
@@ -821,11 +724,7 @@ export default function DailySessionsPage() {
                         <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span> {t('sessions.statusOpen')}
                       </span>
                     )}
-                    {sess.status === 'PAUSED' && (
-                      <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1.5 shadow-xs">
-                        <PauseCircle className="w-3.5 h-3.5 text-amber-600" /> {t('sessions.statusPaused')}
-                      </span>
-                    )}
+
                     {sess.status === 'CLOSE_PENDING' && (
                       <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-900 border border-purple-300 inline-flex items-center gap-1.5 animate-pulse">
                         <AlertTriangle className="w-3.5 h-3.5 text-purple-700" /> {t('sessions.statusPending')}
@@ -846,37 +745,13 @@ export default function DailySessionsPage() {
                   <TableCell>
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">
                       {sess.status === 'OPEN' && (
-                        <>
-                          {canManageSessions && (
-                            <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-50 font-bold rounded-xl text-xs" onClick={() => handlePauseSession(sess)}>
-                              <PauseCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.pause')}
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            className="bg-rose-700 text-white hover:bg-rose-800 font-bold rounded-xl text-xs shadow-xs"
-                            onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
-                          >
-                            <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
-                          </Button>
-                        </>
-                      )}
-
-                      {sess.status === 'PAUSED' && (
-                        <>
-                          {canManageSessions && (
-                            <Button size="sm" variant="outline" className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold rounded-xl text-xs" onClick={() => handleReopenSession(sess)}>
-                              <PlayCircle className="w-3.5 h-3.5 mr-1" /> {t('sessions.reopen')}
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            className="bg-rose-700 text-white hover:bg-rose-800 font-bold rounded-xl text-xs shadow-xs"
-                            onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
-                          >
-                            <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
-                          </Button>
-                        </>
+                        <Button
+                          size="sm"
+                          className="bg-rose-700 text-white hover:bg-rose-800 font-bold rounded-xl text-xs shadow-xs"
+                          onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
+                        >
+                          <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
+                        </Button>
                       )}
 
                       {sess.status === 'CLOSE_PENDING' && (

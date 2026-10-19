@@ -95,14 +95,7 @@ export default function ProductConversionsPage() {
     const activeSession = pageData?.activeSession || null;
     const sessionStockSummary = pageData?.sessionStockSummary || {};
 
-    const isSessionOpen = activeSession?.status === "OPEN";
-    const sessionStatusLabel = !activeSession
-        ? "CLOSED"
-        : activeSession.status === "PAUSED"
-        ? "PAUSED"
-        : activeSession.status === "CLOSE_PENDING"
-        ? "CLOSING"
-        : "OPEN";
+
 
     const resetForm = () => {
         setFromProductId("");
