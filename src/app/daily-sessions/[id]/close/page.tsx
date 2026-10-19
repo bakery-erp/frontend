@@ -1586,20 +1586,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 <Save className="w-4 h-4 mr-1.5" /> {t("common.save")}
               </Button>
 
-              {/* Cashier Submit Request */}
-              {session.status === "OPEN" && (
-                <Button
-                  onClick={handleSubmitClose}
-                  loading={isSubmitting}
-                  disabled={isViewOnly}
-                  className="justify-center"
-                >
-                  {t("sessions.btnFinalizeClose")}
-                </Button>
-              )}
-
               {/* Admin / Owner Finalize & Approve */}
-              {isAdminOrOwner && session.status !== "CLOSED" && (
+              {session.status !== "CLOSED" && (
                 <Button
                   onClick={handleFinalizeApprove}
                   loading={isSubmitting}

@@ -142,9 +142,9 @@ export default function DailySessionsPage() {
   const [conversionQty, setConversionQty] = useState('1');
   const [isConverting, setIsConverting] = useState(false);
 
-  const handleOpenNewSession = async (overrideBranchId?: string) => {
+  const handleOpenNewSession = async (overrideBranchId?: string, overrideDate?: string) => {
     if (!canManageSessions) {
-      toast.error('Only Owners and Admins can start business sessions');
+      toast.error('Only Owners and Admins can manage daily closing');
       return;
     }
     const targetBranch = overrideBranchId || selectedBranchId || user?.branchId;
@@ -153,22 +153,21 @@ export default function DailySessionsPage() {
         setIsBranchSelectModalOpen(true);
         return;
       }
-      toast.error('Please select a specific branch to open a daily session');
+      toast.error('Please select a specific branch');
       return;
     }
+    const targetDate = overrideDate || ethTodayYmd;
     try {
-      await api.post('/daily-sessions', {
-        branchId: targetBranch,
-        date: ethTodayYmd,
+      const res = await api.get('/daily-sessions/by-date', {
+        params: { branchId: targetBranch, date: targetDate },
       });
-      toast.success('Daily session opened successfully');
       setIsBranchSelectModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
+      await queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      if (res.data?.id) {
+        router.push(`/daily-sessions/${res.data.id}/close?mode=edit`);
+      }
     } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to open session');
+      toast.error(e.response?.data?.error || 'Failed to open daily closing');
     }
   };
 
