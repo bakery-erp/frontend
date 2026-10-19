@@ -75,6 +75,12 @@ export default function DailyProductHistoryPage() {
 
   const branchId = selectedBranchId || user?.branchId;
 
+  const ethNow = useMemo(() => new Date(Date.now() + 3 * 3600 * 1000), []);
+  const todayYmd = useMemo(() => ethNow.toISOString().slice(0, 10), [ethNow]);
+  const yesterdayYmd = useMemo(() => {
+    return new Date(ethNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  }, [ethNow]);
+
   // Fetch product list for filter options
   const { data: allProducts = [] } = useQuery<ProductItem[]>({
     queryKey: ["products-filter", branchId],
@@ -99,16 +105,30 @@ export default function DailyProductHistoryPage() {
   };
 
   const { data: historyData, isLoading } = useQuery({
-    queryKey: ["production-history", branchId, startDate, endDate, productFilter, search],
+    queryKey: [
+      "production-history",
+      branchId,
+      isGlobalAdmin ? startDate : yesterdayYmd,
+      isGlobalAdmin ? endDate : todayYmd,
+      isGlobalAdmin ? productFilter : "",
+      isGlobalAdmin ? search : ""
+    ],
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (branchId) params.append("branchId", branchId);
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
+      if (!isGlobalAdmin) {
+        params.append("startDate", yesterdayYmd);
+        params.append("endDate", todayYmd);
+      } else {
+        if (startDate) params.append("startDate", startDate);
+        if (endDate) params.append("endDate", endDate);
+      }
       params.append("type", "PRODUCED");
-      if (productFilter) params.append("productId", productFilter);
-      if (search.trim()) params.append("search", search.trim());
+      if (isGlobalAdmin) {
+        if (productFilter) params.append("productId", productFilter);
+        if (search.trim()) params.append("search", search.trim());
+      }
 
       const res = await api.get(`/production-batches/daily-product-history/all?${params.toString()}`);
       const rawRecords: ProductHistoryRecord[] = (res.data.records || []).filter(
@@ -132,10 +152,16 @@ export default function DailyProductHistoryPage() {
   const records = historyData?.records || [];
   const summary = historyData?.summary || { totalProducedQuantity: 0, totalValuation: 0, count: 0 };
 
-  // Strict User/Role-Based Filtering: Non-admin users see ONLY what they logged for themselves
+  // Strict User/Role-Based Filtering: Non-admin users see ONLY what they logged for themselves and only yesterday and today
   const filteredRoleRecords = useMemo(() => {
     if (!records) return [];
     return records.filter((r) => {
+      const recordDate = (r.date || r.createdAt || "").slice(0, 10);
+      if (!isGlobalAdmin) {
+        if (recordDate !== todayYmd && recordDate !== yesterdayYmd) {
+          return false;
+        }
+      }
       if (isGlobalAdmin) return true; // ADMIN & OWNER see all
       if (user?.id && r.userId) {
         return r.userId === user.id;
@@ -145,7 +171,7 @@ export default function DailyProductHistoryPage() {
       }
       return true;
     });
-  }, [records, user?.id, user?.role, isGlobalAdmin]);
+  }, [records, user?.id, user?.role, isGlobalAdmin, todayYmd, yesterdayYmd]);
 
   const uniqueProductsCount = useMemo(() => {
     const set = new Set(filteredRoleRecords.map((r) => r.productName).filter(Boolean));
@@ -276,84 +302,86 @@ export default function DailyProductHistoryPage() {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 xs:p-4 mb-4 xs:mb-6 shadow-xs">
-        <form onSubmit={handleSearchSubmit} className="space-y-2.5">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
-            {/* Quick Actions & Product Select */}
-            <div className="flex items-center gap-2 w-full lg:w-auto">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleSetToday}
-                className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all shrink-0 ${
-                  startDate === format(new Date(), "yyyy-MM-dd") && endDate === format(new Date(), "yyyy-MM-dd")
-                    ? "bg-amber-100 border-amber-400 text-amber-900 shadow-xs"
-                    : "border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]"
-                }`}
-              >
-                📅 {t('productionHistory.todayOnly')}
-              </Button>
+      {/* Filter Toolbar (Admin & Owner only) */}
+      {isGlobalAdmin && (
+        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 xs:p-4 mb-4 xs:mb-6 shadow-xs">
+          <form onSubmit={handleSearchSubmit} className="space-y-2.5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+              {/* Quick Actions & Product Select */}
+              <div className="flex items-center gap-2 w-full lg:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSetToday}
+                  className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all shrink-0 ${
+                    startDate === format(new Date(), "yyyy-MM-dd") && endDate === format(new Date(), "yyyy-MM-dd")
+                      ? "bg-amber-100 border-amber-400 text-amber-900 shadow-xs"
+                      : "border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B]"
+                  }`}
+                >
+                  📅 {t('productionHistory.todayOnly')}
+                </Button>
 
-              <select
-                value={productFilter}
-                onChange={(e) => setProductFilter(e.target.value)}
-                className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 text-xs px-2.5 font-semibold text-[#2C1B10] focus:outline-none flex-1 lg:flex-initial lg:w-48 truncate"
-              >
-                <option value="">{t('productionHistory.allProducts')}</option>
-                {allProducts.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date Range & Search */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-              {/* Date Range Inputs */}
-              <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
-                  aria-label="Start Date"
-                />
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
-                  aria-label="End Date"
-                />
+                <select
+                  value={productFilter}
+                  onChange={(e) => setProductFilter(e.target.value)}
+                  className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 text-xs px-2.5 font-semibold text-[#2C1B10] focus:outline-none flex-1 lg:flex-initial lg:w-48 truncate"
+                >
+                  <option value="">{t('productionHistory.allProducts')}</option>
+                  {allProducts.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Search Bar & Button */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-44">
-                  <Search className="w-3.5 h-3.5 text-[#8C7361] absolute left-3 top-2.5 pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder={t('common.search') || "Search..."}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-8 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl w-full"
+              {/* Date Range & Search */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+                {/* Date Range Inputs */}
+                <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
+                    aria-label="Start Date"
+                  />
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
+                    aria-label="End Date"
                   />
                 </div>
 
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] rounded-xl text-xs font-bold h-9 px-4 shrink-0 shadow-xs"
-                >
-                  {t('common.filter') || "Filter"}
-                </Button>
+                {/* Search Bar & Button */}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-44">
+                    <Search className="w-3.5 h-3.5 text-[#8C7361] absolute left-3 top-2.5 pointer-events-none" />
+                    <Input
+                      type="text"
+                      placeholder={t('common.search') || "Search..."}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-8 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl w-full"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] rounded-xl text-xs font-bold h-9 px-4 shrink-0 shadow-xs"
+                  >
+                    {t('common.filter') || "Filter"}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
+      )}
 
       {/* ── Mobile Audit Cards (< md) ── */}
       <div className="space-y-3 block md:hidden mb-6">
@@ -387,9 +415,30 @@ export default function DailyProductHistoryPage() {
                   <span className="font-extrabold text-sm text-[#2C1B10] block">{row.productName}</span>
                   <span className="text-[11px] text-[#8C7361] font-medium">{t('common.unit')}: {row.unitType}</span>
                 </div>
-                <span className="px-2.5 py-1 bg-amber-100/70 border border-amber-200 rounded-lg text-xs font-bold text-amber-900 shrink-0">
-                  {row.shift === "NIGHT" ? t('production.nightShift') : t('production.dayShift')}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {(() => {
+                    const dStr = (row.date || row.createdAt || "").slice(0, 10);
+                    if (dStr === todayYmd) {
+                      return (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                          Today
+                        </span>
+                      );
+                    }
+                    if (dStr === yesterdayYmd) {
+                      return (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                          Yesterday
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                  <span className="px-2.5 py-1 bg-amber-100/70 border border-amber-200 rounded-lg text-xs font-bold text-amber-900 shrink-0">
+                    {row.shift === "NIGHT" ? t('production.nightShift') : t('production.dayShift')}
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center justify-between gap-2">
@@ -464,7 +513,28 @@ export default function DailyProductHistoryPage() {
               filteredRoleRecords.map((row) => (
                 <TableRow key={row.id} className="hover:bg-[#FAF6F0]/50 transition-colors">
                   <TableCell className="font-semibold text-xs text-zinc-900">
-                    <div>{formatEthDate(row.createdAt, true)}</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>{formatEthDate(row.createdAt, true)}</span>
+                      {(() => {
+                        const dStr = (row.date || row.createdAt || "").slice(0, 10);
+                        if (dStr === todayYmd) {
+                          return (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                              Today
+                            </span>
+                          );
+                        }
+                        if (dStr === yesterdayYmd) {
+                          return (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                              Yesterday
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </TableCell>
 
                   <TableCell className="font-bold text-sm text-[#2C1B10]">

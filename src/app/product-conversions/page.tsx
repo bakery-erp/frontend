@@ -44,6 +44,7 @@ export default function ProductConversionsPage() {
     const { user } = useAuth();
     const { selectedBranchId } = useBranch();
     const { t } = useLanguage();
+    const isGlobalAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
 
     const queryClient = useQueryClient();
 
@@ -233,10 +234,21 @@ export default function ProductConversionsPage() {
         return () => clearTimeout(timer);
     }, [filterTab]);
 
-    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const ethNow = new Date(Date.now() + 3 * 3600 * 1000);
+    const todayYmd = ethNow.toISOString().slice(0, 10);
+    const yesterdayYmd = new Date(ethNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+
     const isToday = (dateStr: string) => {
         try {
-            return format(new Date(dateStr), "yyyy-MM-dd") === todayStr;
+            return (dateStr || "").slice(0, 10) === todayYmd;
+        } catch {
+            return false;
+        }
+    };
+
+    const isYesterday = (dateStr: string) => {
+        try {
+            return (dateStr || "").slice(0, 10) === yesterdayYmd;
         } catch {
             return false;
         }
@@ -245,12 +257,13 @@ export default function ProductConversionsPage() {
     const todayConversions = conversions.filter((c) => isToday(c.createdAt));
     const historyConversions = conversions.filter((c) => !isToday(c.createdAt));
 
-    const displayedConversions =
-        filterTab === "TODAY"
+    const displayedConversions = isGlobalAdmin
+        ? (filterTab === "TODAY"
             ? todayConversions
             : filterTab === "HISTORY"
             ? historyConversions
-            : conversions;
+            : conversions)
+        : conversions.filter((c) => isToday(c.createdAt) || isYesterday(c.createdAt));
 
     const selectedStock = fromProductId ? sessionStockSummary[fromProductId] : undefined;
     const maxAvailableForConversion = selectedStock ? selectedStock.maxAvailable : 0;
@@ -296,83 +309,99 @@ export default function ProductConversionsPage() {
             </div>
 
 
-            {/* Filter Tabs: All, Today, History */}
-            <div className="relative mb-4 overflow-hidden">
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+            {/* Filter Tabs: All, Today, History (Admin & Owner only) */}
+            {isGlobalAdmin && (
+                <div className="relative mb-4 overflow-hidden">
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
 
-                <div
-                    className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                    <button
-                        ref={(el) => { tabRefs.current["ALL"] = el; }}
-                        onClick={() => setFilterTab("ALL")}
-                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-                            filterTab === "ALL"
-                                ? "bg-[#2C1B10] text-white shadow-xs"
-                                : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
-                        }`}
+                    <div
+                        className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
-                        {t('conversions.tabAll')} ({conversions.length})
-                    </button>
-                    <button
-                        ref={(el) => { tabRefs.current["TODAY"] = el; }}
-                        onClick={() => setFilterTab("TODAY")}
-                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                            filterTab === "TODAY"
-                                ? "bg-emerald-700 text-white shadow-xs"
-                                : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-                        }`}
-                    >
-                        <Clock className="w-3.5 h-3.5" />
-                        {t('conversions.tabToday')} ({todayConversions.length})
-                    </button>
-                    <button
-                        ref={(el) => { tabRefs.current["HISTORY"] = el; }}
-                        onClick={() => setFilterTab("HISTORY")}
-                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                            filterTab === "HISTORY"
-                                ? "bg-amber-700 text-white shadow-xs"
-                                : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
-                        }`}
-                    >
-                        <History className="w-3.5 h-3.5" />
-                        {t('conversions.tabHistory')} ({historyConversions.length})
-                    </button>
+                        <button
+                            ref={(el) => { tabRefs.current["ALL"] = el; }}
+                            onClick={() => setFilterTab("ALL")}
+                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                                filterTab === "ALL"
+                                    ? "bg-[#2C1B10] text-white shadow-xs"
+                                    : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
+                            }`}
+                        >
+                            {t('conversions.tabAll')} ({conversions.length})
+                        </button>
+                        <button
+                            ref={(el) => { tabRefs.current["TODAY"] = el; }}
+                            onClick={() => setFilterTab("TODAY")}
+                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                                filterTab === "TODAY"
+                                    ? "bg-emerald-700 text-white shadow-xs"
+                                    : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                            }`}
+                        >
+                            <Clock className="w-3.5 h-3.5" />
+                            {t('conversions.tabToday')} ({todayConversions.length})
+                        </button>
+                        <button
+                            ref={(el) => { tabRefs.current["HISTORY"] = el; }}
+                            onClick={() => setFilterTab("HISTORY")}
+                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                                filterTab === "HISTORY"
+                                    ? "bg-amber-700 text-white shadow-xs"
+                                    : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                            }`}
+                        >
+                            <History className="w-3.5 h-3.5" />
+                            {t('conversions.tabHistory')} ({historyConversions.length})
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Section Indicator */}
-            <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                    {filterTab === "TODAY" ? (
-                        <>
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                {t('conversions.tabToday')} ({todayConversions.length})
-                            </h2>
-                        </>
-                    ) : filterTab === "HISTORY" ? (
-                        <>
-                            <History className="w-4 h-4 text-amber-700" />
-                            <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                {t('conversions.tabHistory')} ({historyConversions.length})
-                            </h2>
-                        </>
-                    ) : (
-                        <>
-                            <ArrowRightLeft className="w-4 h-4 text-[#E87A18]" />
-                            <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                {t('conversions.tabAll')} ({conversions.length})
-                            </h2>
-                        </>
-                    )}
+            {isGlobalAdmin ? (
+                <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                        {filterTab === "TODAY" ? (
+                            <>
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
+                                    {t('conversions.tabToday')} ({todayConversions.length})
+                                </h2>
+                            </>
+                        ) : filterTab === "HISTORY" ? (
+                            <>
+                                <History className="w-4 h-4 text-amber-700" />
+                                <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
+                                    {t('conversions.tabHistory')} ({historyConversions.length})
+                                </h2>
+                            </>
+                        ) : (
+                            <>
+                                <ArrowRightLeft className="w-4 h-4 text-[#E87A18]" />
+                                <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
+                                    {t('conversions.tabAll')} ({conversions.length})
+                                </h2>
+                            </>
+                        )}
+                    </div>
+                    <span className="text-[11px] font-semibold text-[#8C7361]">
+                        Showing {displayedConversions.length} record{displayedConversions.length === 1 ? "" : "s"}
+                    </span>
                 </div>
-                <span className="text-[11px] font-semibold text-[#8C7361]">
-                    Showing {displayedConversions.length} record{displayedConversions.length === 1 ? "" : "s"}
-                </span>
-            </div>
+            ) : (
+                <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-emerald-700" />
+                        <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
+                            Recent Conversions (Today & Yesterday)
+                        </h2>
+                    </div>
+                    <span className="text-[11px] font-semibold text-[#8C7361]">
+                        Showing {displayedConversions.length} record{displayedConversions.length === 1 ? "" : "s"}
+                    </span>
+                </div>
+            )}
 
             {/* History: Desktop Table & Mobile Cards */}
             <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
@@ -408,8 +437,14 @@ export default function ProductConversionsPage() {
                                                     {format(new Date(c.createdAt), "MMM d, yyyy")}
                                                 </span>
                                                 {isToday(c.createdAt) && (
-                                                    <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                        {t('conversions.tabToday')}
+                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                                                        Today
+                                                    </span>
+                                                )}
+                                                {isYesterday(c.createdAt) && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                                                        Yesterday
                                                     </span>
                                                 )}
                                             </div>
@@ -493,8 +528,14 @@ export default function ProductConversionsPage() {
                                         {format(new Date(c.createdAt), "MMM d, yyyy · hh:mm a")}
                                     </span>
                                     {isToday(c.createdAt) && (
-                                        <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                            {t('conversions.tabToday')}
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-extrabold uppercase rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                                            Today
+                                        </span>
+                                    )}
+                                    {isYesterday(c.createdAt) && (
+                                        <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-extrabold uppercase rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                                            Yesterday
                                         </span>
                                     )}
                                 </div>

@@ -255,7 +255,11 @@ export default function ProductionPage() {
 
   const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
 
-  const todayYmd = new Date().toISOString().slice(0, 10);
+  const ethNow = useMemo(() => new Date(Date.now() + 3 * 3600 * 1000), []);
+  const todayYmd = useMemo(() => ethNow.toISOString().slice(0, 10), [ethNow]);
+  const yesterdayYmd = useMemo(() => {
+    return new Date(ethNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  }, [ethNow]);
 
   const roleBatches = useMemo(() => {
     return batches.filter((b) => {
@@ -281,21 +285,33 @@ export default function ProductionPage() {
     return roleBatches.filter((b) => !!b.isFlagged).length;
   }, [roleBatches]);
 
-  const filteredBatches = (isGlobalAdmin ? roleBatches : todayBatches)
-    .filter((b) => {
-      if (isGlobalAdmin) {
-        if (filterTab === "UNSEEN") return !isBatchSeenByMe(b);
-        if (filterTab === "FLAGGED") return !!b.isFlagged;
-        if (filterTab === "TODAY") return (b.date || b.createdAt || "").startsWith(todayYmd);
-        return true;
-      } else {
-        return true;
+  const filteredBatches = useMemo(() => {
+    return roleBatches.filter((b) => {
+      const bDate = (b.date || b.createdAt || "").slice(0, 10);
+      const isToday = bDate === todayYmd;
+      const isYesterday = bDate === yesterdayYmd;
+
+      if (!isGlobalAdmin) {
+        // Non-admin (bakers, etc.): show ONLY yesterday and today
+        return isToday || isYesterday;
       }
-    })
-    .filter((b) => {
-      if (shiftFilter !== "ALL") return b.shift === shiftFilter;
+
+      // Admin & Owner: full filters
+      if (filterTab === "UNSEEN") {
+        if (isBatchSeenByMe(b)) return false;
+      } else if (filterTab === "FLAGGED") {
+        if (!b.isFlagged) return false;
+      } else if (filterTab === "TODAY") {
+        if (!isToday) return false;
+      }
+
+      if (shiftFilter !== "ALL" && b.shift !== shiftFilter) {
+        return false;
+      }
+
       return true;
     });
+  }, [roleBatches, isGlobalAdmin, todayYmd, yesterdayYmd, filterTab, shiftFilter, isBatchSeenByMe]);
 
 
 
@@ -484,6 +500,18 @@ export default function ProductionPage() {
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-extrabold text-sm text-[#2C1B10]">{formatEthDate(batch.date)}</span>
+                    {((batch.date || batch.createdAt || "").slice(0, 10) === todayYmd) && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                        {t('common.today') || "Today"}
+                      </span>
+                    )}
+                    {((batch.date || batch.createdAt || "").slice(0, 10) === yesterdayYmd) && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                        {t('common.yesterday') || "Yesterday"}
+                      </span>
+                    )}
                     {batch.isEdited && (
                       <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
                         ✏️ {t('production.edited') || "Edited"}
@@ -767,6 +795,18 @@ export default function ProductionPage() {
                 <TableCell>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-bold text-[#2C1B10]">{formatEthDate(batch.date)}</span>
+                    {((batch.date || batch.createdAt || "").slice(0, 10) === todayYmd) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                        {t('common.today') || "Today"}
+                      </span>
+                    )}
+                    {((batch.date || batch.createdAt || "").slice(0, 10) === yesterdayYmd) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                        {t('common.yesterday') || "Yesterday"}
+                      </span>
+                    )}
                     {batch.isEdited && (
                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
                         ✏️ {t('production.edited') || "Edited"}

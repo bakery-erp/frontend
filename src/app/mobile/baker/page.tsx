@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
@@ -193,12 +193,26 @@ export default function MobileBakerStation() {
     }
   };
 
+  const isGlobalAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+
+  const ethNow = useMemo(() => new Date(Date.now() + 3 * 3600 * 1000), []);
+  const todayYmd = useMemo(() => ethNow.toISOString().slice(0, 10), [ethNow]);
+  const yesterdayYmd = useMemo(() => {
+    return new Date(ethNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  }, [ethNow]);
+
+  const visibleBatches = useMemo(() => {
+    return historyBatches.filter((b) => {
+      if (isGlobalAdmin) return true;
+      const dateStr = ((b as any).date || b.createdAt || "").slice(0, 10);
+      return dateStr === todayYmd || dateStr === yesterdayYmd;
+    });
+  }, [historyBatches, isGlobalAdmin, todayYmd, yesterdayYmd]);
+
   // Calculate shift totals
-  const totalShiftProduced = historyBatches.reduce((acc, b) => {
+  const totalShiftProduced = visibleBatches.reduce((acc, b) => {
     return acc + b.items.reduce((iAcc, item) => iAcc + item.quantityProduced, 0);
   }, 0);
-
-  const isGlobalAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col justify-between pb-6 font-sans">
@@ -410,17 +424,36 @@ export default function MobileBakerStation() {
               </div>
             </div>
 
-            {historyBatches.length === 0 ? (
+            {visibleBatches.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-800 rounded-2xl space-y-2">
                 <Clock className="w-8 h-8 text-zinc-600 mx-auto" />
                 <p className="text-xs font-bold text-zinc-400">{t('production.noBatches')}</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {historyBatches.map((b) => (
+                {visibleBatches.map((b) => (
                   <div key={b.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl space-y-3 shadow-md">
                     <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1.5 flex-wrap">
+                        {(() => {
+                          const dateStr = ((b as any).date || b.createdAt || "").slice(0, 10);
+                          if (dateStr === todayYmd) {
+                            return (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                Today
+                              </span>
+                            );
+                          }
+                          if (dateStr === yesterdayYmd) {
+                            return (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Yesterday
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
                           b.shift === 'DAY' ? 'bg-amber-500/20 text-amber-400' : 'bg-indigo-500/20 text-indigo-400'
                         }`}>
