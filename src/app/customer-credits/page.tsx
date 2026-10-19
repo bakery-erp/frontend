@@ -156,6 +156,7 @@ export default function CustomerCreditsPage() {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "CASHIER";
+  const isAdminOrOwner = user?.role === "OWNER" || user?.role === "ADMIN";
 
   // Active Main Tab: "CREDITS" vs "CUSTOMERS"
   const [activeMainTab, setActiveMainTab] = useState<"CREDITS" | "CUSTOMERS">("CREDITS");
@@ -376,27 +377,29 @@ export default function CustomerCreditsPage() {
         </div>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm min-w-0">
-          <span className="text-xs font-bold uppercase text-[#8C7361] block truncate">{t("credits.colTotalAmount")}</span>
-          <span className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] mt-1 block font-mono truncate">
-            {totalCreditGiven.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
-          </span>
+      {/* Metric Cards (Visible only to Admin and Owner, hidden from Cashiers) */}
+      {isAdminOrOwner && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm min-w-0">
+            <span className="text-xs font-bold uppercase text-[#8C7361] block truncate">{t("credits.colTotalAmount")}</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-[#2C1B10] mt-1 block font-mono truncate">
+              {totalCreditGiven.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
+            </span>
+          </div>
+          <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm bg-emerald-50/30 min-w-0">
+            <span className="text-xs font-bold uppercase text-emerald-800 block truncate">{t("dashboard.creditReceivedLoans")}</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1 block font-mono truncate">
+              {totalRepaid.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
+            </span>
+          </div>
+          <div className="bg-white border border-rose-200 rounded-2xl p-4 shadow-sm bg-rose-50/30 min-w-0 sm:col-span-2 md:col-span-1">
+            <span className="text-xs font-bold uppercase text-rose-800 block truncate">{t("credits.colRemaining")}</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-rose-700 mt-1 block font-mono truncate">
+              {totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
+            </span>
+          </div>
         </div>
-        <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm bg-emerald-50/30 min-w-0">
-          <span className="text-xs font-bold uppercase text-emerald-800 block truncate">{t("dashboard.creditReceivedLoans")}</span>
-          <span className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1 block font-mono truncate">
-            {totalRepaid.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
-          </span>
-        </div>
-        <div className="bg-white border border-rose-200 rounded-2xl p-4 shadow-sm bg-rose-50/30 min-w-0 sm:col-span-2 md:col-span-1">
-          <span className="text-xs font-bold uppercase text-rose-800 block truncate">{t("credits.colRemaining")}</span>
-          <span className="text-xl sm:text-2xl font-extrabold text-rose-700 mt-1 block font-mono truncate">
-            {totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB
-          </span>
-        </div>
-      </div>
+      )}
 
       {/* Main Feature Tabs: Credit Sales vs Customer Directory */}
       <div className="flex items-center gap-2 p-1.5 bg-[#F4ECE1] rounded-2xl border border-[#EDE4D5] mb-6 w-fit">
