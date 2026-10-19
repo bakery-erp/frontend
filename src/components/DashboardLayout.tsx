@@ -203,7 +203,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col w-full max-w-full pl-0 lg:pl-72 min-h-screen min-w-0 overflow-x-hidden">
           {/* Top Header Bar */}
-          <header className="h-14 xs:h-16 bg-[#FFFDF8]/90 backdrop-blur-md border border-[#EDE4D5] rounded-2xl sticky top-1.5 xs:top-3 md:top-6 z-30 px-2.5 xs:px-4 md:px-6 flex items-center justify-between shadow-[0_4px_20px_rgba(74,46,27,0.04)] mb-3 xs:mb-4 md:mb-6 gap-2">
+          <header className="h-14 xs:h-16 bg-[#FFFDF8]/90 backdrop-blur-md border border-[#EDE4D5] rounded-2xl sticky top-1.5 xs:top-3 md:top-6 z-30 px-2.5 xs:px-4 md:px-6 flex items-center justify-between shadow-[0_4px_20px_rgba(74,46,27,0.04)] mb-5 xs:mb-7 md:mb-14 gap-2">
             <div className="flex items-center space-x-2 xs:space-x-3 md:space-x-4 min-w-0">
               <button
                 onClick={() => setIsMobileOpen(true)}
