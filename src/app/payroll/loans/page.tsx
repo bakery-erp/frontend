@@ -45,15 +45,17 @@ export default function PayrollLoansPage() {
   const [isLoanOpen, setIsLoanOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
+  const [loanToSign, setLoanToSign] = useState<Loan | null>(null);
+  const [isSigning, setIsSigning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [typeFilter, setTypeFilter] = useState("ALL");
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ["payroll-loans-page", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const loanParams: any = { type: "STAFF" };
@@ -82,25 +84,24 @@ export default function PayrollLoansPage() {
     if (statusFilter !== "ALL" && l.status !== statusFilter) {
       return false;
     }
-    if (typeFilter !== "ALL" && l.type !== typeFilter) {
-      return false;
-    }
     return true;
   });
 
-  const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL" || typeFilter !== "ALL";
+  const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL";
 
   const handleAddLoan = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
+    const isSigned = fd.get("isSigned") === "on";
     try {
       await api.post("/loans", {
-        type: fd.get("type") || "STAFF_LOAN",
+        type: "STAFF_LOAN",
         userId: fd.get("userId"),
         totalAmount: fd.get("amount"),
+        isSigned,
       });
-      toast.success("Loan recorded successfully. Awaiting employee approval.");
+      toast.success(isSigned ? (t('payroll.markedSignedSuccess') || "Loan recorded as signed") : "Loan recorded successfully.");
       setIsLoanOpen(false);
       queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
@@ -110,6 +111,19 @@ export default function PayrollLoansPage() {
       toast.error(error.response?.data?.error || "Failed to add loan");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleApproveLoan = async (id: string) => {
+    try {
+      await api.post(`/loans/${id}/approve`);
+      toast.success(t('payroll.markedSignedSuccess') || "Marked as signed successfully");
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to mark loan as signed");
     }
   };
 
@@ -144,8 +158,8 @@ export default function PayrollLoansPage() {
         return (
           <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="hidden sm:inline">{t('payroll.approvedByStaff')}</span>
-            <span className="sm:hidden">{t('common.approved')}</span>
+            <span className="hidden sm:inline">✍️ {t('payroll.signedOnPaper')}</span>
+            <span className="sm:hidden">✍️ {t('common.approved')}</span>
           </Badge>
         );
       case "REJECTED":
@@ -169,8 +183,8 @@ export default function PayrollLoansPage() {
         return (
           <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-[10px] sm:text-xs inline-flex items-center gap-1 shrink-0 px-2 sm:px-2.5 py-0.5">
             <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span className="hidden sm:inline">{t('payroll.pendingReview')}</span>
-            <span className="sm:hidden">{t('common.pending')}</span>
+            <span className="hidden sm:inline">⏳ {t('payroll.pendingPaperSignature')}</span>
+            <span className="sm:hidden">⏳ {t('common.pending')}</span>
           </Badge>
         );
     }
@@ -219,19 +233,6 @@ export default function PayrollLoansPage() {
             </select>
           </div>
 
-          {/* Type Filter */}
-          <div className="w-full sm:w-44">
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full h-10 rounded-xl border border-[#EDE4D5] bg-[#FAF6F0]/50 px-3 text-xs sm:text-sm font-semibold text-[#2C1B10] focus:outline-none"
-            >
-              <option value="ALL">All Types</option>
-              <option value="STAFF_LOAN">Staff Loan</option>
-              <option value="SALARY_ADVANCE">Salary Advance</option>
-            </select>
-          </div>
-
           {/* Reset Filters */}
           {hasActiveFilters && (
             <Button
@@ -240,7 +241,6 @@ export default function PayrollLoansPage() {
               onClick={() => {
                 setSearchTerm("");
                 setStatusFilter("ALL");
-                setTypeFilter("ALL");
               }}
               className="h-10 px-3 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0"
             >
@@ -288,10 +288,7 @@ export default function PayrollLoansPage() {
                 <div className="min-w-0 flex-1">
                   <h3 className="font-extrabold text-[#2C1B10] text-sm sm:text-base truncate">{l.user?.fullName}</h3>
                   <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                    <Badge className={`font-bold text-[10px] shrink-0 ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                      {l.type === "STAFF_LOAN" ? t('payroll.staffLoan') : t('payroll.salaryAdvance')}
-                    </Badge>
-                    <span className="text-[11px] text-[#8C7361] whitespace-nowrap">• {formatEthDate(l.createdAt)}</span>
+                    <span className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(l.createdAt)}</span>
                   </div>
                 </div>
                 {getApprovalBadge(l.status)}
@@ -309,7 +306,17 @@ export default function PayrollLoansPage() {
               </div>
 
               {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                <div className="pt-2 border-t border-zinc-100 flex justify-end">
+                <div className="pt-2 border-t border-zinc-100 flex flex-wrap gap-2 justify-end">
+                  {l.status === "PENDING_APPROVAL" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLoanToSign(l)}
+                      className="flex-1 h-8 text-xs font-bold bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                    >
+                      ✍️ {t('payroll.markAsSigned')}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -317,7 +324,7 @@ export default function PayrollLoansPage() {
                       setEditingLoan(l);
                       setIsEditLoanOpen(true);
                     }}
-                    className="w-full h-8 text-xs font-bold text-blue-700 border-blue-200 hover:bg-blue-50"
+                    className="h-8 text-xs font-bold text-blue-700 border-blue-200 hover:bg-blue-50"
                   >
                     <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('payroll.editLoan')}
                   </Button>
@@ -344,7 +351,6 @@ export default function PayrollLoansPage() {
             <TableRow>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('common.date')}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colStaffMember')}</TableHead>
-              <TableHead className="font-extrabold text-[#2C1B10]">{t('profile.type')}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colLoanAmount')}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('payroll.colRemainingBalance')}</TableHead>
               <TableHead className="font-extrabold text-[#2C1B10]">{t('common.status')}</TableHead>
@@ -357,7 +363,6 @@ export default function PayrollLoansPage() {
                 <TableRow key={idx}>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
@@ -368,7 +373,7 @@ export default function PayrollLoansPage() {
               ))
             ) : filteredLoans.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-[#8C7361] font-medium">
+                <TableCell colSpan={6} className="text-center py-10 text-[#8C7361] font-medium">
                   {loans.length === 0 ? t('payroll.emptyLoans') : "No loans match the selected filters."}
                 </TableCell>
               </TableRow>
@@ -381,11 +386,6 @@ export default function PayrollLoansPage() {
                   <TableCell className="font-bold text-[#2C1B10]">
                     {l.user?.fullName}
                   </TableCell>
-                  <TableCell>
-                    <Badge className={`font-bold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                      {l.type === "STAFF_LOAN" ? t('payroll.staffLoan') : t('payroll.salaryAdvance')}
-                    </Badge>
-                  </TableCell>
                   <TableCell className="font-semibold text-[#8C7361] font-mono">{l.totalAmount} {t('common.currency')}</TableCell>
                   <TableCell className="font-extrabold text-[#2C1B10] font-mono">
                     {l.remainingBalance} {t('common.currency')}
@@ -394,7 +394,17 @@ export default function PayrollLoansPage() {
                     {getApprovalBadge(l.status)}
                   </TableCell>
                   {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                    <TableCell className="text-right pr-6">
+                    <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                      {l.status === "PENDING_APPROVAL" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLoanToSign(l)}
+                          className="font-bold text-xs bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-2xs"
+                        >
+                          ✍️ {t('payroll.markAsSigned')}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -435,13 +445,6 @@ export default function PayrollLoansPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('profile.type')}</label>
-                <select name="type" required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                  <option value="STAFF_LOAN">{t('payroll.staffLoan')}</option>
-                  <option value="SALARY_ADVANCE">{t('payroll.salaryAdvance')}</option>
-                </select>
-              </div>
-              <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.colLoanAmount')} ({t('common.currency')})</label>
                 <Input
                   name="amount"
@@ -453,6 +456,19 @@ export default function PayrollLoansPage() {
                   onFocus={(e) => e.target.select()}
                   className="h-10 rounded-xl border-zinc-200 font-mono"
                 />
+              </div>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
+                <input
+                  type="checkbox"
+                  name="isSigned"
+                  id="loanIsSigned"
+                  defaultChecked
+                  className="mt-0.5 w-4 h-4 rounded text-[#4A2E1B] focus:ring-[#4A2E1B] border-zinc-300"
+                />
+                <label htmlFor="loanIsSigned" className="text-xs text-[#2C1B10] cursor-pointer">
+                  <span className="font-bold block">✍️ {t('payroll.signedCheckboxLabel')}</span>
+                  <span className="text-[#8C7361] text-[11px] block">{t('payroll.signedCheckboxDesc')}</span>
+                </label>
               </div>
             </div>
             <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
@@ -514,8 +530,8 @@ export default function PayrollLoansPage() {
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.status')}</label>
                   <select name="status" defaultValue={editingLoan.status} required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
-                    <option value="PENDING_APPROVAL">⏳ {t('payroll.pendingReview')}</option>
-                    <option value="OPEN">✓ {t('payroll.approvedByStaff')}</option>
+                    <option value="PENDING_APPROVAL">⏳ {t('payroll.pendingPaperSignature')}</option>
+                    <option value="OPEN">✍️ {t('payroll.signedOnPaper')}</option>
                     <option value="REJECTED">✕ {t('payroll.rejectedByStaff')}</option>
                     <option value="PAID">✓ {t('common.paidInFull')}</option>
                   </select>
@@ -541,6 +557,74 @@ export default function PayrollLoansPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* CONFIRM PHYSICAL SIGNATURE DIALOG */}
+      {loanToSign && (
+        <Dialog open={true} onOpenChange={(open) => !open && setLoanToSign(null)}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                ✍️ {t('payroll.confirmSignTitle')}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-3 text-sm text-[#4A2E1B] space-y-3">
+              <p className="leading-relaxed">
+                {t('payroll.confirmSignDesc').replace('{name}', loanToSign.user?.fullName || 'the employee')}
+              </p>
+              <div className="p-3 bg-[#FAF6F0] rounded-xl border border-[#EDE4D5] text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361]">{t('payroll.colStaffMember')}:</span>
+                  <strong className="text-[#2C1B10]">{loanToSign.user?.fullName}</strong>
+                </div>
+                <div className="flex justify-between border-t border-[#EDE4D5]/70 pt-1">
+                  <span className="text-[#8C7361]">{t('payroll.colLoanAmount')}:</span>
+                  <strong className="text-emerald-800 font-mono font-black">{loanToSign.totalAmount} {t('common.currency')}</strong>
+                </div>
+              </div>
+              <p className="text-xs text-[#8C7361]">
+                Please ensure you have physically collected the signed paper slip before confirming.
+              </p>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+              <Button
+                type="button"
+                size="lg"
+                loading={isSigning}
+                onClick={async () => {
+                  if (!loanToSign) return;
+                  setIsSigning(true);
+                  try {
+                    await api.post(`/loans/${loanToSign.id}/approve`);
+                    toast.success(t('payroll.markedSignedSuccess') || "Marked as signed successfully");
+                    setLoanToSign(null);
+                    queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+                    queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
+                    queryClient.invalidateQueries({ queryKey: ["payroll"] });
+                    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+                  } catch (err: any) {
+                    toast.error(err.response?.data?.error || "Failed to mark loan as signed");
+                  } finally {
+                    setIsSigning(false);
+                  }
+                }}
+                className="w-full sm:w-auto order-1 sm:order-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+              >
+                ✍️ {t('payroll.confirmSignBtn')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={isSigning}
+                onClick={() => setLoanToSign(null)}
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                {t('common.cancel')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

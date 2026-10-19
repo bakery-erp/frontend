@@ -3,6 +3,7 @@ import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Info, HelpCircle } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -22,14 +23,20 @@ export function ConfirmModal({
   onClose,
   onCancel,
   onConfirm,
-  title = "Are you sure?",
-  description = "This action cannot be undone.",
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  title,
+  description,
+  confirmText,
+  cancelText,
   variant = "danger",
   isLoading = false,
 }: ConfirmModalProps) {
+  const { t } = useLanguage();
   if (!isOpen) return null;
+
+  const resolvedTitle = title || t("common.areYouSure") || "Are you sure?";
+  const resolvedDesc = description || t("common.cannotBeUndone") || "This action cannot be undone.";
+  const resolvedConfirmText = confirmText || t("common.confirm") || "Confirm";
+  const resolvedCancelText = cancelText || t("common.cancel") || "Cancel";
 
   const handleClose = () => {
     if (onClose) onClose();
@@ -72,10 +79,10 @@ export function ConfirmModal({
           {getIcon()}
           <div>
             <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
-              {title}
+              {resolvedTitle}
             </DialogTitle>
             <p className="text-xs text-zinc-600 mt-1 leading-relaxed">
-              {description}
+              {resolvedDesc}
             </p>
           </div>
         </DialogHeader>
@@ -87,16 +94,16 @@ export function ConfirmModal({
             onClick={handleClose} 
             disabled={isLoading}
           >
-            {cancelText}
+            {resolvedCancelText}
           </Button>
           <Button 
             type="button" 
             onClick={handleConfirm} 
             loading={isLoading}
-            loadingText="Processing..."
+            loadingText={t("common.processing") || "Processing..."}
             variant={variant === "danger" ? "destructive" : "default"}
           >
-            {confirmText}
+            {resolvedConfirmText}
           </Button>
         </DialogFooter>
       </DialogContent>

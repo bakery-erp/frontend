@@ -66,7 +66,7 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
-  const isAdminOrOwner = user?.role === 'ADMIN' || user?.role === 'OWNER';
+  const isOwner = user?.role === 'OWNER';
 
   const [viewMode, setViewMode] = useState<'GRID' | 'TABLE'>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,6 +76,7 @@ export default function ProductsPage() {
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['products', selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (selectedBranchId) params.branchId = selectedBranchId;
@@ -150,7 +151,7 @@ export default function ProductsPage() {
             </button>
           </div>
 
-          {isAdminOrOwner && (
+          {isOwner && (
             <Link href="/products/new">
               <Button className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md h-10 px-4">
                 <Plus className="w-4 h-4 mr-1.5" /> {t('products.newProduct')}
@@ -357,7 +358,7 @@ export default function ProductsPage() {
                       </strong>
                     </div>
                   </div>
-                  {isAdminOrOwner && (
+                  {isOwner && (
                     <div className="mt-3 pt-2 border-t border-[#FAF6F0] flex justify-end">
                       <Button size="sm" variant="ghost" className="h-8 text-xs font-bold text-[#4A2E1B] hover:bg-[#F4ECE1] px-3" onClick={() => router.push(`/products/${prod.id}/edit`)}>
                         Edit Product
@@ -444,7 +445,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  {isAdminOrOwner && (
+                  {isOwner && (
                     <div className="mt-3 pt-2 border-t border-[#F4ECE1]">
                       <Button
                         variant="outline"
@@ -477,7 +478,7 @@ export default function ProductsPage() {
                   <TableHead className="text-center">{t('products.colSold')}</TableHead>
                   <TableHead className="text-center text-rose-700">{t('products.colDamaged')}</TableHead>
                   <TableHead>{t('products.colActive')}</TableHead>
-                  {isAdminOrOwner && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
+                  {isOwner && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -529,7 +530,7 @@ export default function ProductsPage() {
                           {prod.isActive ? `✓ ${t('products.activeLabel')}` : t('products.inactiveLabel')}
                         </span>
                       </TableCell>
-                      {isAdminOrOwner && (
+                      {isOwner && (
                         <TableCell className="text-right pr-6">
                           <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => router.push(`/products/${prod.id}/edit`)}>{t('common.edit')}</Button>
                         </TableCell>

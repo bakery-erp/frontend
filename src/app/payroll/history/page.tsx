@@ -47,10 +47,13 @@ export default function PayrollHistoryPage() {
   const queryClient = useQueryClient();
   const [editingPayroll, setEditingPayroll] = useState<PayrollRecord | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [payrollToSign, setPayrollToSign] = useState<PayrollRecord | null>(null);
+  const [isSigning, setIsSigning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: history = [], isLoading } = useQuery<PayrollRecord[]>({
     queryKey: ["payroll-history", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/payroll", { params });
@@ -71,6 +74,7 @@ export default function PayrollHistoryPage() {
         penaltyDeductions: fd.get("penaltyDeductions"),
         finalAmount: fd.get("finalAmount"),
         paymentDate: fd.get("paymentDate") || null,
+        status: fd.get("status"),
       });
       toast.success(t('payroll.recordUpdated') || "Payroll record updated successfully");
       setIsEditOpen(false);
@@ -82,6 +86,18 @@ export default function PayrollHistoryPage() {
       toast.error(error.response?.data?.error || "Failed to update payroll record");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleApprovePayroll = async (id: string) => {
+    try {
+      await api.post(`/payroll/${id}/approve`);
+      toast.success(t('payroll.markedSignedSuccess') || "Marked as signed successfully");
+      queryClient.invalidateQueries({ queryKey: ["payroll-history"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to mark payroll as signed");
     }
   };
 
@@ -141,7 +157,7 @@ export default function PayrollHistoryPage() {
                   r.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                   'bg-amber-100 text-amber-800 border-amber-300'
                 }`}>
-                  {r.status === 'APPROVED' ? t('common.approved') : r.status === 'REJECTED' ? t('common.rejected') : t('common.pendingReview')}
+                  {r.status === 'APPROVED' ? `✍️ ${t('payroll.signedOnPaper')}` : r.status === 'REJECTED' ? t('common.rejected') : `⏳ ${t('payroll.pendingPaperSignature')}`}
                 </Badge>
               </div>
 
@@ -171,17 +187,29 @@ export default function PayrollHistoryPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-100 text-xs text-[#8C7361]">
                 <span className="text-[11px] sm:text-xs">{t('common.paid')}: {formatEthDate(r.paymentDate, true)}</span>
                 {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingPayroll(r);
-                      setIsEditOpen(true);
-                    }}
-                    className="h-8 px-3 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('common.edit')}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {r.status === "PENDING_APPROVAL" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPayrollToSign(r)}
+                        className="h-8 px-2.5 text-xs font-bold bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                      >
+                        ✍️ {t('payroll.markAsSigned')}
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditingPayroll(r);
+                        setIsEditOpen(true);
+                      }}
+                      className="h-8 px-3 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('common.edit')}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -265,11 +293,21 @@ export default function PayrollHistoryPage() {
                       r.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
                       'bg-amber-100 text-amber-800 border-amber-300'
                     }`}>
-                      {r.status === 'APPROVED' ? t('common.approved') : r.status === 'REJECTED' ? t('common.rejected') : t('common.pendingReview')}
+                      {r.status === 'APPROVED' ? `✍️ ${t('payroll.signedOnPaper')}` : r.status === 'REJECTED' ? t('common.rejected') : `⏳ ${t('payroll.pendingPaperSignature')}`}
                     </Badge>
                   </TableCell>
                   {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                    <TableCell className="text-right pr-6">
+                    <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                      {r.status === "PENDING_APPROVAL" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPayrollToSign(r)}
+                          className="font-bold text-xs bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-2xs"
+                        >
+                          ✍️ {t('payroll.markAsSigned')}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -358,6 +396,14 @@ export default function PayrollHistoryPage() {
                   className="h-10 rounded-xl border-zinc-200 font-mono"
                 />
               </div>
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1">{t('common.status')}</label>
+                <select name="status" defaultValue={editingPayroll.status || "PENDING_APPROVAL"} required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
+                  <option value="PENDING_APPROVAL">⏳ {t('payroll.pendingPaperSignature')}</option>
+                  <option value="APPROVED">✍️ {t('payroll.signedOnPaper')}</option>
+                  <option value="REJECTED">✕ {t('common.rejected')}</option>
+                </select>
+              </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-3">
                 <Button
                   type="submit"
@@ -376,6 +422,77 @@ export default function PayrollHistoryPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* CONFIRM PHYSICAL SIGNATURE DIALOG */}
+      {payrollToSign && (
+        <Dialog open={true} onOpenChange={(open) => !open && setPayrollToSign(null)}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                ✍️ {t('payroll.confirmSignTitle')}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-3 text-sm text-[#4A2E1B] space-y-3">
+              <p className="leading-relaxed">
+                {t('payroll.confirmSignDesc').replace('{name}', payrollToSign.user?.fullName || 'the employee')}
+              </p>
+              <div className="p-3 bg-[#FAF6F0] rounded-xl border border-[#EDE4D5] text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361]">{t('payroll.colStaffMember')}:</span>
+                  <strong className="text-[#2C1B10]">{payrollToSign.user?.fullName}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361]">{t('profile.colPeriod')}:</span>
+                  <strong>{getEthMonthName(payrollToSign.month)} {payrollToSign.year}</strong>
+                </div>
+                <div className="flex justify-between border-t border-[#EDE4D5]/70 pt-1">
+                  <span className="text-[#8C7361]">{t('payroll.colNetSalary')}:</span>
+                  <strong className="text-emerald-800 font-mono font-black">{payrollToSign.finalAmount} ETB</strong>
+                </div>
+              </div>
+              <p className="text-xs text-[#8C7361]">
+                Please ensure you have physically collected the signed payroll receipt / payslip before confirming.
+              </p>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+              <Button
+                type="button"
+                size="lg"
+                loading={isSigning}
+                onClick={async () => {
+                  if (!payrollToSign) return;
+                  setIsSigning(true);
+                  try {
+                    await api.post(`/payroll/${payrollToSign.id}/approve`);
+                    toast.success(t('payroll.markedSignedSuccess') || "Marked as signed successfully");
+                    setPayrollToSign(null);
+                    queryClient.invalidateQueries({ queryKey: ["payroll-history"] });
+                    queryClient.invalidateQueries({ queryKey: ["payroll"] });
+                    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+                  } catch (err: any) {
+                    toast.error(err.response?.data?.error || "Failed to mark payroll as signed");
+                  } finally {
+                    setIsSigning(false);
+                  }
+                }}
+                className="w-full sm:w-auto order-1 sm:order-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+              >
+                ✍️ {t('payroll.confirmSignBtn')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={isSigning}
+                onClick={() => setPayrollToSign(null)}
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                {t('common.cancel')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

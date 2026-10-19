@@ -1,19 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { useBranch } from "@/context/BranchContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ArrowLeft, PackagePlus, DollarSign, Image as ImageIcon, Save, Tag } from "lucide-react";
+import { ArrowLeft, PackagePlus, DollarSign, Image as ImageIcon, Save, Tag, Store } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ProductCategory {
   id: string;
@@ -41,16 +43,29 @@ const PRODUCT_PRESET_IMAGES = [
 export default function NewProductPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { branches } = useBranch();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>(PRODUCT_PRESET_IMAGES[0].url);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormChanged, setIsFormChanged] = useState(false);
+  const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
+  const [isAllBranches, setIsAllBranches] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (user && user.role !== 'OWNER') {
+      toast.error(t("products.toastRestrictedOwner"));
+      router.replace('/products');
+    }
+  }, [user, router, t]);
 
   const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormChanged);
 
   const { data, isLoading } = useQuery({
     queryKey: ['product-new-metadata'],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const [resCat, resFinCat] = await Promise.all([
         api.get("/product-categories"),
@@ -89,6 +104,7 @@ export default function NewProductPage() {
         buyPrice: isResell && formData.get("buyPrice") ? Number(formData.get("buyPrice")) : undefined,
         imageUrl: selectedImageUrl || undefined,
         isActive: true,
+        branchIds: isAllBranches ? [] : selectedBranchIds,
       };
 
       await api.post("/products", data);
@@ -99,10 +115,10 @@ export default function NewProductPage() {
         queryClient.invalidateQueries({ queryKey: ['product-conversions'] }),
       ]);
       setIsFormChanged(false);
-      toast.success("Product created successfully");
+      toast.success(t("products.toastProductCreated"));
       router.push("/products");
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to create product");
+      toast.error(err.response?.data?.error || t("products.toastFailedCreate"));
     } finally {
       setIsSubmitting(false);
     }
@@ -134,10 +150,10 @@ export default function NewProductPage() {
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
-              Add New Product
+              {t("products.addNewProductTitle")}
             </h1>
             <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-              Register a bakery good, snack, or retail product into your store catalog
+              {t("products.productSubtitleNew")}
             </p>
           </div>
         </div>
@@ -150,19 +166,19 @@ export default function NewProductPage() {
                 <PackagePlus className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Product Information</h2>
-                <p className="text-xs text-[#8C7361]">Item identity, flavor, and classification</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionBasicInfo")}</h2>
+                <p className="text-xs text-[#8C7361]">{t("products.sectionBasicInfoDesc")}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Product Name <span className="text-rose-600">*</span>
+                  {t("products.productNameReq")} <span className="text-rose-600">*</span>
                 </label>
                 <Input
                   name="name"
-                  placeholder="e.g. Special White Bread"
+                  placeholder={t("products.productNamePlaceholder")}
                   required
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
                 />
@@ -170,7 +186,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Category <span className="text-rose-600">*</span>
+                  {t("products.categorySelect")} <span className="text-rose-600">*</span>
                 </label>
                 <select
                   name="categoryId"
@@ -179,7 +195,7 @@ export default function NewProductPage() {
                   onChange={(e) => setSelectedCategoryId(e.target.value)}
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  <option value="" disabled>Select Category...</option>
+                  <option value="" disabled>{t("products.selectCategoryPlaceholder")}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {formatCategoryLabel(c)} ({c.type})
@@ -190,7 +206,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Unit Type <span className="text-rose-600">*</span>
+                  {t("products.unitTypeLabel")} <span className="text-rose-600">*</span>
                 </label>
                 <select
                   name="unitType"
@@ -198,19 +214,19 @@ export default function NewProductPage() {
                   defaultValue="PIECE"
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  <option value="PIECE">Piece (Item)</option>
-                  <option value="KG">Kilogram (Kg)</option>
-                  <option value="LITER">Liter (L)</option>
+                  <option value="PIECE">{t("products.unitTypePiece")}</option>
+                  <option value="KG">{t("products.unitTypeKg")}</option>
+                  <option value="LITER">{t("products.unitTypeLiter")}</option>
                 </select>
               </div>
 
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Flavor / Variant (Optional)
+                  {t("products.flavorVariant")}
                 </label>
                 <Input
                   name="flavor"
-                  placeholder="e.g. Chocolate / Sesame / Whole Wheat"
+                  placeholder={t("products.flavorPlaceholder")}
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
                 />
               </div>
@@ -224,15 +240,15 @@ export default function NewProductPage() {
                 <DollarSign className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Pricing & Revenue Category</h2>
-                <p className="text-xs text-[#8C7361]">Customer selling price and wholesale purchase cost</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionPricing")}</h2>
+                <p className="text-xs text-[#8C7361]">{t("products.sectionPricingDesc")}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Selling Base Price (ETB) <span className="text-rose-600">*</span>
+                  {t("products.basePriceLabel")} <span className="text-rose-600">*</span>
                 </label>
                 <Input
                   name="basePrice"
@@ -249,7 +265,7 @@ export default function NewProductPage() {
               {isResell ? (
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                    Buying Cost / Unit Buy Price (ETB) <span className="text-[#8C7361] font-normal">(Optional)</span>
+                    {t("products.buyingCostLabel")} <span className="text-[#8C7361] font-normal">{t("products.optionalTag")}</span>
                   </label>
                   <Input
                     name="buyPrice"
@@ -260,25 +276,25 @@ export default function NewProductPage() {
                     onFocus={(e) => e.target.select()}
                     className="h-11 rounded-xl border-[#EDE4D5] text-sm font-mono"
                   />
-                  <p className="mt-1 text-[11px] text-zinc-500">Wholesale cost paid to supplier for this resell item.</p>
+                  <p className="mt-1 text-[11px] text-zinc-500">{t("products.buyingCostHelp")}</p>
                 </div>
               ) : (
                 <div className="flex flex-col justify-center rounded-xl border border-dashed border-[#EDE4D5] bg-[#FAF6F0] p-3 text-xs text-[#8C7361]">
-                  <span className="font-bold text-[#2C1B10] block mb-0.5">In-House Produced Item</span>
-                  <span>Buying cost applies only to external RESELL items. Produced goods are manufactured from raw ingredients.</span>
+                  <span className="font-bold text-[#2C1B10] block mb-0.5">{t("products.inHouseProducedTitle")}</span>
+                  <span>{t("products.inHouseProducedDesc")}</span>
                 </div>
               )}
 
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Financial Revenue Category (P&L Tracking)
+                  {t("products.revenueCategoryLabel")}
                 </label>
                 <select
                   name="financialCategoryId"
                   defaultValue=""
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  <option value="">None (Standard sales tracking)</option>
+                  <option value="">{t("products.revenueCategoryNone")}</option>
                   {financialCategories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -289,21 +305,102 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* Section 3: Product Visuals */}
+          {/* Section 3: Branch Availability (Option 1) */}
+          <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EDE4D5] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                  <Store className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionBranchAvailability")}</h2>
+                  <p className="text-xs text-[#8C7361]">{t("products.sectionBranchAvailabilityDesc")}</p>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-extrabold text-[#4A2E1B] cursor-pointer hover:bg-[#F4ECE1] transition-all select-none">
+                <input
+                  type="checkbox"
+                  checked={isAllBranches}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsAllBranches(checked);
+                    if (checked) {
+                      setSelectedBranchIds(branches.map((b) => b.id));
+                    } else {
+                      setSelectedBranchIds([]);
+                    }
+                    setIsFormChanged(true);
+                  }}
+                  className="rounded text-[#E87A18] focus:ring-[#E87A18]"
+                />
+                <span>🌐 {t("products.allBranchesCheckbox")}</span>
+              </label>
+            </div>
+
+            {branches.length === 0 ? (
+              <p className="text-xs text-[#8C7361] py-2">{t("products.noBranchesFound")}</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {branches.map((b) => {
+                  const isChecked = isAllBranches || selectedBranchIds.includes(b.id);
+                  return (
+                    <label
+                      key={b.id}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all select-none ${
+                        isChecked
+                          ? "bg-amber-50/70 border-[#E87A18] ring-1 ring-[#E87A18]/30 shadow-2xs"
+                          : "bg-white border-[#EDE4D5] text-[#8C7361] hover:border-zinc-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isAllBranches) {
+                            setIsAllBranches(false);
+                            setSelectedBranchIds(branches.filter((item) => item.id !== b.id).map((item) => item.id));
+                          } else {
+                            const next = selectedBranchIds.includes(b.id)
+                              ? selectedBranchIds.filter((id) => id !== b.id)
+                              : [...selectedBranchIds, b.id];
+                            setSelectedBranchIds(next);
+                            if (next.length === branches.length) {
+                              setIsAllBranches(true);
+                            }
+                          }
+                          setIsFormChanged(true);
+                        }}
+                        className="mt-0.5 rounded text-[#E87A18] focus:ring-[#E87A18]"
+                      />
+                      <div className="min-w-0">
+                        <span className="text-xs font-extrabold text-[#2C1B10] block truncate">📍 {b.name}</span>
+                        <span className="text-[10px] text-[#8C7361] block">
+                          {isChecked ? t("products.availableAtBranch") : t("products.disabledAtBranch")}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Section 4: Product Visuals */}
           <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-3">
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
                 <ImageIcon className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">Product Visuals & Image</h2>
-                <p className="text-xs text-[#8C7361]">Select a preset icon image or specify a custom URL</p>
+                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionVisuals")}</h2>
+                <p className="text-xs text-[#8C7361]">{t("products.sectionVisualsDesc")}</p>
               </div>
             </div>
 
             <div>
               <label className="text-xs font-bold text-[#2C1B10] block mb-2">
-                Choose from Bakery Presets:
+                {t("products.chooseFromPresets")}
               </label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
                 {PRODUCT_PRESET_IMAGES.map((preset, idx) => (
@@ -330,7 +427,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Custom Image URL (Optional)
+                  {t("products.customImageUrlLabel")}
                 </label>
                 <Input
                   type="url"
@@ -351,12 +448,12 @@ export default function NewProductPage() {
             <Button
               type="submit"
               loading={isSubmitting}
-              loadingText="Saving Product..."
+              loadingText={t("products.savingProductBtn")}
               size="lg"
               className="order-1 sm:order-2 flex-1"
             >
               <Save className="w-4 h-4" />
-              Create Product
+              {t("products.createProductBtn")}
             </Button>
             <Button
               type="button"
@@ -365,7 +462,7 @@ export default function NewProductPage() {
               onClick={() => guardedAction(() => router.push("/products"))}
               className="w-full sm:w-auto order-2 sm:order-1 sm:flex-initial"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </form>
@@ -373,10 +470,10 @@ export default function NewProductPage() {
 
       <ConfirmModal
         isOpen={showPrompt}
-        title="Unsaved Changes"
-        description="You have unsaved product details. Are you sure you want to discard them and leave?"
-        confirmText="Discard Changes"
-        cancelText="Keep Editing"
+        title={t("products.unsavedModalTitle")}
+        description={t("products.unsavedModalDesc")}
+        confirmText={t("products.discardChangesBtn")}
+        cancelText={t("products.keepEditingBtn")}
         variant="warning"
         onConfirm={confirmAction}
         onCancel={() => setShowPrompt(false)}

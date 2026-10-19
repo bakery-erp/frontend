@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { isProductAllowedForRole } from '@/lib/roleProductMapping';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface Product {
   id: string;
@@ -53,6 +55,7 @@ interface ProductionBatch {
 
 export default function MobileSambusaStation() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const isGlobalAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
 
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
@@ -79,11 +82,13 @@ export default function MobileSambusaStation() {
     try {
       const branchParam = user?.branchId ? { branchId: user.branchId } : {};
       const [prodRes, sessRes] = await Promise.all([
-        api.get('/products?isActive=true'),
+        api.get('/products', { params: { isActive: true, minimal: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
         api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);
 
-      const producedProducts = (prodRes.data || []).filter((p: Product) => p.category?.type !== 'RESELL');
+      const producedProducts = (prodRes.data || []).filter((p: Product) =>
+        isProductAllowedForRole(p, 'SAMBUSA_WORKER')
+      );
       setProducts(producedProducts);
       setActiveSession(sessRes.data);
 
@@ -113,12 +118,14 @@ export default function MobileSambusaStation() {
 
   const isSessionOpen = activeSession?.status === 'OPEN';
   const sessionStatusLabel = !activeSession
-    ? 'CLOSED'
+    ? t('sessions.statusClosed')
     : activeSession.status === 'PAUSED'
-    ? 'PAUSED'
+    ? t('sessions.statusPaused')
     : activeSession.status === 'CLOSE_PENDING'
-    ? 'CLOSING'
-    : 'OPEN';
+    ? t('sessions.statusPending')
+    : t('sessions.statusOpen');
+
+  const shiftLabel = selectedShift === 'DAY' ? t('production.dayShiftFull') : t('production.nightShiftFull');
 
   const updateCount = (productId: string, delta: number) => {
     setProducedCounts((prev) => {
@@ -139,7 +146,7 @@ export default function MobileSambusaStation() {
       }));
 
     if (itemsPayload.length === 0) {
-      toast.error('Please enter at least one produced item quantity');
+      toast.error(t('production.toastSpecifyAtLeastOne'));
       setIsSubmitting(false);
       return;
     }
@@ -152,7 +159,7 @@ export default function MobileSambusaStation() {
         materials: [],
       });
 
-      toast.success(`${selectedShift} Shift Sambusa production logged!`);
+      toast.success(t('production.toastBatchSubmittedApproval'));
       // Reset counters
       const resetCounts: Record<string, number> = {};
       products.forEach((p) => (resetCounts[p.id] = 0));
@@ -160,7 +167,7 @@ export default function MobileSambusaStation() {
 
       fetchSambusaData();
     } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to log production');
+      toast.error(e.response?.data?.error || t('production.toastBatchCreateFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -180,9 +187,9 @@ export default function MobileSambusaStation() {
           </Link>
           <div>
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
-              <Flame className="w-4 h-4 text-rose-500" /> Sambusa Station
+              <Flame className="w-4 h-4 text-rose-500" /> {t('mobile.sambusaStationTitle')}
             </h1>
-            <p className="text-[11px] text-zinc-400">{user?.fullName || 'Worker'} • {user?.role}</p>
+            <p className="text-[11px] text-zinc-400">{user?.fullName || 'Worker'} • {shiftLabel}</p>
           </div>
         </div>
 
@@ -205,7 +212,7 @@ export default function MobileSambusaStation() {
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Sun className="w-3.5 h-3.5" /> Day Shift (ቀን)
+              <Sun className="w-3.5 h-3.5" /> {t('production.dayShiftFull')}
             </button>
 
             <button
@@ -217,7 +224,7 @@ export default function MobileSambusaStation() {
               : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Moon className="w-3.5 h-3.5" /> Night Shift (ማታ)
+              <Moon className="w-3.5 h-3.5" /> {t('production.nightShiftFull')}
             </button>
           </div>
         )}
@@ -232,7 +239,7 @@ export default function MobileSambusaStation() {
                 : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
             }`}
           >
-            <Plus className="w-4 h-4 text-rose-500" /> Log Sambusa Output
+            <Plus className="w-4 h-4 text-rose-500" /> {t('mobile.logSambusaOutput')}
           </button>
 
           <button
@@ -243,7 +250,7 @@ export default function MobileSambusaStation() {
                 : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
             }`}
           >
-            <History className="w-4 h-4 text-indigo-400" /> Shift History ({historyBatches.length})
+            <History className="w-4 h-4 text-indigo-400" /> {t('mobile.tabShiftHistory')} ({historyBatches.length})
           </button>
         </div>
       </div>
@@ -251,11 +258,12 @@ export default function MobileSambusaStation() {
       {/* Main Content Area */}
       <div className="p-4 flex-1 space-y-4 overflow-y-auto">
 
+
         {/* TAB 1: LOG SAMBUSA */}
         {activeTab === 'NEW_BATCH' && (
           <div className="space-y-4">
             <p className="text-xs font-bold uppercase tracking-wider text-rose-400 px-1">
-              Tap + / - to Log {selectedShift} Shift Sambusa Output
+              {t('mobile.tapToLogSambusa', { shift: shiftLabel })}
             </p>
 
             <div className="space-y-3">
@@ -298,8 +306,8 @@ export default function MobileSambusaStation() {
               className="w-full h-14 bg-rose-500 hover:bg-rose-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-extrabold text-base rounded-xl shadow-lg shadow-rose-500/20"
             >
               {isSubmitting
-                ? 'Logging...'
-                : `Submit ${selectedShift} Shift Sambusa Production`}
+                ? t('production.submittingBatch')
+                : t('mobile.submitSambusaProduction', { shift: shiftLabel })}
             </Button>
           </div>
         )}
@@ -310,10 +318,10 @@ export default function MobileSambusaStation() {
             <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between shadow-sm">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 block">
-                  {selectedShift} SHIFT SAMBUSA SUMMARY ({user?.role})
+                  {t('mobile.sambusaShiftSummary', { shift: shiftLabel, role: user?.role || '' })}
                 </span>
                 <h2 className="text-xl font-extrabold text-white mt-0.5">
-                  {totalShiftProduced.toLocaleString()} <span className="text-xs font-normal text-zinc-400">Total Sambusa Produced</span>
+                  {totalShiftProduced.toLocaleString()} <span className="text-xs font-normal text-zinc-400">{t('mobile.totalSambusaProduced')}</span>
                 </h2>
               </div>
               <div className={`p-3 rounded-xl ${selectedShift === 'DAY' ? 'bg-amber-500/10 text-amber-400' : 'bg-indigo-500/10 text-indigo-400'}`}>
@@ -324,7 +332,7 @@ export default function MobileSambusaStation() {
             {historyBatches.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-800 rounded-2xl space-y-2">
                 <Clock className="w-8 h-8 text-zinc-600 mx-auto" />
-                <p className="text-xs font-bold text-zinc-400">No Sambusa production logged for this {selectedShift} shift yet.</p>
+                <p className="text-xs font-bold text-zinc-400">{t('mobile.noSambusaHistory', { shift: shiftLabel })}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -335,7 +343,7 @@ export default function MobileSambusaStation() {
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
                           b.shift === 'DAY' ? 'bg-amber-500/20 text-amber-400' : 'bg-indigo-500/20 text-indigo-400'
                         }`}>
-                          {b.shift} Shift
+                          {b.shift === 'DAY' ? t('production.dayShiftFull') : t('production.nightShiftFull')}
                         </span>
                         <span className="text-xs font-bold text-zinc-300">
                           {b.user?.fullName || 'Worker'}
@@ -349,11 +357,11 @@ export default function MobileSambusaStation() {
                       }`}>
                         {b.status === 'APPROVED' ? (
                           <>
-                            <CheckCircle2 className="w-3 h-3" /> Approved
+                            <CheckCircle2 className="w-3 h-3" /> {t('mobile.statusApprovedBadge')}
                           </>
                         ) : (
                           <>
-                            <Hourglass className="w-3 h-3" /> Pending
+                            <Hourglass className="w-3 h-3" /> {t('mobile.statusPendingApprovalBadge')}
                           </>
                         )}
                       </span>
@@ -363,13 +371,13 @@ export default function MobileSambusaStation() {
                       {b.items.map((it) => (
                         <div key={it.id} className="flex items-center justify-between text-xs font-bold text-white bg-zinc-950 p-2 rounded-xl">
                           <span>{it.product?.name || 'Sambusa'}</span>
-                          <span className="font-mono text-rose-400 font-extrabold">{it.quantityProduced} Pcs</span>
+                          <span className="font-mono text-rose-400 font-extrabold">{it.quantityProduced}</span>
                         </div>
                       ))}
                     </div>
 
                     <div className="text-[10px] text-zinc-500 text-right font-mono">
-                      Logged: {new Date(b.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(b.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                 ))}

@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...((isOwner || isAdmin) ? [{ icon: Users, label: t('nav.users'), href: '/users' }] : []),
     ...((isOwner || isAdmin || role === 'BAKER' || role === 'CAKE_WORKER' || role === 'SAMBUSA_WORKER') ? [
       { icon: ChefHat, label: t('nav.production'), href: '/production' },
-      { icon: History, label: t('nav.dailyProductHistory'), href: '/production/history' }
+      ...((isOwner || isAdmin) ? [{ icon: History, label: t('nav.dailyProductHistory'), href: '/production/history' }] : [])
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: CalendarDays, label: t('nav.dailySessions'), href: '/daily-sessions' },
@@ -176,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <DashboardLayoutContext.Provider value={{ isNested: true }}>
-      <div className="min-h-screen bg-[#FAF7EE] text-[#2C1B10] flex p-1.5 xs:p-2.5 sm:p-3 md:p-6 font-sans">
+      <div className="min-h-screen bg-[#FAF7EE] text-[#2C1B10] flex p-1.5 xs:p-2.5 sm:p-3 md:p-6 font-sans w-full max-w-full overflow-x-hidden">
         {/* Mobile & Tablet Drawer Overlay */}
         {isMobileOpen && (
           <div
@@ -199,7 +199,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </aside>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col w-full pl-0 lg:pl-72 min-h-screen min-w-0">
+        <div className="flex-1 flex flex-col w-full max-w-full pl-0 lg:pl-72 min-h-screen min-w-0 overflow-x-hidden">
           {/* Top Header Bar */}
           <header className="h-14 xs:h-16 bg-[#FFFDF8]/90 backdrop-blur-md border border-[#EDE4D5] rounded-2xl sticky top-1.5 xs:top-3 md:top-6 z-30 px-2.5 xs:px-4 md:px-6 flex items-center justify-between shadow-[0_4px_20px_rgba(74,46,27,0.04)] mb-3 xs:mb-4 md:mb-6 gap-2">
             <div className="flex items-center space-x-2 xs:space-x-3 md:space-x-4 min-w-0">
@@ -211,9 +211,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Menu className="w-4 h-4 xs:w-5 xs:h-5" />
               </button>
 
-              <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
-                <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden md:inline">{t('common.branch')}:</span>
-                {isOwner ? (
+              {isOwner && (
+                <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
+                  <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden md:inline">{t('common.branch')}:</span>
                   <select
                     value={selectedBranchId || 'ALL'}
                     onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}
@@ -226,14 +226,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </option>
                     ))}
                   </select>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F4ECE1] text-[#4A2E1B] border border-[#E0D5C3] truncate max-w-[120px] sm:max-w-[170px] md:max-w-none">
-                    <span className="truncate">
-                      📍 {user?.branch?.name && user.branch.name.trim() !== '.' && user.branch.name.trim() !== '' ? user.branch.name : 'Main Bakery'}
-                    </span>
-                  </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center space-x-1.5 xs:space-x-2.5 md:space-x-4 shrink-0">
@@ -264,8 +258,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           {/* Page Content View */}
-          <main className="flex-1 px-0.5 xs:px-1 sm:px-2">
-            <div className="max-w-7xl mx-auto space-y-4 xs:space-y-6">
+          <main className="flex-1 px-0.5 xs:px-1 sm:px-2 w-full max-w-full min-w-0">
+            <div className="max-w-7xl mx-auto space-y-4 xs:space-y-6 w-full max-w-full min-w-0">
               {children}
             </div>
           </main>

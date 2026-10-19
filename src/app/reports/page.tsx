@@ -94,6 +94,7 @@ export default function FinancialReportsPage() {
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['financial-reports', selectedBranchId, from, to],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = { from, to };
       if (selectedBranchId) params.branchId = selectedBranchId;

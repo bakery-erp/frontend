@@ -175,6 +175,7 @@ export default function OwnerLoansPage() {
   // React Query for instant cached navigation and background updates
   const { data: loans = [], isLoading } = useQuery<OwnerLoan[]>({
     queryKey: ["owner-loans"],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const { data } = await api.get("/loans", {
         params: {

@@ -47,4 +47,4 @@ export function getEthMonthName(monthIndex: number): string {
   return ETH_MONTHS[monthIndex - 1] || `Month ${monthIndex}`;
 }
 
-export { ETH_MONTHS };
+export { ETH_MONTHS, EthDateTime };

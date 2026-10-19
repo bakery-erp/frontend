@@ -128,6 +128,7 @@ export default function PayrollPage() {
 
   const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["payroll-users", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/users", { params });
@@ -137,6 +138,7 @@ export default function PayrollPage() {
 
   const { data: history = [], isLoading: isLoadingHistory } = useQuery<PayrollRecord[]>({
     queryKey: ["payroll-history", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/payroll", { params });
@@ -147,6 +149,7 @@ export default function PayrollPage() {
 
   const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
     queryKey: ["payroll-loans", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = { type: "STAFF" };
       if (selectedBranchId) params.branchId = selectedBranchId;
@@ -158,6 +161,7 @@ export default function PayrollPage() {
 
   const { data: penalties = [], isLoading: isLoadingPenalties } = useQuery<Penalty[]>({
     queryKey: ["payroll-penalties", selectedBranchId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/penalties", { params });
@@ -190,6 +194,7 @@ export default function PayrollPage() {
   const [isEditPayrollOpen, setIsEditPayrollOpen] = useState(false);
 
   // LOAN STATE
+  const [isSignedPayroll, setIsSignedPayroll] = useState(true);
   const [isLoanOpen, setIsLoanOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
@@ -245,9 +250,10 @@ export default function PayrollPage() {
         bonus: bonus,
         finalAmount: finalToUse,
         paymentDate: new Date().toISOString(),
+        isSigned: isSignedPayroll,
       });
 
-      toast.success("Payroll processed and recorded successfully");
+      toast.success(isSignedPayroll ? (t('payroll.markedSignedSuccess') || "Payroll processed and marked as signed") : "Payroll processed successfully");
       setCalcData(null);
       setSelectedUser("");
       queryClient.invalidateQueries({ queryKey: ["payroll-history"] });
@@ -269,13 +275,15 @@ export default function PayrollPage() {
     e.preventDefault();
     setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
+    const isSigned = fd.get("isSigned") === "on";
     try {
       await api.post("/loans", {
-        type: fd.get("type") || "STAFF_LOAN",
+        type: "STAFF_LOAN",
         userId: fd.get("userId"),
         totalAmount: fd.get("amount"),
+        isSigned,
       });
-      toast.success("Loan recorded successfully");
+      toast.success(isSigned ? (t('payroll.markedSignedSuccess') || "Loan recorded as signed") : "Loan recorded successfully");
       setIsLoanOpen(false);
       queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
@@ -319,14 +327,16 @@ export default function PayrollPage() {
     e.preventDefault();
     setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
+    const isSigned = fd.get("isSigned") === "on";
     try {
       await api.post("/penalties", {
         userId: fd.get("userId"),
         amount: fd.get("amount"),
         reason: fd.get("reason"),
         date: fd.get("date"),
+        isSigned,
       });
-      toast.success("Penalty added successfully");
+      toast.success(isSigned ? (t('payroll.markedSignedSuccess') || "Penalty recorded as signed") : "Penalty added successfully");
       setIsPenaltyOpen(false);
       queryClient.invalidateQueries({ queryKey: ["payroll-penalties"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
@@ -640,19 +650,12 @@ export default function PayrollPage() {
                               <div key={loan.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-white p-2.5 rounded-lg border border-amber-200">
                                 <div className="min-w-0 flex-1">
                                   <span className="font-semibold text-zinc-800 block truncate">
-                                    {loan.type === "STAFF_LOAN"
-                                      ? "Staff Loan (Multi-Month Installment)"
-                                      : loan.type === "SALARY_ADVANCE"
-                                      ? "Salary Advance"
-                                      : "Employee Loan"}
+                                    Staff Loan
                                   </span>
                                   <span className="text-zinc-500 block text-[11px] mt-0.5">
                                     Unpaid Balance: <strong className="text-amber-800">{loan.remainingBalance} ETB</strong> (Original: {loan.totalAmount} ETB)
                                   </span>
                                 </div>
-                                <Badge className={`shrink-0 self-start sm:self-auto ${loan.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"}`}>
-                                  {loan.type === "STAFF_LOAN" ? "Long-Term Monthly Loan" : "Salary Advance"}
-                                </Badge>
                               </div>
                             ))}
                           </div>
@@ -791,6 +794,21 @@ export default function PayrollPage() {
                             onChange={(e) => setCustomFinalAmount(e.target.value)}
                           />
                         </div>
+                      </div>
+
+                      {/* Signature Confirmation */}
+                      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
+                        <input
+                          type="checkbox"
+                          id="payrollRunIsSigned"
+                          checked={isSignedPayroll}
+                          onChange={(e) => setIsSignedPayroll(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 rounded text-[#4A2E1B] focus:ring-[#4A2E1B] border-zinc-300"
+                        />
+                        <label htmlFor="payrollRunIsSigned" className="text-xs text-[#2C1B10] cursor-pointer">
+                          <span className="font-bold block">✍️ {t('payroll.signedCheckboxLabel')}</span>
+                          <span className="text-[#8C7361] text-[11px] block">{t('payroll.signedCheckboxDesc')}</span>
+                        </label>
                       </div>
 
                       {/* Submit Action */}
@@ -1069,12 +1087,6 @@ export default function PayrollPage() {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Badge className={`font-semibold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-50 text-blue-800 border-blue-200" : "bg-purple-50 text-purple-800 border-purple-200"}`}>
-                      {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
-                    </Badge>
-                  </div>
-
                   <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-[#EDE4D5]">
                     <div>
                       <span className="text-[#8C7361] block">Original Amount:</span>
@@ -1113,7 +1125,6 @@ export default function PayrollPage() {
                 <TableRow>
                   <TableHead>Date Issued</TableHead>
                   <TableHead>Employee</TableHead>
-                  <TableHead>Loan Type</TableHead>
                   <TableHead>Original Amount</TableHead>
                   <TableHead>Remaining Balance</TableHead>
                   <TableHead>Loan Status</TableHead>
@@ -1129,7 +1140,6 @@ export default function PayrollPage() {
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       {(user?.role === "OWNER" || user?.role === "ADMIN") && (
                         <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 ml-auto rounded-xl" /></TableCell>
                       )}
@@ -1137,7 +1147,7 @@ export default function PayrollPage() {
                   ))
                 ) : loans.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                    <TableCell colSpan={6} className="text-center py-8 text-[#8C7361] font-medium">
                       No employee loans currently recorded.
                     </TableCell>
                   </TableRow>
@@ -1149,11 +1159,6 @@ export default function PayrollPage() {
                       </TableCell>
                       <TableCell className="font-bold text-[#2C1B10]">
                         {l.user?.fullName}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`font-bold text-xs ${l.type === "STAFF_LOAN" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-amber-100 text-amber-900 border-amber-200"}`}>
-                          {l.type === "STAFF_LOAN" ? "Multi-Month Staff Loan" : "Salary Advance"}
-                        </Badge>
                       </TableCell>
                       <TableCell className="font-semibold text-[#8C7361]">{l.totalAmount} ETB</TableCell>
                       <TableCell className="font-extrabold text-[#2C1B10]">
@@ -1386,13 +1391,6 @@ export default function PayrollPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Loan Classification / Type</label>
-                <select name="type" required className="w-full h-11 border border-[#EDE4D5] rounded-xl px-3 text-sm bg-white">
-                  <option value="STAFF_LOAN">Staff Loan (Multi-Month Installment)</option>
-                  <option value="SALARY_ADVANCE">Salary Advance (Pre-payment of current month salary)</option>
-                </select>
-              </div>
-              <div>
                 <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Loan Package Amount (ETB)</label>
                 <Input
                   name="amount"
@@ -1404,6 +1402,19 @@ export default function PayrollPage() {
                   onFocus={(e) => e.target.select()}
                   required
                 />
+              </div>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
+                <input
+                  type="checkbox"
+                  name="isSigned"
+                  id="payrollPageLoanIsSigned"
+                  defaultChecked
+                  className="mt-0.5 w-4 h-4 rounded text-[#4A2E1B] focus:ring-[#4A2E1B] border-zinc-300"
+                />
+                <label htmlFor="payrollPageLoanIsSigned" className="text-xs text-[#2C1B10] cursor-pointer">
+                  <span className="font-bold block">✍️ {t('payroll.signedCheckboxLabel')}</span>
+                  <span className="text-[#8C7361] text-[11px] block">{t('payroll.signedCheckboxDesc')}</span>
+                </label>
               </div>
             </div>
             <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">
@@ -1541,6 +1552,19 @@ export default function PayrollPage() {
               <div>
                 <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Date of Offense</label>
                 <EthDatePicker name="date" />
+              </div>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
+                <input
+                  type="checkbox"
+                  name="isSigned"
+                  id="payrollPagePenaltyIsSigned"
+                  defaultChecked
+                  className="mt-0.5 w-4 h-4 rounded text-[#4A2E1B] focus:ring-[#4A2E1B] border-zinc-300"
+                />
+                <label htmlFor="payrollPagePenaltyIsSigned" className="text-xs text-[#2C1B10] cursor-pointer">
+                  <span className="font-bold block">✍️ {t('payroll.signedCheckboxLabel')}</span>
+                  <span className="text-[#8C7361] text-[11px] block">{t('payroll.signedCheckboxDesc')}</span>
+                </label>
               </div>
             </div>
             <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2 sm:pt-4">

@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format } from 'date-fns';
-import { formatEthDate, getEthMonthName } from '@/lib/ethiopianDate';
+import { formatEthDate, getEthMonthName, EthDateTime } from '@/lib/ethiopianDate';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from '@/components/ui/skeletons';
@@ -104,10 +104,38 @@ export default function MyProfilePage() {
   const { user: authUser, updateUser } = useAuth();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties' | 'pending' | 'settings'>('payroll');
+  const [activeTab, setActiveTab] = useState<'payroll' | 'loans' | 'penalties' | 'settings'>('payroll');
+
+  const getRoleLabel = (role?: string) => {
+    if (!role) return t('common.employee');
+    const roleKeyMap: Record<string, string> = {
+      OWNER: 'users.roleOwner',
+      ADMIN: 'users.roleAdmin',
+      BAKER: 'users.roleBaker',
+      CAKE_WORKER: 'users.roleCakeWorker',
+      SAMBUSA_WORKER: 'users.roleSambusaWorker',
+      SALESPERSON: 'users.roleSalesperson',
+      CASHIER: 'users.roleCashier',
+      FINANCE_OFFICER: 'users.roleFinanceOfficer',
+      DELIVERY_MAN: 'users.roleDeliveryMan',
+      STOCK_KEEPER: 'users.roleStockKeeper',
+      AUDITOR: 'users.roleAuditor',
+    };
+    const key = roleKeyMap[role];
+    return key ? t(key as any) : role.replace('_', ' ');
+  };
+
+  const getShiftLabel = (shift?: string | null) => {
+    if (!shift) return t('common.standard');
+    if (shift === 'DAY') return `☀️ ${t('production.dayShiftFull')}`;
+    if (shift === 'NIGHT') return `🌙 ${t('production.nightShiftFull')}`;
+    return `${shift} Shift`;
+  };
 
   const { data = null, isLoading: loading } = useQuery<DashboardData | null>({
     queryKey: ['my-profile-dashboard', authUser?.id],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const res = await api.get('/users/me/dashboard');
       return res.data;
@@ -223,72 +251,6 @@ export default function MyProfilePage() {
     }
   };
 
-  const handleApproveLoan = async (id: string) => {
-    try {
-      await api.post(`/loans/${id}/approve`);
-      toast.success(t('profile.loanApprovedToast'));
-      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['payroll-loans-page'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to approve loan');
-    }
-  };
-
-  const handleRejectLoan = async (id: string) => {
-    try {
-      await api.post(`/loans/${id}/reject`);
-      toast.success(t('profile.loanRejectedToast'));
-      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['payroll-loans-page'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to reject loan');
-    }
-  };
-
-  const handleApprovePenalty = async (id: string) => {
-    try {
-      await api.post(`/penalties/${id}/approve`);
-      toast.success(t('profile.penaltyApprovedToast'));
-      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['payroll-penalties-page'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to approve penalty');
-    }
-  };
-
-  const handleRejectPenalty = async (id: string) => {
-    try {
-      await api.post(`/penalties/${id}/reject`);
-      toast.success(t('profile.penaltyRejectedToast'));
-      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['payroll-penalties-page'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to reject penalty');
-    }
-  };
-
-  const handleApprovePayroll = async (id: string) => {
-    try {
-      await api.post(`/payroll/${id}/approve`);
-      toast.success(t('profile.payrollApprovedToast'));
-      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['payroll-history'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to approve payroll');
-    }
-  };
-
-  const handleRejectPayroll = async (id: string) => {
-    try {
-      await api.post(`/payroll/${id}/reject`);
-      toast.success(t('profile.payrollRejectedToast'));
-      queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['payroll-history'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to reject payroll');
-    }
-  };
-
   if (loading && !data && !authUser) {
     return (
       <DashboardLayout>
@@ -311,14 +273,22 @@ export default function MyProfilePage() {
   const pendingPayrolls = payrolls.filter((pr) => pr.status === 'PENDING_APPROVAL');
   const pendingCount = pendingLoans.length + pendingPenalties.length + pendingPayrolls.length;
 
-  // Totals calculations (only open/approved loans & penalties)
+  // Current Ethiopian period & Net calculations for this month
+  const currentEth = EthDateTime.fromEuropeanDate(new Date());
+  const currentMonthPayroll = payrolls.find(
+    (pr) => pr.year === currentEth.year && pr.month === currentEth.month
+  );
+
   const totalLoanBalance = loans
     .filter((l) => l.status === 'OPEN')
     .reduce((acc, l) => acc + Number(l.remainingBalance || 0), 0);
-  const totalPenaltyAmount = penalties
-    .filter((p) => p.status !== 'REJECTED')
-    .reduce((acc, p) => acc + Number(p.amount || 0), 0);
-  const totalPayrollPaid = payrolls.reduce((acc, pr) => acc + Number(pr.finalAmount || 0), 0);
+  const activePenalties = penalties.filter((p) => p.status !== 'REJECTED' && !p.isDeducted);
+  const totalPenaltyAmount = activePenalties.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  
+  const baseSalary = Number(u?.salary || 0);
+  const netThisMonth = currentMonthPayroll
+    ? Number(currentMonthPayroll.finalAmount || 0)
+    : Math.max(0, baseSalary - totalLoanBalance - totalPenaltyAmount);
 
   return (
     <DashboardLayout>
@@ -357,13 +327,15 @@ export default function MyProfilePage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mb-1">
                   <Badge className="bg-[#E87A18] text-white text-[10px] xs:text-xs px-2 xs:px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
-                    {u?.role?.replace('_', ' ') || t('common.employee')}
+                    {getRoleLabel(u?.role)}
                   </Badge>
-                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full truncate max-w-[150px] xs:max-w-none">
-                    <Building2 className="w-3 h-3 mr-1 shrink-0" />
-                    <span className="truncate">
-                      {u?.branch?.name && u.branch.name.trim() !== '.' && u.branch.name.trim() !== '' ? u.branch.name : t('common.mainBakery')}
-                    </span>
+                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
+                    <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
+                    <span>{getShiftLabel(u?.shift)}</span>
+                  </span>
+                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
+                    <Calendar className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
+                    <span>{u?.startDate ? formatEthDate(u.startDate) : t('common.na')}</span>
                   </span>
                 </div>
                 <h1 className="text-lg xs:text-2xl md:text-3xl font-extrabold tracking-tight truncate">{u?.fullName}</h1>
@@ -379,44 +351,47 @@ export default function MyProfilePage() {
                       className="text-[10px] xs:text-xs font-semibold text-white bg-white/20 hover:bg-white/30 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors"
                     >
                       <FileText className="w-3 h-3 text-amber-200" />
-                      <span>ID Document (PDF)</span>
+                      <span>{t('profile.idDocumentPdf') || "ID Document (PDF)"}</span>
                     </a>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 xs:gap-3 w-full md:w-auto bg-white/10 p-2.5 xs:p-4 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10">
-              <div>
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.baseSalary')}</span>
-                <span className="text-xs xs:text-sm font-extrabold truncate block">{money(u?.salary)}</span>
+            <div className="grid grid-cols-2 gap-3 xs:gap-5 w-full md:w-auto bg-white/10 p-3 xs:p-4 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10">
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.baseSalary')}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block">{money(u?.salary)}</span>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.loanBalance')}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-amber-300">{money(totalLoanBalance)}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.shiftLabel')}</span>
-                <span className="text-xs xs:text-sm font-extrabold flex items-center truncate">
-                  <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
-                  <span className="truncate">{u?.shift || t('common.standard')}</span>
-                </span>
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.startDateLabel')}</span>
-                <span className="text-xs xs:text-sm font-extrabold flex items-center">
-                  <Calendar className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
-                  <span>{u?.startDate ? formatEthDate(u.startDate) : t('common.na')}</span>
-                </span>
+
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.penaltiesTotal')}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-rose-300">{money(totalPenaltyAmount)}</span>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.netSalaryThisMonth') || "Net (This Month)"}</span>
+                  <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-emerald-300">{money(netThisMonth)}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Key Metrics Summary Cards ── */}
+      {/* ── Key Metrics Summary Cards (Hidden on Mobile) ── */}
       {loading && !data ? (
-        <div className="mb-5 xs:mb-8">
+        <div className="hidden md:block mb-5 xs:mb-8">
           <KpiCardsSkeleton count={4} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 xs:mb-8">
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 xs:mb-8">
           <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
               <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.baseSalary')}</CardTitle>
@@ -454,20 +429,24 @@ export default function MyProfilePage() {
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 tracking-tight">{money(totalPenaltyAmount)}</div>
-              <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.loggedPenaltiesCount', { count: penalties.length })}</p>
+              <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.loggedPenaltiesCount', { count: activePenalties.length })}</p>
             </CardContent>
           </Card>
 
           <Card className="border-[#EDE4D5] bg-white rounded-2xl shadow-xs hover:border-[#E87A18]/40 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 px-4 pt-3.5">
-              <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.pendingApprovals')}</CardTitle>
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
-                <ShieldCheck className="h-5 w-5" />
+              <CardTitle className="text-xs font-bold uppercase text-[#8C7361] tracking-wider">{t('profile.netSalaryThisMonth') || "Net Salary (This Month)"}</CardTitle>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="h-5 w-5" />
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-3.5 pt-0">
-              <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">{pendingCount}</div>
-              <p className="text-xs text-[#8C7361] font-semibold mt-1">{t('profile.requiresYourReview')}</p>
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight">{money(netThisMonth)}</div>
+              <p className="text-xs text-[#8C7361] font-semibold mt-1">
+                {currentMonthPayroll
+                  ? (t('profile.payslipRecorded', { month: getEthMonthName(currentEth.month) }) || `Payslip recorded for ${getEthMonthName(currentEth.month)}`)
+                  : (t('profile.netSalaryThisMonthSub') || 'After loan & penalty deductions')}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -522,25 +501,6 @@ export default function MyProfilePage() {
             >
               <AlertTriangle className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
               <span>{t('profile.tabPenalties', { count: penalties.length })}</span>
-            </button>
-
-            <button
-              ref={(el) => { tabRefs.current['pending'] = el; }}
-              type="button"
-              onClick={() => setActiveTab('pending')}
-              className={`px-3 py-2 rounded-xl text-xs xs:text-sm font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E87A18] ${
-                activeTab === 'pending'
-                  ? 'bg-white text-[#E87A18] shadow-xs ring-1 ring-[#E87A18]/25'
-                  : 'text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/50'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" />
-              <span>{t('profile.tabApprovals')}</span>
-              {pendingCount > 0 && (
-                <span className="bg-amber-600 text-white px-1.5 py-0.5 text-[9px] xs:text-[10px] rounded-full font-bold leading-none">
-                  {pendingCount}
-                </span>
-              )}
             </button>
 
             <button
@@ -692,14 +652,14 @@ export default function MyProfilePage() {
                       const isPaid = l.status === 'PAID';
                       const isPending = l.status === 'PENDING_APPROVAL';
                       const isRejected = l.status === 'REJECTED';
-                      const statusLabel = isPaid ? t('common.paidInFull') : isPending ? t('common.pendingApproval') : isRejected ? t('common.rejected') : t('common.active');
+                      const statusLabel = isPaid ? t('common.paidInFull') : isPending ? (t('payroll.pendingPaperSignature') || t('common.pendingApproval')) : isRejected ? t('common.rejected') : (t('payroll.signedOnPaper') || t('common.active'));
                       const statusBadgeClass = isPaid
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         : isPending
                         ? 'bg-amber-100 text-amber-800 border-amber-300'
                         : isRejected
                         ? 'bg-rose-100 text-rose-800 border-rose-300'
-                        : 'bg-indigo-100 text-indigo-800 border-indigo-300';
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-300';
 
                       return (
                         <div key={l.id} className="bg-[#FFFDF8] border border-[#EDE4D5] rounded-2xl p-3.5 shadow-xs space-y-2.5">
@@ -714,7 +674,7 @@ export default function MyProfilePage() {
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.totalAdvance')}</span>
+                              <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('profile.loanAmount') || t('profile.totalAdvance') || "Loan Amount"}</span>
                               <span className="font-bold text-[#2C1B10]">{money(l.totalAmount)}</span>
                             </div>
                             <div>
@@ -752,14 +712,14 @@ export default function MyProfilePage() {
                           const isPaid = l.status === 'PAID';
                           const isPending = l.status === 'PENDING_APPROVAL';
                           const isRejected = l.status === 'REJECTED';
-                          const statusLabel = isPaid ? t('common.paidInFull') : isPending ? t('common.pendingApproval') : isRejected ? t('common.rejected') : t('common.active');
+                          const statusLabel = isPaid ? t('common.paidInFull') : isPending ? (t('payroll.pendingPaperSignature') || t('common.pendingApproval')) : isRejected ? t('common.rejected') : (t('payroll.signedOnPaper') || t('common.active'));
                           const statusBadgeClass = isPaid
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : isPending
                             ? 'bg-amber-100 text-amber-800 border-amber-300'
                             : isRejected
                             ? 'bg-rose-100 text-rose-800 border-rose-300'
-                            : 'bg-indigo-100 text-indigo-800 border-indigo-300';
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300';
 
                           return (
                             <TableRow key={l.id}>
@@ -891,144 +851,6 @@ export default function MyProfilePage() {
                   </div>
                 </>
               )}
-            </div>
-          )}
-
-          {/* TAB 4: PENDING APPROVALS */}
-          {activeTab === 'pending' && (
-            <div className="space-y-5 xs:space-y-6">
-              <div>
-                <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10] mb-1.5 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 xs:w-5 xs:h-5 text-amber-600 shrink-0" />
-                  {t('profile.pendingApprovalsTitle')}
-                </h3>
-                <p className="text-[11px] xs:text-xs text-[#8C7361] mb-4">
-                  {t('profile.pendingApprovalsDesc')}
-                </p>
-
-                {pendingCount === 0 ? (
-                  <div className="py-10 text-center bg-[#FAF7EE] rounded-2xl border border-dashed border-[#EDE4D5]">
-                    <CheckCircle2 className="w-9 h-9 text-emerald-600 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-[#4A2E1B]">{t('profile.noPendingApprovals')}</p>
-                    <p className="text-xs text-[#8C7361] mt-1">{t('profile.allReviewedDesc')}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4 xs:space-y-6">
-                    {/* Pending Payrolls */}
-                    {pendingPayrolls.length > 0 && (
-                      <div className="border border-indigo-200 rounded-2xl p-3 xs:p-4 bg-indigo-50/50">
-                        <h4 className="text-xs xs:text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                          <Wallet className="w-4 h-4 text-indigo-600 shrink-0" /> {t('profile.pendingPayslipsTitle')}
-                        </h4>
-                        <div className="space-y-2.5">
-                          {pendingPayrolls.map((pr) => (
-                            <div key={pr.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-3.5 xs:p-4 rounded-xl border border-indigo-200 gap-3">
-                              <div className="min-w-0">
-                                <div className="font-extrabold text-sm xs:text-base text-[#2C1B10] flex flex-wrap items-center gap-2">
-                                  <span>{getEthMonthName(pr.month)} {pr.year}</span>
-                                  <span className="font-mono text-emerald-700 font-black">{money(pr.finalAmount)}</span>
-                                </div>
-                                <div className="text-[11px] xs:text-xs text-[#8C7361] mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5">
-                                  <span>{t('profile.colBaseSalary')}: {money(pr.baseSalary)}</span>
-                                  {Number(pr.bonus) > 0 && <span className="text-emerald-700 font-semibold">{t('common.bonus')}: +{money(pr.bonus)}</span>}
-                                  {Number(pr.loanDeductions) > 0 && <span className="text-rose-600 font-semibold">{t('profile.colLoanDeductionMinus')}: -{money(pr.loanDeductions)}</span>}
-                                  {Number(pr.penaltyDeductions) > 0 && <span className="text-rose-600 font-semibold">{t('profile.colPenaltyDeductionMinus')}: -{money(pr.penaltyDeductions)}</span>}
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleApprovePayroll(pr.id)}
-                                  className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 shadow-xs px-3"
-                                >
-                                  <Check className="w-4 h-4 shrink-0" /> {t('profile.acceptPayslip')}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRejectPayroll(pr.id)}
-                                  className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
-                                >
-                                  <X className="w-4 h-4 shrink-0" /> {t('profile.rejectBtn')}
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Pending Loans */}
-                    {pendingLoans.length > 0 && (
-                      <div className="border border-amber-200 rounded-2xl p-3 xs:p-4 bg-amber-50/50">
-                        <h4 className="text-xs xs:text-sm font-bold text-amber-900 mb-3">{t('profile.pendingLoansTitle')}</h4>
-                        <div className="space-y-2.5">
-                          {pendingLoans.map((l) => (
-                            <div key={l.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-3.5 xs:p-4 rounded-xl border border-amber-200 gap-3">
-                              <div>
-                                <div className="font-extrabold text-sm xs:text-base text-[#2C1B10]">{money(l.totalAmount)}</div>
-                                <div className="text-xs text-[#8C7361] mt-0.5">{t('common.date')}: {formatEthDate(l.createdAt)}</div>
-                              </div>
-                              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleApproveLoan(l.id)}
-                                  className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
-                                >
-                                  <Check className="w-4 h-4 shrink-0" /> {t('profile.acceptLoan')}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRejectLoan(l.id)}
-                                  className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
-                                >
-                                  <X className="w-4 h-4 shrink-0" /> {t('profile.rejectBtn')}
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Pending Penalties */}
-                    {pendingPenalties.length > 0 && (
-                      <div className="border border-rose-200 rounded-2xl p-3 xs:p-4 bg-rose-50/50">
-                        <h4 className="text-xs xs:text-sm font-bold text-rose-900 mb-3">{t('profile.pendingPenaltiesTitle')}</h4>
-                        <div className="space-y-2.5">
-                          {pendingPenalties.map((p) => (
-                            <div key={p.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-3.5 xs:p-4 rounded-xl border border-rose-200 gap-3">
-                              <div>
-                                <div className="font-extrabold text-sm xs:text-base text-rose-700">{money(p.amount)}</div>
-                                <div className="text-xs font-semibold text-[#2C1B10] mt-0.5">{t('common.reason')}: {p.reason}</div>
-                                <div className="text-[11px] text-[#8C7361] mt-0.5">{t('common.date')}: {formatEthDate(p.createdAt)}</div>
-                              </div>
-                              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 mt-1 md:mt-0 shrink-0">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleApprovePenalty(p.id)}
-                                  className="min-h-[44px] h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
-                                >
-                                  <Check className="w-4 h-4 shrink-0" /> {t('profile.acknowledgeFine')}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRejectPenalty(p.id)}
-                                  className="min-h-[44px] h-11 border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl flex items-center justify-center gap-1 px-3"
-                                >
-                                  <X className="w-4 h-4 shrink-0" /> {t('profile.rejectBtn')}
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           )}
 

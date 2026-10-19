@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
 import { ArrowLeft, ShoppingBag, Lock, Plus, Minus, DollarSign, CheckCircle2 } from 'lucide-react';
@@ -25,6 +26,7 @@ interface ActiveSession {
 
 export default function MobileCashierStation() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [leftoverCounts, setLeftoverCounts] = useState<Record<string, number>>({});
@@ -41,7 +43,7 @@ export default function MobileCashierStation() {
     try {
       const [sessRes, prodRes] = await Promise.all([
         api.get('/daily-sessions/active').catch(() => ({ data: null })),
-        api.get('/products?isActive=true'),
+        api.get('/products?isActive=true&minimal=true'),
       ]);
       
       setActiveSession(sessRes.data || null);
@@ -80,7 +82,7 @@ export default function MobileCashierStation() {
           cashLeftoverAmount: cashFloat ? Number(cashFloat) : null,
           leftoverRecords: leftoversPayload,
         });
-        toast.success('Day close submitted for approval!');
+        toast.success(t("sessions.toastSessionSubmitPending") || 'Day close submitted for approval!');
       } else {
         await api.post('/leftover-records', {
           branchId: user?.branchId,
@@ -107,14 +109,14 @@ export default function MobileCashierStation() {
           </Link>
           <div>
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center">
-              <ShoppingBag className="w-4 h-4 mr-1.5 text-emerald-400" /> Cashier & Leftovers
+              <ShoppingBag className="w-4 h-4 mr-1.5 text-emerald-400" /> {t("mobile.cashierStationTitle")}
             </h1>
             <p className="text-[11px] text-zinc-400">{user?.branch?.name || 'Branch Day'}</p>
           </div>
         </div>
 
         <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-          {activeSession ? 'Session Open' : 'Day Register Active'}
+          {activeSession ? t("sessions.statusOpen") : 'Day Register Active'}
         </span>
       </div>
 
@@ -123,11 +125,11 @@ export default function MobileCashierStation() {
         {/* Step 1: Cash Drawer Float Pad */}
         <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl space-y-2">
           <label className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center">
-            <DollarSign className="w-4 h-4 mr-1" /> Remaining Cash Float (ETB)
+            <DollarSign className="w-4 h-4 mr-1" /> {t("mobile.leftoverStarterFloatTitle") || 'Remaining Cash Float (ETB)'}
           </label>
           <input
             type="number"
-            placeholder="0.00"
+            placeholder={t("mobile.enterCashFloatPlaceholder") || '0.00'}
             value={cashFloat}
             onChange={(e) => setCashFloat(e.target.value)}
             className="w-full h-14 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-xl font-mono font-bold text-emerald-400 focus:outline-none focus:border-amber-500"
@@ -138,7 +140,7 @@ export default function MobileCashierStation() {
         <div className="space-y-3">
           <div className="flex justify-between items-center px-1">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-              Unsold Food Leftovers Counter
+              {t("sessions.tabLeftoverCount") || 'Unsold Food Leftovers Counter'}
             </h3>
             <span className="text-[11px] text-zinc-500">Tap + / - to count</span>
           </div>
@@ -199,7 +201,7 @@ export default function MobileCashierStation() {
             href={`/daily-sessions/${activeSession.id}/close`}
             className="w-full h-11 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
           >
-            <Lock className="w-4 h-4" /> Open Full Close Form & Submit for Approval
+            <Lock className="w-4 h-4" /> {t("sessions.reviewApproveClose")}
           </Link>
         )}
       </div>

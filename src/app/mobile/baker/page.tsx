@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
 import {
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { isProductAllowedForRole, getStationMeta } from '@/lib/roleProductMapping';
 
 interface Product {
   id: string;
@@ -69,6 +71,7 @@ interface ProductionBatch {
 
 export default function MobileBakerStation() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [activeTab, setActiveTab] = useState<'NEW_BATCH' | 'SHIFT_HISTORY'>('NEW_BATCH');
   
@@ -98,21 +101,22 @@ export default function MobileBakerStation() {
     try {
       const branchParam = user?.branchId ? { branchId: user.branchId } : {};
       const [prodRes, stockRes, sessRes] = await Promise.all([
-        api.get('/products?isActive=true'),
-        api.get('/stock-items'),
+        api.get('/products', { params: { isActive: true, minimal: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
+        api.get('/stock-items', { params: branchParam }),
         api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);
 
-      // Filter products for Bakery output (exclude resell drinks/water)
-      const bakeryProducts = (prodRes.data || []).filter(
-        (p: Product) => p.category?.type !== 'RESELL'
+      // Filter products strictly for the worker's production role (Baker or Cake Worker)
+      const targetRole = user?.role === 'CAKE_WORKER' ? 'CAKE_WORKER' : 'BAKER';
+      const scopedProducts = (prodRes.data || []).filter(
+        (p: Product) => isProductAllowedForRole(p, targetRole)
       );
-      setProducts(bakeryProducts);
+      setProducts(scopedProducts);
       setStockItems(stockRes.data || []);
       setActiveSession(sessRes.data);
 
-      if (bakeryProducts.length > 0) {
-        setSelectedProductId(bakeryProducts[0].id);
+      if (scopedProducts.length > 0) {
+        setSelectedProductId(scopedProducts[0].id);
       }
 
       // Initialize materials map
@@ -142,6 +146,7 @@ export default function MobileBakerStation() {
 
   const isSessionOpen = true;
   const sessionStatusLabel = 'ACTIVE';
+
 
   const updateMaterialQty = (stockItemId: string, delta: number) => {
     setMaterialsUsed((prev) => {
@@ -174,7 +179,7 @@ export default function MobileBakerStation() {
         materials: materialsPayload,
       });
 
-      toast.success(`${selectedShift} Shift production batch logged successfully!`);
+      toast.success(t("production.toastBatchSubmittedApproval"));
       // Reset raw material inputs
       const resetMat: Record<string, number> = {};
       stockItems.forEach((s) => (resetMat[s.id] = 0));
@@ -205,9 +210,10 @@ export default function MobileBakerStation() {
           </Link>
           <div>
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
-              <ChefHat className="w-4 h-4 text-amber-400" /> Baker Station
+              <ChefHat className={`w-4 h-4 ${user?.role === 'CAKE_WORKER' ? 'text-pink-400' : 'text-amber-400'}`} />
+              {user?.role === 'CAKE_WORKER' ? t('mobile.cakeStationTitle') : t('mobile.bakerStationTitle')}
             </h1>
-            <p className="text-[11px] text-zinc-400">{user?.fullName || 'Baker'} • {user?.role}</p>
+            <p className="text-[11px] text-zinc-400">{user?.fullName || 'Baker'} • {selectedShift === 'NIGHT' ? t('production.nightShiftFull') : t('production.dayShiftFull')}</p>
           </div>
         </div>
 
@@ -232,7 +238,7 @@ export default function MobileBakerStation() {
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Sun className="w-3.5 h-3.5" /> Day Shift (ቀን)
+              <Sun className="w-3.5 h-3.5" /> {t('production.dayShiftFull')}
             </button>
 
             <button
@@ -244,7 +250,7 @@ export default function MobileBakerStation() {
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Moon className="w-3.5 h-3.5" /> Night Shift (ማታ)
+              <Moon className="w-3.5 h-3.5" /> {t('production.nightShiftFull')}
             </button>
           </div>
         )}
@@ -259,7 +265,7 @@ export default function MobileBakerStation() {
                 : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
             }`}
           >
-            <Plus className="w-4 h-4 text-amber-500" /> New Production Batch
+            <Plus className="w-4 h-4 text-amber-500" /> {t('mobile.tabNewShiftBatch')}
           </button>
 
           <button
@@ -270,20 +276,21 @@ export default function MobileBakerStation() {
                 : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
             }`}
           >
-            <History className="w-4 h-4 text-indigo-400" /> Shift History ({historyBatches.length})
+            <History className="w-4 h-4 text-indigo-400" /> {t('mobile.tabShiftHistory')} ({historyBatches.length})
           </button>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="p-4 flex-1 space-y-5 overflow-y-auto">
+
         {/* TAB 1: NEW BATCH FORM */}
         {activeTab === 'NEW_BATCH' && (
           <form onSubmit={handleCreateBatch} className="space-y-5">
             {/* 1. Select Bread / Bakery Product */}
             <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl space-y-3 shadow-md">
               <label className="text-xs font-bold uppercase tracking-wider text-amber-400 block">
-                1. Select Produced Bread / Bakery Item
+                {t('production.product')}
               </label>
 
               <select
@@ -299,7 +306,7 @@ export default function MobileBakerStation() {
               </select>
 
               <div className="pt-2">
-                <label className="text-xs text-zinc-400 block mb-1">Quantity Produced (Pcs)</label>
+                <label className="text-xs text-zinc-400 block mb-1">{t('mobile.producedCountLabel')}</label>
                 <div className="flex items-center space-x-3 bg-zinc-950 border border-zinc-800 p-2 rounded-xl">
                   <button
                     type="button"
@@ -332,7 +339,7 @@ export default function MobileBakerStation() {
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  2. Raw Materials Consumed (Flour, Yeast, Sugar, Oil)
+                  {t('production.colRawMaterialsConsumed')}
                 </label>
               </div>
 
@@ -343,7 +350,7 @@ export default function MobileBakerStation() {
                     <div key={st.id} className="bg-zinc-900 border border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
                       <div>
                         <p className="font-extrabold text-sm text-white">{st.name}</p>
-                        <p className="text-[11px] text-zinc-400">In Stock: <strong className="text-zinc-200">{st.currentQuantity} {st.unitType}</strong></p>
+                        <p className="text-[11px] text-zinc-400">{t('stock.stockInShop')}: <strong className="text-zinc-200">{st.currentQuantity} {st.unitType}</strong></p>
                       </div>
 
                       <div className="flex items-center space-x-2 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl">
@@ -379,7 +386,7 @@ export default function MobileBakerStation() {
               className="w-full h-14 bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-zinc-950 font-extrabold text-base rounded-xl shadow-lg shadow-amber-500/20"
             >
               {isSubmitting
-                ? 'Logging Batch...'
+                ? (t('production.submittingBatch') || 'Logging Batch...')
                 : `Submit ${selectedShift} Shift Batch`}
             </Button>
           </form>
@@ -392,10 +399,10 @@ export default function MobileBakerStation() {
             <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between shadow-sm">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 block">
-                  {selectedShift} SHIFT PRODUCTION SUMMARY ({user?.role})
+                  {selectedShift === 'NIGHT' ? t('production.nightShiftFull') : t('production.dayShiftFull')} ({user?.role})
                 </span>
                 <h2 className="text-xl font-extrabold text-white mt-0.5">
-                  {totalShiftProduced.toLocaleString()} <span className="text-xs font-normal text-zinc-400">Total Items Produced</span>
+                  {totalShiftProduced.toLocaleString()} <span className="text-xs font-normal text-zinc-400">{t('production.totalBakedUnits')}</span>
                 </h2>
               </div>
               <div className={`p-3 rounded-xl ${selectedShift === 'DAY' ? 'bg-amber-500/10 text-amber-400' : 'bg-indigo-500/10 text-indigo-400'}`}>
@@ -406,8 +413,7 @@ export default function MobileBakerStation() {
             {historyBatches.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-800 rounded-2xl space-y-2">
                 <Clock className="w-8 h-8 text-zinc-600 mx-auto" />
-                <p className="text-xs font-bold text-zinc-400">No production batches logged for this {selectedShift} shift yet.</p>
-                <p className="text-[11px] text-zinc-500">Switch to "New Production Batch" to record your shift output.</p>
+                <p className="text-xs font-bold text-zinc-400">{t('production.noBatches')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -418,7 +424,7 @@ export default function MobileBakerStation() {
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
                           b.shift === 'DAY' ? 'bg-amber-500/20 text-amber-400' : 'bg-indigo-500/20 text-indigo-400'
                         }`}>
-                          {b.shift} Shift
+                          {b.shift === 'NIGHT' ? t('production.nightShiftFull') : t('production.dayShiftFull')}
                         </span>
                         <span className="text-xs font-bold text-zinc-300">
                           {b.user?.fullName || 'Baker'}
@@ -432,11 +438,11 @@ export default function MobileBakerStation() {
                       }`}>
                         {b.status === 'APPROVED' ? (
                           <>
-                            <CheckCircle2 className="w-3 h-3" /> Approved
+                            <CheckCircle2 className="w-3 h-3" /> {t('mobile.statusApprovedBadge')}
                           </>
                         ) : (
                           <>
-                            <Hourglass className="w-3 h-3" /> Pending
+                            <Hourglass className="w-3 h-3" /> {t('mobile.statusPendingApprovalBadge')}
                           </>
                         )}
                       </span>
@@ -444,7 +450,7 @@ export default function MobileBakerStation() {
 
                     {/* Produced Products */}
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-400 block uppercase">Produced Output:</span>
+                      <span className="text-[10px] font-bold text-zinc-400 block uppercase">{t('production.colProductsBaked')}:</span>
                       {b.items.map((it) => (
                         <div key={it.id} className="flex items-center justify-between text-xs font-bold text-white bg-zinc-950 p-2 rounded-xl">
                           <span>{it.product?.name || 'Bread Product'}</span>
@@ -456,7 +462,7 @@ export default function MobileBakerStation() {
                     {/* Materials Used */}
                     {b.materialUsages.length > 0 && (
                       <div className="pt-1">
-                        <span className="text-[10px] font-bold text-zinc-500 block mb-1 uppercase">Raw Materials Deducted:</span>
+                        <span className="text-[10px] font-bold text-zinc-500 block mb-1 uppercase">{t('production.colRawMaterialsConsumed')}:</span>
                         <div className="flex flex-wrap gap-1.5">
                           {b.materialUsages.map((m) => (
                             <span key={m.id} className="px-2 py-1 bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 rounded-lg font-mono">

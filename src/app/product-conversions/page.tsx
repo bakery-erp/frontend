@@ -60,13 +60,15 @@ export default function ProductConversionsPage() {
 
     const { data: pageData, isLoading } = useQuery({
         queryKey: ['product-conversions', selectedBranchId],
+        placeholderData: (prev) => prev,
         queryFn: async () => {
             const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
             const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
+            const minimalParam = branchQuery ? `${branchQuery}&minimal=true` : "?minimal=true";
 
             const [resConversions, resProducts, resSess] = await Promise.all([
                 api.get(`/product-conversions${branchQuery}`),
-                api.get(`/products${branchQuery}`),
+                api.get(`/products${minimalParam}`),
                 api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null })),
             ]);
 

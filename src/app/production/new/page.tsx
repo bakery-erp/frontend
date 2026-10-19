@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   PackageCheck,
@@ -15,17 +16,26 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Layers,
   Utensils,
   Boxes,
   Edit3,
   Clock,
   XCircle,
+  ChefHat,
 } from "lucide-react";
+import { formatEthDate } from "@/lib/ethiopianDate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { useLanguage } from "@/context/LanguageContext";
+import {
+  isCategoryAllowedForRole,
+  isProductAllowedForRole,
+  getStationMeta,
+} from "@/lib/roleProductMapping";
 
 interface ProductCategory {
   id: string;
@@ -63,10 +73,13 @@ function ProductionFormContent() {
 
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showModalBreakdown, setShowModalBreakdown] = useState(false);
   const [originalBatchStatus, setOriginalBatchStatus] = useState<string | null>(null);
 
   // Form Header State
@@ -74,6 +87,7 @@ function ProductionFormContent() {
     new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)
   );
   const [shift, setShift] = useState<"DAY" | "NIGHT">("DAY");
+  const [mobileStep, setMobileStep] = useState<1 | 2>(1);
 
   // Selection & Filter State
   const [selectedParentCatId, setSelectedParentCatId] = useState<string>("ALL");
@@ -105,15 +119,33 @@ function ProductionFormContent() {
     }
   }, [selectedSubCatId]);
 
+  const stationMeta = useMemo(() => getStationMeta(user?.role), [user?.role]);
+
+  const stationBadgeLabel = useMemo(() => {
+    switch (user?.role) {
+      case "BAKER":
+        return t("production.stationBaker") || "Baker Station";
+      case "CAKE_WORKER":
+        return t("production.stationCake") || "Cake Station";
+      case "SAMBUSA_WORKER":
+        return t("production.stationSambusa") || "Sambusa Station";
+      default:
+        return t("production.stationAll") || "All Stations";
+    }
+  }, [user?.role, t]);
+
   const { data: pageData, isLoading } = useQuery({
-    queryKey: ['production-new-form', selectedBranchId, editBatchId],
+    queryKey: ['production-new-form', selectedBranchId, editBatchId, user?.role],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
       const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
+      const minimalParam = branchQuery ? `${branchQuery}&minimal=true` : "?minimal=true";
 
       const [resCat, resProd, resStock, resSess, resBatch] = await Promise.all([
         api.get("/product-categories"),
-        api.get(`/products${branchQuery}`),
+        api.get(`/products${minimalParam}`),
         api.get(`/stock-items${branchQuery}`),
         api.get("/daily-sessions/active", sessionParams).catch(() => ({ data: null })),
         editBatchId ? api.get(`/production-batches/${editBatchId}`).catch(() => ({ data: null })) : Promise.resolve({ data: null }),
@@ -122,14 +154,12 @@ function ProductionFormContent() {
       const allCats: ProductCategory[] = resCat.data || [];
       const filteredCats = isGlobalAdmin
         ? allCats
-        : allCats.filter((c) => c.type !== "RESELL");
+        : allCats.filter((c) => isCategoryAllowedForRole(c, user?.role));
 
       const allProds: Product[] = resProd.data || [];
       const filteredProds = isGlobalAdmin
         ? allProds
-        : allProds.filter(
-            (p: Product) => (p.category ? p.category.type !== "RESELL" : true)
-          );
+        : allProds.filter((p: Product) => isProductAllowedForRole(p, user?.role));
 
       return {
         categories: filteredCats,
@@ -225,17 +255,41 @@ function ProductionFormContent() {
       if (next[productId] !== undefined) {
         delete next[productId];
       } else {
-        next[productId] = "10"; // Default initial qty 10 Pcs
+        next[productId] = "0"; // Default initial qty 0
       }
       return next;
     });
   };
 
+  // Helper to format quantity inputs so typing replaces default '0'
+  const formatQtyInput = (rawVal: string, prevVal: string): string => {
+    if (rawVal === "") return "";
+
+    // If previous was "0" and user typed to the left of 0 (e.g., typed "2" -> "20")
+    if (prevVal === "0" && rawVal.length === 2 && rawVal.endsWith("0")) {
+      return rawVal.slice(0, 1);
+    }
+
+    // If user typed "00", keep as single "0"
+    if (rawVal === "00") return "0";
+
+    // If input starts with "0" followed by a non-zero digit (e.g., "02" -> "2", "05" -> "5", but keep "0." / "0.5")
+    if (/^0[1-9]/.test(rawVal)) {
+      return rawVal.replace(/^0+/, "");
+    }
+
+    return rawVal;
+  };
+
   const updateProductQty = (productId: string, qty: string) => {
-    setSelectedProducts((prev) => ({
-      ...prev,
-      [productId]: qty,
-    }));
+    setSelectedProducts((prev) => {
+      const prevVal = prev[productId] || "";
+      const formatted = formatQtyInput(qty, prevVal);
+      return {
+        ...prev,
+        [productId]: formatted,
+      };
+    });
   };
 
   // Material Selection Handlers
@@ -245,35 +299,95 @@ function ProductionFormContent() {
       if (next[stockItemId] !== undefined) {
         delete next[stockItemId];
       } else {
-        next[stockItemId] = "1"; // Default 1 unit
+        next[stockItemId] = "0"; // Default initial qty 0
       }
       return next;
     });
   };
 
   const updateMaterialQty = (stockItemId: string, qty: string) => {
-    setSelectedMaterials((prev) => ({
-      ...prev,
-      [stockItemId]: qty,
-    }));
+    setSelectedMaterials((prev) => {
+      const prevVal = prev[stockItemId] || "";
+      const formatted = formatQtyInput(qty, prevVal);
+      return {
+        ...prev,
+        [stockItemId]: formatted,
+      };
+    });
   };
 
-  // Submit Handler (Create vs Edit)
-  const handleSubmitBatch = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const productEntries = Object.entries(selectedProducts)
+  // Selected items summary lists for modal and submit
+  const selectedProductList = useMemo(() => {
+    return Object.entries(selectedProducts)
       .filter(([_, qty]) => Number(qty) > 0)
-      .map(([productId, qty]) => ({ productId, quantityProduced: Number(qty) }));
+      .map(([productId, qty]) => {
+        const prod = products.find((p) => p.id === productId);
+        return {
+          product: prod || { id: productId, name: "Product", unitType: "unit" },
+          qty: Number(qty),
+        };
+      });
+  }, [selectedProducts, products]);
 
-    if (productEntries.length === 0) {
-      toast.error("Please select at least one product and specify quantity produced.");
+  const selectedMaterialList = useMemo(() => {
+    return Object.entries(selectedMaterials)
+      .filter(([_, qty]) => Number(qty) > 0)
+      .map(([stockItemId, qty]) => {
+        const mat = stockItems.find((s) => s.id === stockItemId);
+        return {
+          stockItem: mat || { id: stockItemId, name: "Raw Material", unitType: "unit" },
+          qty: Number(qty),
+        };
+      });
+  }, [selectedMaterials, stockItems]);
+
+  const totalProducedUnits = useMemo(() => {
+    return selectedProductList.reduce((acc, curr) => acc + curr.qty, 0);
+  }, [selectedProductList]);
+
+  // Submit Request Handler (Opens Confirmation Modal)
+  const handleRequestSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    // On mobile (< 768px), if the user is in Step 1, pressing Go/Enter should proceed to Step 2 (Ingredients)
+    // and NEVER jump directly to the confirmation modal without selecting raw materials
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    if (isMobile && mobileStep === 1) {
+      const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+      if (!hasProductWithQty) {
+        toast.error(t("production.toastSpecifyAtLeastOne"));
+        return;
+      }
+      setMobileStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
-    const materialEntries = Object.entries(selectedMaterials)
-      .filter(([_, qty]) => Number(qty) > 0)
-      .map(([stockItemId, qty]) => ({ stockItemId, quantityUsed: Number(qty) }));
+    const productEntries = Object.entries(selectedProducts)
+      .filter(([_, qty]) => Number(qty) > 0);
+
+    if (productEntries.length === 0) {
+      toast.error(t("production.toastSpecifyAtLeastOne"));
+      return;
+    }
+
+    setShowModalBreakdown(false);
+    setShowSubmitModal(true);
+  };
+
+  // Execution Handler after Modal Confirmation
+  const executeSubmitBatch = async () => {
+    setShowSubmitModal(false);
+
+    const productEntries = selectedProductList.map((item) => ({
+      productId: item.product.id!,
+      quantityProduced: item.qty,
+    }));
+
+    const materialEntries = selectedMaterialList.map((item) => ({
+      stockItemId: item.stockItem.id!,
+      quantityUsed: item.qty,
+    }));
 
     setIsSubmitting(true);
     try {
@@ -288,7 +402,7 @@ function ProductionFormContent() {
         };
 
         await api.patch(`/production-batches/${editBatchId}`, payload);
-        toast.success("Production batch updated successfully!");
+        toast.success(t("production.toastBatchUpdatedSuccess"));
       } else {
         const payload = {
           branchId: selectedBranchId || undefined,
@@ -299,14 +413,12 @@ function ProductionFormContent() {
         };
 
         const res = await api.post("/production-batches", payload);
-        if (res.data.status === "PENDING_APPROVAL") {
-          toast.success("Production batch logged! Submitted for Admin/Owner approval.");
-        } else {
-          toast.success("Production batch created & inventory updated successfully!");
-        }
+        toast.success(t("production.toastBatchCreatedSuccess") || "Production batch created successfully");
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['production-page'] }),
+        queryClient.invalidateQueries({ queryKey: ['production-page-batches'] }),
+        queryClient.invalidateQueries({ queryKey: ['production-batch-detail'] }),
         queryClient.invalidateQueries({ queryKey: ['production-history'] }),
         queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
         queryClient.invalidateQueries({ queryKey: ['stock'] }),
@@ -319,7 +431,7 @@ function ProductionFormContent() {
     } catch (err: any) {
       toast.error(
         err.response?.data?.error ||
-          (isEditMode ? "Failed to update production batch" : "Failed to log production batch")
+          (isEditMode ? t("production.toastBatchUpdateFailed") : t("production.toastBatchCreateFailed"))
       );
     } finally {
       setIsSubmitting(false);
@@ -343,7 +455,7 @@ function ProductionFormContent() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-6 pb-12">
+      <div className="w-full max-w-6xl mx-auto space-y-4 xs:space-y-6 pb-28 md:pb-12 min-w-0 overflow-x-hidden">
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
           <div className="min-w-0 flex-1">
@@ -353,27 +465,33 @@ function ProductionFormContent() {
               onClick={() => guardedAction(() => router.push("/production"))}
               className="text-[#8C7361] hover:text-[#2C1B10] mb-1.5 p-0 h-auto flex items-center gap-1 font-bold text-xs"
             >
-              <ArrowLeft className="w-4 h-4" /> Back to Production Log
+              <ArrowLeft className="w-4 h-4" /> {t("production.backToProductionLog")}
             </Button>
             <h1 className="text-lg xs:text-xl sm:text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
               {isEditMode ? (
                 <>
-                  <Edit3 className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> Edit Production Batch
+                  <Edit3 className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> {t("production.editBatchTitleModal")}
                 </>
               ) : (
                 <>
-                  <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> Multi-Item Production Batch Entry
+                  <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> {t("production.multiItemBatchTitle")}
                 </>
               )}
             </h1>
             <p className="text-xs text-[#8C7361] mt-1 max-w-2xl">
               {isEditMode
-                ? "Update products baked, quantities produced, or raw materials consumed for this batch."
-                : "Select product categories, sub-categories, baked items, and raw materials consumed during this shift."}
+                ? t("production.editBatchSubtitle")
+                : t("production.multiItemBatchSubtitle")}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {!isGlobalAdmin && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold whitespace-nowrap border shadow-2xs ${stationMeta.badgeColor}`}>
+                <ChefHat className="w-3.5 h-3.5 shrink-0" />
+                {stationBadgeLabel}
+              </span>
+            )}
             {isEditMode && originalBatchStatus && (
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
@@ -390,11 +508,11 @@ function ProductionFormContent() {
                 {originalBatchStatus === "COMPLETED" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
                 {originalBatchStatus === "REJECTED" && <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
                 {originalBatchStatus === "PENDING_APPROVAL"
-                  ? "Pending Approval"
+                  ? t("production.statusPendingApproval")
                   : originalBatchStatus === "COMPLETED"
-                  ? "Approved / Completed"
+                  ? t("production.statusCompleted")
                   : originalBatchStatus === "REJECTED"
-                  ? "Rejected"
+                  ? t("production.statusRejected")
                   : originalBatchStatus}
               </span>
             )}
@@ -402,18 +520,112 @@ function ProductionFormContent() {
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs bg-emerald-50 text-emerald-900 border-emerald-300"
             >
               <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-500 animate-pulse" />
-              {isSessionOpen ? "Session Open" : "Day-Based Production"}
+              {isSessionOpen ? t("sessions.statusOpen") : "Day-Based Production"}
             </span>
           </div>
         </div>
 
 
-        <form onSubmit={handleSubmitBatch} className="space-y-4 xs:space-y-6">
-          {/* Shift & Date Header Configuration */}
-          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
+        <form onSubmit={handleRequestSubmit} className="space-y-4 xs:space-y-6">
+          {/* Mobile Step Header (Option 1: Focused Step 1 / Step 2 Banner) */}
+          <div className="md:hidden bg-white p-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-2.5">
+            {mobileStep === 1 ? (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-5 h-5 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-[10px] font-black shrink-0">
+                    1
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold text-[#2C1B10]">
+                    {t("production.step1Title") || "Step 1: Products Baked"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 shrink-0">
+                  {totalProductsSelectedCount} {t("common.selected") || "Selected"}
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileStep(1);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="inline-flex items-center gap-1.5 text-[#E87A18] hover:text-[#4A2E1B] font-extrabold text-xs transition-colors cursor-pointer py-0.5 -ml-0.5"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>{t("production.btnBackToProducts") || "Back to Products"}</span>
+                  </button>
+                  <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-indigo-50 text-indigo-900 border-indigo-200 shrink-0">
+                    {totalMaterialsSelectedCount} {t("common.selected") || "Selected"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black shrink-0">
+                    2
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold text-[#2C1B10]">
+                    {t("production.step2Title") || "Step 2: Raw Materials"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Visual Step Progress Bar (50% on Step 1, 100% on Step 2) */}
+            <div className="w-full bg-[#FAF6F0] h-1.5 rounded-full overflow-hidden border border-[#EDE4D5]">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  mobileStep === 1 ? "w-1/2 bg-[#E87A18]" : "w-full bg-emerald-600"
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* Mobile Compact Shift & Date Bar (< md) */}
+          <div className="md:hidden bg-white p-3 rounded-2xl border border-[#EDE4D5] shadow-xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 font-bold text-xs">
+                📅
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-[#2C1B10] truncate">
+                  {formatEthDate(date)}
+                </div>
+                <span className="text-[10px] text-[#8C7361] font-semibold">
+                  {isGlobalAdmin ? "Admin" : t("production.todayBatches")}
+                </span>
+              </div>
+            </div>
+
+            {/* Shift toggle pill on mobile */}
+            <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0">
+              <button
+                type="button"
+                onClick={() => setShift("DAY")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shift === "DAY" ? "bg-amber-500 text-zinc-950 shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                ☀️ {t("production.dayShift")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShift("NIGHT")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shift === "NIGHT" ? "bg-indigo-600 text-white shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                🌙 {t("production.nightShift")}
+              </button>
+            </div>
+          </div>
+
+          {/* Shift & Date Header Configuration (Desktop md+) */}
+          <div className="hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                Production Date {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
+                {t("common.date")} {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
               </label>
               <Input
                 type="date"
@@ -425,152 +637,155 @@ function ProductionFormContent() {
               />
               {!isGlobalAdmin && (
                 <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">
-                  🔒 Date is automatically set to today system log time.
+                  🔒 {t("production.systemDateLabel", { date: new Date().toLocaleDateString() })}
                 </p>
               )}
             </div>
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                Work Shift
+                {t("production.colShift")}
               </label>
               <select
                 value={shift}
                 onChange={(e) => setShift(e.target.value as any)}
                 className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
               >
-                <option value="DAY">Day Shift (Pagal / Day)</option>
-                <option value="NIGHT">Night Shift (Rati / Night)</option>
+                <option value="DAY">{t("production.dayShiftFull")}</option>
+                <option value="NIGHT">{t("production.nightShiftFull")}</option>
               </select>
             </div>
           </div>
 
           {/* SECTION 1: PRODUCT CATEGORY FILTER & MULTI-PRODUCT SELECTION */}
-          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5">
+          <div className={`bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5 ${mobileStep === 1 ? 'block' : 'hidden md:block'}`}>
             <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
                 <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <Utensils className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" /> 1. Select Bakery Products & Quantities
+                  <Utensils className="w-4 h-4 xs:w-5 xs:h-5 text-[#E87A18]" />
+                  {t("production.tabStepProducts")}
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
-                  Filter by category / subcategory and check all items baked in this batch.
+                  {t("production.stepProductsSubtitle") || "Select products and enter produced quantities."}
                 </p>
               </div>
 
               <span className="text-xs font-extrabold px-3 py-1 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
-                {totalProductsSelectedCount} Products Selected
+                {totalProductsSelectedCount} {t("production.tabProducts")}
               </span>
             </div>
 
-            {/* Category & Subcategory Filter Tabs with Auto-Center */}
-            <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
-                <Layers className="w-4 h-4 text-[#E87A18]" /> Main Product Category:
-              </div>
-              {/* Main Category Row */}
-              <div className="relative w-full overflow-hidden">
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
-                <div
-                  className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  <button
-                    ref={(el) => {
-                      parentCatTabRefs.current["ALL"] = el;
-                    }}
-                    type="button"
-                    onClick={() => {
-                      setSelectedParentCatId("ALL");
-                      setSelectedSubCatId("ALL");
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
-                      selectedParentCatId === "ALL"
-                        ? "bg-[#4A2E1B] text-white shadow-xs"
-                        : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                    }`}
-                  >
-                    All Categories ({products.length})
-                  </button>
-                  {parentCategories.map((cat) => {
-                    const catCount = products.filter(
-                      (p) => p.category?.parentId === cat.id || p.category?.id === cat.id
-                    ).length;
-                    return (
-                      <button
-                        key={cat.id}
-                        ref={(el) => {
-                          parentCatTabRefs.current[cat.id] = el;
-                        }}
-                        type="button"
-                        onClick={() => {
-                          setSelectedParentCatId(cat.id);
-                          setSelectedSubCatId("ALL");
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
-                          selectedParentCatId === cat.id
-                            ? "bg-[#4A2E1B] text-white shadow-xs"
-                            : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
-                        }`}
-                      >
-                        {cat.name} ({catCount})
-                      </button>
-                    );
-                  })}
+            {/* Category & Subcategory Filter Tabs (shown when multiple categories exist) */}
+            {parentCategories.length > 1 && (
+              <div className="space-y-2.5 bg-[#FAF6F0] p-3 xs:p-4 rounded-xl border border-[#EDE4D5]">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B] mb-1">
+                  <Layers className="w-4 h-4 text-[#E87A18]" /> {t("products.colCategory")}:
                 </div>
-              </div>
-
-              {/* Sub-Category Filter Row if applicable */}
-              {subCategories.length > 0 && (
-                <div className="relative w-full overflow-hidden pt-2.5 border-t border-[#EDE4D5]">
+                {/* Main Category Row */}
+                <div className="relative w-full overflow-hidden">
                   <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
                   <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
                   <div
                     className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
-                    <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">Sub-Category:</span>
                     <button
                       ref={(el) => {
-                        subCatTabRefs.current["ALL"] = el;
+                        parentCatTabRefs.current["ALL"] = el;
                       }}
                       type="button"
-                      onClick={() => setSelectedSubCatId("ALL")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-                        selectedSubCatId === "ALL"
-                          ? "bg-[#E87A18] text-white"
-                          : "bg-white text-[#8C7361] border border-[#EDE4D5]"
+                      onClick={() => {
+                        setSelectedParentCatId("ALL");
+                        setSelectedSubCatId("ALL");
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                        selectedParentCatId === "ALL"
+                          ? "bg-[#4A2E1B] text-white shadow-xs"
+                          : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
                       }`}
                     >
-                      All Sub-categories
+                      {t("production.filterParentCatAll")} ({products.length})
                     </button>
-                    {subCategories.map((sub) => (
+                    {parentCategories.map((cat) => {
+                      const catCount = products.filter(
+                        (p) => p.category?.parentId === cat.id || p.category?.id === cat.id
+                      ).length;
+                      return (
+                        <button
+                          key={cat.id}
+                          ref={(el) => {
+                            parentCatTabRefs.current[cat.id] = el;
+                          }}
+                          type="button"
+                          onClick={() => {
+                            setSelectedParentCatId(cat.id);
+                            setSelectedSubCatId("ALL");
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                            selectedParentCatId === cat.id
+                              ? "bg-[#4A2E1B] text-white shadow-xs"
+                              : "bg-white text-[#4A2E1B] border border-[#EDE4D5] hover:bg-[#F4ECE1]"
+                          }`}
+                        >
+                          {cat.name} ({catCount})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Sub-Category Filter Row if applicable */}
+                {subCategories.length > 0 && (
+                  <div className="relative w-full overflow-hidden pt-2.5 border-t border-[#EDE4D5]">
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF6F0] to-transparent z-10 sm:hidden" />
+                    <div
+                      className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] pb-1"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      <span className="text-[11px] font-bold text-[#8C7361] mr-1 whitespace-nowrap shrink-0">{t("categories.colSubcategories")}:</span>
                       <button
-                        key={sub.id}
                         ref={(el) => {
-                          subCatTabRefs.current[sub.id] = el;
+                          subCatTabRefs.current["ALL"] = el;
                         }}
                         type="button"
-                        onClick={() => setSelectedSubCatId(sub.id)}
+                        onClick={() => setSelectedSubCatId("ALL")}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-                          selectedSubCatId === sub.id
+                          selectedSubCatId === "ALL"
                             ? "bg-[#E87A18] text-white"
                             : "bg-white text-[#8C7361] border border-[#EDE4D5]"
                         }`}
                       >
-                        {sub.name}
+                        {t("production.filterSubCatAll")}
                       </button>
-                    ))}
+                      {subCategories.map((sub) => (
+                        <button
+                          key={sub.id}
+                          ref={(el) => {
+                            subCatTabRefs.current[sub.id] = el;
+                          }}
+                          type="button"
+                          onClick={() => setSelectedSubCatId(sub.id)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
+                            selectedSubCatId === sub.id
+                              ? "bg-[#E87A18] text-white"
+                              : "bg-white text-[#8C7361] border border-[#EDE4D5]"
+                          }`}
+                        >
+                          {sub.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Product Search & Multi-Select Grid */}
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-3 text-[#8C7361]" />
               <Input
                 type="text"
-                placeholder="Search products by name or type..."
+                placeholder={t("production.searchProductsInput")}
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 className="pl-9 bg-white border-[#EDE4D5] rounded-xl text-xs"
@@ -579,10 +794,10 @@ function ProductionFormContent() {
 
             {filteredProducts.length === 0 ? (
               <div className="text-center py-8 border border-dashed border-[#EDE4D5] rounded-xl text-xs text-[#8C7361]">
-                No products match the selected category filter or search query.
+                {t("production.noProductsMatchCategory")}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filteredProducts.map((p) => {
                   const isSelected = selectedProducts[p.id] !== undefined;
                   const qtyVal = selectedProducts[p.id] || "";
@@ -590,44 +805,73 @@ function ProductionFormContent() {
                   return (
                     <div
                       key={p.id}
-                      className={`p-3.5 rounded-xl border transition-all ${
+                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
                         isSelected
-                          ? "bg-amber-50/70 border-[#E87A18] ring-1 ring-[#E87A18] shadow-2xs"
-                          : "bg-white border-[#EDE4D5] hover:border-zinc-300"
+                          ? "bg-amber-50/80 border-[#E87A18] ring-2 ring-[#E87A18]/20 shadow-sm"
+                          : "bg-white border-[#EDE4D5] hover:border-zinc-300 shadow-2xs"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <label
-                          onClick={() => toggleProductSelect(p.id)}
-                          className="flex items-start gap-2.5 cursor-pointer flex-1 select-none"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleProductSelect(p.id)}
-                            className="mt-0.5 rounded text-[#E87A18] focus:ring-[#E87A18]"
-                          />
-                          <div>
-                            <h4 className="font-extrabold text-xs text-[#2C1B10] line-clamp-1">{p.name}</h4>
-                            <span className="text-[10px] font-semibold text-[#8C7361] block">
-                              {p.category?.name || "Bakery"} ({p.unitType})
+                      <div
+                        onClick={() => toggleProductSelect(p.id)}
+                        className="flex items-start justify-between gap-2.5 cursor-pointer select-none"
+                      >
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <div
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                              isSelected
+                                ? "bg-[#E87A18] text-white shadow-2xs"
+                                : "border-2 border-[#EDE4D5] bg-[#FAF6F0]"
+                            }`}
+                          >
+                            {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{p.name}</h4>
+                            <span className="text-[11px] font-semibold text-[#8C7361] block">
+                              {p.category?.name || "Bakery"} • <strong className="text-[#4A2E1B]">{p.unitType}</strong>
                             </span>
                           </div>
-                        </label>
+                        </div>
+
+                        {isSelected && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E87A18] text-white shrink-0">
+                            {t("common.selected") || "Selected"}
+                          </span>
+                        )}
                       </div>
 
                       {isSelected && (
-                        <div className="pt-2 border-t border-amber-200/60 flex items-center gap-2">
-                          <span className="text-[10px] font-extrabold uppercase text-[#4A2E1B]">Produced:</span>
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="Qty"
-                            value={qtyVal}
-                            onChange={(e) => updateProductQty(p.id, e.target.value)}
-                            className="h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-amber-900"
-                          />
-                          <span className="text-[10px] font-bold text-zinc-500">{p.unitType}</span>
+                        <div className="mt-3 pt-3 border-t border-amber-200/70 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs font-bold text-[#4A2E1B]">
+                            {t("production.producedQtyInputLabel")}:
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min="0"
+                              placeholder="0"
+                              value={qtyVal}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => updateProductQty(p.id, e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  (e.target as HTMLElement).blur();
+                                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+                                  if (typeof window !== "undefined" && window.innerWidth < 768 && hasProductWithQty) {
+                                    setMobileStep(2);
+                                    window.scrollTo({ top: 0, behavior: "smooth" });
+                                  }
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value === "") updateProductQty(p.id, "0");
+                              }}
+                              className="w-24 h-9 bg-white border-[#EDE4D5] font-bold text-sm text-[#2C1B10] text-right rounded-xl focus:border-[#E87A18]"
+                            />
+                            <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{p.unitType}</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -638,19 +882,19 @@ function ProductionFormContent() {
           </div>
 
           {/* SECTION 2: RAW MATERIAL / INGREDIENT SELECTION */}
-          <div className="bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5">
+          <div className={`bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-4 xs:space-y-5 ${mobileStep === 2 ? 'block' : 'hidden md:block'}`}>
             <div className="flex flex-wrap items-center justify-between gap-2.5 xs:gap-3 border-b border-[#F4ECE1] pb-3 xs:pb-4">
               <div>
                 <h2 className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
-                  <Boxes className="w-4 h-4 xs:w-5 xs:h-5 text-indigo-600" /> 2. Select Consumed Raw Materials & Ingredients
+                  <Boxes className="w-4 h-4 xs:w-5 xs:h-5 text-indigo-600" /> {t("production.tabStepMaterials")}
                 </h2>
                 <p className="text-xs text-[#8C7361] mt-0.5">
-                  Multi-select flour, sugar, yeast, oil, and packaging materials consumed for this production.
+                  {t("production.stepMaterialsSubtitle") || "Review and adjust raw materials used."}
                 </p>
               </div>
 
               <span className="text-xs font-extrabold px-3 py-1 bg-[#FAF6F0] text-[#4A2E1B] rounded-xl border border-[#EDE4D5]">
-                {totalMaterialsSelectedCount} Ingredients Selected
+                {totalMaterialsSelectedCount} {t("production.ingredientsCount")}
               </span>
             </div>
 
@@ -659,14 +903,14 @@ function ProductionFormContent() {
               <Search className="w-4 h-4 absolute left-3 top-3 text-[#8C7361]" />
               <Input
                 type="text"
-                placeholder="Search raw materials (flour, sugar, yeast, oil...)..."
+                placeholder={t("production.searchMaterialsInput")}
                 value={materialSearch}
                 onChange={(e) => setMaterialSearch(e.target.value)}
                 className="pl-9 bg-white border-[#EDE4D5] rounded-xl text-xs"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3 max-h-[350px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 xs:gap-3">
               {filteredMaterials.map((mat) => {
                 const isSelected = selectedMaterials[mat.id] !== undefined;
                 const qtyVal = selectedMaterials[mat.id] || "";
@@ -674,45 +918,69 @@ function ProductionFormContent() {
                 return (
                   <div
                     key={mat.id}
-                    className={`p-3.5 rounded-xl border transition-all ${
+                    className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
                       isSelected
-                        ? "bg-indigo-50/70 border-indigo-500 ring-1 ring-indigo-500 shadow-2xs"
-                        : "bg-white border-[#EDE4D5] hover:border-zinc-300"
+                        ? "bg-indigo-50/80 border-indigo-500 ring-2 ring-indigo-500/20 shadow-sm"
+                        : "bg-white border-[#EDE4D5] hover:border-zinc-300 shadow-2xs"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <label
-                        onClick={() => toggleMaterialSelect(mat.id)}
-                        className="flex items-start gap-2.5 cursor-pointer flex-1 select-none"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleMaterialSelect(mat.id)}
-                          className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-600"
-                        />
-                        <div>
-                          <h4 className="font-extrabold text-xs text-[#2C1B10] line-clamp-1">{mat.name}</h4>
-                          <span className="text-[10px] font-semibold text-[#8C7361] block">
-                            Stock: {mat.currentQuantity} {mat.unitType}
+                    <div
+                      onClick={() => toggleMaterialSelect(mat.id)}
+                      className="flex items-start justify-between gap-2.5 cursor-pointer select-none"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                            isSelected
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "border-2 border-[#EDE4D5] bg-[#FAF6F0]"
+                          }`}
+                        >
+                          {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{mat.name}</h4>
+                          <span className="text-[11px] font-semibold text-[#8C7361] block">
+                            {t("production.unit")}: <strong className="text-indigo-950">{mat.unitType}</strong>
                           </span>
                         </div>
-                      </label>
+                      </div>
+
+                      {isSelected && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-600 text-white shrink-0">
+                          {t("common.selected") || "Selected"}
+                        </span>
+                      )}
                     </div>
 
                     {isSelected && (
-                      <div className="pt-2 border-t border-indigo-200 flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase text-indigo-900 shrink-0">Used:</span>
-                        <Input
-                          type="number"
-                          step="0.001"
-                          min="0.001"
-                          placeholder="Qty"
-                          value={qtyVal}
-                          onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
-                          className="h-9 xs:h-8 bg-white border-[#EDE4D5] font-mono font-bold text-xs rounded-lg text-indigo-950"
-                        />
-                        <span className="text-[10px] font-bold text-zinc-500 shrink-0">{mat.unitType}</span>
+                      <div className="mt-3 pt-3 border-t border-indigo-200/70 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-xs font-bold text-indigo-950">
+                          {t("production.usedQtyInputLabel")}:
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
+                            min="0"
+                            placeholder="0"
+                            value={qtyVal}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => updateMaterialQty(mat.id, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                (e.target as HTMLElement).blur();
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value === "") updateMaterialQty(mat.id, "0");
+                            }}
+                            className="w-24 h-9 bg-white border-indigo-200 font-bold text-sm text-indigo-950 text-right rounded-xl focus:border-indigo-600"
+                          />
+                          <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{mat.unitType}</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -721,15 +989,15 @@ function ProductionFormContent() {
             </div>
           </div>
 
-          {/* SUMMARY PANEL & SUBMISSION */}
-          <div className="bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm">
+          {/* SUMMARY PANEL & SUBMISSION (Desktop md+) */}
+          <div className="hidden md:flex bg-[#FAF6F0] p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 xs:gap-4 shadow-sm">
             <div>
               <h3 className="font-extrabold text-sm text-[#2C1B10]">
-                {isEditMode ? "Save changes to this production batch?" : "Ready to submit production batch?"}
+                {isEditMode ? t("production.btnSubmitChanges") : t("production.btnReviewSubmitBatch")}
               </h3>
               <p className="text-xs text-[#8C7361] mt-0.5">
-                Selected <strong className="text-[#4A2E1B]">{totalProductsSelectedCount} products</strong> and{" "}
-                <strong className="text-[#4A2E1B]">{totalMaterialsSelectedCount} materials</strong> for shift log.
+                {t("production.colProductsBaked")}: <strong className="text-[#4A2E1B]">{totalProductsSelectedCount}</strong> •{" "}
+                {t("production.colRawMaterialsConsumed")}: <strong className="text-[#4A2E1B]">{totalMaterialsSelectedCount}</strong>
               </p>
             </div>
 
@@ -739,39 +1007,232 @@ function ProductionFormContent() {
                 variant="outline"
                 size="lg"
                 onClick={() => guardedAction(() => router.push("/production"))}
-                className="flex-1 sm:flex-initial"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
 
               <Button
                 type="submit"
                 size="lg"
                 loading={isSubmitting}
-                loadingText={isEditMode ? "Updating Batch..." : "Submitting..."}
+                loadingText={isEditMode ? (t("production.submittingBatch") || "Updating Batch...") : (t("production.submittingBatch") || "Submitting...")}
                 disabled={totalProductsSelectedCount === 0}
                 className="flex-1 sm:flex-initial"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {isEditMode
-                  ? "Save & Update Batch"
-                  : isGlobalAdmin
-                  ? "Submit & Approve Batch"
-                  : "Submit for Approval"}
+                  ? (t("production.btnSubmitChanges") || "Save & Update Batch")
+                  : (t("production.btnConfirmSubmitBatch") || "Submit for Approval")}
               </Button>
             </div>
           </div>
+
+          {/* Mobile Sticky Bottom Action Bar (< md) */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {mobileStep === 1 ? (
+              <Button
+                type="button"
+                size="lg"
+                disabled={totalProductsSelectedCount === 0}
+                onClick={() => {
+                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
+                  if (!hasProductWithQty) {
+                    toast.error(t("production.toastSpecifyAtLeastOne"));
+                    return;
+                  }
+                  setMobileStep(2);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm h-12 rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <span>
+                  {totalProductsSelectedCount > 0
+                    ? `${t("production.btnNextMaterials") || "Next: Raw Materials"} (${totalProductsSelectedCount})`
+                    : (t("production.selectProductsPrompt") || "Select products above")}
+                </span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    setMobileStep(1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>{t("common.back") || "Back"}</span>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleRequestSubmit()}
+                  disabled={totalProductsSelectedCount === 0}
+                  className="flex-1 h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span className="truncate">
+                    {isEditMode ? (t("production.btnSubmitChanges") || "Save Changes") : (t("production.btnSaveBatch") || "Save Production Batch")}
+                  </span>
+                </Button>
+              </div>
+            )}
+          </div>
         </form>
       </div>
+
+      {/* Submit Confirmation Dialog */}
+      <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl border border-[#EDE4D5] p-4 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              {isEditMode ? t("production.editBatchTitleModal") : t("production.confirmModalBatchTitle")}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3.5 my-2 text-xs">
+            {/* Shift & Date Info */}
+            <div className="p-2.5 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-[#4A2E1B] font-bold">
+              <span>📅 {formatEthDate(date)}</span>
+              <span>{shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}</span>
+            </div>
+
+            {/* High-Level Overview Stats - Short, punchy, and zero truncation */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-center flex flex-col justify-center min-w-0">
+                <span className="text-[11px] uppercase font-black text-amber-900 tracking-wide block">
+                  {t("production.modalProductsLabel") || "Products"}
+                </span>
+                <div className="mt-1 flex items-baseline justify-center gap-1">
+                  <span className="text-base sm:text-lg font-black text-[#2C1B10]">
+                    {selectedProductList.length}
+                  </span>
+                  <span className="text-xs font-bold text-[#8C7361]">
+                    {t("production.modalItemsCount") || "items"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold text-[#E87A18] block mt-0.5">
+                  {totalProducedUnits} {t("production.modalTotalUnits") || "total pcs"}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-indigo-50/90 border border-indigo-200/80 text-center flex flex-col justify-center min-w-0">
+                <span className="text-[11px] uppercase font-black text-indigo-900 tracking-wide block">
+                  {t("production.modalMaterialsLabel") || "Raw Materials"}
+                </span>
+                <div className="mt-1 flex items-baseline justify-center gap-1">
+                  <span className="text-base sm:text-lg font-black text-indigo-950">
+                    {selectedMaterialList.length}
+                  </span>
+                  <span className="text-xs font-bold text-indigo-700">
+                    {t("production.modalItemsCount") || "items"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold text-indigo-600 block mt-0.5">
+                  {t("production.modalToDeduct") || "to deduct"}
+                </span>
+              </div>
+            </div>
+
+            {/* Optional Collapsible Detailed Breakdown */}
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => setShowModalBreakdown((prev) => !prev)}
+                className="w-full py-2 px-3 rounded-xl bg-[#FAF7EE] hover:bg-[#F3ECE1] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs flex items-center justify-between transition-colors cursor-pointer"
+              >
+                <span>{showModalBreakdown ? t("production.showLess") : t("production.tabAll")}</span>
+                <span className="text-[11px] text-[#8C7361] font-semibold">
+                  {showModalBreakdown ? "▲" : `▼ (${selectedProductList.length + selectedMaterialList.length})`}
+                </span>
+              </button>
+
+              {showModalBreakdown && (
+                <div className="mt-2.5 space-y-2.5 border-t border-[#EDE4D5] pt-2">
+                  {/* Products Baked Summary */}
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
+                      {t("production.colProductsBaked")} ({selectedProductList.length}):
+                    </span>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                      {selectedProductList.map((item) => (
+                        <div
+                          key={item.product.id}
+                          className="flex items-center justify-between p-2 rounded-lg bg-amber-50/70 border border-amber-200/60 font-bold"
+                        >
+                          <span className="text-[#2C1B10] truncate mr-2">{item.product.name}</span>
+                          <span className="text-[#E87A18] whitespace-nowrap">
+                            {item.qty} {item.product.unitType}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Ingredients Consumed Summary */}
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase text-[#8C7361] tracking-wider block mb-1">
+                      {t("production.colRawMaterialsConsumed")} ({selectedMaterialList.length}):
+                    </span>
+                    {selectedMaterialList.length === 0 ? (
+                      <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-500 italic">
+                        {t("production.noMaterialsDeducted")}
+                      </div>
+                    ) : (
+                      <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                        {selectedMaterialList.map((mat) => (
+                          <div
+                            key={mat.stockItem.id}
+                            className="flex items-center justify-between p-2 rounded-lg bg-indigo-50/70 border border-indigo-200/60 font-bold text-indigo-950"
+                          >
+                            <span className="truncate mr-2">{mat.stockItem.name}</span>
+                            <span className="whitespace-nowrap">
+                              {mat.qty} {mat.stockItem.unitType}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-[#F4ECE1]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSubmitModal(false)}
+              className="w-full sm:w-auto h-11 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold cursor-pointer"
+            >
+              {t("production.btnKeepEditingBatch")}
+            </Button>
+            <Button
+              type="button"
+              loading={isSubmitting}
+              onClick={executeSubmitBatch}
+              className="w-full sm:flex-1 h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{isEditMode ? t("production.btnSubmitChanges") : t("production.btnConfirmSubmitBatch")}</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmModal
         isOpen={showDiscardModal}
         onClose={cancelDiscard}
         onConfirm={confirmDiscard}
-        title="Discard Production Batch?"
-        description="You have selected items and material quantities for this production batch. Are you sure you want to discard your work?"
-        confirmText="Discard and Leave"
-        cancelText="Continue Editing"
+        title={t("products.unsavedModalTitle")}
+        description={t("products.unsavedModalDesc")}
+        confirmText={t("products.discardChangesBtn")}
+        cancelText={t("products.keepEditingBtn")}
         variant="warning"
       />
     </DashboardLayout>
