@@ -380,9 +380,7 @@ export default function ProductionPage() {
               className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
             >
               <History className="w-4 h-4 text-[#E87A18] shrink-0" />
-              <span className="truncate">
-                <span className="hidden xs:inline">Daily </span>History
-              </span>
+              <span className="truncate">{t('production.dailyHistoryBtn') || "Daily History"}</span>
             </Button>
           )}
           <Button
@@ -392,14 +390,10 @@ export default function ProductionPage() {
             className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
           >
             <Plus className="w-4 h-4 shrink-0" />
-            <span className="truncate">
-              <span className="hidden xs:inline">Record </span>New Batch
-            </span>
+            <span className="truncate">{t('production.newBatch') || "Record New Batch"}</span>
           </Button>
         </div>
       </div>
-
-
 
       {/* Worker Tabs (Strictly Today & Yesterday for Non-Admins) */}
       {!isGlobalAdmin && (
@@ -1139,7 +1133,7 @@ export default function ProductionPage() {
               <span>
                 {t('common.showMore') || "Show More"}
                 {pageData?.total && pageData.total > accumulatedBatches.length
-                  ? ` (${pageData.total - accumulatedBatches.length} remaining)`
+                  ? ` ${t('common.remainingCount', { count: pageData.total - accumulatedBatches.length }) || `(${pageData.total - accumulatedBatches.length} remaining)`}`
                   : ""}
               </span>
             </Button>
@@ -1331,7 +1325,7 @@ export default function ProductionPage() {
             </p>
             <div>
               <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                Clarification Reason / Question
+                {t('production.flagClarificationReason') || "Clarification Reason / Question"}
               </label>
               <textarea
                 value={flagReasonInput}
