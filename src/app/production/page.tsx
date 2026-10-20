@@ -53,6 +53,16 @@ export default function ProductionPage() {
   const queryClient = useQueryClient();
 
   const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "UNSEEN" | "FLAGGED">("ALL");
+  const [workerTab, setWorkerTab] = useState<"TODAY" | "YESTERDAY">("TODAY");
+  const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
+  const [page, setPage] = useState<number>(1);
+  const [accumulatedBatches, setAccumulatedBatches] = useState<ProductionBatch[]>([]);
+
+  const ethNow = useMemo(() => new Date(Date.now() + 3 * 3600 * 1000), []);
+  const todayYmd = useMemo(() => ethNow.toISOString().slice(0, 10), [ethNow]);
+  const yesterdayYmd = useMemo(() => {
+    return new Date(ethNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  }, [ethNow]);
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
@@ -96,21 +106,105 @@ export default function ProductionPage() {
   const [items, setItems] = useState<{ productId: string; quantityProduced: string }[]>([]);
   const [materials, setMaterials] = useState<{ stockItemId: string; quantityUsed: string }[]>([]);
 
-  // 1. Fast primary query for batches table and active session (loads in ~300ms)
-  const { data: pageData, isLoading } = useQuery({
-    queryKey: ["production-page-batches", selectedBranchId],
-    queryFn: async () => {
-      const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
-      const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
+  // Query Params for Backend Pagination
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (selectedBranchId) params.append("branchId", selectedBranchId);
+    params.append("page", String(page));
+    params.append("limit", "10");
 
+    if (isGlobalAdmin) {
+      if (filterTab === "TODAY") params.append("date", todayYmd);
+      else if (filterTab === "UNSEEN") params.append("seenFilter", "UNSEEN");
+      else if (filterTab === "FLAGGED") params.append("seenFilter", "FLAGGED");
+      if (shiftFilter !== "ALL") params.append("shift", shiftFilter);
+    } else {
+      params.append("date", workerTab === "TODAY" ? todayYmd : yesterdayYmd);
+    }
+    return params.toString();
+  }, [selectedBranchId, page, isGlobalAdmin, filterTab, shiftFilter, workerTab, todayYmd, yesterdayYmd]);
+
+  // 1. Primary backend-paginated query
+  const { data: pageData, isLoading, isFetching } = useQuery({
+    queryKey: [
+      "production-page-batches",
+      selectedBranchId,
+      isGlobalAdmin ? filterTab : workerTab,
+      isGlobalAdmin ? shiftFilter : null,
+      page,
+    ],
+    refetchOnMount: "always",
+    staleTime: 0,
+    queryFn: async () => {
+      const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
       const [resBatches, resSess] = await Promise.all([
-        api.get(`/production-batches${branchQuery}`),
+        api.get(`/production-batches?${queryParams}`),
         api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null })),
       ]);
 
+      const resData = resBatches.data;
+      const batchesList = Array.isArray(resData) ? resData : (resData?.batches || []);
+      const totalCount = resData?.total ?? batchesList.length;
+      const hasMoreBatches = resData?.hasMore ?? false;
+
       return {
-        batches: (resBatches.data || []) as ProductionBatch[],
+        batches: batchesList as ProductionBatch[],
+        total: totalCount as number,
+        hasMore: hasMoreBatches as boolean,
         activeSession: (resSess.data || null) as ActiveSession | null,
+      };
+    },
+  });
+
+  // Accumulate pages when user clicks "Show More"
+  useEffect(() => {
+    if (!pageData?.batches) return;
+    if (page === 1) {
+      setAccumulatedBatches(pageData.batches);
+    } else {
+      setAccumulatedBatches((prev) => {
+        const existingIds = new Set(prev.map((b) => b.id));
+        const newOnes = pageData.batches.filter((b) => !existingIds.has(b.id));
+        return [...prev, ...newOnes];
+      });
+    }
+  }, [pageData?.batches, page]);
+
+  // Worker tab counts for Today & Yesterday
+  const { data: workerCounts } = useQuery({
+    queryKey: ["production-worker-counts", selectedBranchId, user?.id],
+    enabled: !isGlobalAdmin,
+    refetchOnMount: "always",
+    queryFn: async () => {
+      const branchParam = selectedBranchId ? `&branchId=${selectedBranchId}` : "";
+      const [resToday, resYesterday] = await Promise.all([
+        api.get(`/production-batches?date=${todayYmd}&limit=1${branchParam}`),
+        api.get(`/production-batches?date=${yesterdayYmd}&limit=1${branchParam}`),
+      ]);
+      const todayTotal = resToday.data?.total ?? (Array.isArray(resToday.data) ? resToday.data.length : 0);
+      const yesterdayTotal = resYesterday.data?.total ?? (Array.isArray(resYesterday.data) ? resYesterday.data.length : 0);
+      return { today: todayTotal, yesterday: yesterdayTotal };
+    },
+  });
+
+  // Admin tab counts
+  const { data: adminCounts } = useQuery({
+    queryKey: ["production-admin-counts", selectedBranchId],
+    enabled: isGlobalAdmin,
+    refetchOnMount: "always",
+    queryFn: async () => {
+      const branchParam = selectedBranchId ? `&branchId=${selectedBranchId}` : "";
+      const [resAll, resToday, resUnseen, resFlagged] = await Promise.all([
+        api.get(`/production-batches?limit=1${branchParam}`),
+        api.get(`/production-batches?date=${todayYmd}&limit=1${branchParam}`),
+        api.get(`/production-batches?seenFilter=UNSEEN&limit=1${branchParam}`),
+        api.get(`/production-batches?seenFilter=FLAGGED&limit=1${branchParam}`),
+      ]);
+      return {
+        all: resAll.data?.total ?? 0,
+        today: resToday.data?.total ?? 0,
+        unseen: resUnseen.data?.total ?? 0,
+        flagged: resFlagged.data?.total ?? 0,
       };
     },
   });
@@ -139,7 +233,7 @@ export default function ProductionPage() {
     staleTime: 60 * 1000,
   });
 
-  const batches = pageData?.batches || [];
+  const batches = accumulatedBatches;
   const activeSession = pageData?.activeSession || null;
   const products = modalData?.products || [];
   const stockItems = modalData?.stockItems || [];
@@ -246,65 +340,12 @@ export default function ProductionPage() {
   };
 
 
-  const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
+  const todayCount = isGlobalAdmin ? (adminCounts?.today ?? 0) : (workerCounts?.today ?? 0);
+  const unseenCount = adminCounts?.unseen ?? 0;
+  const flaggedCount = adminCounts?.flagged ?? 0;
+  const allCount = adminCounts?.all ?? 0;
 
-  const ethNow = useMemo(() => new Date(Date.now() + 3 * 3600 * 1000), []);
-  const todayYmd = useMemo(() => ethNow.toISOString().slice(0, 10), [ethNow]);
-  const yesterdayYmd = useMemo(() => {
-    return new Date(ethNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
-  }, [ethNow]);
-
-  const roleBatches = useMemo(() => {
-    return batches.filter((b) => {
-      if (!isGlobalAdmin && user?.id) {
-        return (b as any).userId === user.id;
-      }
-      return true;
-    });
-  }, [batches, isGlobalAdmin, user?.id]);
-
-  const todayBatches = useMemo(() => {
-    return roleBatches.filter((b) => (b.date || b.createdAt || "").startsWith(todayYmd));
-  }, [roleBatches, todayYmd]);
-
-  const todayCount = todayBatches.length;
-
-  const unseenCount = useMemo(() => {
-    if (!isGlobalAdmin) return 0;
-    return roleBatches.filter((b) => !isBatchSeenByMe(b)).length;
-  }, [roleBatches, isGlobalAdmin, isBatchSeenByMe]);
-
-  const flaggedCount = useMemo(() => {
-    return roleBatches.filter((b) => !!b.isFlagged).length;
-  }, [roleBatches]);
-
-  const filteredBatches = useMemo(() => {
-    return roleBatches.filter((b) => {
-      const bDate = (b.date || b.createdAt || "").slice(0, 10);
-      const isToday = bDate === todayYmd;
-      const isYesterday = bDate === yesterdayYmd;
-
-      if (!isGlobalAdmin) {
-        // Non-admin (bakers, etc.): show ONLY yesterday and today
-        return isToday || isYesterday;
-      }
-
-      // Admin & Owner: full filters
-      if (filterTab === "UNSEEN") {
-        if (isBatchSeenByMe(b)) return false;
-      } else if (filterTab === "FLAGGED") {
-        if (!b.isFlagged) return false;
-      } else if (filterTab === "TODAY") {
-        if (!isToday) return false;
-      }
-
-      if (shiftFilter !== "ALL" && b.shift !== shiftFilter) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [roleBatches, isGlobalAdmin, todayYmd, yesterdayYmd, filterTab, shiftFilter, isBatchSeenByMe]);
+  const filteredBatches = accumulatedBatches;
 
 
 
@@ -345,6 +386,59 @@ export default function ProductionPage() {
 
 
 
+      {/* Worker Tabs (Strictly Today & Yesterday for Non-Admins) */}
+      {!isGlobalAdmin && (
+        <div className="flex items-center gap-2 mb-4 border-b border-[#EDE4D5] pb-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (workerTab !== "TODAY") {
+                setWorkerTab("TODAY");
+                setPage(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+              workerTab === "TODAY"
+                ? "bg-emerald-700 text-white shadow-xs"
+                : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+            }`}
+          >
+            <span>📅 {t("common.today") || "Today"}</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                workerTab === "TODAY" ? "bg-white text-emerald-800" : "bg-emerald-600 text-white"
+              }`}
+            >
+              {workerCounts?.today ?? 0}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (workerTab !== "YESTERDAY") {
+                setWorkerTab("YESTERDAY");
+                setPage(1);
+              }
+            }}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+              workerTab === "YESTERDAY"
+                ? "bg-[#4A2E1B] text-white shadow-xs"
+                : "text-[#4A2E1B] bg-amber-50 hover:bg-amber-100 border border-amber-200"
+            }`}
+          >
+            <span>📅 {t("common.yesterday") || "Yesterday"}</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                workerTab === "YESTERDAY" ? "bg-white text-[#4A2E1B]" : "bg-[#4A2E1B] text-white"
+              }`}
+            >
+              {workerCounts?.yesterday ?? 0}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Filter Tabs & Shift Selector (Only for Admin & Owner) */}
       {isGlobalAdmin && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#EDE4D5] pb-3 max-w-full overflow-hidden">
@@ -359,19 +453,19 @@ export default function ProductionPage() {
             >
               <button
                 ref={(el) => { tabRefs.current["ALL"] = el; }}
-                onClick={() => setFilterTab("ALL")}
-                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                onClick={() => { setFilterTab("ALL"); setPage(1); }}
+                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
                   filterTab === "ALL"
                     ? "bg-[#2C1B10] text-white shadow-xs"
                     : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
                 }`}
               >
-                {t('production.allBatches')} ({roleBatches.length})
+                {t('production.allBatches')} ({allCount})
               </button>
               <button
                 ref={(el) => { tabRefs.current["TODAY"] = el; }}
-                onClick={() => setFilterTab("TODAY")}
-                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                onClick={() => { setFilterTab("TODAY"); setPage(1); }}
+                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                   filterTab === "TODAY"
                     ? "bg-emerald-700 text-white shadow-xs"
                     : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
@@ -381,8 +475,8 @@ export default function ProductionPage() {
               </button>
               <button
                 ref={(el) => { tabRefs.current["UNSEEN"] = el; }}
-                onClick={() => setFilterTab("UNSEEN")}
-                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                onClick={() => { setFilterTab("UNSEEN"); setPage(1); }}
+                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                   filterTab === "UNSEEN"
                     ? "bg-sky-700 text-white shadow-xs"
                     : "text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200"
@@ -400,8 +494,8 @@ export default function ProductionPage() {
               </button>
               <button
                 ref={(el) => { tabRefs.current["FLAGGED"] = el; }}
-                onClick={() => setFilterTab("FLAGGED")}
-                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                onClick={() => { setFilterTab("FLAGGED"); setPage(1); }}
+                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                   filterTab === "FLAGGED"
                     ? "bg-rose-700 text-white shadow-xs"
                     : "text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200"
@@ -423,24 +517,24 @@ export default function ProductionPage() {
           {/* Shift Filter Pill Group */}
           <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 self-start sm:self-auto max-w-full overflow-x-auto no-scrollbar">
             <button
-              onClick={() => setShiftFilter("ALL")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              onClick={() => { setShiftFilter("ALL"); setPage(1); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 shiftFilter === "ALL" ? "bg-[#4A2E1B] text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
               }`}
             >
               {t('production.allShifts')}
             </button>
             <button
-              onClick={() => setShiftFilter("DAY")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              onClick={() => { setShiftFilter("DAY"); setPage(1); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 shiftFilter === "DAY" ? "bg-amber-500 text-zinc-950 shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
               }`}
             >
               ☀️ {t('production.dayShift')}
             </button>
             <button
-              onClick={() => setShiftFilter("NIGHT")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              onClick={() => { setShiftFilter("NIGHT"); setPage(1); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 shiftFilter === "NIGHT" ? "bg-indigo-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
               }`}
             >
@@ -476,18 +570,22 @@ export default function ProductionPage() {
               : t('production.noBatches')}
           </div>
         ) : (
-          filteredBatches.map((batch) => (
-            <div
-              key={batch.id}
-              onClick={() => router.push(`/production/${batch.id}`)}
-              className={`bg-white rounded-2xl border p-3.5 xs:p-4 shadow-xs space-y-3 hover:border-[#4A2E1B]/30 hover:shadow-xs transition-all cursor-pointer overflow-hidden ${
-                isGlobalAdmin && !isBatchSeenByMe(batch)
-                  ? "border-sky-300 ring-1 ring-sky-100"
-                  : batch.isFlagged
-                  ? "border-rose-300 ring-1 ring-rose-100"
-                  : "border-[#EDE4D5]"
-              }`}
-            >
+          filteredBatches.map((batch) => {
+            const batchDateYmd = (batch.date || batch.createdAt || "").slice(0, 10);
+            const isToday = batchDateYmd === todayYmd;
+            const canEditBatch = isGlobalAdmin || ((user?.id === batch.user?.id || user?.id === batch.userId) && isToday);
+
+            return (
+              <div
+                key={batch.id}
+                className={`bg-white rounded-2xl border p-3.5 xs:p-4 shadow-xs space-y-3 overflow-hidden ${
+                  isGlobalAdmin && !isBatchSeenByMe(batch)
+                    ? "border-sky-300 ring-1 ring-sky-100"
+                    : batch.isFlagged
+                    ? "border-rose-300 ring-1 ring-rose-100"
+                    : "border-[#EDE4D5]"
+                }`}
+              >
               {/* Card Header: Date, Shift, Seen Status, Flag Badge */}
               <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
                 <div>
@@ -698,14 +796,23 @@ export default function ProductionPage() {
                     </Button>
                   )}
 
-                  {(isGlobalAdmin || user?.id === batch.user?.id || user?.id === batch.userId) && (
+                  {/* Dedicated mobile View button */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/production/${batch.id}`)}
+                    className="border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs cursor-pointer"
+                    title={t('common.view') || "View"}
+                  >
+                    <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                    <span>{t('common.view') || "View"}</span>
+                  </Button>
+
+                  {canEditBatch && (
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/production/new?edit=${batch.id}`);
-                      }}
+                      onClick={() => router.push(`/production/new?edit=${batch.id}`)}
                       className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs cursor-pointer"
                       title={t('common.edit') || "Edit"}
                     >
@@ -716,7 +823,8 @@ export default function ProductionPage() {
                 </div>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -773,7 +881,12 @@ export default function ProductionPage() {
                     : t('production.noBatches')}
                 </TableCell>
               </TableRow>
-            ) : filteredBatches.map(batch => (
+            ) : filteredBatches.map(batch => {
+              const batchDateYmd = (batch.date || batch.createdAt || "").slice(0, 10);
+              const isToday = batchDateYmd === todayYmd;
+              const canEditBatch = isGlobalAdmin || ((user?.id === batch.user?.id || user?.id === batch.userId) && isToday);
+
+              return (
               <TableRow
                 key={batch.id}
                 onClick={() => router.push(`/production/${batch.id}`)}
@@ -947,7 +1060,7 @@ export default function ProductionPage() {
                       </Button>
                     )}
 
-                    {(isGlobalAdmin || user?.id === batch.user?.id || user?.id === batch.userId) && (
+                    {canEditBatch && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -965,10 +1078,27 @@ export default function ProductionPage() {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
+
+      {/* Show More Pagination Button */}
+      {pageData?.hasMore && (
+        <div className="flex justify-center pt-5 pb-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isFetching}
+            loading={isFetching && page > 1}
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-2xl border border-[#EDE4D5] bg-white hover:bg-[#FAF6F0] text-[#4A2E1B] font-extrabold text-sm px-8 py-2.5 shadow-sm hover:shadow cursor-pointer transition-all flex items-center gap-2"
+          >
+            <span>{t('common.showMore') || "Show More"}</span>
+          </Button>
+        </div>
+      )}
 
       {/* CREATE BATCH DIALOG */}
       {isAddOpen && (
