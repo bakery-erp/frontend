@@ -69,6 +69,8 @@ export const om: TranslationDictionary = {
     pieces: "Muraa",
     selectBranch: "Damee Filadhu",
     saveChanges: "Jijjiirama Galmeessi",
+    showMore: "Dabalata Agarsiisi",
+    showLess: "Xiqqaasaa Agarsiisi",
   },
   nav: {
     portal: "POORTAALII",

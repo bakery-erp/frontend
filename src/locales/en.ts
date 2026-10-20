@@ -67,6 +67,8 @@ export const en = {
     pieces: "Pieces",
     selectBranch: "Select Branch",
     saveChanges: "Save Changes",
+    showMore: "Show More",
+    showLess: "Show Less",
   },
   nav: {
     portal: "PORTAL",
