@@ -25,7 +25,11 @@ import {
   UserCheck, 
   Building2, 
   Package, 
-  Layers
+  Layers,
+  Calendar,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -130,6 +134,14 @@ export default function StockItemDetailPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterType, setFilterType] = useState<string>("ALL");
+  const [dateFilter, setDateFilter] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 15;
+
+  // Reset pagination on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, dateFilter]);
 
   // Tab auto-centering ref like in profile page
   const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
@@ -308,9 +320,27 @@ export default function StockItemDetailPage() {
 
   const filteredMovements = useMemo(() => {
     if (!data?.movements) return [];
-    if (filterType === "ALL") return data.movements;
-    return data.movements.filter(m => m.type === filterType);
-  }, [data?.movements, filterType]);
+    return data.movements.filter((m) => {
+      // 1. Movement type filter: Only IN and OUT are supported (Adjustment & Production Usage removed)
+      if (filterType === "IN" && m.type !== "IN") return false;
+      if (filterType === "OUT" && m.type !== "OUT") return false;
+      if (filterType === "ALL" && m.type !== "IN" && m.type !== "OUT") return false;
+
+      // 2. Date filter by day
+      if (dateFilter) {
+        const itemDate = new Date(m.createdAt).toISOString().slice(0, 10);
+        if (itemDate !== dateFilter) return false;
+      }
+
+      return true;
+    });
+  }, [data?.movements, filterType, dateFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMovements.length / pageSize));
+  const paginatedMovements = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredMovements.slice(start, start + pageSize);
+  }, [filteredMovements, currentPage, pageSize]);
 
   const getMovementBadge = (type: string) => {
     switch (type) {
@@ -388,9 +418,11 @@ export default function StockItemDetailPage() {
               )}
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#8C7361] mt-2 font-medium">
-              <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
-                <Building2 className="w-3.5 h-3.5 text-[#8C7361]" /> {t("stock.branchTag", { branch: stockItem.branch?.name || t("stock.globalBranch") })}
-              </span>
+              {!isStockKeeper && (
+                <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
+                  <Building2 className="w-3.5 h-3.5 text-[#8C7361]" /> {t("stock.branchTag", { branch: stockItem.branch?.name || t("stock.globalBranch") })}
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
                 <Package className="w-3.5 h-3.5 text-[#8C7361]" /> {t("stock.unitTag", { unit: stockItem.unitType })}
               </span>
@@ -446,9 +478,9 @@ export default function StockItemDetailPage() {
       </div>
 
       {/* Summary KPI Cards */}
-      <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 sm:gap-3.5 mb-6`}>
+      <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-5' : !isStockKeeper ? 'lg:grid-cols-4' : 'lg:grid-cols-1'} gap-2.5 sm:gap-3.5 mb-6`}>
         {/* Card 1: Current Stock Qty */}
-        <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+        <div className={`bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between ${isStockKeeper ? 'col-span-2 lg:col-span-1 max-w-sm' : ''}`}>
           <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">{t("stock.kpiCurrentQty")}</span>
           <div className="mt-1">
             <span className={`text-xl sm:text-2xl font-black font-mono block ${isLowStock ? 'text-rose-600' : 'text-emerald-700'}`}>
@@ -472,50 +504,56 @@ export default function StockItemDetailPage() {
         )}
 
         {/* Card 3: Historical Inflow */}
-        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase tracking-wider block">{t("stock.kpiTotalInflow")}</span>
-          <div className="mt-1">
-            <span className="text-lg sm:text-xl font-black text-emerald-700 font-mono block">
-              +{Number(totalIn).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
-            </span>
-            {isOwner && totalValueIn != null && (
-              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 block truncate">
-                +{totalValueIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+        {!isStockKeeper && (
+          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase tracking-wider block">{t("stock.kpiTotalInflow")}</span>
+            <div className="mt-1">
+              <span className="text-lg sm:text-xl font-black text-emerald-700 font-mono block">
+                +{Number(totalIn).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
               </span>
-            )}
+              {isOwner && totalValueIn != null && (
+                <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 block truncate">
+                  +{totalValueIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Card 4: Historical Outflow */}
-        <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">{t("stock.kpiTotalOutflow")}</span>
-          <div className="mt-1">
-            <span className="text-lg sm:text-xl font-black text-rose-700 font-mono block">
-              -{Number(totalOut).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
-            </span>
-            {isOwner && totalValueOut != null && (
-              <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 block truncate">
-                -{totalValueOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+        {!isStockKeeper && (
+          <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">{t("stock.kpiTotalOutflow")}</span>
+            <div className="mt-1">
+              <span className="text-lg sm:text-xl font-black text-rose-700 font-mono block">
+                -{Number(totalOut).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
               </span>
-            )}
+              {isOwner && totalValueOut != null && (
+                <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 block truncate">
+                  -{totalValueOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Card 5: Audit Movements */}
-        <div className={`${isOwner ? 'col-span-2 lg:col-span-1' : 'col-span-2 lg:col-span-1'} bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between`}>
-          <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">{t("stock.kpiAuditMovements")}</span>
-          <div className="mt-1">
-            <span className="text-xl sm:text-2xl font-black text-[#2C1B10] font-mono block">
-              {data.movements.length}
-            </span>
-            <span className="text-[11px] font-semibold text-[#8C7361]">{t("stock.totalLogEntries")}</span>
+        {!isStockKeeper && (
+          <div className={`${isOwner ? 'col-span-2 lg:col-span-1' : 'col-span-2 lg:col-span-1'} bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between`}>
+            <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">{t("stock.kpiAuditMovements")}</span>
+            <div className="mt-1">
+              <span className="text-xl sm:text-2xl font-black text-[#2C1B10] font-mono block">
+                {data.movements.length}
+              </span>
+              <span className="text-[11px] font-semibold text-[#8C7361]">{t("stock.totalLogEntries")}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Movement Audit Trail Section */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 sm:p-5 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <div className="text-center sm:text-left">
             <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center justify-center sm:justify-start gap-2">
               <History className="w-5 h-5 text-[#E87A18]" />
@@ -523,42 +561,60 @@ export default function StockItemDetailPage() {
             </h2>
           </div>
 
-          {/* Auto-Centering Tabs with Gradient Edge Hints like in Profile */}
-          <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
-            {/* Subtle scroll edge gradient hints on mobile to indicate scrollability */}
-            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
-
-            <div 
-              className="bg-[#FAF7EE] p-1.5 rounded-2xl border border-[#EDE4D5] flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem]"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {[
-                { id: "ALL", label: t("stock.tabFilterAll"), count: data.movements.length },
-                { id: "IN", label: t("stock.tabFilterIn"), count: data.movements.filter(m => m.type === 'IN').length },
-                { id: "OUT", label: t("stock.tabFilterOut"), count: data.movements.filter(m => m.type === 'OUT').length },
-                { id: "PRODUCTION_USAGE", label: t("stock.tabFilterProduction"), count: data.movements.filter(m => m.type === 'PRODUCTION_USAGE').length },
-                { id: "ADJUSTMENT", label: t("stock.tabFilterAdjustment"), count: data.movements.filter(m => m.type === 'ADJUSTMENT').length },
-              ].map((tab) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filter by Date */}
+            <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
+              <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+              <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider hidden sm:inline">Date:</span>
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="text-xs font-semibold text-[#2C1B10] bg-transparent outline-none cursor-pointer"
+              />
+              {dateFilter && (
                 <button
-                  key={tab.id}
-                  ref={(el) => { tabRefs.current[tab.id] = el; }}
                   type="button"
-                  onClick={() => setFilterType(tab.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none ${
-                    filterType === tab.id
-                      ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
-                      : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
-                  }`}
+                  onClick={() => setDateFilter("")}
+                  className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white"
+                  title="Clear date filter"
                 >
-                  <span>{tab.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
-                    filterType === tab.id ? "bg-white/20 text-white" : "bg-[#4A2E1B]/10 text-[#4A2E1B]"
-                  }`}>
-                    {tab.count}
-                  </span>
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              ))}
+              )}
+            </div>
+
+            {/* Exactly 3 Tabs: ALL, IN, OUT */}
+            <div className="relative overflow-hidden">
+              <div 
+                className="bg-[#FAF7EE] p-1.5 rounded-2xl border border-[#EDE4D5] flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {[
+                  { id: "ALL", label: t("stock.tabFilterAll"), count: (data.movements || []).filter(m => (m.type === 'IN' || m.type === 'OUT') && (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
+                  { id: "IN", label: t("stock.tabFilterIn"), count: (data.movements || []).filter(m => m.type === 'IN' && (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
+                  { id: "OUT", label: t("stock.tabFilterOut"), count: (data.movements || []).filter(m => m.type === 'OUT' && (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    ref={(el) => { tabRefs.current[tab.id] = el; }}
+                    type="button"
+                    onClick={() => setFilterType(tab.id)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 outline-none focus:outline-none ${
+                      filterType === tab.id
+                        ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
+                        : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
+                      filterType === tab.id ? "bg-white/20 text-white" : "bg-[#4A2E1B]/10 text-[#4A2E1B]"
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -585,10 +641,10 @@ export default function StockItemDetailPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredMovements.map((m) => {
+                paginatedMovements.map((m) => {
                   const mPrice = Number(m.unitPrice ?? unitPrice);
                   const mTotalValue = Number(m.totalValue ?? (Number(m.quantity) * mPrice));
-                  const isNegative = m.type === "OUT" || m.type === "PRODUCTION_USAGE";
+                  const isNegative = m.type === "OUT";
                   const loan = m.purchaseLoan;
 
                   return (
@@ -669,10 +725,10 @@ export default function StockItemDetailPage() {
               {t("stockMovements.noMovements")}
             </div>
           ) : (
-            filteredMovements.map((m) => {
+            paginatedMovements.map((m) => {
               const mPrice = Number(m.unitPrice ?? unitPrice);
               const mTotalValue = Number(m.totalValue ?? (Number(m.quantity) * mPrice));
-              const isNegative = m.type === "OUT" || m.type === "PRODUCTION_USAGE";
+              const isNegative = m.type === "OUT";
               const loan = m.purchaseLoan;
 
               return (
@@ -740,6 +796,44 @@ export default function StockItemDetailPage() {
             })
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 px-1 text-xs text-[#8C7361] bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]">
+            <div>
+              Showing <strong className="text-[#2C1B10]">{(currentPage - 1) * pageSize + 1}</strong> to{" "}
+              <strong className="text-[#2C1B10]">{Math.min(currentPage * pageSize, filteredMovements.length)}</strong> of{" "}
+              <strong className="text-[#2C1B10]">{filteredMovements.length}</strong> movements
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="h-8 px-2.5 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <span className="px-2 font-bold text-[#2C1B10]">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="h-8 px-2.5 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40"
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Manual Stock Addition Modal */}

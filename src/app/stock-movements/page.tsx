@@ -242,19 +242,44 @@ export default function StockMovementsPage() {
     return movements.filter((m) => m.status === "PENDING_CONFIRMATION");
   }, [movements]);
 
-  // Pagination State for Movements Ledger
+  // Filtering & Pagination State for Movements Ledger
   const [currentPage, setCurrentPage] = useState(1);
+  const [dateFilter, setDateFilter] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const pageSize = 15;
-  const totalPages = Math.max(1, Math.ceil(movements.length / pageSize));
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedBranchId, movements.length]);
+  }, [selectedBranchId, dateFilter, searchQuery]);
+
+  const filteredMovements = useMemo(() => {
+    return movements.filter((m) => {
+      // 1. Filter by date/day
+      if (dateFilter) {
+        const itemDate = new Date(m.createdAt).toISOString().slice(0, 10);
+        if (itemDate !== dateFilter) return false;
+      }
+      // 2. Filter by search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const mat = (m.stockItem?.name || "").toLowerCase();
+        const rec = (m.receivedBy || "").toLowerCase();
+        const usr = (m.user?.fullName || "").toLowerCase();
+        const rsn = (m.reason || "").toLowerCase();
+        if (!mat.includes(q) && !rec.includes(q) && !usr.includes(q) && !rsn.includes(q)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [movements, dateFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMovements.length / pageSize));
 
   const paginatedMovements = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return movements.slice(start, start + pageSize);
-  }, [movements, currentPage, pageSize]);
+    return filteredMovements.slice(start, start + pageSize);
+  }, [filteredMovements, currentPage, pageSize]);
 
   // Approval handlers
   const [isConfirmingId, setIsConfirmingId] = useState<string | null>(null);
@@ -469,6 +494,71 @@ export default function StockMovementsPage() {
       {/* TAB 1: STOCK MOVEMENTS LEDGER */}
       {activeTab === "movements" && (
         <div className="space-y-4">
+          {/* Filter Toolbar: Date Filter + Today Quick Action + Search */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-[#EDE4D5] shadow-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs">
+                <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider">Date:</span>
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="text-xs font-semibold text-[#2C1B10] bg-transparent outline-none cursor-pointer"
+                />
+                {dateFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setDateFilter("")}
+                    className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white"
+                    title="Clear date"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  setDateFilter(dateFilter === todayStr ? "" : todayStr);
+                }}
+                className={`h-8 px-2.5 rounded-xl text-xs font-bold ${
+                  dateFilter === new Date().toISOString().slice(0, 10)
+                    ? "bg-[#4A2E1B] text-white border-[#4A2E1B]"
+                    : "border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE]"
+                }`}
+              >
+                Today
+              </Button>
+
+              {dateFilter && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDateFilter("")}
+                  className="h-8 px-2 text-xs text-[#8C7361] hover:text-[#2C1B10]"
+                >
+                  Show All Dates
+                </Button>
+              )}
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7361]" />
+              <Input
+                placeholder="Search material, recipient..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 pl-8 text-xs rounded-xl border-[#EDE4D5] bg-[#FAF7EE]/50"
+              />
+            </div>
+          </div>
+
           {/* Desktop Table View */}
           {isLoadingMovements ? (
             <div className="hidden sm:block">
@@ -490,7 +580,7 @@ export default function StockMovementsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {movements.length === 0 ? (
+                  {filteredMovements.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
                   ) : paginatedMovements.map(mov => {
                     const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
@@ -555,47 +645,53 @@ export default function StockMovementsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:hidden">
-              {paginatedMovements.map(mov => {
-                const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
-                const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
-                const isNegative = mov.type === "OUT" || mov.type === "PRODUCTION_USAGE";
+              {filteredMovements.length === 0 ? (
+                <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] text-center text-[#8C7361] font-medium">
+                  {t('stockMovements.noMovements')}
+                </div>
+              ) : (
+                paginatedMovements.map(mov => {
+                  const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
+                  const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
+                  const isNegative = mov.type === "OUT" || mov.type === "PRODUCTION_USAGE";
 
-                return (
-                  <div key={mov.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-2.5">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="font-extrabold text-[#2C1B10] text-base">{mov.stockItem?.name || "Unknown Item"}</div>
-                        <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</div>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${getMovementColor(mov.type)}`}>
-                        {getMovementTypeLabel(mov.type)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <div>
-                        <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colQtyDelta')}</span>
-                        <span className={`font-bold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
-                          {isNegative ? "-" : "+"}{Number(mov.quantity).toFixed(2)} {mov.stockItem?.unitType}
+                  return (
+                    <div key={mov.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-2.5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-extrabold text-[#2C1B10] text-base">{mov.stockItem?.name || "Unknown Item"}</div>
+                          <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${getMovementColor(mov.type)}`}>
+                          {getMovementTypeLabel(mov.type)}
                         </span>
                       </div>
-                      {isOwner && (
-                        <div className="text-right">
-                          <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colTotalValue')}</span>
-                          <span className={`font-extrabold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
-                            {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+
+                      <div className="flex items-center justify-between text-xs pt-1">
+                        <div>
+                          <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colQtyDelta')}</span>
+                          <span className={`font-bold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
+                            {isNegative ? "-" : "+"}{Number(mov.quantity).toFixed(2)} {mov.stockItem?.unitType}
                           </span>
                         </div>
-                      )}
-                    </div>
+                        {isOwner && (
+                          <div className="text-right">
+                            <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stockMovements.colTotalValue')}</span>
+                            <span className={`font-extrabold ${isNegative ? "text-rose-600" : "text-emerald-700"}`}>
+                              {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
-                      <span>{t('stockMovements.colRecordedBy')}: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
-                      <span className="truncate max-w-[150px]">{mov.reason || "—"}</span>
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
+                        <span>{t('stockMovements.colRecordedBy')}: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
+                        <span className="truncate max-w-[150px]">{mov.reason || "—"}</span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           )}
 
@@ -604,8 +700,8 @@ export default function StockMovementsPage() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 px-1 text-xs text-[#8C7361] bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]">
               <div>
                 Showing <strong className="text-[#2C1B10]">{(currentPage - 1) * pageSize + 1}</strong> to{" "}
-                <strong className="text-[#2C1B10]">{Math.min(currentPage * pageSize, movements.length)}</strong> of{" "}
-                <strong className="text-[#2C1B10]">{movements.length}</strong> movements
+                <strong className="text-[#2C1B10]">{Math.min(currentPage * pageSize, filteredMovements.length)}</strong> of{" "}
+                <strong className="text-[#2C1B10]">{filteredMovements.length}</strong> movements
               </div>
               <div className="flex items-center gap-1.5">
                 <Button

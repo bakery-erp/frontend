@@ -807,8 +807,8 @@ export const en = {
     pendingApprovalsCount: "{count} Inward pending approval",
   },
   stockMovements: {
-    title: "Stock Movements & Credit Purchases",
-    subtitle: "Track material inventory entries, usage, and stock loans acquired from suppliers",
+    title: "Stock Movements",
+    subtitle: "Track raw material inventory entries and usage",
     recordMovement: "+ Record Movement",
     movementsLedger: "Movements Ledger",
     loansAndCredit: "Stock Loans & Credit",

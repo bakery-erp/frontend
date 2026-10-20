@@ -809,8 +809,8 @@ export const am: TranslationDictionary = {
     pendingApprovalsCount: "{count} ገቢ ማረጋገጫ የሚጠብቁ",
   },
   stockMovements: {
-    title: "የጥሬ ዕቃ እንቅስቃሴና የብድር ግዢዎች",
-    subtitle: "የጥሬ ዕቃ ገቢ፣ ወጪና ከአቅራቢዎች የተወሰዱ ብድሮችን ይከታተሉ",
+    title: "የጥሬ ዕቃ እንቅስቃሴ",
+    subtitle: "የጥሬ ዕቃ ገቢና ወጪ እንቅስቃሴዎችን ይከታተሉ",
     recordMovement: "+ እንቅስቃሴ መዝግብ",
     movementsLedger: "የእንቅስቃሴ መዝገብ",
     loansAndCredit: "የጥሬ ዕቃ ብድርና ዕዳ",
