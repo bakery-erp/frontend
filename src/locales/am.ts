@@ -69,6 +69,8 @@ export const am: TranslationDictionary = {
     pieces: "ፍሬዎች",
     selectBranch: "ቅርንጫፍ ይምረጡ",
     saveChanges: "ለውጦችን መዝግብ",
+    showMore: "ተጨማሪ አሳይ",
+    showLess: "ያነሰ አሳይ",
   },
   nav: {
     portal: "ፖርታል",

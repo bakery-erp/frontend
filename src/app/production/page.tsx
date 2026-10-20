@@ -13,7 +13,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
-import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, X, Edit, MoreVertical, Flag, Check } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, ChevronDown, ChevronUp, X, Edit, MoreVertical, Flag, Check } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isProductAllowedForRole, getStationMeta } from "@/lib/roleProductMapping";
@@ -135,6 +135,7 @@ export default function ProductionPage() {
     ],
     refetchOnMount: "always",
     staleTime: 0,
+    placeholderData: (previousData) => previousData,
     queryFn: async () => {
       const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
       const [resBatches, resSess] = await Promise.all([
@@ -155,6 +156,20 @@ export default function ProductionPage() {
       };
     },
   });
+
+  // Reset accumulated batches and page when switching tabs, branches, or shift filters
+  const prevFilterRef = useRef<string>("");
+  const currentFilterKey = `${selectedBranchId}-${isGlobalAdmin ? filterTab : workerTab}-${isGlobalAdmin ? shiftFilter : ""}`;
+  useEffect(() => {
+    if (prevFilterRef.current && prevFilterRef.current !== currentFilterKey) {
+      setPage(1);
+      setAccumulatedBatches([]);
+    }
+    prevFilterRef.current = currentFilterKey;
+  }, [currentFilterKey]);
+
+  // Track initial loading (only show full page skeletons if 0 batches are rendered)
+  const isInitialLoading = isLoading && accumulatedBatches.length === 0;
 
   // Accumulate pages when user clicks "Show More"
   useEffect(() => {
@@ -372,7 +387,7 @@ export default function ProductionPage() {
           )}
           <Button
             onClick={() => router.push('/production/new')}
-            disabled={isLoading}
+            disabled={isInitialLoading}
             size="lg"
             className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
           >
@@ -546,7 +561,7 @@ export default function ProductionPage() {
 
       {/* ── Mobile Card List (block on < md) ── */}
       <div className="space-y-3 block md:hidden mb-6">
-        {isLoading ? (
+        {isInitialLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white rounded-2xl border border-[#EDE4D5] p-4 space-y-3 shadow-xs">
@@ -826,6 +841,18 @@ export default function ProductionPage() {
             );
           })
         )}
+
+        {/* Inline loading card when fetching more pages on mobile */}
+        {isFetching && page > 1 && (
+          <div className="bg-white/80 rounded-2xl border border-dashed border-[#EDE4D5] p-4 space-y-2.5 animate-pulse shadow-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-[#F4ECE1]">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+            <Skeleton className="h-3.5 w-3/4" />
+            <Skeleton className="h-3.5 w-1/2" />
+          </div>
+        )}
       </div>
 
       {/* ── Desktop Table (hidden on < md, visible on md+) ── */}
@@ -842,7 +869,7 @@ export default function ProductionPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isInitialLoading ? (
               Array.from({ length: 5 }).map((_, idx) => (
                 <TableRow key={idx}>
                   <TableCell className="w-40">
@@ -1080,23 +1107,59 @@ export default function ProductionPage() {
               </TableRow>
               );
             })}
+
+            {/* Inline loading rows when fetching more pages on desktop */}
+            {isFetching && page > 1 && (
+              <TableRow className="bg-[#FAF8F5]/50 animate-pulse border-dashed border-[#EDE4D5]">
+                <TableCell className="w-40"><Skeleton className="h-4 w-24 mb-1" /><Skeleton className="h-3 w-16" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-32 mb-1" /><Skeleton className="h-3 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                {isGlobalAdmin && <TableCell className="w-32"><Skeleton className="h-4 w-24" /></TableCell>}
+                {user?.role === 'OWNER' && <TableCell className="w-36"><Skeleton className="h-4 w-20" /></TableCell>}
+                <TableCell className="text-right pr-6 w-36"><Skeleton className="h-8 w-20 ml-auto rounded-xl" /></TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
-      {/* Show More Pagination Button */}
-      {pageData?.hasMore && (
-        <div className="flex justify-center pt-5 pb-3">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isFetching}
-            loading={isFetching && page > 1}
-            onClick={() => setPage((p) => p + 1)}
-            className="rounded-2xl border border-[#EDE4D5] bg-white hover:bg-[#FAF6F0] text-[#4A2E1B] font-extrabold text-sm px-8 py-2.5 shadow-sm hover:shadow cursor-pointer transition-all flex items-center gap-2"
-          >
-            <span>{t('common.showMore') || "Show More"}</span>
-          </Button>
+      {/* Show More & Show Less Pagination Controls */}
+      {(pageData?.hasMore || page > 1) && (
+        <div className="flex items-center justify-center gap-3 pt-5 pb-3 flex-wrap">
+          {pageData?.hasMore && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isFetching}
+              loading={isFetching && page > 1}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-2xl border border-[#EDE4D5] bg-white hover:bg-[#FAF6F0] text-[#4A2E1B] font-extrabold text-sm px-6 py-2.5 shadow-xs hover:shadow cursor-pointer transition-all flex items-center gap-2"
+            >
+              <ChevronDown className="w-4 h-4 text-[#E87A18]" />
+              <span>
+                {t('common.showMore') || "Show More"}
+                {pageData?.total && pageData.total > accumulatedBatches.length
+                  ? ` (${pageData.total - accumulatedBatches.length} remaining)`
+                  : ""}
+              </span>
+            </Button>
+          )}
+
+          {page > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isFetching}
+              onClick={() => {
+                setPage(1);
+                setAccumulatedBatches((prev) => prev.slice(0, 10));
+              }}
+              className="rounded-2xl border border-[#EDE4D5] bg-white hover:bg-[#FAF6F0] text-[#8C7361] hover:text-[#2C1B10] font-extrabold text-sm px-5 py-2.5 shadow-xs hover:shadow cursor-pointer transition-all flex items-center gap-2"
+            >
+              <ChevronUp className="w-4 h-4 text-[#8C7361]" />
+              <span>{t('common.showLess') || "Show Less"}</span>
+            </Button>
+          )}
         </div>
       )}
 
