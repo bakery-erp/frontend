@@ -21,6 +21,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton, KpiCardsSkeleton } from "@/components/ui/skeletons";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 interface StockItem {
   id: string;
@@ -171,17 +172,63 @@ export default function StockMovementsPage() {
   // History Log Modal State
   const [selectedLoanForHistory, setSelectedLoanForHistory] = useState<StockPurchaseLoan | null>(null);
 
-  const { data: movements = [], isLoading: isLoadingMovements } = useQuery<StockMovement[]>({
-    queryKey: ['stock-movements', selectedBranchId],
+  // Movements ledger state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [dateFilter, setDateFilter] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // Loans ledger state
+  const [loansPage, setLoansPage] = useState(1);
+  const [loansPageSize, setLoansPageSize] = useState(20);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedBranchId, dateFilter, searchQuery]);
+
+  useEffect(() => {
+    setLoansPage(1);
+  }, [selectedBranchId, loanStatusFilter, loanSearch]);
+
+  const { data: movementsResponse, isLoading: isLoadingMovements } = useQuery<{
+    data: StockMovement[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>({
+    queryKey: ['stock-movements', selectedBranchId, currentPage, pageSize, dateFilter, searchQuery],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const endpoint = selectedBranchId 
-        ? `/stock-movements?branchId=${selectedBranchId}` 
-        : `/stock-movements`;
-      const res = await api.get(endpoint);
+      const params = new URLSearchParams();
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      params.append('page', String(currentPage));
+      params.append('limit', String(pageSize));
+      if (dateFilter) {
+        params.append('from', dateFilter);
+        params.append('to', dateFilter);
+      }
+      if (searchQuery.trim()) {
+        params.append('search', searchQuery.trim());
+      }
+      const res = await api.get(`/stock-movements?${params.toString()}`);
+      if (Array.isArray(res.data)) {
+        return {
+          data: res.data,
+          total: res.data.length,
+          page: 1,
+          limit: pageSize,
+          totalPages: 1,
+        };
+      }
       return res.data;
     },
   });
+
+  const movements: StockMovement[] = movementsResponse?.data || [];
+  const totalMovements: number = movementsResponse?.total || 0;
+  const totalPages: number = movementsResponse?.totalPages || 1;
+  const paginatedMovements = movements;
 
   useEffect(() => {
     if (!isGlobalAdmin && activeTab === "loans") {
@@ -189,21 +236,66 @@ export default function StockMovementsPage() {
     }
   }, [isGlobalAdmin, activeTab]);
 
-  const { data: loans = [], isLoading: isLoadingLoans } = useQuery<StockPurchaseLoan[]>({
-    queryKey: ['stock-loans', selectedBranchId, loanStatusFilter],
+  const { data: loansResponse, isLoading: isLoadingLoans } = useQuery<{
+    data: StockPurchaseLoan[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    stats?: {
+      totalCredit: number;
+      totalPaid: number;
+      totalRemaining: number;
+      activeLoansCount: number;
+    };
+  }>({
+    queryKey: ['stock-loans', selectedBranchId, loanStatusFilter, loansPage, loansPageSize, loanSearch],
     placeholderData: (prev) => prev,
     enabled: isGlobalAdmin,
     queryFn: async () => {
-      let endpoint = `/stock-movements/loans/list?`;
-      if (selectedBranchId) endpoint += `branchId=${selectedBranchId}&`;
-      if (loanStatusFilter !== "ALL") endpoint += `status=${loanStatusFilter}&`;
-      const res = await api.get(endpoint);
+      const params = new URLSearchParams();
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      if (loanStatusFilter !== "ALL") params.append('status', loanStatusFilter);
+      params.append('page', String(loansPage));
+      params.append('limit', String(loansPageSize));
+      if (loanSearch.trim()) params.append('search', loanSearch.trim());
+      const res = await api.get(`/stock-movements/loans/list?${params.toString()}`);
+      if (Array.isArray(res.data)) {
+        return {
+          data: res.data,
+          total: res.data.length,
+          page: 1,
+          limit: loansPageSize,
+          totalPages: 1,
+        };
+      }
       return res.data;
     },
   });
 
-  // Calculations for Loans summary cards
+  const loans: StockPurchaseLoan[] = loansResponse?.data || [];
+  const totalLoans: number = loansResponse?.total || 0;
+  const totalLoansPages: number = loansResponse?.totalPages || 1;
+  const filteredLoans = loans;
+
+  // Pending approvals list from server
+  const { data: pendingApprovals = [] } = useQuery<StockMovement[]>({
+    queryKey: ['stock-movements-pending', selectedBranchId],
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const params = new URLSearchParams({ status: 'PENDING_CONFIRMATION', limit: '100' });
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      const res = await api.get(`/stock-movements?${params.toString()}`);
+      if (Array.isArray(res.data)) return res.data;
+      return res.data?.data || [];
+    },
+  });
+
+  // Calculations for Loans summary cards (from server-provided aggregate stats, fallback to current loans)
   const loanStats = useMemo(() => {
+    if (loansResponse?.stats) {
+      return loansResponse.stats;
+    }
     let totalCredit = 0;
     let totalPaid = 0;
     let totalRemaining = 0;
@@ -224,62 +316,7 @@ export default function StockMovementsPage() {
     });
 
     return { totalCredit, totalPaid, totalRemaining, activeLoansCount };
-  }, [loans]);
-
-  // Filtered loans list based on search
-  const filteredLoans = useMemo(() => {
-    return loans.filter(loan => {
-      const supp = (loan.supplierName || "").toLowerCase();
-      const itemName = (loan.stockMovement?.stockItem?.name || "").toLowerCase();
-      const query = loanSearch.toLowerCase().trim();
-      if (!query) return true;
-      return supp.includes(query) || itemName.includes(query);
-    });
-  }, [loans, loanSearch]);
-
-  // Pending approvals list
-  const pendingApprovals = useMemo(() => {
-    return movements.filter((m) => m.status === "PENDING_CONFIRMATION");
-  }, [movements]);
-
-  // Filtering & Pagination State for Movements Ledger
-  const [currentPage, setCurrentPage] = useState(1);
-  const [dateFilter, setDateFilter] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const pageSize = 15;
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedBranchId, dateFilter, searchQuery]);
-
-  const filteredMovements = useMemo(() => {
-    return movements.filter((m) => {
-      // 1. Filter by date/day
-      if (dateFilter) {
-        const itemDate = new Date(m.createdAt).toISOString().slice(0, 10);
-        if (itemDate !== dateFilter) return false;
-      }
-      // 2. Filter by search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const mat = (m.stockItem?.name || "").toLowerCase();
-        const rec = (m.receivedBy || "").toLowerCase();
-        const usr = (m.user?.fullName || "").toLowerCase();
-        const rsn = (m.reason || "").toLowerCase();
-        if (!mat.includes(q) && !rec.includes(q) && !usr.includes(q) && !rsn.includes(q)) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [movements, dateFilter, searchQuery]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredMovements.length / pageSize));
-
-  const paginatedMovements = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredMovements.slice(start, start + pageSize);
-  }, [filteredMovements, currentPage, pageSize]);
+  }, [loansResponse, loans]);
 
   // Approval handlers
   const [isConfirmingId, setIsConfirmingId] = useState<string | null>(null);
@@ -580,7 +617,7 @@ export default function StockMovementsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMovements.length === 0 ? (
+                  {paginatedMovements.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
                   ) : paginatedMovements.map(mov => {
                     const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
@@ -645,7 +682,7 @@ export default function StockMovementsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:hidden">
-              {filteredMovements.length === 0 ? (
+              {paginatedMovements.length === 0 ? (
                 <div className="bg-white p-6 rounded-2xl border border-[#EDE4D5] text-center text-[#8C7361] font-medium">
                   {t('stockMovements.noMovements')}
                 </div>
@@ -697,40 +734,17 @@ export default function StockMovementsPage() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 px-1 text-xs text-[#8C7361] bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]">
-              <div>
-                Showing <strong className="text-[#2C1B10]">{(currentPage - 1) * pageSize + 1}</strong> to{" "}
-                <strong className="text-[#2C1B10]">{Math.min(currentPage * pageSize, filteredMovements.length)}</strong> of{" "}
-                <strong className="text-[#2C1B10]">{filteredMovements.length}</strong> movements
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="h-8 px-2.5 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40"
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Previous
-                </Button>
-                <span className="px-2 font-bold text-[#2C1B10]">
-                  {currentPage} / {totalPages}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="h-8 px-2.5 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </div>
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalMovements}
+              pageSize={pageSize}
+              onPageChange={(p) => setCurrentPage(p)}
+              onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+              isLoading={isLoadingMovements}
+              itemLabel={t('stockMovements.title') || "movements"}
+              className="bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]"
+            />
           )}
         </div>
       )}
@@ -1014,6 +1028,18 @@ export default function StockMovementsPage() {
             })}
           </div>
         )}
+
+        <PaginationControls
+          currentPage={loansPage}
+          totalPages={totalLoansPages}
+          totalItems={totalLoans}
+          pageSize={loansPageSize}
+          onPageChange={(p) => setLoansPage(p)}
+          onPageSizeChange={(size) => { setLoansPageSize(size); setLoansPage(1); }}
+          isLoading={isLoadingLoans}
+          itemLabel={t('stockMovements.creditPurchasesTab') || "loans"}
+          className="bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]"
+        />
       </div>
     )}
 

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useBranch } from "@/context/BranchContext";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 import { format } from "date-fns";
 import { 
   ArrowLeft, 
@@ -107,6 +108,10 @@ interface HistoryData {
   totalValueIn?: number;
   totalValueOut?: number;
   currentValuation?: number;
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 }
 
 export default function StockItemDetailPage() {
@@ -123,22 +128,26 @@ export default function StockItemDetailPage() {
   const isStockKeeper = user?.role === "STOCK_KEEPER";
   const isStockStaff = isGlobalAdmin || isStockKeeper;
 
-  const { data, isLoading } = useQuery<HistoryData>({
-    queryKey: ['stock-item-history', itemId],
-    placeholderData: (prev) => prev,
-    staleTime: 60 * 1000,
-    queryFn: async () => {
-      const res = await api.get(`/stock-items/${itemId}/history`);
-      return res.data;
-    },
-    enabled: !!itemId,
-  });
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterType, setFilterType] = useState<string>("ALL");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const pageSize = 15;
+  const [pageSize, setPageSize] = useState<number>(15);
+
+  const { data, isLoading } = useQuery<HistoryData>({
+    queryKey: ['stock-item-history', itemId, currentPage, pageSize, filterType],
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('page', String(currentPage));
+      params.append('limit', String(pageSize));
+      if (filterType !== "ALL") params.append('type', filterType);
+      const res = await api.get(`/stock-items/${itemId}/history?${params.toString()}`);
+      return res.data;
+    },
+    enabled: !!itemId,
+  });
 
   // Reset pagination on filter change
   useEffect(() => {
@@ -351,29 +360,9 @@ export default function StockItemDetailPage() {
     }
   };
 
-  const filteredMovements = useMemo(() => {
-    if (!data?.movements) return [];
-    return data.movements.filter((m) => {
-      // 1. Movement type filter: Only IN and OUT are supported (Adjustment & Production Usage removed)
-      if (filterType === "IN" && m.type !== "IN") return false;
-      if (filterType === "OUT" && m.type !== "OUT") return false;
-      if (filterType === "ALL" && m.type !== "IN" && m.type !== "OUT") return false;
-
-      // 2. Date filter by day
-      if (dateFilter) {
-        const itemDate = new Date(m.createdAt).toISOString().slice(0, 10);
-        if (itemDate !== dateFilter) return false;
-      }
-
-      return true;
-    });
-  }, [data?.movements, filterType, dateFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredMovements.length / pageSize));
-  const paginatedMovements = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredMovements.slice(start, start + pageSize);
-  }, [filteredMovements, currentPage, pageSize]);
+  const paginatedMovements = data?.movements || [];
+  const totalPages = data?.totalPages || 1;
+  const totalMovements = data?.total || paginatedMovements.length;
 
   const getMovementBadge = (type: string) => {
     switch (type) {
@@ -669,7 +658,7 @@ export default function StockItemDetailPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredMovements.length === 0 ? (
+              {paginatedMovements.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4 + (isGlobalAdmin ? 1 : 0) + (isOwner ? 1 : 0)} className="text-center py-8 text-[#8C7361] font-medium">
                     {t("stockMovements.noMovements")}
@@ -755,7 +744,7 @@ export default function StockItemDetailPage() {
 
         {/* Mobile Audit History Cards */}
         <div className="grid grid-cols-1 gap-3 sm:hidden">
-          {filteredMovements.length === 0 ? (
+          {paginatedMovements.length === 0 ? (
             <div className="bg-[#FAF6F0] p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
               {t("stockMovements.noMovements")}
             </div>
@@ -833,42 +822,17 @@ export default function StockItemDetailPage() {
         </div>
 
         {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 px-1 text-xs text-[#8C7361] bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]">
-            <div>
-              Showing <strong className="text-[#2C1B10]">{(currentPage - 1) * pageSize + 1}</strong> to{" "}
-              <strong className="text-[#2C1B10]">{Math.min(currentPage * pageSize, filteredMovements.length)}</strong> of{" "}
-              <strong className="text-[#2C1B10]">{filteredMovements.length}</strong> movements
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="h-8 px-2.5 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-              <span className="px-2 font-bold text-[#2C1B10]">
-                {currentPage} / {totalPages}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="h-8 px-2.5 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40"
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalMovements}
+          pageSize={pageSize}
+          onPageChange={(p) => setCurrentPage(p)}
+          onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+          isLoading={isLoading}
+          itemLabel={t("stockMovements.title") || "movements"}
+          className="bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]"
+        />
       </div>
 
       {/* Manual Stock Addition Modal */}
