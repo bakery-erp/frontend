@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 import {
   Plus,
   CreditCard,
@@ -166,6 +167,7 @@ export default function CustomerCreditsPage() {
   const [filterTab, setFilterTab] = useState<CreditFilterTab>("ALL");
   const activeFilterRef = useRef<HTMLButtonElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [creditPage, setCreditPage] = useState(1);
   const [expandedCreditCards, setExpandedCreditCards] = useState<Record<string, boolean>>({});
 
   // Action dropdown state
@@ -185,6 +187,7 @@ export default function CustomerCreditsPage() {
   type CustomerFilterType = "ALL" | "DEBT" | "SETTLED";
   const [customerFilter, setCustomerFilter] = useState<CustomerFilterType>("ALL");
   const [customerSearch, setCustomerSearch] = useState("");
+  const [customerPage, setCustomerPage] = useState(1);
 
   // Modals
   const [payingCredit, setPayingCredit] = useState<CustomerCredit | null>(null);
@@ -213,24 +216,58 @@ export default function CustomerCreditsPage() {
     }
   }, [filterTab]);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['customer-credits-page', selectedBranchId],
+  const { data: creditsResponse, isLoading: isLoadingCredits } = useQuery({
+    queryKey: ['customer-credits-page-credits', selectedBranchId, filterTab, searchQuery, creditPage],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
-      const [resCredits, resCustomers] = await Promise.all([
-        api.get(`/customers/credits${branchQuery}`).catch(() => api.get(`/loans?type=CUSTOMER${selectedBranchId ? `&branchId=${selectedBranchId}` : ""}`)),
-        api.get(`/customers${branchQuery}`),
-      ]);
-      return {
-        credits: (resCredits.data || []) as CustomerCredit[],
-        customers: (resCustomers.data || []) as CustomerSummary[],
+      const todayYmd = new Date().toISOString().slice(0, 10);
+      const params: any = {
+        page: creditPage,
+        limit: 15,
       };
+      if (selectedBranchId) params.branchId = selectedBranchId;
+      if (filterTab === 'OPEN') params.status = 'OPEN';
+      if (filterTab === 'PAID') params.status = 'PAID';
+      if (filterTab === 'TODAY') {
+        params.from = todayYmd;
+        params.to = todayYmd;
+      }
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+
+      const res = await api.get('/customers/credits', { params }).catch(() =>
+        api.get(`/loans?type=CUSTOMER${selectedBranchId ? `&branchId=${selectedBranchId}` : ''}`)
+      );
+      return res.data;
     },
   });
 
-  const credits = data?.credits || [];
-  const customers = data?.customers || [];
+  const { data: customersResponse, isLoading: isLoadingCustomers } = useQuery({
+    queryKey: ['customer-credits-page-customers', selectedBranchId, customerSearch, customerPage],
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const params: any = {
+        page: customerPage,
+        limit: 15,
+      };
+      if (selectedBranchId) params.branchId = selectedBranchId;
+      if (customerSearch.trim()) params.search = customerSearch.trim();
+
+      const res = await api.get('/customers', { params });
+      return res.data;
+    },
+  });
+
+  const rawCredits = Array.isArray(creditsResponse) ? creditsResponse : (creditsResponse?.data || []);
+  const credits = rawCredits as CustomerCredit[];
+  const creditTotal = creditsResponse?.total ?? credits.length;
+  const creditTotalPages = creditsResponse?.totalPages ?? 1;
+  const stats = creditsResponse?.stats;
+
+  const rawCustomers = Array.isArray(customersResponse) ? customersResponse : (customersResponse?.data || []);
+  const customers = rawCustomers as CustomerSummary[];
+  const customerTotal = customersResponse?.total ?? customers.length;
+  const customerTotalPages = customersResponse?.totalPages ?? 1;
+  const isLoading = isLoadingCredits || isLoadingCustomers;
 
   // Payment Handler
   const handlePay = async (e: React.FormEvent) => {
@@ -261,7 +298,8 @@ export default function CustomerCreditsPage() {
       toast.success(t("credits.toastPaymentSuccess"));
       setPayingCredit(null);
       setAmountPaid("");
-      queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
@@ -282,7 +320,8 @@ export default function CustomerCreditsPage() {
         await api.delete(`/loans/${id}`);
       }
       toast.success("Customer credit record deleted");
-      queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
@@ -314,7 +353,8 @@ export default function CustomerCreditsPage() {
       setNewCustPhone("");
       setNewCustAddress("");
       setNewCustNotes("");
-      queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to create customer");
@@ -324,15 +364,15 @@ export default function CustomerCreditsPage() {
   };
 
   // Metrics
-  const totalCreditGiven = credits.reduce(
+  const totalCreditGiven = stats?.totalCreditGiven ?? credits.reduce(
     (acc, c) => acc + Number(c.amount ?? c.totalAmount ?? 0),
     0
   );
-  const totalOutstanding = credits.reduce(
+  const totalOutstanding = stats?.totalOutstanding ?? credits.reduce(
     (acc, c) => acc + Number(c.remainingBalance || 0),
     0
   );
-  const totalRepaid = Math.max(0, totalCreditGiven - totalOutstanding);
+  const totalRepaid = stats?.totalRepaid ?? Math.max(0, totalCreditGiven - totalOutstanding);
 
   return (
     <DashboardLayout>
@@ -346,7 +386,10 @@ export default function CustomerCreditsPage() {
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <Button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['customer-credits-page'] })}
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
+              queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
+            }}
             variant="outline"
             size="sm"
           >
@@ -410,7 +453,7 @@ export default function CustomerCreditsPage() {
           }`}
         >
           <CreditCard className="w-4 h-4" />
-          {t("credits.creditsTab")} ({credits.length})
+          {t("credits.creditsTab")} ({creditTotal})
         </button>
         <button
           type="button"
@@ -422,7 +465,7 @@ export default function CustomerCreditsPage() {
           }`}
         >
           <Users className="w-4 h-4" />
-          {t("credits.customersTab")} ({customers.length})
+          {t("credits.customersTab")} ({customerTotal})
         </button>
       </div>
 
@@ -434,16 +477,16 @@ export default function CustomerCreditsPage() {
             {(() => {
               const todayYmd = new Date().toISOString().slice(0, 10);
               const filterPills = [
-                { id: "ALL", label: t("credits.filterAll") || "All Credits", count: credits.length },
+                { id: "ALL", label: t("credits.filterAll") || "All Credits", count: stats?.counts?.all ?? creditTotal },
                 {
                   id: "OPEN",
                   label: t("credits.statusOpen") || "Open / Unpaid",
-                  count: credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length,
+                  count: stats?.counts?.open ?? credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length,
                 },
                 {
                   id: "PAID",
                   label: t("credits.statusPaid") || "Fully Paid",
-                  count: credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length,
+                  count: stats?.counts?.paid ?? credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length,
                 },
                 {
                   id: "TODAY",
@@ -468,7 +511,10 @@ export default function CustomerCreditsPage() {
                           key={pill.id}
                           ref={isActive ? activeFilterRef : null}
                           type="button"
-                          onClick={() => setFilterTab(pill.id as CreditFilterTab)}
+                          onClick={() => {
+                            setFilterTab(pill.id as CreditFilterTab);
+                            setCreditPage(1);
+                          }}
                           className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
                             isActive
                               ? "bg-[#4A2E1B] text-white shadow-xs ring-2 ring-[#4A2E1B]/20"
@@ -494,7 +540,10 @@ export default function CustomerCreditsPage() {
             <Input
               placeholder={t("credits.searchPlaceholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCreditPage(1);
+              }}
               className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
             />
           </div>
@@ -917,6 +966,15 @@ export default function CustomerCreditsPage() {
                     })
                   )}
                 </div>
+
+                <PaginationControls
+                  currentPage={creditPage}
+                  totalPages={creditTotalPages}
+                  totalItems={creditTotal}
+                  pageSize={15}
+                  onPageChange={setCreditPage}
+                  isLoading={isLoadingCredits}
+                />
               </>
             );
           })()}
@@ -931,18 +989,24 @@ export default function CustomerCreditsPage() {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setCustomerFilter("ALL")}
+                onClick={() => {
+                  setCustomerFilter("ALL");
+                  setCustomerPage(1);
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   customerFilter === "ALL"
                     ? "bg-[#4A2E1B] text-white shadow-xs"
                     : "bg-[#FAF6F0] text-[#7A6251] border border-[#EDE4D5]"
                 }`}
               >
-                {t("credits.allCustomers")} ({customers.length})
+                {t("credits.allCustomers")} ({customerTotal})
               </button>
               <button
                 type="button"
-                onClick={() => setCustomerFilter("DEBT")}
+                onClick={() => {
+                  setCustomerFilter("DEBT");
+                  setCustomerPage(1);
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   customerFilter === "DEBT"
                     ? "bg-rose-700 text-white shadow-xs"
@@ -953,7 +1017,10 @@ export default function CustomerCreditsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setCustomerFilter("SETTLED")}
+                onClick={() => {
+                  setCustomerFilter("SETTLED");
+                  setCustomerPage(1);
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   customerFilter === "SETTLED"
                     ? "bg-emerald-700 text-white shadow-xs"
@@ -967,7 +1034,10 @@ export default function CustomerCreditsPage() {
             <Input
               placeholder={t("credits.searchCustomerPlaceholder")}
               value={customerSearch}
-              onChange={(e) => setCustomerSearch(e.target.value)}
+              onChange={(e) => {
+                setCustomerSearch(e.target.value);
+                setCustomerPage(1);
+              }}
               className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
             />
           </div>
@@ -1138,6 +1208,15 @@ export default function CustomerCreditsPage() {
                     })
                   )}
                 </div>
+
+                <PaginationControls
+                  currentPage={customerPage}
+                  totalPages={customerTotalPages}
+                  totalItems={customerTotal}
+                  pageSize={15}
+                  onPageChange={setCustomerPage}
+                  isLoading={isLoadingCustomers}
+                />
               </>
             );
           })()}

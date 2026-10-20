@@ -18,6 +18,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 interface Expense {
   id: string;
@@ -232,19 +233,57 @@ export default function ExpensesPage() {
     enabled: !!canAccess && !!branchId,
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedBranchId, filterFrom, filterTo, typeFilter]);
+
   // React Query: Expenses
-  const { data: expenses = [], isLoading } = useQuery<Expense[]>({
-    queryKey: ["expenses", selectedBranchId, filterFrom, filterTo, typeFilter],
+  const { data: expensesResponse, isLoading } = useQuery<{
+    data: Expense[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    stats?: {
+      totalAmount: number;
+      companyTotal: number;
+      ownerTotal: number;
+      count: number;
+    };
+  }>({
+    queryKey: ["expenses", selectedBranchId, filterFrom, filterTo, typeFilter, currentPage, pageSize],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const params: any = { from: filterFrom, to: filterTo };
+      const params: any = {
+        from: filterFrom,
+        to: filterTo,
+        page: currentPage,
+        limit: pageSize,
+      };
       if (selectedBranchId) params.branchId = selectedBranchId;
       if (typeFilter !== "ALL") params.type = typeFilter;
       const res = await api.get("/expenses", { params });
-      return Array.isArray(res.data) ? res.data : [];
+      if (Array.isArray(res.data)) {
+        return {
+          data: res.data,
+          total: res.data.length,
+          page: 1,
+          limit: pageSize,
+          totalPages: 1,
+        };
+      }
+      return res.data;
     },
     enabled: !!canAccess,
   });
+
+  const expenses: Expense[] = expensesResponse?.data || [];
+  const totalExpenses: number = expensesResponse?.total || 0;
+  const totalPages: number = expensesResponse?.totalPages || 1;
+  const displayExpenses = expenses;
 
   const resetForm = () => {
     setEditingId(null);
@@ -375,11 +414,9 @@ export default function ExpensesPage() {
   };
 
   // Summaries
-  const companyTotal = expenses.filter((e) => e.type === "COMPANY").reduce((s, e) => s + Number(e.amount), 0);
-  const ownerTotal = expenses.filter((e) => e.type === "OWNER").reduce((s, e) => s + Number(e.amount), 0);
-  const grandTotal = companyTotal + ownerTotal;
-
-  const displayExpenses = expenses.filter((e) => typeFilter === "ALL" || e.type === typeFilter);
+  const companyTotal = expensesResponse?.stats?.companyTotal ?? expenses.filter((e) => e.type === "COMPANY").reduce((s, e) => s + Number(e.amount), 0);
+  const ownerTotal = expensesResponse?.stats?.ownerTotal ?? expenses.filter((e) => e.type === "OWNER").reduce((s, e) => s + Number(e.amount), 0);
+  const grandTotal = expensesResponse?.stats?.totalAmount ?? (companyTotal + ownerTotal);
 
   if (!canAccess) {
     return (
@@ -974,6 +1011,19 @@ export default function ExpensesPage() {
                   );
                 })}
               </div>
+
+              {/* Pagination Controls */}
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalExpenses}
+                pageSize={pageSize}
+                onPageChange={(p) => setCurrentPage(p)}
+                onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
+                isLoading={isLoading}
+                itemLabel={t('expenses.title') || "expenses"}
+                className="bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]"
+              />
             </>
           )}
         </CardContent>

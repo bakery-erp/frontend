@@ -105,7 +105,7 @@ export default function NewCustomerCreditPage() {
       ]);
 
       // Customers
-      const custList = custRes.data || [];
+      const custList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
       setCustomers(custList);
       if (custList.length > 0) {
         setSelectedCustomerId(custList[0].id);

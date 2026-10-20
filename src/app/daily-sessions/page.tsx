@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TableSkeleton, CardGridSkeleton } from '@/components/ui/skeletons';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 
 interface DailySession {
   id: string;
@@ -48,6 +49,7 @@ export default function DailySessionsPage() {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [isTodayOnly, setIsTodayOnly] = useState(false);
+  const [page, setPage] = useState(1);
   
   const canManageSessions = user?.role === 'OWNER' || user?.role === 'ADMIN';
 
@@ -57,27 +59,23 @@ export default function DailySessionsPage() {
     }
   }, [user, canManageSessions, router]);
 
-  const { data: sessionData, isLoading } = useQuery<{ sessions: DailySession[]; products: Product[] }>({
-    queryKey: ['daily-sessions', selectedBranchId],
+  // Compute today's session in Ethiopian timezone (UTC+3)
+  const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+
+  // 1. Live Today Session Status across branch(es)
+  const { data: todaySessions = [] } = useQuery<DailySession[]>({
+    queryKey: ['daily-sessions', 'today', selectedBranchId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const params: any = {};
+      const params: any = { from: ethTodayYmd, to: ethTodayYmd };
       if (selectedBranchId) params.branchId = selectedBranchId;
-      const [sessRes, prodRes] = await Promise.all([
-        api.get('/daily-sessions', { params }),
-        api.get('/products?isActive=true&minimal=true'),
-      ]);
-      return { sessions: sessRes.data, products: prodRes.data };
+      const res = await api.get('/daily-sessions', { params });
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
     },
   });
 
-  const sessions = sessionData?.sessions || [];
-  const products = sessionData?.products || [];
-
-  // Compute today's session in Ethiopian timezone (UTC+3)
-  const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
   const currentBranchFilter = selectedBranchId || user?.branchId;
-  const todaySession = sessions.find((s) => {
+  const todaySession = todaySessions.find((s) => {
     const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
     if (sDate !== ethTodayYmd) return false;
     if (currentBranchFilter) return s.branchId === currentBranchFilter;
@@ -85,7 +83,7 @@ export default function DailySessionsPage() {
   });
 
   const branchSessionsToday = branches.map((b) => {
-    const sess = sessions.find((s) => {
+    const sess = todaySessions.find((s) => {
       const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
       return sDate === ethTodayYmd && s.branchId === b.id;
     });
@@ -95,15 +93,50 @@ export default function DailySessionsPage() {
   const hasAnyClosedToday = branchSessionsToday.some((bs) => bs.session?.status === 'CLOSED');
   const hasAnyUnopenedToday = branchSessionsToday.some((bs) => !bs.session);
 
-  const displayedSessions = isTodayOnly
-    ? sessions.filter((s) => {
-        const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
-        return sDate === ethTodayYmd;
-      })
-    : sessions;
+  // 2. Paginated History Sessions
+  const { data: sessionData, isLoading } = useQuery<{
+    sessions: DailySession[];
+    total: number;
+    totalPages: number;
+    products: Product[];
+  }>({
+    queryKey: ['daily-sessions', 'history', selectedBranchId, page, isTodayOnly],
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const params: any = {
+        page,
+        limit: 15,
+      };
+      if (selectedBranchId) params.branchId = selectedBranchId;
+      if (isTodayOnly) {
+        params.from = ethTodayYmd;
+        params.to = ethTodayYmd;
+      }
+      const [sessRes, prodRes] = await Promise.all([
+        api.get('/daily-sessions', { params }),
+        api.get('/products?isActive=true&minimal=true'),
+      ]);
+      const sessPayload = sessRes.data;
+      const rawList = Array.isArray(sessPayload) ? sessPayload : (sessPayload?.data || []);
+      const total = sessPayload?.total ?? rawList.length;
+      const totalPages = sessPayload?.totalPages ?? 1;
+
+      return {
+        sessions: rawList,
+        total,
+        totalPages,
+        products: prodRes.data || [],
+      };
+    },
+  });
+
+  const sessions = sessionData?.sessions || [];
+  const total = sessionData?.total || 0;
+  const totalPages = sessionData?.totalPages || 1;
+  const products = sessionData?.products || [];
 
   // Distinct history sessions (excludes today's active session already highlighted in top banner)
-  const historySessions = displayedSessions.filter((s) => s.id !== todaySession?.id);
+  const historySessions = sessions.filter((s) => s.id !== todaySession?.id);
 
   // Branch Selection Modal State (when all branches are selected)
   const [isBranchSelectModalOpen, setIsBranchSelectModalOpen] = useState(false);
@@ -276,7 +309,10 @@ export default function DailySessionsPage() {
         <div className="flex items-center gap-2.5 flex-wrap">
           <Button
             variant={isTodayOnly ? "default" : "outline"}
-            onClick={() => setIsTodayOnly(!isTodayOnly)}
+            onClick={() => {
+              setIsTodayOnly(!isTodayOnly);
+              setPage(1);
+            }}
             className={`rounded-xl text-xs sm:text-sm font-bold h-10 px-3.5 transition-all ${
               isTodayOnly
                 ? "bg-[#E87A18] hover:bg-[#D66B0F] text-white shadow-xs"
@@ -540,7 +576,7 @@ export default function DailySessionsPage() {
             {t('sessions.sessionHistory')}
           </h2>
           <p className="text-xs text-[#8C7361] mt-0.5">
-            {t('sessions.sessionHistorySubtitle').replace('{count}', String(historySessions.length))}
+            {t('sessions.sessionHistorySubtitle').replace('{count}', String(total))}
           </p>
         </div>
       </div>
@@ -793,6 +829,15 @@ export default function DailySessionsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={total}
+        pageSize={15}
+        onPageChange={setPage}
+        isLoading={isLoading}
+      />
 
       {/* On-Demand Conversion Modal */}
       {isConversionOpen && (
