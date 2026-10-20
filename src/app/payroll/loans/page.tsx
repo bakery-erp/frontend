@@ -17,6 +17,7 @@ import { formatEthDate } from "@/lib/ethiopianDate";
 import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 interface User {
   id: string;
@@ -52,40 +53,44 @@ export default function PayrollLoansPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
 
-  const { data: pageData, isLoading } = useQuery({
-    queryKey: ["payroll-loans-page", selectedBranchId],
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedBranchId, statusFilter, searchTerm]);
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["payroll-loans-users", selectedBranchId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
-      const loanParams: any = { type: "STAFF" };
-      if (selectedBranchId) loanParams.branchId = selectedBranchId;
-      const [usersRes, loansRes] = await Promise.all([
-        api.get("/users", { params }),
-        api.get("/loans", { params: loanParams }),
-      ]);
-      return {
-        users: (usersRes.data || []).filter((u: User) => u.role !== "OWNER") as User[],
-        loans: (loansRes.data || []) as Loan[],
-      };
+      const { data } = await api.get("/users", { params });
+      return (data || []).filter((u: User) => u.role !== "OWNER");
     },
   });
 
-  const users = pageData?.users || [];
-  const loans = pageData?.loans || [];
+  const { data: loansResult, isLoading } = useQuery<{ items: Loan[]; meta?: any }>({
+    queryKey: ["payroll-loans", selectedBranchId, currentPage, statusFilter, searchTerm],
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const loanParams: any = {
+        type: "STAFF",
+        page: currentPage,
+        limit: pageSize,
+      };
+      if (selectedBranchId) loanParams.branchId = selectedBranchId;
+      if (statusFilter !== "ALL") loanParams.status = statusFilter;
+      if (searchTerm.trim()) loanParams.search = searchTerm.trim();
 
-  const filteredLoans = loans.filter((l) => {
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      const matchName = l.user?.fullName?.toLowerCase().includes(q);
-      const matchPhone = l.user?.phone?.includes(q);
-      if (!matchName && !matchPhone) return false;
-    }
-    if (statusFilter !== "ALL" && l.status !== statusFilter) {
-      return false;
-    }
-    return true;
+      const { data } = await api.get("/loans", { params: loanParams });
+      return data;
+    },
   });
+
+  const loans: Loan[] = loansResult?.items || (Array.isArray(loansResult) ? loansResult : []);
+  const meta = loansResult?.meta;
+  const filteredLoans = loans;
 
   const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL";
 
@@ -424,6 +429,18 @@ export default function PayrollLoansPage() {
           </TableBody>
         </Table>
       </div>
+
+      {meta && meta.totalPages > 1 && (
+        <div className="mt-4 flex justify-end">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={meta.totalPages}
+            totalItems={meta.totalItems}
+            pageSize={meta.limit}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
 
       {/* CREATE LOAN DIALOG */}
       <Dialog open={isLoanOpen} onOpenChange={setIsLoanOpen}>

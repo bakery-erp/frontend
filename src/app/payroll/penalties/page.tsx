@@ -17,6 +17,7 @@ import { formatEthDate } from "@/lib/ethiopianDate";
 import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 interface User {
   id: string;
@@ -48,25 +49,39 @@ export default function PayrollPenaltiesPage() {
   const [penaltyToSign, setPenaltyToSign] = useState<Penalty | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
 
-  const { data: pageData, isLoading } = useQuery({
-    queryKey: ["payroll-penalties-page", selectedBranchId],
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedBranchId]);
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["payroll-penalties-users", selectedBranchId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
-      const [usersRes, penaltiesRes] = await Promise.all([
-        api.get("/users", { params }),
-        api.get("/penalties", { params }),
-      ]);
-      return {
-        users: (usersRes.data || []).filter((u: User) => u.role !== "OWNER") as User[],
-        penalties: (penaltiesRes.data || []) as Penalty[],
-      };
+      const { data } = await api.get("/users", { params });
+      return (data || []).filter((u: User) => u.role !== "OWNER");
     },
   });
 
-  const users = pageData?.users || [];
-  const penalties = pageData?.penalties || [];
+  const { data: penaltiesResult, isLoading } = useQuery<{ items: Penalty[]; meta?: any }>({
+    queryKey: ["payroll-penalties", selectedBranchId, currentPage],
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const params: any = {
+        page: currentPage,
+        limit: pageSize,
+      };
+      if (selectedBranchId) params.branchId = selectedBranchId;
+      const { data } = await api.get("/penalties", { params });
+      return data;
+    },
+  });
+
+  const penalties: Penalty[] = penaltiesResult?.items || (Array.isArray(penaltiesResult) ? penaltiesResult : []);
+  const meta = penaltiesResult?.meta;
 
   const handleAddPenalty = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -378,6 +393,18 @@ export default function PayrollPenaltiesPage() {
           </TableBody>
         </Table>
       </div>
+
+      {meta && meta.totalPages > 1 && (
+        <div className="mt-4 flex justify-end">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={meta.totalPages}
+            totalItems={meta.totalItems}
+            pageSize={meta.limit}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
 
       {/* CREATE PENALTY DIALOG */}
       <Dialog open={isPenaltyOpen} onOpenChange={setIsPenaltyOpen}>

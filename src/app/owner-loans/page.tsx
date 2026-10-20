@@ -40,6 +40,7 @@ import { TableSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 interface Payment {
   id: string;
@@ -120,6 +121,12 @@ export default function OwnerLoansPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "PAID">("ALL");
   const [branchFilter, setBranchFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, branchFilter, searchTerm]);
 
   // Log New Loan Modal State
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -172,24 +179,50 @@ export default function OwnerLoansPage() {
     }
   }, [branches, logBranchId]);
 
-  // React Query for instant cached navigation and background updates
-  const { data: loans = [], isLoading } = useQuery<OwnerLoan[]>({
-    queryKey: ["owner-loans"],
+  // React Query with backend pagination and stats
+  const { data: pageResult, isLoading } = useQuery<{
+    items: OwnerLoan[];
+    meta?: any;
+    stats?: {
+      totalBorrowed: number;
+      totalRepaid: number;
+      totalRemaining: number;
+      openCount: number;
+      paidCount: number;
+    };
+  }>({
+    queryKey: ["owner-loans", currentPage, statusFilter, branchFilter, searchTerm],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const { data } = await api.get("/loans", {
-        params: {
-          type: "OWNER_LOAN",
-          branchId: "ALL",
-        },
-      });
-      return data || [];
+      const params: any = {
+        type: "OWNER_LOAN",
+        page: currentPage,
+        limit: pageSize,
+      };
+      if (branchFilter !== "ALL") params.branchId = branchFilter;
+      else params.branchId = "ALL";
+      if (statusFilter !== "ALL") params.status = statusFilter;
+      if (searchTerm.trim()) params.search = searchTerm.trim();
+
+      const { data } = await api.get("/loans", { params });
+      return data;
     },
     enabled: user?.role === "OWNER",
   });
 
-  // Summary Metrics
+  const loans: OwnerLoan[] = pageResult?.items || (Array.isArray(pageResult) ? pageResult : []);
+  const meta = pageResult?.meta;
+  const filteredLoans = loans;
+
+  // Summary Metrics from backend global stats
   const summary = useMemo(() => {
+    if (pageResult?.stats) {
+      return {
+        ...pageResult.stats,
+        totalCount: meta?.totalItems || loans.length,
+      };
+    }
+
     let totalBorrowed = 0;
     let totalRepaid = 0;
     let totalRemaining = 0;
@@ -220,41 +253,7 @@ export default function OwnerLoansPage() {
       paidCount,
       totalCount: loans.length,
     };
-  }, [loans]);
-
-  // Filtered Loans
-  const filteredLoans = useMemo(() => {
-    return loans.filter((l) => {
-      if (statusFilter !== "ALL") {
-        if (statusFilter === "OPEN" && (l.status !== "OPEN" || Number(l.remainingBalance) <= 0)) {
-          return false;
-        }
-        if (statusFilter === "PAID" && l.status !== "PAID" && Number(l.remainingBalance) > 0) {
-          return false;
-        }
-      }
-
-      if (branchFilter !== "ALL" && l.branchId !== branchFilter) {
-        return false;
-      }
-
-      if (searchTerm.trim()) {
-        const q = searchTerm.toLowerCase();
-        const info = parseOwnerLoanEntity(l.entityId);
-        const lenderMatch = info.lender.toLowerCase().includes(q);
-        const reasonMatch = info.reason.toLowerCase().includes(q);
-        const notesMatch = info.notes.toLowerCase().includes(q);
-        const branchMatch = l.branch?.name?.toLowerCase().includes(q);
-        const idMatch = l.id.toLowerCase().includes(q);
-        const amountMatch = String(l.totalAmount).includes(q);
-        if (!lenderMatch && !reasonMatch && !notesMatch && !branchMatch && !idMatch && !amountMatch) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [loans, statusFilter, branchFilter, searchTerm]);
+  }, [pageResult, meta, loans]);
 
   const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL" || branchFilter !== "ALL";
 
@@ -929,6 +928,18 @@ export default function OwnerLoansPage() {
             </>
           )}
         </div>
+
+        {meta && meta.totalPages > 1 && (
+          <div className="mt-4 flex justify-end">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={meta.totalPages}
+              totalItems={meta.totalItems}
+              pageSize={meta.limit}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
 
       {/* ======================= LOG NEW LOAN MODAL ======================= */}

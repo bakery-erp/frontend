@@ -17,6 +17,7 @@ import { formatEthDate, getEthMonthName } from "@/lib/ethiopianDate";
 import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 interface User {
   id: string;
@@ -50,16 +51,26 @@ export default function PayrollHistoryPage() {
   const [payrollToSign, setPayrollToSign] = useState<PayrollRecord | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
 
-  const { data: history = [], isLoading } = useQuery<PayrollRecord[]>({
-    queryKey: ["payroll-history", selectedBranchId],
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedBranchId]);
+
+  const { data: pageResult, isLoading } = useQuery<{ items: PayrollRecord[]; meta?: any }>({
+    queryKey: ["payroll-history", selectedBranchId, currentPage],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const params = selectedBranchId ? { branchId: selectedBranchId } : {};
+      const params: any = { page: currentPage, limit: pageSize };
+      if (selectedBranchId) params.branchId = selectedBranchId;
       const { data } = await api.get("/payroll", { params });
-      return data || [];
+      return data;
     },
   });
+
+  const history: PayrollRecord[] = pageResult?.items || (Array.isArray(pageResult) ? pageResult : []);
+  const meta = pageResult?.meta;
 
   const handleUpdatePayroll = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -327,6 +338,18 @@ export default function PayrollHistoryPage() {
           </TableBody>
         </Table>
       </div>
+
+      {meta && meta.totalPages > 1 && (
+        <div className="mt-4 flex justify-end">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={meta.totalPages}
+            totalItems={meta.totalItems}
+            pageSize={meta.limit}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
 
       {/* Edit Payroll Modal */}
       {isEditOpen && editingPayroll && (
