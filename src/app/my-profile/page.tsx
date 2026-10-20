@@ -329,11 +329,11 @@ export default function MyProfilePage() {
                   <Badge className="bg-[#E87A18] text-white text-[10px] xs:text-xs px-2 xs:px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
                     {getRoleLabel(u?.role)}
                   </Badge>
-                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
+                  <span className="md:hidden text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
                     <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
                     <span>{getShiftLabel(u?.shift)}</span>
                   </span>
-                  <span className="text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
+                  <span className="md:hidden text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
                     <Calendar className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
                     <span>{u?.startDate ? formatEthDate(u.startDate) : t('common.na')}</span>
                   </span>
@@ -358,7 +358,8 @@ export default function MyProfilePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 xs:gap-5 w-full md:w-auto bg-white/10 p-3 xs:p-4 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10">
+            {/* ── Mobile View: Financial Snapshot (Hidden on Desktop to prevent duplicate cards) ── */}
+            <div className="md:hidden grid grid-cols-2 gap-3 xs:gap-5 w-full bg-white/10 p-3 xs:p-4 rounded-xl xs:rounded-2xl backdrop-blur-md border border-white/10">
               <div className="space-y-2">
                 <div>
                   <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.baseSalary')}</span>
@@ -379,6 +380,51 @@ export default function MyProfilePage() {
                   <span className="text-[9px] xs:text-[10px] uppercase font-bold text-amber-200/80 block">{t('profile.netSalaryThisMonth') || "Net (This Month)"}</span>
                   <span className="text-xs xs:text-sm md:text-base font-extrabold truncate block text-emerald-300">{money(netThisMonth)}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* ── Desktop View: Employment Profile & Assignment Details (Hidden on Mobile) ── */}
+            <div className="hidden md:grid grid-cols-2 gap-x-6 gap-y-3 w-auto min-w-[340px] bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10 shrink-0">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-amber-200/80 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  {t('users.assignedBranchLabel') || "Assigned Branch"}
+                </span>
+                <span className="text-sm font-extrabold text-white truncate block">
+                  {u?.branch?.name || t('users.globalAllBranches') || "Global / All Branches"}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-amber-200/80 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  {t('users.shiftLabel') || "Working Shift"}
+                </span>
+                <span className="text-sm font-extrabold text-white truncate block">
+                  {getShiftLabel(u?.shift)}
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 space-y-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-amber-200/80 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  {t('users.startDateLabel') || "Employment Date"}
+                </span>
+                <span className="text-sm font-extrabold text-white truncate block">
+                  {u?.startDate ? formatEthDate(u.startDate) : t('common.na')}
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 space-y-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-amber-200/80 flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  {t('profile.payslipsHistoryTitle') || "Salary Records"}
+                </span>
+                <span className="text-sm font-extrabold text-white truncate block">
+                  {payrolls.length > 0
+                    ? `${payrolls.length} ${t('common.records') || 'Recorded'}`
+                    : t('common.na')}
+                </span>
               </div>
             </div>
           </div>
