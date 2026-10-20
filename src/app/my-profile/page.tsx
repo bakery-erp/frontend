@@ -188,7 +188,7 @@ export default function MyProfilePage() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to change password');
+      toast.error(err.response?.data?.error || t('profile.failedChangePassword') || 'Failed to change password');
     } finally {
       setIsChangingPass(false);
     }
@@ -201,12 +201,12 @@ export default function MyProfilePage() {
     }
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     if (!allowed.includes(file.type.toLowerCase())) {
-      toast.error("Unsupported file format. Please select a JPG, PNG, or WebP image.");
+      toast.error(t('profile.unsupportedFileFormat') || "Unsupported file format. Please select a JPG, PNG, or WebP image.");
       setSelectedFile(null);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("File is too large. Maximum allowed size is 5MB.");
+      toast.error(t('profile.fileTooLarge') || "File is too large. Maximum allowed size is 5MB.");
       setSelectedFile(null);
       return;
     }
@@ -221,11 +221,11 @@ export default function MyProfilePage() {
     }
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     if (!allowed.includes(selectedFile.type.toLowerCase())) {
-      toast.error("Unsupported file format. Please select a JPG, PNG, or WebP image.");
+      toast.error(t('profile.unsupportedFileFormat') || "Unsupported file format. Please select a JPG, PNG, or WebP image.");
       return;
     }
     if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error("File is too large. Maximum allowed size is 5MB.");
+      toast.error(t('profile.fileTooLarge') || "File is too large. Maximum allowed size is 5MB.");
       return;
     }
     setIsUploadingAvatar(true);
@@ -245,7 +245,7 @@ export default function MyProfilePage() {
       }
       queryClient.invalidateQueries({ queryKey: ['my-profile-dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to upload profile picture');
+      toast.error(err.response?.data?.error || t('profile.failedUploadAvatar') || 'Failed to upload profile picture');
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -329,6 +329,11 @@ export default function MyProfilePage() {
                   <Badge className="bg-[#E87A18] text-white text-[10px] xs:text-xs px-2 xs:px-3 py-0.5 uppercase tracking-wider font-extrabold border-none">
                     {getRoleLabel(u?.role)}
                   </Badge>
+                  {/* Assigned Branch (Prominently displayed on both Mobile & Desktop) */}
+                  <span className="text-[10px] xs:text-xs font-semibold text-amber-100 flex items-center bg-white/15 backdrop-blur-sm px-2.5 py-0.5 rounded-full shrink-0 border border-white/15 shadow-2xs">
+                    <Building2 className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
+                    <span>{u?.branch?.name || t('users.globalAllBranches') || "Global / All Branches"}</span>
+                  </span>
                   <span className="md:hidden text-[10px] xs:text-xs font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 xs:px-2.5 py-0.5 rounded-full shrink-0">
                     <Clock className="w-3 h-3 mr-1 text-amber-300 shrink-0" />
                     <span>{getShiftLabel(u?.shift)}</span>

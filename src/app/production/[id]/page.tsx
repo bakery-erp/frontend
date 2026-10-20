@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   Flag,
   Check,
+  ChefHat,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
@@ -323,50 +324,93 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
         </div>
 
         {/* Main Batch Header Banner */}
-        <div className="bg-white rounded-3xl border border-[#EDE4D5] p-4 sm:p-7 shadow-xs relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex items-start gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#4A2E1B] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                <Package className="w-6 h-6 sm:w-7 sm:h-7 text-[#E87A18]" />
-              </div>
-              <div className="space-y-1.5 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-lg sm:text-2xl font-black text-[#2C1B10] tracking-tight">
-                    {formatEthDate(batch.date)}
-                  </h1>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
-                    {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}
-                  </span>
-                  {batch.isEdited && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                      ✏️ {t("production.edited") || "Edited"}
-                    </span>
-                  )}
-                  {batch.isFlagged && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-xs font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
-                      🚩 Flagged
-                    </span>
-                  )}
-                </div>
+        <div className="bg-gradient-to-br from-[#2C1B10] via-[#4A2E1B] to-[#5A3A23] rounded-3xl p-5 sm:p-7 text-white shadow-lg relative overflow-hidden">
+          <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 opacity-10 pointer-events-none">
+            <ChefHat className="w-72 h-72 text-white" />
+          </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 text-xs font-semibold text-[#8C7361] flex-wrap pt-0.5">
-                  <span className="inline-flex items-center gap-1 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]">
-                    <User className="w-3.5 h-3.5 text-[#E87A18]" />
-                    <span><strong className="text-[#2C1B10]">{batch.user.fullName}</strong></span>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-2.5 min-w-0">
+              {/* Badges Row: Branch, Shift, Status, Edit, Flag */}
+              <div className="flex items-center gap-2 flex-wrap text-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[#E87A18] text-white shadow-xs">
+                  <span>🏢</span>
+                  <span>{batch.branch?.name || t("common.mainBakery") || "Main Bakery"}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/15 text-amber-200 border border-white/20">
+                  {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShift") || "Night Shift"}` : `☀️ ${t("production.dayShift") || "Day Shift"}`}
+                </span>
+                {batch.status === "COMPLETED" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{t("production.statusCompleted") || "Completed"}</span>
                   </span>
-                  <span className="inline-flex items-center gap-1 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]">
-                    <Clock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{format(new Date(batch.createdAt), "hh:mm a")} ({format(new Date(batch.createdAt), "MMM dd, yyyy")})</span>
+                )}
+                {batch.status === "PENDING_APPROVAL" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{t("production.statusPendingApproval") || "Pending Approval"}</span>
                   </span>
-                  {batch.branch && (
-                    <span className="inline-flex items-center gap-1 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]">
-                      <span>🏢 {batch.branch.name}</span>
-                    </span>
-                  )}
-                </div>
+                )}
+                {batch.isEdited && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-200 border border-amber-300/30">
+                    ✏️ {t("production.edited") || "Edited"}
+                  </span>
+                )}
+                {batch.isFlagged && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-500/30 text-rose-200 border border-rose-400/40">
+                    🚩 {t("production.flagged") || "Flagged"}
+                  </span>
+                )}
+              </div>
+
+              {/* Title & Date */}
+              <div>
+                <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight">
+                  {formatEthDate(batch.date)}
+                </h1>
+                <p className="text-xs sm:text-sm text-amber-200/80 font-medium mt-0.5 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <span>{format(new Date(batch.createdAt), "hh:mm a")} • {format(new Date(batch.createdAt), "MMMM dd, yyyy")}</span>
+                </p>
+              </div>
+
+              {/* Baker / Employee Information */}
+              <div className="flex items-center gap-2 pt-1 text-xs sm:text-sm text-amber-100/90 font-medium flex-wrap">
+                <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-xl border border-white/15">
+                  <User className="w-4 h-4 text-amber-300 shrink-0" />
+                  <span>
+                    <span className="text-amber-300 font-bold">{t("production.colLoggedBy") || "Logged by"}:</span>{" "}
+                    <strong className="text-white font-extrabold">{batch.user.fullName}</strong>
+                  </span>
+                </span>
+                <span className="text-amber-200/70 text-xs font-semibold px-1">
+                  ({batch.user.role === 'BAKER' ? (t('users.roleBaker') || "Baker") : (batch.user.role ? (batch.user.role.replace('_', ' ')) : (t('common.worker') || "Worker"))})
+                </span>
+              </div>
+            </div>
+
+            {/* Quick KPI stats */}
+            <div className="flex sm:flex-col gap-2.5 shrink-0 pt-2 sm:pt-0">
+              <div className="bg-white/10 rounded-2xl p-3 border border-white/15 text-center min-w-[120px]">
+                <span className="text-[10px] uppercase font-bold text-amber-200/70 block">
+                  {t("production.tabProducts") || "Products"}
+                </span>
+                <span className="text-lg sm:text-xl font-black text-white">
+                  {totalProducedUnits.toLocaleString()} <span className="text-xs font-semibold text-amber-300">Pcs</span>
+                </span>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-3 border border-white/15 text-center min-w-[120px]">
+                <span className="text-[10px] uppercase font-bold text-amber-200/70 block">
+                  {t("production.colRawMaterialsConsumed") || "Ingredients"}
+                </span>
+                <span className="text-lg sm:text-xl font-black text-white">
+                  {batch.materialUsages.length} <span className="text-xs font-semibold text-amber-300">{t("common.items") || "items"}</span>
+                </span>
               </div>
             </div>
           </div>
+        </div>
 
           {/* Flagged Clarification Notice Banner (Collapsible) */}
           {batch.isFlagged && (
@@ -431,12 +475,11 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                 {batch.isFlagged ? (
                   <span className="text-rose-700 font-bold flex items-center gap-1">🚩 {t('production.flaggedBatches')}</span>
                 ) : (
-                  <span className="text-emerald-700 font-bold flex items-center gap-1">✓ No active flags</span>
+                  <span className="text-emerald-700 font-bold flex items-center gap-1">✓ {t('production.noActiveFlags') || "No active flags"}</span>
                 )}
               </div>
             </div>
           )}
-        </div>
 
         {/* ── Edit History Audit Section ── */}
         {batch.isEdited && (
@@ -455,7 +498,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               </div>
               <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-200/70 text-amber-900 border border-amber-300">
                 {Array.isArray(batch.editHistory) && batch.editHistory.length > 0
-                  ? `${batch.editHistory.length} Revision${batch.editHistory.length > 1 ? "s" : ""}`
+                  ? (t('production.revisionCount', { count: batch.editHistory.length }) || `${batch.editHistory.length} Revision(s)`)
                   : (t("production.edited") || "Edited")}
               </span>
             </div>
@@ -616,7 +659,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                           <span className="font-extrabold text-sm text-[#2C1B10] block truncate">{item.product.name}</span>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white text-[#4A2E1B] border border-[#EDE4D5]">
-                              {item.product.category?.name || "General"}
+                              {item.product.category?.name || t('production.generalCategory') || "General"}
                             </span>
                             <span className="text-[11px] text-[#8C7361] font-semibold">{item.product.unitType}</span>
                           </div>
@@ -625,7 +668,9 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                           <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black bg-amber-100 text-[#E87A18] border border-amber-300">
                             {Number(item.quantityProduced).toLocaleString()} {item.product.unitType}
                           </span>
-                          <span className="text-[10px] font-bold text-[#8C7361] block mt-0.5">{sharePercent}% share</span>
+                          <span className="text-[10px] font-bold text-[#8C7361] block mt-0.5">
+                            {t('production.batchSharePercent', { percent: sharePercent }) || `${sharePercent}% share`}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -642,7 +687,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                       <TableHead>{t("production.colProduct")}</TableHead>
                       <TableHead>{t("products.category")}</TableHead>
                       <TableHead className="text-right">{t("production.colQuantityProduced")}</TableHead>
-                      <TableHead className="text-right">Batch Share</TableHead>
+                      <TableHead className="text-right">{t("production.batchShare") || "Batch Share"}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -662,7 +707,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                           </TableCell>
                           <TableCell>
                             <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
-                              {item.product.category?.name || "General"}
+                              {item.product.category?.name || t('production.generalCategory') || "General"}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
@@ -802,7 +847,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               </p>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  Clarification Reason / Question
+                  {t('production.flagClarificationReason') || "Clarification Reason / Question"}
                 </label>
                 <textarea
                   value={flagReasonInput}

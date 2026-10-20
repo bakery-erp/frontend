@@ -13,7 +13,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
-import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, ChevronDown, ChevronUp, X, Edit, MoreVertical, Flag, Check } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, ChevronDown, ChevronUp, X, Edit, MoreVertical, Flag, Check, Building2, User } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isProductAllowedForRole, getStationMeta } from "@/lib/roleProductMapping";
@@ -380,9 +380,7 @@ export default function ProductionPage() {
               className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
             >
               <History className="w-4 h-4 text-[#E87A18] shrink-0" />
-              <span className="truncate">
-                <span className="hidden xs:inline">Daily </span>History
-              </span>
+              <span className="truncate">{t('production.dailyHistoryBtn') || "Daily History"}</span>
             </Button>
           )}
           <Button
@@ -392,12 +390,63 @@ export default function ProductionPage() {
             className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
           >
             <Plus className="w-4 h-4 shrink-0" />
-            <span className="truncate">
-              <span className="hidden xs:inline">Record </span>New Batch
-            </span>
+            <span className="truncate">{t('production.newBatch') || "Record New Batch"}</span>
           </Button>
         </div>
       </div>
+
+      {/* ── Baker & Station Worker Profile Card (Visible to Non-Admin Floor Workers) ── */}
+      {!isGlobalAdmin && (
+        <div className="mb-5 bg-gradient-to-r from-[#2C1B10] via-[#4A2E1B] to-[#3B2213] rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-amber-900/30">
+          <div className="absolute right-0 top-0 translate-x-6 -translate-y-6 opacity-10 pointer-events-none">
+            <Wheat className="w-48 h-48 text-amber-200" />
+          </div>
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[#E87A18] text-white flex items-center justify-center font-black text-xl shadow-md border border-white/20 shrink-0">
+                {user?.fullName ? user.fullName.charAt(0).toUpperCase() : '👨‍🍳'}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-[#E87A18] text-white px-2 py-0.5 rounded-md">
+                    {user?.role === 'BAKER'
+                      ? (t('production.stationBaker') || "Bakery Station")
+                      : user?.role === 'CAKE_WORKER'
+                      ? (t('production.stationCake') || "Cake Station")
+                      : user?.role === 'SAMBUSA_WORKER'
+                      ? (t('production.stationSambusa') || "Sambusa Station")
+                      : (t('production.stationBadge') || "Worker Station")}
+                  </span>
+                  <span className="text-[10px] font-semibold text-amber-200/90 flex items-center bg-white/10 px-2 py-0.5 rounded-full">
+                    <Clock className="w-2.5 h-2.5 mr-1 text-amber-300" />
+                    {user?.shift === 'NIGHT' ? (t('production.nightShiftFull') || "Night Shift") : (t('production.dayShiftFull') || "Day Shift")}
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-lg font-bold text-white truncate">
+                  {user?.fullName}
+                </h2>
+                <div className="flex items-center gap-1.5 text-xs text-amber-100/90">
+                  <Building2 className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <span className="font-semibold truncate">
+                    {user?.branch?.name || branches.find(b => b.id === selectedBranchId)?.name || t('users.globalAllBranches') || "Main Bakery"}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* Quick Action Button for Baker */}
+            <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10 shrink-0">
+              <Button
+                onClick={() => router.push('/production/new')}
+                disabled={isInitialLoading}
+                className="bg-[#E87A18] hover:bg-[#d06910] text-white font-bold rounded-xl shadow-xs text-xs sm:text-sm px-4 py-2 h-10 w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4 mr-1.5 shrink-0" />
+                <span>{t('production.newBatch') || "Record New Batch"}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
 
 
@@ -1139,7 +1188,7 @@ export default function ProductionPage() {
               <span>
                 {t('common.showMore') || "Show More"}
                 {pageData?.total && pageData.total > accumulatedBatches.length
-                  ? ` (${pageData.total - accumulatedBatches.length} remaining)`
+                  ? ` ${t('common.remainingCount', { count: pageData.total - accumulatedBatches.length }) || `(${pageData.total - accumulatedBatches.length} remaining)`}`
                   : ""}
               </span>
             </Button>
@@ -1331,7 +1380,7 @@ export default function ProductionPage() {
             </p>
             <div>
               <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                Clarification Reason / Question
+                {t('production.flagClarificationReason') || "Clarification Reason / Question"}
               </label>
               <textarea
                 value={flagReasonInput}

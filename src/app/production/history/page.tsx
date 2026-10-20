@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -61,11 +62,19 @@ interface ProductItem {
 }
 
 export default function DailyProductHistoryPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (user && !isGlobalAdmin) {
+      toast.error(t("common.accessRestricted") || "Access Restricted: Product history is available to Admin and Owner roles only.");
+      router.replace("/production");
+    }
+  }, [user, isGlobalAdmin, router, t]);
 
   const [search, setSearch] = useState("");
   const [productFilter, setProductFilter] = useState("");
