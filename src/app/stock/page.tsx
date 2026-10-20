@@ -125,6 +125,24 @@ export default function StockPage() {
     enabled: isStockStaff,
   });
 
+  const { data: dbUsers = [], isLoading: isUsersLoading } = useQuery<{
+    id: string;
+    fullName: string;
+    role: string;
+    branchId: string | null;
+    isActive: boolean;
+    branch?: { name: string } | null;
+  }[]>({
+    queryKey: ['staff-users', selectedBranchId],
+    queryFn: async () => {
+      const res = await api.get('/users', {
+        params: selectedBranchId ? { branchId: selectedBranchId } : {},
+      });
+      return res.data || [];
+    },
+    enabled: isStockStaff,
+  });
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, isEdit: boolean) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -226,6 +244,11 @@ export default function StockPage() {
     e.preventDefault();
     if (!reducingItem) return;
 
+    if (!reduceReceivedBy.trim()) {
+      toast.error("Please choose the staff member who took this stock item");
+      return;
+    }
+
     const qty = parseFloat(reduceAmount);
     if (isNaN(qty) || qty <= 0) {
       toast.error("Please enter a valid positive quantity");
@@ -237,7 +260,7 @@ export default function StockPage() {
       await api.post(`/stock-items/${reducingItem.id}/reduce`, {
         quantity: qty,
         reason: reduceReason.trim() || "Manual Stock Reduction",
-        receivedBy: reduceReceivedBy.trim() || undefined,
+        receivedBy: reduceReceivedBy.trim(),
       });
       toast.success(`Successfully issued ${qty} ${reducingItem.unitType} from ${reducingItem.name}`);
       setReducingItem(null);
@@ -982,14 +1005,23 @@ export default function StockPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    {t('stock.takenByLabel')}
+                    {t('stock.takenByLabel')} *
                   </label>
-                  <Input 
+                  <select 
+                    required
                     value={reduceReceivedBy} 
                     onChange={(e) => setReduceReceivedBy(e.target.value)}
-                    placeholder={t('stock.takenByPlaceholder')} 
-                    className="h-10 rounded-xl border-zinc-200" 
-                  />
+                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18] focus:border-[#E87A18] outline-none text-[#2C1B10]"
+                  >
+                    <option value="" disabled>
+                      {isUsersLoading ? "Loading staff members..." : "-- Select Staff Member (Who took item) * --"}
+                    </option>
+                    {dbUsers.filter(u => u.isActive !== false).map((u) => (
+                      <option key={u.id} value={u.fullName}>
+                        {u.fullName} ({u.role?.replace('_', ' ')}{u.branch?.name ? ` • ${u.branch.name}` : ''})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

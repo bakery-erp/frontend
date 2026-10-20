@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useBranch } from "@/context/BranchContext";
 import { format } from "date-fns";
 import { 
   ArrowLeft, 
@@ -114,6 +115,7 @@ export default function StockItemDetailPage() {
   const itemId = params.id as string;
   const queryClient = useQueryClient();
   const { t } = useLanguage();
+  const { selectedBranchId } = useBranch();
 
   const { user } = useAuth();
   const isOwner = user?.role === "OWNER";
@@ -180,6 +182,26 @@ export default function StockItemDetailPage() {
   const [isReduceOpen, setIsReduceOpen] = useState(false);
   const [reduceAmount, setReduceAmount] = useState<string>("");
   const [reduceReason, setReduceReason] = useState<string>("");
+  const [reduceReceivedBy, setReduceReceivedBy] = useState<string>("");
+
+  const { data: dbUsers = [], isLoading: isUsersLoading } = useQuery<{
+    id: string;
+    fullName: string;
+    role: string;
+    branchId: string | null;
+    isActive: boolean;
+    branch?: { name: string } | null;
+  }[]>({
+    queryKey: ['staff-users', data?.stockItem?.branchId || selectedBranchId],
+    queryFn: async () => {
+      const bId = data?.stockItem?.branchId || selectedBranchId;
+      const res = await api.get('/users', {
+        params: bId ? { branchId: bId } : {},
+      });
+      return res.data || [];
+    },
+    enabled: isStockStaff,
+  });
 
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -263,6 +285,11 @@ export default function StockItemDetailPage() {
     e.preventDefault();
     if (!data?.stockItem) return;
 
+    if (!reduceReceivedBy.trim()) {
+      toast.error("Please choose the staff member who took this stock item");
+      return;
+    }
+
     const qty = parseFloat(reduceAmount);
     if (isNaN(qty) || qty <= 0) {
       toast.error(t("stock.toastAddPositiveQty"));
@@ -274,11 +301,13 @@ export default function StockItemDetailPage() {
       await api.post(`/stock-items/${itemId}/reduce`, {
         quantity: qty,
         reason: reduceReason.trim() || "Manual Stock Reduction",
+        receivedBy: reduceReceivedBy.trim(),
       });
       toast.success(t("stock.toastReduceStockSuccess", { qty, unit: data.stockItem.unitType, name: data.stockItem.name }));
       setIsReduceOpen(false);
       setReduceAmount("");
       setReduceReason("");
+      setReduceReceivedBy("");
       queryClient.invalidateQueries({ queryKey: ['stock-item-history', itemId] });
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
@@ -1121,6 +1150,27 @@ export default function StockItemDetailPage() {
                     placeholder={`Max: ${Number(stockItem.currentQuantity).toFixed(2)}`} 
                     className="rounded-xl border-[#EDE4D5] h-10 font-mono" 
                   />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {t('stock.takenByLabel')} *
+                  </label>
+                  <select 
+                    required
+                    value={reduceReceivedBy} 
+                    onChange={(e) => setReduceReceivedBy(e.target.value)}
+                    className="w-full border border-[#EDE4D5] rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18] focus:border-[#E87A18] outline-none text-[#2C1B10]"
+                  >
+                    <option value="" disabled>
+                      {isUsersLoading ? "Loading staff members..." : "-- Select Staff Member (Who took item) * --"}
+                    </option>
+                    {dbUsers.filter(u => u.isActive !== false).map((u) => (
+                      <option key={u.id} value={u.fullName}>
+                        {u.fullName} ({u.role?.replace('_', ' ')}{u.branch?.name ? ` • ${u.branch.name}` : ''})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
