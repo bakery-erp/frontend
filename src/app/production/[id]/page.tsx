@@ -123,7 +123,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
   const [flagReasonInput, setFlagReasonInput] = useState("");
   const [isFlagSubmitting, setIsFlagSubmitting] = useState(false);
 
-  const { data: batch, isLoading, isError } = useQuery<ProductionBatchDetail>({
+  const { data: batch, isLoading, isError, error } = useQuery<ProductionBatchDetail>({
     queryKey: ["production-batch-detail", batchId],
     placeholderData: (prev) => prev,
     staleTime: 60 * 1000,
@@ -226,14 +226,21 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
   }
 
   if (isError || !batch) {
+    const is403 = (error as any)?.response?.status === 403;
+    const errorMsg = (error as any)?.response?.data?.error;
+    const errorTitle = is403
+      ? t("production.accessDeniedTitle")
+      : t("production.batchNotFoundTitle");
+    const errorDesc = errorMsg || (is403 ? t("production.accessDeniedDesc") : t("production.batchNotFoundDesc"));
+
     return (
       <DashboardLayout>
         <div className="max-w-4xl mx-auto py-16 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-200">
             <AlertTriangle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-extrabold text-[#2C1B10]">{t("production.batchNotFoundTitle")}</h2>
-          <p className="text-sm text-[#8C7361]">{t("production.batchNotFoundDesc")}</p>
+          <h2 className="text-xl font-extrabold text-[#2C1B10]">{errorTitle}</h2>
+          <p className="text-sm text-[#8C7361]">{errorDesc}</p>
           <Button onClick={() => router.push("/production")} variant="outline" className="rounded-xl">
             <ArrowLeft className="w-4 h-4 mr-2" /> {t("production.backToProductionLog")}
           </Button>

@@ -631,6 +631,8 @@ export const om: TranslationDictionary = {
     pendingApprovalBanner: "Gareen oomishaa kun yeroo ammaa mirkaneessa hoggansaa eegaa jira. Yeroo mirkanaa'u kuusaa irraa ni hir'ata.",
     batchNotFoundTitle: "Gareen Hin Argamne",
     batchNotFoundDesc: "Gareen oomishaa gaafatame hin argamne ykn haqameera.",
+    accessDeniedTitle: "Hayyama Hin Qabdu",
+    accessDeniedDesc: "Garee oomishaa kana ilaaluuf hayyama hin qabdan.",
     allFinishedProductsSub: "Oomishaalee daabboo xumuraman hunda",
     searchProductsTable: "Oomishaalee barbaadi...",
     allRawMaterialsSub: "Meeshaalee dheedhii fi daakuu garee kanaaf oolan hunda",

@@ -631,6 +631,8 @@ export const am: TranslationDictionary = {
     pendingApprovalBanner: "ይህ የምርት ምድብ በአሁኑ ወቅት በአስተዳዳሪ ማረጋገጫ በመጠባበቅ ላይ ነው። አንዴ ሲረጋገጥ ጥሬ ዕቃው ከክምችት ይቀነሳል።",
     batchNotFoundTitle: "ምድቡ አልተገኘም",
     batchNotFoundDesc: "የተጠየቀው የምርት ምድብ መረጃ ሊገኝ አልቻለም ወይም ተሰርዟል።",
+    accessDeniedTitle: "መዳረሻ ተከልክሏል",
+    accessDeniedDesc: "ይህን የምርት ምድብ ለማየት ፈቃድ የለዎትም።",
     allFinishedProductsSub: "በዚህ የምርት ምድብ የተጋገሩ ምርቶች በሙሉ",
     searchProductsTable: "ምርቶችን ፈልግ...",
     allRawMaterialsSub: "ለዚህ ምድብ የወጡ ጥሬ ዕቃዎችና ዱቄት በሙሉ",

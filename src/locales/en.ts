@@ -629,6 +629,8 @@ export const en = {
     pendingApprovalBanner: "This production batch is currently awaiting management approval. Raw inventory will be deducted once approved.",
     batchNotFoundTitle: "Batch Not Found",
     batchNotFoundDesc: "The requested production batch could not be loaded or has been deleted.",
+    accessDeniedTitle: "Access Restricted",
+    accessDeniedDesc: "You do not have permission to view this production batch.",
     allFinishedProductsSub: "All bakery finished products outputted in this batch",
     searchProductsTable: "Search products...",
     allRawMaterialsSub: "All raw ingredients and flour consumed for this batch",
