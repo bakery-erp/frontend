@@ -249,46 +249,47 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-5 pb-12 print:p-0 print:max-w-full">
-        {/* Clean, Simple Header & Action Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#EDE4D5] print:hidden">
-          <div className="flex items-center gap-3">
+        {/* Clean, Single-Row Header & Action Bar */}
+        <div className="flex items-center justify-between gap-2 sm:gap-4 pb-3 border-b border-[#EDE4D5] print:hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push("/production")}
-              className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 px-3 shadow-2xs cursor-pointer shrink-0"
+              className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 px-2.5 sm:px-3 shadow-2xs cursor-pointer shrink-0"
             >
-              <ArrowLeft className="w-4 h-4 mr-1 text-[#E87A18]" />
-              {t("common.back") || "Back"}
+              <ArrowLeft className="w-4 h-4 text-[#E87A18]" />
+              <span className="hidden xs:inline ml-1">{t("common.back") || "Back"}</span>
             </Button>
-            <div className="h-5 w-px bg-[#EDE4D5] hidden sm:block" />
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-base sm:text-xl font-black text-[#2C1B10] tracking-tight">
+            <div className="h-5 w-px bg-[#EDE4D5] hidden sm:block shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h1 className="text-sm xs:text-base sm:text-xl font-black text-[#2C1B10] tracking-tight truncate">
                   {formatEthDate(batch.date)}
                 </h1>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
                   {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShift") || "Night"}` : `☀️ ${t("production.dayShift") || "Day"}`}
                 </span>
                 {batch.isEdited && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200 shrink-0">
                     ✏️ {t("production.edited") || "Edited"}
                   </span>
                 )}
                 {batch.isFlagged && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 shrink-0">
                     🚩 {t("production.flagged") || "Flagged"}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#8C7361] font-medium flex items-center gap-1.5 mt-0.5 truncate">
-                <Clock className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
-                <span>{format(new Date(batch.createdAt), "hh:mm a")} • {format(new Date(batch.createdAt), "MMMM dd, yyyy")}</span>
+              <p className="text-[11px] sm:text-xs text-[#8C7361] font-medium flex items-center gap-1 mt-0.5 truncate">
+                <Clock className="w-3 h-3 text-[#8C7361] shrink-0" />
+                <span>{format(new Date(batch.createdAt), "hh:mm a")}</span>
+                <span className="hidden sm:inline">• {format(new Date(batch.createdAt), "MMMM dd, yyyy")}</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 justify-end">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Mark as seen quick action if unseen for current manager */}
             {isGlobalAdmin && !isBatchSeenByMe(batch) && (
               <Button
@@ -296,11 +297,11 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                 size="sm"
                 disabled={isMarkingSeen}
                 onClick={handleMarkSeen}
-                className="border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 rounded-xl font-bold h-9 px-3 shadow-2xs cursor-pointer flex items-center gap-1.5"
+                className="border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 rounded-xl font-bold h-9 px-2.5 sm:px-3 shadow-2xs cursor-pointer flex items-center gap-1"
                 title={t('production.markAsSeen')}
               >
                 <Check className="w-4 h-4 text-sky-600" />
-                <span>{t('production.markAsSeen')}</span>
+                <span className="hidden sm:inline">{t('production.markAsSeen')}</span>
               </Button>
             )}
 
@@ -317,15 +318,15 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                     setIsFlagModalOpen(true);
                   }
                 }}
-                className={`rounded-xl font-bold h-9 px-3 shadow-2xs cursor-pointer flex items-center gap-1.5 ${
+                className={`rounded-xl font-bold h-9 px-2.5 sm:px-3 shadow-2xs cursor-pointer flex items-center gap-1 ${
                   batch.isFlagged
                     ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
                     : "border-zinc-200 text-[#8C7361] hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
                 }`}
                 title={batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}
               >
-                <span className="text-sm">🚩</span>
-                <span>{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
+                <span>🚩</span>
+                <span className="hidden sm:inline">{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
               </Button>
             )}
 
@@ -333,7 +334,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               <Button
                 size="sm"
                 onClick={() => router.push(`/production/new?edit=${batch.id}`)}
-                className="bg-[#E87A18] hover:bg-[#d06910] text-white rounded-xl font-bold h-9 px-4 shadow-xs cursor-pointer flex items-center gap-1.5"
+                className="bg-[#E87A18] hover:bg-[#d06910] text-white rounded-xl font-bold h-9 px-3 sm:px-4 shadow-xs cursor-pointer flex items-center gap-1 shrink-0"
               >
                 <Edit className="w-4 h-4" />
                 <span>{t("common.edit") || "Edit"}</span>
