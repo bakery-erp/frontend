@@ -242,11 +242,16 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
     );
   }
 
+  const ethNow = useMemo(() => new Date(Date.now() + 3 * 3600 * 1000), []);
+  const todayYmd = useMemo(() => ethNow.toISOString().slice(0, 10), [ethNow]);
+  const batchDateYmd = (batch?.date || batch?.createdAt || "").slice(0, 10);
+  const canEditBatch = isGlobalAdmin || ((user?.id === batch?.userId || user?.id === batch?.user?.id) && batchDateYmd === todayYmd);
+
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-6 pb-12 print:p-0 print:max-w-full">
+      <div className="max-w-6xl mx-auto space-y-5 pb-12 print:p-0 print:max-w-full">
         {/* Navigation & Header Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#EDE4D5] pb-5 print:hidden">
+        <div className="flex items-center justify-between gap-3 border-b border-[#EDE4D5] pb-3 print:hidden">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -255,7 +260,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-bold h-9 px-3 shadow-2xs"
             >
               <ArrowLeft className="w-4 h-4 mr-1.5" />
-              {t("common.back") || "Back to Batches"}
+              {t("common.back") || "Back"}
             </Button>
             <div className="h-5 w-px bg-[#EDE4D5] hidden sm:block" />
             <span className="text-xs font-semibold text-[#8C7361] hidden sm:inline-block">
@@ -263,17 +268,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
             </span>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.print()}
-              className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-bold h-9 px-3 shadow-2xs"
-            >
-              <Printer className="w-4 h-4 mr-1.5 text-[#E87A18]" />
-              {t("common.print") || "Print Log"}
-            </Button>
-
+          <div className="flex items-center gap-2">
             {/* Mark as seen quick action if unseen for current manager */}
             {isGlobalAdmin && !isBatchSeenByMe(batch) && (
               <Button
@@ -314,7 +309,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               </Button>
             )}
 
-            {(isGlobalAdmin || user?.id === batch.userId || user?.id === batch.user?.id) && (
+            {canEditBatch && (
               <Button
                 variant="outline"
                 size="sm"
@@ -329,47 +324,45 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
         </div>
 
         {/* Main Batch Header Banner */}
-        <div className="bg-white rounded-3xl border border-[#EDE4D5] p-5 sm:p-7 shadow-xs relative overflow-hidden">
+        <div className="bg-white rounded-3xl border border-[#EDE4D5] p-4 sm:p-7 shadow-xs relative overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#4A2E1B] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                <Package className="w-7 h-7 text-[#E87A18]" />
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#4A2E1B] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                <Package className="w-6 h-6 sm:w-7 sm:h-7 text-[#E87A18]" />
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-black text-[#2C1B10] tracking-tight">
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-2xl font-black text-[#2C1B10] tracking-tight">
                     {formatEthDate(batch.date)}
                   </h1>
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
                     {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}
                   </span>
                   {batch.isEdited && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300">
                       ✏️ {t("production.edited") || "Edited"}
                     </span>
                   )}
                   {batch.isFlagged && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-xl text-xs font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
                       🚩 Flagged
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs font-semibold text-[#8C7361] flex-wrap pt-0.5">
-                  <span className="flex items-center gap-1">
-                    <User className="w-3.5 h-3.5" />
-                    <span>{t("production.colLoggedBy")}: <strong className="text-[#2C1B10]">{batch.user.fullName}</strong></span>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs font-semibold text-[#8C7361] flex-wrap pt-0.5">
+                  <span className="inline-flex items-center gap-1 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]">
+                    <User className="w-3.5 h-3.5 text-[#E87A18]" />
+                    <span><strong className="text-[#2C1B10]">{batch.user.fullName}</strong></span>
                   </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{t("production.systemDateLabel", { date: batch.date })}</span>
+                  <span className="inline-flex items-center gap-1 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>{format(new Date(batch.createdAt), "hh:mm a")} ({format(new Date(batch.createdAt), "MMM dd, yyyy")})</span>
                   </span>
                   {batch.branch && (
-                    <>
-                      <span>•</span>
-                      <span>{t("production.branchLabel", { branch: batch.branch.name })}</span>
-                    </>
+                    <span className="inline-flex items-center gap-1 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]">
+                      <span>🏢 {batch.branch.name}</span>
+                    </span>
                   )}
                 </div>
               </div>
@@ -378,7 +371,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
 
           {/* Flagged Clarification Notice Banner (Collapsible) */}
           {batch.isFlagged && (
-            <div className="mt-5 p-3.5 sm:p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 flex flex-col gap-2 text-xs">
+            <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 flex flex-col gap-2 text-xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-base">🚩</span>
@@ -420,51 +413,9 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
             </div>
           )}
 
-          {/* Metric KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 pt-6 border-t border-[#F4ECE1]">
-            <div className="bg-[#FAF6F0]/80 rounded-2xl p-4 border border-[#EDE4D5]/80">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
-                {t("production.tabProducts")}
-              </span>
-              <div className="text-2xl font-black text-[#2C1B10] mt-1">
-                {batch.items.length}{" "}
-                <span className="text-xs font-bold text-[#8C7361]">{t("production.distinctItemsCount")}</span>
-              </div>
-              <span className="text-xs font-bold text-[#E87A18] mt-0.5 block">
-                {totalProducedUnits.toLocaleString()} {t("production.totalUnitsBakedSub")}
-              </span>
-            </div>
-
-            <div className="bg-[#FAF6F0]/80 rounded-2xl p-4 border border-[#EDE4D5]/80">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
-                {t("production.tabMaterials")}
-              </span>
-              <div className="text-2xl font-black text-[#2C1B10] mt-1">
-                {batch.materialUsages.length}{" "}
-                <span className="text-xs font-bold text-[#8C7361]">{t("production.ingredientsCount")}</span>
-              </div>
-              <span className="text-xs font-bold text-rose-700 mt-0.5 block">
-                -{totalMaterialsUsed.toFixed(2)} {t("production.totalDeductedSub")}
-              </span>
-            </div>
-
-            <div className="bg-[#FAF6F0]/80 rounded-2xl p-4 border border-[#EDE4D5]/80">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
-                {t("production.colShift")}
-              </span>
-              <div className="text-lg font-black text-[#2C1B10] mt-1 flex items-center gap-1.5">
-                {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}
-              </div>
-              <div className="flex items-center justify-between text-xs font-semibold text-[#8C7361] mt-0.5">
-                <span>{batch.user.fullName}</span>
-                <span className="font-mono text-[10px] text-[#8C7361]/80">ID: {batch.id.slice(0, 8)}...</span>
-              </div>
-            </div>
-          </div>
-
           {/* Owner-Only Admin Audit Review Status Card */}
           {user?.role === "OWNER" && (
-            <div className="mt-6 pt-5 border-t border-[#F4ECE1] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="mt-4 pt-3.5 border-t border-[#F4ECE1] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-bold text-[#8C7361] uppercase tracking-wider">{t('production.adminReviewStatus')}:</span>
@@ -651,59 +602,93 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               {t("production.noItemsMatchSearch")}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12 text-center">#</TableHead>
-                    <TableHead>{t("production.colProduct")}</TableHead>
-                    <TableHead>{t("products.category")}</TableHead>
-                    <TableHead className="text-right">{t("production.colQuantityProduced")}</TableHead>
-                    <TableHead className="text-right">Batch Share</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.map((item, index) => {
-                    const sharePercent = totalProducedUnits > 0
-                      ? ((Number(item.quantityProduced || 0) / totalProducedUnits) * 100).toFixed(1)
-                      : "0";
+            <>
+              {/* Mobile Cards View (< md) */}
+              <div className="md:hidden space-y-2.5">
+                {filteredProducts.map((item, index) => {
+                  const sharePercent = totalProducedUnits > 0
+                    ? ((Number(item.quantityProduced || 0) / totalProducedUnits) * 100).toFixed(1)
+                    : "0";
 
-                    return (
-                      <TableRow key={item.id || index} className="hover:bg-[#FAF8F5]/60">
-                        <TableCell className="text-center font-bold text-xs text-[#8C7361]">
-                          {index + 1}
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-extrabold text-[#2C1B10] text-sm">{item.product.name}</div>
-                          <div className="text-[11px] text-[#8C7361] font-semibold">{item.product.unitType}</div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
-                            {item.product.category?.name || "General"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="inline-flex items-center px-3 py-1 rounded-xl text-sm font-black bg-amber-50 text-[#E87A18] border border-amber-200">
+                  return (
+                    <div key={item.id || index} className="p-3.5 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5] space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="font-extrabold text-sm text-[#2C1B10] block truncate">{item.product.name}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white text-[#4A2E1B] border border-[#EDE4D5]">
+                              {item.product.category?.name || "General"}
+                            </span>
+                            <span className="text-[11px] text-[#8C7361] font-semibold">{item.product.unitType}</span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black bg-amber-100 text-[#E87A18] border border-amber-300">
                             {Number(item.quantityProduced).toLocaleString()} {item.product.unitType}
                           </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <div className="w-16 h-2 rounded-full bg-zinc-100 overflow-hidden hidden sm:block">
-                              <div
-                                className="h-full bg-[#E87A18] rounded-full"
-                                style={{ width: `${Math.min(100, Math.max(0, Number(sharePercent)))}%` }}
-                              />
+                          <span className="text-[10px] font-bold text-[#8C7361] block mt-0.5">{sharePercent}% share</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table (md+) */}
+              <div className="overflow-x-auto hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12 text-center">#</TableHead>
+                      <TableHead>{t("production.colProduct")}</TableHead>
+                      <TableHead>{t("products.category")}</TableHead>
+                      <TableHead className="text-right">{t("production.colQuantityProduced")}</TableHead>
+                      <TableHead className="text-right">Batch Share</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts.map((item, index) => {
+                      const sharePercent = totalProducedUnits > 0
+                        ? ((Number(item.quantityProduced || 0) / totalProducedUnits) * 100).toFixed(1)
+                        : "0";
+
+                      return (
+                        <TableRow key={item.id || index} className="hover:bg-[#FAF8F5]/60">
+                          <TableCell className="text-center font-bold text-xs text-[#8C7361]">
+                            {index + 1}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-extrabold text-[#2C1B10] text-sm">{item.product.name}</div>
+                            <div className="text-[11px] text-[#8C7361] font-semibold">{item.product.unitType}</div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                              {item.product.category?.name || "General"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="inline-flex items-center px-3 py-1 rounded-xl text-sm font-black bg-amber-50 text-[#E87A18] border border-amber-200">
+                              {Number(item.quantityProduced).toLocaleString()} {item.product.unitType}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-16 h-2 rounded-full bg-zinc-100 overflow-hidden hidden sm:block">
+                                <div
+                                  className="h-full bg-[#E87A18] rounded-full"
+                                  style={{ width: `${Math.min(100, Math.max(0, Number(sharePercent)))}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-bold text-[#8C7361]">{sharePercent}%</span>
                             </div>
-                            <span className="text-xs font-bold text-[#8C7361]">{sharePercent}%</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </div>
 
@@ -748,40 +733,58 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               {materialSearch ? t("production.noItemsMatchSearch") : t("production.noMaterialsDeducted")}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12 text-center">#</TableHead>
-                    <TableHead>{t("stock.colItemName")}</TableHead>
-                    <TableHead>{t("production.unit")}</TableHead>
-                    <TableHead className="text-right">{t("production.usedQtyInputLabel")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMaterials.map((mat, index) => (
-                    <TableRow key={mat.id || index} className="hover:bg-[#FAF8F5]/60">
-                      <TableCell className="text-center font-bold text-xs text-[#8C7361]">
-                        {index + 1}
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-extrabold text-[#2C1B10] text-sm">{mat.stockItem.name}</div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-zinc-100 text-zinc-700">
-                          {mat.stockItem.unitType}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="inline-flex items-center px-3 py-1 rounded-xl text-sm font-black bg-rose-50 text-rose-700 border border-rose-200">
-                          -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
-                        </span>
-                      </TableCell>
+            <>
+              {/* Mobile Cards View (< md) */}
+              <div className="md:hidden space-y-2.5">
+                {filteredMaterials.map((mat, index) => (
+                  <div key={mat.id || index} className="p-3.5 rounded-2xl bg-rose-50/50 border border-rose-200/70 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="font-extrabold text-sm text-rose-950 block truncate">{mat.stockItem.name}</span>
+                      <span className="text-[11px] text-rose-800/80 font-semibold">{mat.stockItem.unitType}</span>
+                    </div>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black bg-rose-100 text-rose-800 border border-rose-300 shrink-0">
+                      -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table (md+) */}
+              <div className="overflow-x-auto hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12 text-center">#</TableHead>
+                      <TableHead>{t("stock.colItemName")}</TableHead>
+                      <TableHead>{t("production.unit")}</TableHead>
+                      <TableHead className="text-right">{t("production.usedQtyInputLabel")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMaterials.map((mat, index) => (
+                      <TableRow key={mat.id || index} className="hover:bg-[#FAF8F5]/60">
+                        <TableCell className="text-center font-bold text-xs text-[#8C7361]">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-extrabold text-[#2C1B10] text-sm">{mat.stockItem.name}</div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-zinc-100 text-zinc-700">
+                            {mat.stockItem.unitType}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="inline-flex items-center px-3 py-1 rounded-xl text-sm font-black bg-rose-50 text-rose-700 border border-rose-200">
+                            -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </div>
 

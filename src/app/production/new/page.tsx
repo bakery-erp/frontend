@@ -179,6 +179,15 @@ function ProductionFormContent() {
   useEffect(() => {
     if (pageData?.batch && editBatchId) {
       const batch = pageData.batch;
+      // Guard: Non-admin workers can only edit today's batches
+      const todayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+      const batchDateYmd = batch.date ? new Date(batch.date).toISOString().slice(0, 10) : "";
+      if (!isGlobalAdmin && batchDateYmd && batchDateYmd !== todayYmd) {
+        toast.error("Bakers can only edit batches created today. Past batches cannot be modified.");
+        router.push("/production");
+        return;
+      }
+
       setOriginalBatchStatus(batch.status);
       if (batch.date) {
         setDate(new Date(batch.date).toISOString().slice(0, 10));
@@ -203,7 +212,7 @@ function ProductionFormContent() {
         setSelectedMaterials(mMap);
       }
     }
-  }, [pageData?.batch, editBatchId]);
+  }, [pageData?.batch, editBatchId, isGlobalAdmin, router]);
 
   const isSessionOpen = activeSession?.status === "OPEN";
 
@@ -377,8 +386,6 @@ function ProductionFormContent() {
 
   // Execution Handler after Modal Confirmation
   const executeSubmitBatch = async () => {
-    setShowSubmitModal(false);
-
     const productEntries = selectedProductList.map((item) => ({
       productId: item.product.id!,
       quantityProduced: item.qty,
@@ -415,9 +422,12 @@ function ProductionFormContent() {
         const res = await api.post("/production-batches", payload);
         toast.success(t("production.toastBatchCreatedSuccess") || "Production batch created successfully");
       }
+
+      setShowSubmitModal(false);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['production-page'] }),
         queryClient.invalidateQueries({ queryKey: ['production-page-batches'] }),
+        queryClient.invalidateQueries({ queryKey: ['production-worker-counts'] }),
         queryClient.invalidateQueries({ queryKey: ['production-batch-detail'] }),
         queryClient.invalidateQueries({ queryKey: ['production-history'] }),
         queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
@@ -1085,8 +1095,8 @@ function ProductionFormContent() {
       </div>
 
       {/* Submit Confirmation Dialog */}
-      <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl border border-[#EDE4D5] p-4 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+      <Dialog open={showSubmitModal} onOpenChange={(open) => { if (!isSubmitting) setShowSubmitModal(open); }}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg bg-white rounded-3xl border border-[#EDE4D5] p-5 sm:p-7 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg font-black text-[#2C1B10] flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -1207,6 +1217,7 @@ function ProductionFormContent() {
             <Button
               type="button"
               variant="outline"
+              disabled={isSubmitting}
               onClick={() => setShowSubmitModal(false)}
               className="w-full sm:w-auto h-11 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold cursor-pointer"
             >
@@ -1215,6 +1226,7 @@ function ProductionFormContent() {
             <Button
               type="button"
               loading={isSubmitting}
+              disabled={isSubmitting}
               onClick={executeSubmitBatch}
               className="w-full sm:flex-1 h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black cursor-pointer flex items-center justify-center gap-1.5"
             >
