@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useBranch } from '@/context/BranchContext';
@@ -49,10 +50,17 @@ interface DeliveryLineItem {
 }
 
 export default function SuppliersPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (user && user.role === 'STOCK_KEEPER') {
+      router.replace('/stock');
+    }
+  }, [user, router]);
 
   // Modals
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
@@ -256,6 +264,10 @@ export default function SuppliersPage() {
       setIsLogDeliveryOpen(false);
     });
   };
+
+  if (user && user.role === 'STOCK_KEEPER') {
+    return null;
+  }
 
   return (
     <DashboardLayout>
