@@ -247,9 +247,6 @@ export default function FinancialReportsPage() {
               {t('reports.executiveBadge')}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-[#8C7361] font-medium mt-1">
-            {t('reports.subtitle')}
-          </p>
         </div>
 
         {/* Date Range & Presets Toolbar */}

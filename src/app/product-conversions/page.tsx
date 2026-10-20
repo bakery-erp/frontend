@@ -278,9 +278,6 @@ export default function ProductConversionsPage() {
                         <ArrowRightLeft className="w-6 h-6 text-[#E87A18]" />
                         {t('conversions.title')}
                     </h1>
-                    <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-                        {t('conversions.subtitle')}
-                    </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button

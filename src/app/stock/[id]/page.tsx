@@ -112,7 +112,10 @@ export default function StockItemDetailPage() {
   const { t } = useLanguage();
 
   const { user } = useAuth();
-  const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
+  const isOwner = user?.role === "OWNER";
+  const isGlobalAdmin = user?.role === "ADMIN" || isOwner;
+  const isStockKeeper = user?.role === "STOCK_KEEPER";
+  const isStockStaff = isGlobalAdmin || isStockKeeper;
 
   const { data, isLoading } = useQuery<HistoryData>({
     queryKey: ['stock-item-history', itemId],
@@ -391,17 +394,19 @@ export default function StockItemDetailPage() {
               <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
                 <Package className="w-3.5 h-3.5 text-[#8C7361]" /> {t("stock.unitTag", { unit: stockItem.unitType })}
               </span>
-              <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
-                <span>💵 {t("stock.unitPriceTag", { price: unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</span>
-              </span>
+              {isOwner && (
+                <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
+                  <span>💵 {t("stock.unitPriceTag", { price: unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</span>
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]/80">
                 <Layers className="w-3.5 h-3.5 text-[#8C7361]" /> {t("stock.minAlertTag", { level: stockItem.minStockLevel != null ? Number(stockItem.minStockLevel).toFixed(2) : t("stock.noneLabel") })}
               </span>
             </div>
           </div>
 
-          {isGlobalAdmin && (
-            <div className="grid grid-cols-3 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+          {isStockStaff && (
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <Button 
                 onClick={() => {
                   setIsAddOpen(true);
@@ -425,21 +430,23 @@ export default function StockItemDetailPage() {
                 <MinusCircle className="w-4 h-4 shrink-0 text-amber-700" />
                 <span className="truncate">{t("stock.btnReduceStockBtn")}</span>
               </Button>
-              <Button 
-                onClick={() => setIsEditOpen(true)}
-                variant="outline"
-                className="text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-10 px-2 sm:px-4"
-              >
-                <Edit3 className="w-4 h-4 shrink-0 text-[#8C7361]" />
-                <span className="truncate">{t("stock.btnEditStockBtn")}</span>
-              </Button>
+              {isGlobalAdmin && (
+                <Button 
+                  onClick={() => setIsEditOpen(true)}
+                  variant="outline"
+                  className="col-span-2 sm:col-span-1 text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-10 px-2 sm:px-4"
+                >
+                  <Edit3 className="w-4 h-4 shrink-0 text-[#8C7361]" />
+                  <span className="truncate">{t("stock.btnEditStockBtn")}</span>
+                </Button>
+              )}
             </div>
           )}
         </div>
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3.5 mb-6">
+      <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 sm:gap-3.5 mb-6`}>
         {/* Card 1: Current Stock Qty */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
           <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">{t("stock.kpiCurrentQty")}</span>
@@ -452,15 +459,17 @@ export default function StockItemDetailPage() {
         </div>
 
         {/* Card 2: Stock Monetary Valuation */}
-        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider block">{t("stock.kpiStockValuation")}</span>
-          <div className="mt-1">
-            <span className="text-lg sm:text-2xl font-black text-amber-900 font-mono block truncate">
-              {calculatedValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <span className="text-[11px] font-bold text-amber-700">{t("stock.assetValueLabel")}</span>
+        {isOwner && (
+          <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider block">{t("stock.kpiStockValuation")}</span>
+            <div className="mt-1">
+              <span className="text-lg sm:text-2xl font-black text-amber-900 font-mono block truncate">
+                {calculatedValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span className="text-[11px] font-bold text-amber-700">{t("stock.assetValueLabel")}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Card 3: Historical Inflow */}
         <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
@@ -469,7 +478,7 @@ export default function StockItemDetailPage() {
             <span className="text-lg sm:text-xl font-black text-emerald-700 font-mono block">
               +{Number(totalIn).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
             </span>
-            {totalValueIn != null && (
+            {isOwner && totalValueIn != null && (
               <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 block truncate">
                 +{totalValueIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
               </span>
@@ -484,7 +493,7 @@ export default function StockItemDetailPage() {
             <span className="text-lg sm:text-xl font-black text-rose-700 font-mono block">
               -{Number(totalOut).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
             </span>
-            {totalValueOut != null && (
+            {isOwner && totalValueOut != null && (
               <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 block truncate">
                 -{totalValueOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
               </span>
@@ -493,7 +502,7 @@ export default function StockItemDetailPage() {
         </div>
 
         {/* Card 5: Audit Movements */}
-        <div className="col-span-2 lg:col-span-1 bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
+        <div className={`${isOwner ? 'col-span-2 lg:col-span-1' : 'col-span-2 lg:col-span-1'} bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between`}>
           <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">{t("stock.kpiAuditMovements")}</span>
           <div className="mt-1">
             <span className="text-xl sm:text-2xl font-black text-[#2C1B10] font-mono block">
@@ -512,7 +521,6 @@ export default function StockItemDetailPage() {
               <History className="w-5 h-5 text-[#E87A18]" />
               {t("stockMovements.title")}
             </h2>
-            <p className="text-xs text-[#8C7361] mt-0.5">{t("stockMovements.subtitle")}</p>
           </div>
 
           {/* Auto-Centering Tabs with Gradient Edge Hints like in Profile */}
@@ -562,9 +570,9 @@ export default function StockItemDetailPage() {
               <TableRow>
                 <TableHead>{t("stockMovements.colDateTime")}</TableHead>
                 <TableHead>{t("stockMovements.colMovementType")}</TableHead>
-                <TableHead>{t("stock.stockLoansAndCredit")}</TableHead>
+                {isGlobalAdmin && <TableHead>{t("stock.stockLoansAndCredit")}</TableHead>}
                 <TableHead>{t("stockMovements.colQtyDelta")}</TableHead>
-                <TableHead>{t("stockMovements.colMonetaryDelta")}</TableHead>
+                {isOwner && <TableHead>{t("stockMovements.colMonetaryDelta")}</TableHead>}
                 <TableHead>{t("stockMovements.colRecordedBy")}</TableHead>
                 <TableHead className="pr-6">{t("stockMovements.colReason")}</TableHead>
               </TableRow>
@@ -572,7 +580,7 @@ export default function StockItemDetailPage() {
             <TableBody>
               {filteredMovements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                  <TableCell colSpan={4 + (isGlobalAdmin ? 1 : 0) + (isOwner ? 1 : 0)} className="text-center py-8 text-[#8C7361] font-medium">
                     {t("stockMovements.noMovements")}
                   </TableCell>
                 </TableRow>
@@ -591,49 +599,51 @@ export default function StockItemDetailPage() {
                       <TableCell>
                         {getMovementBadge(m.type)}
                       </TableCell>
-                      <TableCell>
-                        {loan ? (
-                          <div className="space-y-1">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                              loan.status === 'PAID' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                              loan.status === 'PARTIAL' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                              'bg-rose-100 text-rose-800 border border-rose-200'
-                            }`}>
-                              {loan.status === 'PAID' ? t("stockMovements.statusSettled") : loan.status === 'PARTIAL' ? t("stockMovements.statusPartial") : t("stockMovements.statusUnpaid")}
-                            </span>
-                            <div className="text-[10px] text-[#8C7361]">
-                              Due: <strong className="text-[#2C1B10]">{Number(loan.remainingBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</strong>
-                              {loan.supplierName && <div>Supplier: {loan.supplierName}</div>}
-                            </div>
-                            {isGlobalAdmin && (
+                      {isGlobalAdmin && (
+                        <TableCell>
+                          {loan ? (
+                            <div className="space-y-1">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                loan.status === 'PAID' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                loan.status === 'PARTIAL' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                'bg-rose-100 text-rose-800 border border-rose-200'
+                              }`}>
+                                {loan.status === 'PAID' ? t("stockMovements.statusSettled") : loan.status === 'PARTIAL' ? t("stockMovements.statusPartial") : t("stockMovements.statusUnpaid")}
+                              </span>
+                              <div className="text-[10px] text-[#8C7361]">
+                                Due: <strong className="text-[#2C1B10]">{Number(loan.remainingBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</strong>
+                                {loan.supplierName && <div>Supplier: {loan.supplierName}</div>}
+                              </div>
                               <button 
                                 onClick={() => setSelectedLoan(loan)}
                                 className="text-[10px] font-bold text-purple-700 hover:text-purple-900 underline block"
                               >
                                 {loan.remainingBalance > 0 ? t("stock.btnSubmitPayment") : t("common.history")}
                               </button>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-zinc-400 font-medium">—</span>
-                        )}
-                      </TableCell>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-zinc-400 font-medium">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="font-bold text-sm">
                         <span className={m.type === "IN" ? "text-emerald-700" : "text-rose-700"}>
                           {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)}
                         </span>{" "}
                         <span className="text-xs text-[#8C7361] font-normal">{stockItem.unitType}</span>
                       </TableCell>
-                      <TableCell className="font-extrabold text-xs">
-                        <span className={isNegative ? "text-rose-700" : "text-emerald-700"}>
-                          {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
-                        </span>
-                        {mPrice > 0 && (
-                          <div className="text-[10px] text-[#8C7361] font-normal">
-                            @ {mPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{stockItem.unitType}
-                          </div>
-                        )}
-                      </TableCell>
+                      {isOwner && (
+                        <TableCell className="font-extrabold text-xs">
+                          <span className={isNegative ? "text-rose-700" : "text-emerald-700"}>
+                            {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          </span>
+                          {mPrice > 0 && (
+                            <div className="text-[10px] text-[#8C7361] font-normal">
+                              @ {mPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{stockItem.unitType}
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <UserCheck className="w-3.5 h-3.5 text-[#8C7361]" />
@@ -671,7 +681,7 @@ export default function StockItemDetailPage() {
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-1.5">
                         {getMovementBadge(m.type)}
-                        {loan && (
+                        {isGlobalAdmin && loan && (
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                             loan.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' :
                             loan.status === 'PARTIAL' ? 'bg-amber-100 text-amber-800' :
@@ -689,13 +699,15 @@ export default function StockItemDetailPage() {
                       <div className={`text-base font-black font-mono ${m.type === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
                         {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
                       </div>
-                      <div className={`text-[11px] font-bold font-mono ${isNegative ? "text-rose-700" : "text-emerald-700"}`}>
-                        {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
-                      </div>
+                      {isOwner && (
+                        <div className={`text-[11px] font-bold font-mono ${isNegative ? "text-rose-700" : "text-emerald-700"}`}>
+                          {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {loan && (
+                  {isGlobalAdmin && loan && (
                     <div className="p-2.5 bg-purple-50/80 rounded-xl border border-purple-100 text-xs flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <div className="text-purple-950 font-bold text-[11px] truncate">
@@ -705,16 +717,14 @@ export default function StockItemDetailPage() {
                           Paid: {Number(loan.paidAmount).toFixed(2)} | Due: <strong className="text-purple-900">{Number(loan.remainingBalance).toFixed(2)} ETB</strong>
                         </div>
                       </div>
-                      {isGlobalAdmin && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => setSelectedLoan(loan)}
-                          className="h-7 px-2.5 text-[10px] font-bold text-purple-700 border-purple-300 hover:bg-purple-100 shrink-0"
-                        >
-                          {loan.remainingBalance > 0 ? t("stock.btnSubmitPayment") : t("common.history")}
-                        </Button>
-                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setSelectedLoan(loan)}
+                        className="h-7 px-2.5 text-[10px] font-bold text-purple-700 border-purple-300 hover:bg-purple-100 shrink-0"
+                      >
+                        {loan.remainingBalance > 0 ? t("stock.btnSubmitPayment") : t("common.history")}
+                      </Button>
                     </div>
                   )}
 
@@ -752,7 +762,7 @@ export default function StockItemDetailPage() {
             <form onSubmit={handleAddStock}>
               <div className="grid gap-4 py-3">
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900">
-                  {stockItem.name} • {t("stock.currentAvailableQty")}: <span className="font-bold text-emerald-700">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span> ({unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{stockItem.unitType})
+                  {stockItem.name} • {t("stock.currentAvailableQty")}: <span className="font-bold text-emerald-700">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span>{isOwner ? ` (${unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/${stockItem.unitType})` : ""}
                 </div>
 
                 <div>
@@ -772,28 +782,31 @@ export default function StockItemDetailPage() {
                   />
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-[#2C1B10] uppercase">
-                      {t("stock.unitPriceInputLabel")}
-                    </label>
-                    <span className="text-[11px] text-[#8C7361]">
-                      {unitPrice.toFixed(2)} ETB
-                    </span>
+                {isOwner && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-[#2C1B10] uppercase">
+                        {t("stock.unitPriceInputLabel")}
+                      </label>
+                      <span className="text-[11px] text-[#8C7361]">
+                        {unitPrice.toFixed(2)} ETB
+                      </span>
+                    </div>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      min="0"
+                      value={addUnitPrice} 
+                      onChange={(e) => setAddUnitPrice(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      placeholder={unitPrice ? String(unitPrice) : "0.00"} 
+                      className="rounded-xl border-[#EDE4D5] h-10 font-mono" 
+                    />
                   </div>
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    min="0"
-                    value={addUnitPrice} 
-                    onChange={(e) => setAddUnitPrice(e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    placeholder={unitPrice ? String(unitPrice) : "0.00"} 
-                    className="rounded-xl border-[#EDE4D5] h-10 font-mono" 
-                  />
-                </div>
+                )}
 
                 {(() => {
+                  if (!isOwner) return null;
                   const qty = parseFloat(addAmount) || 0;
                   const rate = addUnitPrice !== "" ? (parseFloat(addUnitPrice) || 0) : unitPrice;
                   if (qty > 0 && rate > 0) {
@@ -821,47 +834,49 @@ export default function StockItemDetailPage() {
                   />
                 </div>
 
-                <div className="p-3 bg-purple-50/80 rounded-xl border border-purple-100 space-y-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={isAddLoan} 
-                      onChange={(e) => setIsAddLoan(e.target.checked)} 
-                      className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
-                    />
-                    <span className="text-xs font-bold text-purple-900">{t("stock.creditLoanPurchasePrompt")}</span>
-                  </label>
+                {isGlobalAdmin && (
+                  <div className="p-3 bg-purple-50/80 rounded-xl border border-purple-100 space-y-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isAddLoan} 
+                        onChange={(e) => setIsAddLoan(e.target.checked)} 
+                        className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-purple-900">{t("stock.creditLoanPurchasePrompt")}</span>
+                    </label>
 
-                  {isAddLoan && (
-                    <div className="space-y-3 pt-1">
-                      <div>
-                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t("stock.supplierNameOptionalLabel")}</label>
-                        <Input 
-                          value={addSupplierName} 
-                          onChange={(e) => setAddSupplierName(e.target.value)} 
-                          placeholder="e.g. Grain Market Supplier" 
-                          className="bg-white rounded-xl border-purple-200 text-xs h-10" 
-                        />
+                    {isAddLoan && (
+                      <div className="space-y-3 pt-1">
+                        <div>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t("stock.supplierNameOptionalLabel")}</label>
+                          <Input 
+                            value={addSupplierName} 
+                            onChange={(e) => setAddSupplierName(e.target.value)} 
+                            placeholder="e.g. Grain Market Supplier" 
+                            className="bg-white rounded-xl border-purple-200 text-xs h-10" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t("stock.downPaymentAmountLabel")}</label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0" 
+                            value={addPaidAmount} 
+                            onChange={(e) => setAddPaidAmount(e.target.value)} 
+                            onFocus={(e) => e.target.select()}
+                            placeholder="0.00" 
+                            className="bg-white rounded-xl border-purple-200 text-xs h-10 font-mono" 
+                          />
+                          <p className="text-[10px] text-purple-700 mt-1 font-medium">
+                            {t("stock.unpaidDebtNotice")}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t("stock.downPaymentAmountLabel")}</label>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          min="0" 
-                          value={addPaidAmount} 
-                          onChange={(e) => setAddPaidAmount(e.target.value)} 
-                          onFocus={(e) => e.target.select()}
-                          placeholder="0.00" 
-                          className="bg-white rounded-xl border-purple-200 text-xs h-10 font-mono" 
-                        />
-                        <p className="text-[10px] text-purple-700 mt-1 font-medium">
-                          {t("stock.unpaidDebtNotice")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#EDE4D5] w-full">
                 <Button type="submit" variant="success" size="lg" loading={isSubmitting} loadingText={t("stock.savingRecord")} className="w-full sm:w-auto order-1 sm:order-2">
@@ -877,7 +892,7 @@ export default function StockItemDetailPage() {
       )}
 
       {/* Loan Repayment & Audit Dialog */}
-      {selectedLoan && (
+      {isGlobalAdmin && selectedLoan && (
         <Dialog open={true} onOpenChange={(open) => { 
           if (!open) {
             setSelectedLoan(null);
@@ -993,7 +1008,7 @@ export default function StockItemDetailPage() {
             <form onSubmit={handleReduceStock}>
               <div className="grid gap-4 py-3">
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900">
-                  {stockItem.name} • {t("stock.currentAvailableQty")}: <span className="font-bold text-amber-700">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span> ({unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/{stockItem.unitType})
+                  {stockItem.name} • {t("stock.currentAvailableQty")}: <span className="font-bold text-amber-700">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span>{isOwner ? ` (${unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB/${stockItem.unitType})` : ""}
                 </div>
 
                 <div>
@@ -1064,10 +1079,12 @@ export default function StockItemDetailPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t("stock.unitPriceLabel")}</label>
-                  <Input name="unitPrice" type="number" step="0.01" min="0" defaultValue={stockItem.unitPrice ?? ""} onFocus={(e) => e.target.select()} placeholder="0.00" className="rounded-xl border-[#EDE4D5] h-10 font-mono" />
-                </div>
+                {isOwner && (
+                  <div>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t("stock.unitPriceLabel")}</label>
+                    <Input name="unitPrice" type="number" step="0.01" min="0" defaultValue={stockItem.unitPrice ?? ""} onFocus={(e) => e.target.select()} placeholder="0.00" className="rounded-xl border-[#EDE4D5] h-10 font-mono" />
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t("stock.currentAvailableQty")}</label>

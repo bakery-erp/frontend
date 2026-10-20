@@ -420,9 +420,6 @@ export default function PayrollPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
             {t('payroll.title')}
           </h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            {t('payroll.subtitle')}
-          </p>
         </div>
         <PayrollNav />
       </div>

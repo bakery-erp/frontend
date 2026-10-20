@@ -369,7 +369,6 @@ export default function ProductionPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 xs:mb-6">
         <div>
           <h1 className="text-xl xs:text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('production.title')}</h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('production.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 xs:gap-3 w-full sm:w-auto min-w-0">
           {isGlobalAdmin && (

@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, CreditCard } from "lucide-react";
+import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, CreditCard, ArrowRightLeft } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton } from "@/components/ui/skeletons";
 
@@ -39,7 +39,8 @@ export default function StockPage() {
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
-  const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
+  const isOwner = user?.role === "OWNER";
+  const isGlobalAdmin = user?.role === "ADMIN" || isOwner;
   const isStockKeeper = user?.role === "STOCK_KEEPER";
   const isStockStaff = isGlobalAdmin || isStockKeeper;
 
@@ -291,15 +292,23 @@ export default function StockPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('stock.title')}</h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('stock.subtitle')}</p>
         </div>
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          <Link href="/stock-movements" className="flex-1 sm:flex-initial">
-            <Button variant="outline" className="w-full h-10 rounded-xl border-purple-200 text-purple-900 bg-purple-50 hover:bg-purple-100 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-purple-600 shrink-0" />
-              <span>{t('stock.stockLoansAndCredit')}</span>
-            </Button>
-          </Link>
+          {isGlobalAdmin ? (
+            <Link href="/stock-movements" className="flex-1 sm:flex-initial">
+              <Button variant="outline" className="w-full h-10 rounded-xl border-purple-200 text-purple-900 bg-purple-50 hover:bg-purple-100 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-purple-600 shrink-0" />
+                <span>{t('stock.stockLoansAndCredit')}</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/stock-movements" className="flex-1 sm:flex-initial">
+              <Button variant="outline" className="w-full h-10 rounded-xl border-amber-200 text-amber-900 bg-amber-50 hover:bg-amber-100 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                <ArrowRightLeft className="w-4 h-4 text-[#E87A18] shrink-0" />
+                <span>{t('stockMovements.title') || "Stock Movements"}</span>
+              </Button>
+            </Link>
+          )}
           {user?.role === "OWNER" && (
             <Button onClick={() => setIsAddOpen(true)} size="default" className="flex-1 sm:flex-initial">
               <Plus className="w-4 h-4 shrink-0" />
@@ -308,32 +317,6 @@ export default function StockPage() {
           )}
         </div>
       </div>
-
-      {Number(stockSummary?.pendingApprovals || 0) > 0 && (
-        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-extrabold text-base shadow-xs shrink-0 animate-pulse">
-              {stockSummary.pendingApprovals}
-            </div>
-            <div>
-              <h4 className="font-extrabold text-[#4A2E1B] text-sm sm:text-base flex items-center gap-2">
-                <span>{t('stock.pendingApprovalsBadge')}</span>
-                <span className="text-xs bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full font-bold">
-                  {stockSummary.pendingApprovals}
-                </span>
-              </h4>
-              <p className="text-xs text-[#7A5A43] mt-0.5">
-                {t('stock.pendingApprovalsCount', { count: String(stockSummary.pendingApprovals) })}
-              </p>
-            </div>
-          </div>
-          <Link href="/stock-movements">
-            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs">
-              Review Approvals →
-            </Button>
-          </Link>
-        </div>
-      )}
 
       {/* Filter Bar with Centered Segmented Control */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -394,14 +377,6 @@ export default function StockPage() {
         />
       </div>
 
-      {!isGlobalAdmin && (
-        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-center gap-3">
-          <PackageCheck className="w-5 h-5 text-amber-600 shrink-0" />
-          <span>
-            <strong>Staff Stock View:</strong> Material levels are view-only. To log ingredients used in production, navigate to the <strong>Production page</strong> to submit your usage report.
-          </span>
-        </div>
-      )}
 
       {/* Desktop Table View */}
       <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
@@ -410,9 +385,9 @@ export default function StockPage() {
             <TableRow>
               <TableHead>{t('stock.colItemName')}</TableHead>
               <TableHead>{t('products.colUnit')}</TableHead>
-              <TableHead>{t('stock.colUnitPrice')}</TableHead>
+              {isOwner && <TableHead>{t('stock.colUnitPrice')}</TableHead>}
               <TableHead>{t('stock.colCurrentQty')}</TableHead>
-              <TableHead>{t('dashboard.productStockValue')}</TableHead>
+              {isOwner && <TableHead>{t('dashboard.productStockValue')}</TableHead>}
               <TableHead>{t('stock.colMinLevel')}</TableHead>
               <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
             </TableRow>
@@ -420,12 +395,12 @@ export default function StockPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="p-4">
-                  <TableSkeleton rows={6} columns={6} hasActions={true} />
+                <TableCell colSpan={isOwner ? 7 : 5} className="p-4">
+                  <TableSkeleton rows={6} columns={isOwner ? 6 : 4} hasActions={true} />
                 </TableCell>
               </TableRow>
             ) : filteredItems.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{t('stock.noItems')}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={isOwner ? 7 : 5} className="text-center py-8 text-[#8C7361] font-medium">{t('stock.noItems')}</TableCell></TableRow>
             ) : filteredItems.map(item => {
               const isLowStock = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
               const price = Number(item.unitPrice || 0);
@@ -448,17 +423,21 @@ export default function StockPage() {
                     </div>
                   </TableCell>
                   <TableCell><span className="px-2.5 py-1 rounded-md bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-xs font-bold">{item.unitType}</span></TableCell>
-                  <TableCell className="font-bold text-xs text-[#2C1B10]">
-                    {price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
-                  </TableCell>
+                  {isOwner && (
+                    <TableCell className="font-bold text-xs text-[#2C1B10]">
+                      {price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <span className={`font-extrabold text-base ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
                       {Number(item.currentQuantity).toFixed(2)}
                     </span>
                   </TableCell>
-                  <TableCell className="font-extrabold text-xs text-amber-900">
-                    {totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
-                  </TableCell>
+                  {isOwner && (
+                    <TableCell className="font-extrabold text-xs text-amber-900">
+                      {totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
+                    </TableCell>
+                  )}
                   <TableCell className="font-semibold text-[#8C7361]">{item.minStockLevel != null ? Number(item.minStockLevel).toFixed(2) : "—"}</TableCell>
                   <TableCell className="text-right pr-6">
                     <div className="flex items-center justify-end gap-1.5">
@@ -473,7 +452,7 @@ export default function StockPage() {
                         </Button>
                       </Link>
 
-                      {isGlobalAdmin && (
+                      {isStockStaff && (
                         <>
                           <Button 
                             variant="outline" 
@@ -490,6 +469,7 @@ export default function StockPage() {
                             onClick={() => {
                               setReducingItem(item);
                               setReduceAmount("");
+                              setReduceReceivedBy("");
                               setReduceReason("");
                             }}
                             className="h-8 px-2.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 flex items-center gap-1 font-semibold"
@@ -497,6 +477,11 @@ export default function StockPage() {
                             <MinusCircle className="w-3.5 h-3.5" />
                             {t('stock.reduceStock')}
                           </Button>
+                        </>
+                      )}
+
+                      {isGlobalAdmin && (
+                        <>
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -560,16 +545,18 @@ export default function StockPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs">
-                <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stock.colUnitPrice')}</span>
-                  <span className="font-bold text-[#2C1B10] font-mono">{price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('common.currency')}` : `0.00 ${t('common.currency')}`}</span>
+              {isOwner && (
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 text-xs">
+                  <div>
+                    <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stock.colUnitPrice')}</span>
+                    <span className="font-bold text-[#2C1B10] font-mono">{price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('common.currency')}` : `0.00 ${t('common.currency')}`}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stock.colStockValue')}</span>
+                    <span className="font-bold text-amber-900 font-mono">{totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('common.currency')}` : `0.00 ${t('common.currency')}`}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[#8C7361] block text-[10px] uppercase font-semibold">{t('stock.colStockValue')}</span>
-                  <span className="font-bold text-amber-900 font-mono">{totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('common.currency')}` : `0.00 ${t('common.currency')}`}</span>
-                </div>
-              </div>
+              )}
 
               {/* Primary Actions Row */}
               <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-zinc-100">
@@ -580,7 +567,7 @@ export default function StockPage() {
                   </Button>
                 </Link>
 
-                {isGlobalAdmin && (
+                {isStockStaff && (
                   <>
                     <Button 
                       variant="outline" 
@@ -597,6 +584,7 @@ export default function StockPage() {
                       onClick={() => {
                         setReducingItem(item);
                         setReduceAmount("");
+                        setReduceReceivedBy("");
                         setReduceReason("");
                       }}
                       className="h-9 px-1 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 font-bold flex items-center justify-center gap-1"
@@ -801,7 +789,7 @@ export default function StockPage() {
             <form onSubmit={handleAddStock}>
               <div className="grid gap-3.5 py-3">
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900">
-                  Adding stock to <strong className="font-bold">{addingItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(addingItem.currentQuantity).toFixed(2)} {addingItem.unitType}</span> (Rate: <span className="font-bold text-emerald-800">{Number(addingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}/{addingItem.unitType}</span>).
+                  Adding stock to <strong className="font-bold">{addingItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(addingItem.currentQuantity).toFixed(2)} {addingItem.unitType}</span>{isOwner && <> (Rate: <span className="font-bold text-emerald-800">{Number(addingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}/{addingItem.unitType}</span>)</>}.
                 </div>
 
                 <div>
@@ -821,47 +809,51 @@ export default function StockPage() {
                   />
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-[#2C1B10] uppercase">
-                      {t('stock.unitPriceLabel') || "Current Unit Price"} ({t('common.currency')}/{addingItem.unitType})
-                    </label>
-                    {addingItem.unitPrice != null && (
-                      <span className="text-[11px] text-[#8C7361]">
-                        Current: {Number(addingItem.unitPrice).toFixed(2)} {t('common.currency')}
-                      </span>
-                    )}
-                  </div>
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    min="0"
-                    value={addUnitPrice} 
-                    onChange={(e) => setAddUnitPrice(e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    placeholder={addingItem.unitPrice ? String(addingItem.unitPrice) : "0.00"} 
-                    className="h-10 rounded-xl border-zinc-200 font-mono" 
-                  />
-                  <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
-                    Prompting current pricing updates this item's latest purchasing rate and stock movement value.
-                  </p>
-                </div>
-
-                {(() => {
-                  const qty = parseFloat(addAmount) || 0;
-                  const rate = addUnitPrice !== "" ? (parseFloat(addUnitPrice) || 0) : Number(addingItem.unitPrice || 0);
-                  if (qty > 0 && rate > 0) {
-                    return (
-                      <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between text-xs">
-                        <span className="font-bold text-emerald-900">Total Purchase Cost:</span>
-                        <span className="font-mono font-extrabold text-emerald-800 text-sm">
-                          {(qty * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-                        </span>
+                {isOwner && (
+                  <>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-bold text-[#2C1B10] uppercase">
+                          {t('stock.unitPriceLabel') || "Current Unit Price"} ({t('common.currency')}/{addingItem.unitType})
+                        </label>
+                        {addingItem.unitPrice != null && (
+                          <span className="text-[11px] text-[#8C7361]">
+                            Current: {Number(addingItem.unitPrice).toFixed(2)} {t('common.currency')}
+                          </span>
+                        )}
                       </div>
-                    );
-                  }
-                  return null;
-                })()}
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        min="0" 
+                        value={addUnitPrice} 
+                        onChange={(e) => setAddUnitPrice(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder={addingItem.unitPrice ? String(addingItem.unitPrice) : "0.00"} 
+                        className="h-10 rounded-xl border-zinc-200 font-mono" 
+                      />
+                      <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
+                        Prompting current pricing updates this item's latest purchasing rate and stock movement value.
+                      </p>
+                    </div>
+
+                    {(() => {
+                      const qty = parseFloat(addAmount) || 0;
+                      const rate = addUnitPrice !== "" ? (parseFloat(addUnitPrice) || 0) : Number(addingItem.unitPrice || 0);
+                      if (qty > 0 && rate > 0) {
+                        return (
+                          <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between text-xs">
+                            <span className="font-bold text-emerald-900">Total Purchase Cost:</span>
+                            <span className="font-mono font-extrabold text-emerald-800 text-sm">
+                              {(qty * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </>
+                )}
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
@@ -873,49 +865,49 @@ export default function StockPage() {
                     placeholder="e.g. Local Purchase, Restock, Inventory Audit" 
                     className="h-10 rounded-xl border-zinc-200" 
                   />
-                </div>
+                                {isGlobalAdmin && (
+                  <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isAddLoan} 
+                        onChange={(e) => setIsAddLoan(e.target.checked)} 
+                        className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-purple-900">{t('stock.creditPurchase')}</span>
+                    </label>
 
-                <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={isAddLoan} 
-                      onChange={(e) => setIsAddLoan(e.target.checked)} 
-                      className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
-                    />
-                    <span className="text-xs font-bold text-purple-900">{t('stock.creditPurchase')}</span>
-                  </label>
-
-                  {isAddLoan && (
-                    <div className="space-y-3 pt-1">
-                      <div>
-                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stock.supplierOptional')}</label>
-                        <Input 
-                          value={addSupplierName} 
-                          onChange={(e) => setAddSupplierName(e.target.value)} 
-                          placeholder="e.g. Grain Market Supplier" 
-                          className="bg-white rounded-xl border-purple-200 text-xs h-9" 
-                        />
+                    {isAddLoan && (
+                      <div className="space-y-3 pt-1">
+                        <div>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stock.supplierOptional')}</label>
+                          <Input 
+                            value={addSupplierName} 
+                            onChange={(e) => setAddSupplierName(e.target.value)} 
+                            placeholder="e.g. Grain Market Supplier" 
+                            className="bg-white rounded-xl border-purple-200 text-xs h-9" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stock.paidAmountLabel')}</label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            min="0" 
+                            value={addPaidAmount} 
+                            onChange={(e) => setAddPaidAmount(e.target.value)} 
+                            onFocus={(e) => e.target.select()} 
+                            placeholder="0.00 (leave 0 if full credit)" 
+                            className="bg-white rounded-xl border-purple-200 text-xs h-9 font-mono" 
+                          />
+                          <p className="text-[10px] text-purple-700 mt-1 font-medium">
+                            {t('stock.unpaidDebtNote')}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-purple-900 mb-1 block uppercase">{t('stock.paidAmountLabel')}</label>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          min="0" 
-                          value={addPaidAmount} 
-                          onChange={(e) => setAddPaidAmount(e.target.value)} 
-                          onFocus={(e) => e.target.select()}
-                          placeholder="0.00 (leave 0 if full credit)" 
-                          className="bg-white rounded-xl border-purple-200 text-xs h-9 font-mono" 
-                        />
-                        <p className="text-[10px] text-purple-700 mt-1 font-medium">
-                          {t('stock.unpaidDebtNote')}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}  </div>
 
                 <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200">
                   <label className="flex items-center gap-2 cursor-pointer">
