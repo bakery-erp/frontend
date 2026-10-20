@@ -73,6 +73,7 @@ export default function StockPage() {
   const [isAutoConfirm, setIsAutoConfirm] = useState<boolean>(false);
 
   const openAddStockModal = (item: StockItem) => {
+    if (!isGlobalAdmin) return;
     setAddingItem(item);
     setAddAmount("");
     setAddUnitPrice(item.unitPrice != null ? String(item.unitPrice) : "");
@@ -188,6 +189,10 @@ export default function StockPage() {
 
   const handleAddStock = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isGlobalAdmin) {
+      toast.error("Access Restricted: Only Admin and Owner can add stock");
+      return;
+    }
     if (!addingItem) return;
 
     const qty = parseFloat(addAmount);
@@ -475,32 +480,33 @@ export default function StockPage() {
                         </Button>
                       </Link>
 
+                      {isGlobalAdmin && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => openAddStockModal(item)}
+                          className="h-8 px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex items-center gap-1 font-semibold"
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          {t('stock.addStock')}
+                        </Button>
+                      )}
+
                       {isStockStaff && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => openAddStockModal(item)}
-                            className="h-8 px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex items-center gap-1 font-semibold"
-                          >
-                            <PlusCircle className="w-3.5 h-3.5" />
-                            {t('stock.addStock')}
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => {
-                              setReducingItem(item);
-                              setReduceAmount("");
-                              setReduceReceivedBy("");
-                              setReduceReason("");
-                            }}
-                            className="h-8 px-2.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 flex items-center gap-1 font-semibold"
-                          >
-                            <MinusCircle className="w-3.5 h-3.5" />
-                            {t('stock.reduceStock')}
-                          </Button>
-                        </>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            setReducingItem(item);
+                            setReduceAmount("");
+                            setReduceReceivedBy("");
+                            setReduceReason("");
+                          }}
+                          className="h-8 px-2.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 flex items-center gap-1 font-semibold"
+                        >
+                          <MinusCircle className="w-3.5 h-3.5" />
+                          {t('stock.reduceStock')}
+                        </Button>
                       )}
 
                       {isGlobalAdmin && (
@@ -582,7 +588,7 @@ export default function StockPage() {
               )}
 
               {/* Primary Actions Row */}
-              <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-zinc-100">
+              <div className={`grid ${isGlobalAdmin ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 pt-2 border-t border-zinc-100`}>
                 <Link href={`/stock/${item.id}`} className="w-full">
                   <Button variant="outline" size="sm" className="w-full h-9 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold flex items-center justify-center gap-1 px-1">
                     <History className="w-3.5 h-3.5 shrink-0" />
@@ -590,32 +596,33 @@ export default function StockPage() {
                   </Button>
                 </Link>
 
+                {isGlobalAdmin && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => openAddStockModal(item)}
+                    className="h-9 px-1 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-bold flex items-center justify-center gap-1"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{t('stock.addStock')}</span>
+                  </Button>
+                )}
+
                 {isStockStaff && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => openAddStockModal(item)}
-                      className="h-9 px-1 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-bold flex items-center justify-center gap-1"
-                    >
-                      <PlusCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{t('stock.addStock')}</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        setReducingItem(item);
-                        setReduceAmount("");
-                        setReduceReceivedBy("");
-                        setReduceReason("");
-                      }}
-                      className="h-9 px-1 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 font-bold flex items-center justify-center gap-1"
-                    >
-                      <MinusCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{t('stock.reduceStock')}</span>
-                    </Button>
-                  </>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setReducingItem(item);
+                      setReduceAmount("");
+                      setReduceReceivedBy("");
+                      setReduceReason("");
+                    }}
+                    className="h-9 px-1 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 font-bold flex items-center justify-center gap-1"
+                  >
+                    <MinusCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{t('stock.reduceStock')}</span>
+                  </Button>
                 )}
               </div>
 
@@ -800,7 +807,7 @@ export default function StockPage() {
       )}
 
       {/* Manual Stock Addition Dialog */}
-      {addingItem && (
+      {addingItem && isGlobalAdmin && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setAddingItem(null); }}>
           <DialogContent className="max-w-md rounded-2xl border-emerald-200 max-h-[90vh] overflow-y-auto">
             <DialogHeader>

@@ -207,6 +207,10 @@ export default function StockItemDetailPage() {
 
   const handleAddStock = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isGlobalAdmin) {
+      toast.error("Access Restricted: Only Admin and Owner can add stock");
+      return;
+    }
     if (!data?.stockItem) return;
 
     const qty = parseFloat(addAmount);
@@ -467,22 +471,24 @@ export default function StockItemDetailPage() {
           </div>
 
           {isStockStaff && (
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-              <Button 
-                onClick={() => {
-                  setIsAddOpen(true);
-                  setAddAmount("");
-                  setAddUnitPrice(unitPrice ? String(unitPrice) : "");
-                  setAddReason("");
-                  setIsAddLoan(false);
-                  setAddPaidAmount("");
-                  setAddSupplierName("");
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm h-10 px-2 sm:px-4"
-              >
-                <PlusCircle className="w-4 h-4 shrink-0" />
-                <span className="truncate">{t("stock.btnAddStockBtn")}</span>
-              </Button>
+            <div className={`grid ${isGlobalAdmin ? 'grid-cols-2' : 'grid-cols-1'} sm:flex sm:items-center gap-2 w-full sm:w-auto`}>
+              {isGlobalAdmin && (
+                <Button 
+                  onClick={() => {
+                    setIsAddOpen(true);
+                    setAddAmount("");
+                    setAddUnitPrice(unitPrice ? String(unitPrice) : "");
+                    setAddReason("");
+                    setIsAddLoan(false);
+                    setAddPaidAmount("");
+                    setAddSupplierName("");
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm h-10 px-2 sm:px-4"
+                >
+                  <PlusCircle className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{t("stock.btnAddStockBtn")}</span>
+                </Button>
+              )}
               <Button 
                 onClick={() => setIsReduceOpen(true)}
                 variant="outline"
@@ -866,7 +872,7 @@ export default function StockItemDetailPage() {
       </div>
 
       {/* Manual Stock Addition Modal */}
-      {isAddOpen && (
+      {isAddOpen && isGlobalAdmin && (
         <Dialog open={true} onOpenChange={(open) => { 
           if (!open) {
             setIsAddOpen(false);
