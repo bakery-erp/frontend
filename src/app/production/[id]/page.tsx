@@ -242,8 +242,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
     );
   }
 
-  const ethNow = useMemo(() => new Date(Date.now() + 3 * 3600 * 1000), []);
-  const todayYmd = useMemo(() => ethNow.toISOString().slice(0, 10), [ethNow]);
+  const todayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
   const batchDateYmd = (batch?.date || batch?.createdAt || "").slice(0, 10);
   const canEditBatch = isGlobalAdmin || ((user?.id === batch?.userId || user?.id === batch?.user?.id) && batchDateYmd === todayYmd);
 
