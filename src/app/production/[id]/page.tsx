@@ -254,12 +254,12 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={() => router.push("/production")}
-              className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 px-2.5 sm:px-3 shadow-2xs cursor-pointer shrink-0"
+              className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 w-9 shadow-2xs cursor-pointer shrink-0"
+              title={t("common.back") || "Back"}
             >
               <ArrowLeft className="w-4 h-4 text-[#E87A18]" />
-              <span className="hidden xs:inline ml-1">{t("common.back") || "Back"}</span>
             </Button>
             <div className="h-5 w-px bg-[#EDE4D5] hidden sm:block shrink-0" />
             <div className="min-w-0 flex-1">
