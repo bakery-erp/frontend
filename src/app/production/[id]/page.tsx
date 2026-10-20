@@ -30,7 +30,6 @@ import {
   AlertTriangle,
   Flag,
   Check,
-  ChefHat,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
@@ -250,25 +249,46 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-5 pb-12 print:p-0 print:max-w-full">
-        {/* Navigation & Header Actions */}
-        <div className="flex items-center justify-between gap-3 border-b border-[#EDE4D5] pb-3 print:hidden">
+        {/* Clean, Simple Header & Action Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#EDE4D5] print:hidden">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push("/production")}
-              className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-bold h-9 px-3 shadow-2xs"
+              className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 px-3 shadow-2xs cursor-pointer shrink-0"
             >
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              <ArrowLeft className="w-4 h-4 mr-1 text-[#E87A18]" />
               {t("common.back") || "Back"}
             </Button>
             <div className="h-5 w-px bg-[#EDE4D5] hidden sm:block" />
-            <span className="text-xs font-semibold text-[#8C7361] hidden sm:inline-block">
-              {t("production.batchDetailsTitle")}
-            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base sm:text-xl font-black text-[#2C1B10] tracking-tight">
+                  {formatEthDate(batch.date)}
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                  {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShift") || "Night"}` : `☀️ ${t("production.dayShift") || "Day"}`}
+                </span>
+                {batch.isEdited && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                    ✏️ {t("production.edited") || "Edited"}
+                  </span>
+                )}
+                {batch.isFlagged && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+                    🚩 {t("production.flagged") || "Flagged"}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[#8C7361] font-medium flex items-center gap-1.5 mt-0.5 truncate">
+                <Clock className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
+                <span>{format(new Date(batch.createdAt), "hh:mm a")} • {format(new Date(batch.createdAt), "MMMM dd, yyyy")}</span>
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             {/* Mark as seen quick action if unseen for current manager */}
             {isGlobalAdmin && !isBatchSeenByMe(batch) && (
               <Button
@@ -311,104 +331,14 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
 
             {canEditBatch && (
               <Button
-                variant="outline"
                 size="sm"
                 onClick={() => router.push(`/production/new?edit=${batch.id}`)}
-                className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-bold h-9 px-3 shadow-2xs cursor-pointer flex items-center gap-1.5"
+                className="bg-[#E87A18] hover:bg-[#d06910] text-white rounded-xl font-bold h-9 px-4 shadow-xs cursor-pointer flex items-center gap-1.5"
               >
-                <Edit className="w-4 h-4 mr-1.5" />
-                {t("common.edit")}
+                <Edit className="w-4 h-4" />
+                <span>{t("common.edit") || "Edit"}</span>
               </Button>
             )}
-          </div>
-        </div>
-
-        {/* Main Batch Header Banner */}
-        <div className="bg-gradient-to-br from-[#2C1B10] via-[#4A2E1B] to-[#5A3A23] rounded-3xl p-5 sm:p-7 text-white shadow-lg relative overflow-hidden">
-          <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 opacity-10 pointer-events-none">
-            <ChefHat className="w-72 h-72 text-white" />
-          </div>
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-2.5 min-w-0">
-              {/* Badges Row: Branch, Shift, Status, Edit, Flag */}
-              <div className="flex items-center gap-2 flex-wrap text-xs">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[#E87A18] text-white shadow-xs">
-                  <span>🏢</span>
-                  <span>{batch.branch?.name || t("common.mainBakery") || "Main Bakery"}</span>
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/15 text-amber-200 border border-white/20">
-                  {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShift") || "Night Shift"}` : `☀️ ${t("production.dayShift") || "Day Shift"}`}
-                </span>
-                {batch.status === "COMPLETED" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>{t("production.statusCompleted") || "Completed"}</span>
-                  </span>
-                )}
-                {batch.status === "PENDING_APPROVAL" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{t("production.statusPendingApproval") || "Pending Approval"}</span>
-                  </span>
-                )}
-                {batch.isEdited && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-200 border border-amber-300/30">
-                    ✏️ {t("production.edited") || "Edited"}
-                  </span>
-                )}
-                {batch.isFlagged && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-500/30 text-rose-200 border border-rose-400/40">
-                    🚩 {t("production.flagged") || "Flagged"}
-                  </span>
-                )}
-              </div>
-
-              {/* Title & Date */}
-              <div>
-                <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight">
-                  {formatEthDate(batch.date)}
-                </h1>
-                <p className="text-xs sm:text-sm text-amber-200/80 font-medium mt-0.5 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                  <span>{format(new Date(batch.createdAt), "hh:mm a")} • {format(new Date(batch.createdAt), "MMMM dd, yyyy")}</span>
-                </p>
-              </div>
-
-              {/* Baker / Employee Information */}
-              <div className="flex items-center gap-2 pt-1 text-xs sm:text-sm text-amber-100/90 font-medium flex-wrap">
-                <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-xl border border-white/15">
-                  <User className="w-4 h-4 text-amber-300 shrink-0" />
-                  <span>
-                    <span className="text-amber-300 font-bold">{t("production.colLoggedBy") || "Logged by"}:</span>{" "}
-                    <strong className="text-white font-extrabold">{batch.user.fullName}</strong>
-                  </span>
-                </span>
-                <span className="text-amber-200/70 text-xs font-semibold px-1">
-                  ({batch.user.role === 'BAKER' ? (t('users.roleBaker') || "Baker") : (batch.user.role ? (batch.user.role.replace('_', ' ')) : (t('common.worker') || "Worker"))})
-                </span>
-              </div>
-            </div>
-
-            {/* Quick KPI stats */}
-            <div className="flex sm:flex-col gap-2.5 shrink-0 pt-2 sm:pt-0">
-              <div className="bg-white/10 rounded-2xl p-3 border border-white/15 text-center min-w-[120px]">
-                <span className="text-[10px] uppercase font-bold text-amber-200/70 block">
-                  {t("production.tabProducts") || "Products"}
-                </span>
-                <span className="text-lg sm:text-xl font-black text-white">
-                  {totalProducedUnits.toLocaleString()} <span className="text-xs font-semibold text-amber-300">Pcs</span>
-                </span>
-              </div>
-              <div className="bg-white/10 rounded-2xl p-3 border border-white/15 text-center min-w-[120px]">
-                <span className="text-[10px] uppercase font-bold text-amber-200/70 block">
-                  {t("production.colRawMaterialsConsumed") || "Ingredients"}
-                </span>
-                <span className="text-lg sm:text-xl font-black text-white">
-                  {batch.materialUsages.length} <span className="text-xs font-semibold text-amber-300">{t("common.items") || "items"}</span>
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
