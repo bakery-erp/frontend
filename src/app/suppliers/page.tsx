@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 
 interface Supplier {
   id: string;
@@ -74,30 +75,51 @@ export default function SuppliersPage() {
   const [deliveryIsPaid, setDeliveryIsPaid] = useState(true);
   const [deliveryItems, setDeliveryItems] = useState<DeliveryLineItem[]>([]);
 
-  const { data: pageData, isLoading } = useQuery({
-    queryKey: ['suppliers-page', selectedBranchId],
+  const [deliveryPage, setDeliveryPage] = useState(1);
+
+  const { data: baseData, isLoading: isLoadingBase } = useQuery({
+    queryKey: ['suppliers-page', 'base', selectedBranchId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = {};
       if (selectedBranchId) params.branchId = selectedBranchId;
-      const [supRes, delRes, prodRes] = await Promise.all([
+      const [supRes, prodRes] = await Promise.all([
         api.get('/suppliers', { params }),
-        api.get('/supplier-deliveries', { params }),
         api.get('/products?minimal=true'),
       ]);
       const resellOnly = (prodRes.data || []).filter((p: any) => p.category?.type === 'RESELL');
       const filteredProd = resellOnly.length > 0 ? resellOnly : (prodRes.data || []).filter((p: any) => p.category?.type !== 'PRODUCED');
       return {
         suppliers: (supRes.data || []) as Supplier[],
-        deliveries: (delRes.data || []) as SupplierDelivery[],
         products: filteredProd as any[],
       };
     },
   });
 
-  const suppliers = pageData?.suppliers || [];
-  const deliveries = pageData?.deliveries || [];
-  const products: any[] = pageData?.products || [];
+  const { data: deliveriesData, isLoading: isLoadingDeliveries } = useQuery({
+    queryKey: ['suppliers-page', 'deliveries', selectedBranchId, deliveryPage],
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const params: any = {
+        page: deliveryPage,
+        limit: 15,
+      };
+      if (selectedBranchId) params.branchId = selectedBranchId;
+      const res = await api.get('/supplier-deliveries', { params });
+      return res.data;
+    },
+  });
+
+  const suppliers = baseData?.suppliers || [];
+  const products: any[] = baseData?.products || [];
+
+  const rawDeliveries = Array.isArray(deliveriesData) ? deliveriesData : (deliveriesData?.data || []);
+  const deliveries = rawDeliveries as SupplierDelivery[];
+  const deliveryTotal = deliveriesData?.total ?? deliveries.length;
+  const deliveryTotalPages = deliveriesData?.totalPages ?? 1;
+  const deliveryStats = deliveriesData?.stats;
+
+  const isLoading = isLoadingBase || isLoadingDeliveries;
 
   const openLogDeliveryModal = () => {
     if (suppliers.length > 0) setDeliverySupplierId(suppliers[0].id);
@@ -236,11 +258,11 @@ export default function SuppliersPage() {
     }
   };
 
-  const totalUnpaidAmount = deliveries
+  const totalUnpaidAmount = deliveryStats?.totalUnpaidAmount ?? deliveries
     .filter((d) => !d.isPaid)
     .reduce((sum, d) => sum + Number(d.unitBuyPrice) * d.quantityReceived, 0);
 
-  const totalDeliveriesThisMonth = deliveries.length;
+  const totalDeliveriesThisMonth = deliveryStats?.totalDeliveries ?? deliveryTotal;
 
   const totalBatchCost = deliveryItems.reduce(
     (sum, item) => sum + Number(item.quantityReceived || 0) * Number(item.unitBuyPrice || 0),
@@ -350,7 +372,7 @@ export default function SuppliersPage() {
           <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black font-mono shrink-0 ${
             activeTab === 'deliveries' ? 'bg-white/20 text-white' : 'bg-[#E0D5C3] text-[#4A2E1B]'
           }`}>
-            {deliveries.length}
+            {deliveryTotal}
           </span>
         </button>
 
@@ -678,6 +700,17 @@ export default function SuppliersPage() {
                 );
               })
             )}
+          </div>
+
+          <div className="p-4 bg-[#FAF6F0] border-t border-[#EDE4D5]">
+            <PaginationControls
+              currentPage={deliveryPage}
+              totalPages={deliveryTotalPages}
+              totalItems={deliveryTotal}
+              pageSize={15}
+              onPageChange={setDeliveryPage}
+              isLoading={isLoadingDeliveries}
+            />
           </div>
         </div>
       )}

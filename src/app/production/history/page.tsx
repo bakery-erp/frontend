@@ -22,6 +22,7 @@ import {
 import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 interface ProductHistoryRecord {
   id: string;
@@ -78,6 +79,7 @@ export default function DailyProductHistoryPage() {
 
   const [search, setSearch] = useState("");
   const [productFilter, setProductFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [startDate, setStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
@@ -102,6 +104,7 @@ export default function DailyProductHistoryPage() {
 
   const handleSetToday = () => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
+    setCurrentPage(1);
     if (startDate === todayStr && endDate === todayStr) {
       const d = new Date();
       d.setDate(d.getDate() - 30);
@@ -120,7 +123,8 @@ export default function DailyProductHistoryPage() {
       isGlobalAdmin ? startDate : yesterdayYmd,
       isGlobalAdmin ? endDate : todayYmd,
       isGlobalAdmin ? productFilter : "",
-      isGlobalAdmin ? search : ""
+      isGlobalAdmin ? search : "",
+      currentPage
     ],
     placeholderData: (prev) => prev,
     queryFn: async () => {
@@ -138,27 +142,33 @@ export default function DailyProductHistoryPage() {
         if (productFilter) params.append("productId", productFilter);
         if (search.trim()) params.append("search", search.trim());
       }
+      params.append("page", String(currentPage));
+      params.append("limit", "20");
 
       const res = await api.get(`/production-batches/daily-product-history/all?${params.toString()}`);
       const rawRecords: ProductHistoryRecord[] = (res.data.records || []).filter(
         (r: ProductHistoryRecord) => r.type === "PRODUCED"
       );
-
-      const totalQty = rawRecords.reduce((acc, r) => acc + (r.netQuantity || r.quantity), 0);
-      const totalVal = rawRecords.reduce((acc, r) => acc + r.subtotal, 0);
+      const totalCount = res.data.total ?? rawRecords.length;
+      const totalPagesCount = res.data.totalPages ?? 1;
+      const resSummary = res.data.summary || {
+        totalProducedQuantity: rawRecords.reduce((acc, r) => acc + (r.netQuantity || r.quantity), 0),
+        totalValuation: rawRecords.reduce((acc, r) => acc + r.subtotal, 0),
+        count: totalCount,
+      };
 
       return {
         records: rawRecords,
-        summary: {
-          totalProducedQuantity: totalQty,
-          totalValuation: totalVal,
-          count: rawRecords.length,
-        },
+        total: totalCount,
+        totalPages: totalPagesCount,
+        summary: resSummary,
       };
     },
   });
 
   const records = historyData?.records || [];
+  const total = historyData?.total || 0;
+  const totalPages = historyData?.totalPages || 1;
   const summary = historyData?.summary || { totalProducedQuantity: 0, totalValuation: 0, count: 0 };
 
   // Strict User/Role-Based Filtering: Non-admin users see ONLY what they logged for themselves and only yesterday and today
@@ -333,7 +343,10 @@ export default function DailyProductHistoryPage() {
 
                 <select
                   value={productFilter}
-                  onChange={(e) => setProductFilter(e.target.value)}
+                  onChange={(e) => {
+                    setProductFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 text-xs px-2.5 font-semibold text-[#2C1B10] focus:outline-none flex-1 lg:flex-initial lg:w-48 truncate"
                 >
                   <option value="">{t('productionHistory.allProducts')}</option>
@@ -352,14 +365,20 @@ export default function DailyProductHistoryPage() {
                   <input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
                     aria-label="Start Date"
                   />
                   <input
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
                     aria-label="End Date"
                   />
@@ -373,7 +392,10 @@ export default function DailyProductHistoryPage() {
                       type="text"
                       placeholder={t('common.search') || "Search..."}
                       value={search}
-                      onChange={(e) => setSearch(e.target.value)}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setCurrentPage(1);
+                      }}
                       className="pl-8 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl w-full"
                     />
                   </div>
@@ -583,6 +605,15 @@ export default function DailyProductHistoryPage() {
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={total}
+        pageSize={20}
+        onPageChange={setCurrentPage}
+        isLoading={isLoading}
+      />
     </DashboardLayout>
   );
 }
