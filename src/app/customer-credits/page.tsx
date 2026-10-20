@@ -343,9 +343,6 @@ export default function CustomerCreditsPage() {
             <CreditCard className="w-7 h-7 text-[#E87A18]" />
             {t("credits.title")}
           </h1>
-          <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-            {t("credits.subtitle")}
-          </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <Button

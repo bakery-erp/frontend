@@ -398,9 +398,6 @@ export default function ExpensesPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#2C1B10]">
             {t('expenses.title')}
           </h1>
-          <p className="text-sm text-[#8C7361] mt-1">
-            {t('expenses.subtitle')}
-          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {isManagement && (
@@ -492,7 +489,6 @@ export default function ExpensesPage() {
                   </label>
                   <Input
                     ref={amountInputRef}
-                    autoFocus
                     type="number"
                     step="0.01"
                     min="0"
@@ -581,56 +577,58 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white shadow-xs rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-extrabold uppercase text-blue-700 tracking-wider">
-              {t('expenses.tabCompany')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32 rounded-lg" />
-            ) : (
-              <div className="text-2xl font-black text-blue-900">{money(companyTotal)}</div>
-            )}
-            <p className="text-[11px] text-blue-600 mt-1 font-medium">{t('expenses.companySubtitle')}</p>
-          </CardContent>
-        </Card>
+      {/* Summary Cards (Only for Admin & Owner, hidden for Cashier) */}
+      {user?.role !== 'CASHIER' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white shadow-xs rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-extrabold uppercase text-blue-700 tracking-wider">
+                {t('expenses.tabCompany')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-32 rounded-lg" />
+              ) : (
+                <div className="text-2xl font-black text-blue-900">{money(companyTotal)}</div>
+              )}
+              <p className="text-[11px] text-blue-600 mt-1 font-medium">{t('expenses.companySubtitle')}</p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50/80 to-white shadow-xs rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-extrabold uppercase text-purple-700 tracking-wider">
-              {t('expenses.tabOwner')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32 rounded-lg" />
-            ) : (
-              <div className="text-2xl font-black text-purple-900">{money(ownerTotal)}</div>
-            )}
-            <p className="text-[11px] text-purple-600 mt-1 font-medium">{t('expenses.ownerSubtitle')}</p>
-          </CardContent>
-        </Card>
+          <Card className="border-purple-200 bg-gradient-to-br from-purple-50/80 to-white shadow-xs rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-extrabold uppercase text-purple-700 tracking-wider">
+                {t('expenses.tabOwner')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-32 rounded-lg" />
+              ) : (
+                <div className="text-2xl font-black text-purple-900">{money(ownerTotal)}</div>
+              )}
+              <p className="text-[11px] text-purple-600 mt-1 font-medium">{t('expenses.ownerSubtitle')}</p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-rose-200 bg-gradient-to-br from-rose-50/80 to-white shadow-xs rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-extrabold uppercase text-rose-700 tracking-wider">
-              {t('common.total')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32 rounded-lg" />
-            ) : (
-              <div className="text-2xl font-black text-rose-900">{money(grandTotal)}</div>
-            )}
-            <p className="text-[11px] text-rose-600 mt-1 font-medium">{t('expenses.totalSubtitle')}</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-rose-200 bg-gradient-to-br from-rose-50/80 to-white shadow-xs rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-extrabold uppercase text-rose-700 tracking-wider">
+                {t('common.total')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-8 w-32 rounded-lg" />
+              ) : (
+                <div className="text-2xl font-black text-rose-900">{money(grandTotal)}</div>
+              )}
+              <p className="text-[11px] text-rose-600 mt-1 font-medium">{t('expenses.totalSubtitle')}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Date Filters: Daily vs Range Mode */}
       <Card className="mb-6 border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">

@@ -42,9 +42,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [isMounted, isLoading, isAuthenticated, router]);
 
-  // Close mobile drawer on route change
+  // Close mobile drawer and scroll to top on route change
   useEffect(() => {
     setIsMobileOpen(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
 
   if (!isMounted || isLoading || !isAuthenticated) {
@@ -146,6 +147,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <li key={i}>
                 <Link
                   href={item.href}
+                  onClick={() => {
+                    setIsMobileOpen(false);
+                    if (isActive) {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${isActive
                       ? 'bg-[#E87A18] text-white shadow-[0_4px_16px_rgba(232,122,24,0.45)] transform scale-[1.02]'
                       : 'text-[#E2C7B4] hover:bg-[#5A3A23] hover:text-white'
@@ -214,8 +221,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {isOwner && (
-                <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
-                  <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden md:inline">{t('common.branch')}:</span>
+                <div className="hidden md:flex items-center space-x-2 min-w-0">
+                  <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden lg:inline">{t('common.branch')}:</span>
                   <select
                     value={selectedBranchId || 'ALL'}
                     onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}

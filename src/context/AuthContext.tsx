@@ -100,6 +100,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('erp_user', JSON.stringify(data.user));
     } catch {}
     setUser(data.user);
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
     if (data.user.role === 'EMPLOYEE') {
       router.push('/my-profile');
     } else if (data.user.role === 'CASHIER') {
