@@ -110,6 +110,10 @@ export default function Dashboard() {
         router.push('/customer-credits');
         return;
       }
+      if (user.role === 'STOCK_KEEPER') {
+        router.push('/stock');
+        return;
+      }
       if (user.role === 'BAKER' || user.role === 'CAKE_WORKER' || user.role === 'SAMBUSA_WORKER') {
         router.push('/production');
         return;

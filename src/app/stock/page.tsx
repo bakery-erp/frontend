@@ -40,20 +40,22 @@ export default function StockPage() {
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
+  const isStockKeeper = user?.role === "STOCK_KEEPER";
+  const isStockStaff = isGlobalAdmin || isStockKeeper;
 
   useEffect(() => {
-    if (user && !isGlobalAdmin) {
-      toast.error("Access Restricted: Stock inventory is only available to Admin and Owner roles.");
+    if (user && !isStockStaff) {
+      toast.error("Access Restricted: Stock inventory is only available to Stock Keeper, Admin, and Owner roles.");
       router.replace("/my-profile");
     }
-  }, [user, isGlobalAdmin, router]);
+  }, [user, isStockStaff, router]);
 
   const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
 
-  if (user && !isGlobalAdmin) {
+  if (user && !isStockStaff) {
     return null;
   }
 
@@ -67,6 +69,7 @@ export default function StockPage() {
   const [addAmount, setAddAmount] = useState<string>("");
   const [addUnitPrice, setAddUnitPrice] = useState<string>("");
   const [addReason, setAddReason] = useState<string>("");
+  const [isAutoConfirm, setIsAutoConfirm] = useState<boolean>(false);
 
   const openAddStockModal = (item: StockItem) => {
     setAddingItem(item);
@@ -76,6 +79,7 @@ export default function StockPage() {
     setIsAddLoan(false);
     setAddPaidAmount("");
     setAddSupplierName("");
+    setIsAutoConfirm(false);
   };
 
   // Loan state for Creation
@@ -92,6 +96,19 @@ export default function StockPage() {
   const [reducingItem, setReducingItem] = useState<StockItem | null>(null);
   const [reduceAmount, setReduceAmount] = useState<string>("");
   const [reduceReason, setReduceReason] = useState<string>("");
+  const [reduceReceivedBy, setReduceReceivedBy] = useState<string>("");
+
+  const { data: stockSummary } = useQuery({
+    queryKey: ['stock-summary', selectedBranchId],
+    queryFn: async () => {
+      const endpoint = selectedBranchId 
+        ? `/stock-movements/summary?branchId=${selectedBranchId}` 
+        : `/stock-movements/summary`;
+      const res = await api.get(endpoint);
+      return res.data;
+    },
+    enabled: isStockStaff,
+  });
 
   const { data: items = [], isLoading } = useQuery<StockItem[]>({
     queryKey: ['stock-items', selectedBranchId],
@@ -104,7 +121,7 @@ export default function StockPage() {
       const res = await api.get(endpoint);
       return res.data || [];
     },
-    enabled: isGlobalAdmin,
+    enabled: isStockStaff,
   });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, isEdit: boolean) => {
@@ -172,13 +189,18 @@ export default function StockPage() {
         quantity: qty,
         unitPrice: parsedUnitPrice,
         reason: addReason.trim() || "Manual Stock Addition",
+        autoConfirm: isAutoConfirm,
         loanInfo: isAddLoan ? {
           isLoan: true,
           paidAmount: addPaidAmount !== "" ? Number(addPaidAmount) : 0,
           supplierName: addSupplierName.trim() || undefined,
         } : undefined,
       });
-      toast.success(`Successfully added ${qty} ${addingItem.unitType} to ${addingItem.name}`);
+      if (isAutoConfirm) {
+        toast.success(`Successfully added ${qty} ${addingItem.unitType} to ${addingItem.name}`);
+      } else {
+        toast.success(`Inward stock entry logged for ${addingItem.name}. Awaiting Stock Keeper confirmation.`);
+      }
       setAddingItem(null);
       setAddAmount("");
       setAddUnitPrice("");
@@ -186,8 +208,10 @@ export default function StockPage() {
       setIsAddLoan(false);
       setAddPaidAmount("");
       setAddSupplierName("");
+      setIsAutoConfirm(false);
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
       queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
@@ -212,13 +236,16 @@ export default function StockPage() {
       await api.post(`/stock-items/${reducingItem.id}/reduce`, {
         quantity: qty,
         reason: reduceReason.trim() || "Manual Stock Reduction",
+        receivedBy: reduceReceivedBy.trim() || undefined,
       });
-      toast.success(`Successfully reduced ${qty} ${reducingItem.unitType} from ${reducingItem.name}`);
+      toast.success(`Successfully issued ${qty} ${reducingItem.unitType} from ${reducingItem.name}`);
       setReducingItem(null);
       setReduceAmount("");
       setReduceReason("");
+      setReduceReceivedBy("");
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to reduce stock level");
@@ -281,6 +308,32 @@ export default function StockPage() {
           )}
         </div>
       </div>
+
+      {Number(stockSummary?.pendingApprovals || 0) > 0 && (
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-extrabold text-base shadow-xs shrink-0 animate-pulse">
+              {stockSummary.pendingApprovals}
+            </div>
+            <div>
+              <h4 className="font-extrabold text-[#4A2E1B] text-sm sm:text-base flex items-center gap-2">
+                <span>{t('stock.pendingApprovalsBadge')}</span>
+                <span className="text-xs bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                  {stockSummary.pendingApprovals}
+                </span>
+              </h4>
+              <p className="text-xs text-[#7A5A43] mt-0.5">
+                {t('stock.pendingApprovalsCount', { count: String(stockSummary.pendingApprovals) })}
+              </p>
+            </div>
+          </div>
+          <Link href="/stock-movements">
+            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs">
+              Review Approvals →
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Filter Bar with Centered Segmented Control */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -863,6 +916,21 @@ export default function StockPage() {
                     </div>
                   )}
                 </div>
+
+                <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={isAutoConfirm} 
+                      onChange={(e) => setIsAutoConfirm(e.target.checked)} 
+                      className="rounded border-zinc-300 text-[#4A2E1B] focus:ring-[#4A2E1B] w-4 h-4"
+                    />
+                    <span className="text-xs font-bold text-zinc-800">{t('stock.autoConfirmPrompt')}</span>
+                  </label>
+                  <p className="text-[10px] text-zinc-500 mt-1 pl-6">
+                    {isAutoConfirm ? "Stock balance will increment immediately without awaiting physical verification." : "Stock will be pending until Stock Keeper verifies and confirms physical receipt."}
+                  </p>
+                </div>
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
                 <Button
@@ -922,12 +990,24 @@ export default function StockPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {t('stock.takenByLabel')}
+                  </label>
+                  <Input 
+                    value={reduceReceivedBy} 
+                    onChange={(e) => setReduceReceivedBy(e.target.value)}
+                    placeholder={t('stock.takenByPlaceholder')} 
+                    className="h-10 rounded-xl border-zinc-200" 
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
                     {t('common.notes')}
                   </label>
                   <Input 
                     value={reduceReason} 
                     onChange={(e) => setReduceReason(e.target.value)}
-                    placeholder="e.g. Spoilage, Wastage, Audit Adjustment" 
+                    placeholder="e.g. Spoilage, Wastage, Production Handover" 
                     className="h-10 rounded-xl border-zinc-200" 
                   />
                 </div>

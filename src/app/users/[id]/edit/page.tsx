@@ -19,7 +19,7 @@ import { DetailSkeleton } from "@/components/ui/skeletons";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { ConfirmModal } from "@/components/ConfirmModal";
 
-const ROLES = ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "EMPLOYEE"] as const;
+const ROLES = ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "STOCK_KEEPER", "EMPLOYEE"] as const;
 const SHIFTS = ["DAY", "NIGHT"] as const;
 
 interface UserData {
@@ -78,6 +78,7 @@ export default function EditUserPage() {
       case "CAKE_WORKER": return t('users.roleCakeWorker');
       case "CASHIER": return t('users.roleCashier');
       case "SAMBUSA_WORKER": return t('users.roleSambusaWorker');
+      case "STOCK_KEEPER": return t('users.roleStockKeeper');
       case "EMPLOYEE": return t('users.roleEmployee');
       default: return role.replace("_", " ");
     }

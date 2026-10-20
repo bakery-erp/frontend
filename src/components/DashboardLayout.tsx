@@ -89,13 +89,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: ArrowRightLeft, label: t('nav.conversions'), href: '/product-conversions' }
     ] : []),
-    ...((isOwner || isAdmin) ? [
+    ...((isOwner || isAdmin || role === 'STOCK_KEEPER') ? [
       { icon: Boxes, label: t('nav.stock'), href: '/stock' }
     ] : []),
-    ...((isOwner || isAdmin) ? [
+    ...((isOwner || isAdmin || role === 'STOCK_KEEPER') ? [
       { icon: ArrowRightLeft, label: t('nav.stockMovements'), href: '/stock-movements' }
     ] : []),
-    ...((isOwner || isAdmin || role === 'CASHIER') ? [
+    ...((isOwner || isAdmin || role === 'CASHIER' || role === 'STOCK_KEEPER') ? [
       { icon: Truck, label: t('nav.suppliers'), href: '/suppliers' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [

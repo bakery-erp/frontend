@@ -6,7 +6,7 @@
  * eliminating cognitive overload, confusion, and wrong product logging.
  */
 
-export type ProductionRole = 'OWNER' | 'ADMIN' | 'BAKER' | 'CAKE_WORKER' | 'SAMBUSA_WORKER' | 'CASHIER' | 'EMPLOYEE';
+export type ProductionRole = 'OWNER' | 'ADMIN' | 'BAKER' | 'CAKE_WORKER' | 'SAMBUSA_WORKER' | 'STOCK_KEEPER' | 'CASHIER' | 'EMPLOYEE';
 
 export interface CategoryLike {
   id?: string;

@@ -259,7 +259,7 @@ export default function ProductionPage() {
 
     try {
       await api.post("/production-batches", data);
-      toast.success("Production batch created & stock updated");
+      toast.success("Production batch created successfully");
       setIsAddOpen(false);
       setItems([]);
       setMaterials([]);
@@ -1113,7 +1113,7 @@ export default function ProductionPage() {
               {!isGlobalAdmin && (
                 <div className="mb-4 p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Your report will be sent to Admin/Owner for stock approval before inventory is deducted.</span>
+                  <span>Your report will be sent to Admin/Owner for approval.</span>
                 </div>
               )}
 

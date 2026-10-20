@@ -14,7 +14,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { 
   CreditCard, Coins, CheckCircle2, AlertCircle, History, 
-  Search, ArrowRightLeft, DollarSign, Package, Calendar, Clock, Receipt, UserCheck 
+  Search, ArrowRightLeft, DollarSign, Package, Calendar, Clock, Receipt, UserCheck,
+  MinusCircle, ShieldCheck, Check, X
 } from "lucide-react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -37,7 +38,16 @@ interface StockMovement {
   unitPrice?: number;
   totalValue?: number;
   type: "IN" | "OUT" | "ADJUSTMENT" | "PRODUCTION_USAGE";
+  status: "PENDING_CONFIRMATION" | "CONFIRMED" | "REJECTED";
   reason?: string;
+  receivedBy?: string;
+  confirmedAt?: string;
+  confirmedById?: string;
+  confirmedBy?: {
+    id: string;
+    fullName: string;
+    role?: string;
+  };
   createdAt: string;
   stockItem: {
     id: string;
@@ -48,6 +58,7 @@ interface StockMovement {
   user: {
     id: string;
     fullName: string;
+    role?: string;
   };
 }
 
@@ -101,16 +112,18 @@ export default function StockMovementsPage() {
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
+  const isStockKeeper = user?.role === "STOCK_KEEPER";
+  const isStockStaff = isGlobalAdmin || isStockKeeper;
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (user && !isGlobalAdmin) {
-      toast.error("Access Restricted: Stock movements are only available to Admin and Owner roles.");
+    if (user && !isStockStaff) {
+      toast.error("Access Restricted: Stock movements are only available to Stock Keeper, Admin, and Owner roles.");
       router.replace("/my-profile");
     }
-  }, [user, isGlobalAdmin, router]);
+  }, [user, isStockStaff, router]);
 
-  const [activeTab, setActiveTab] = useState<"movements" | "loans">("movements");
+  const [activeTab, setActiveTab] = useState<"movements" | "approvals" | "loans">("movements");
 
   // Tab auto-centering ref like in profile page
   const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
@@ -216,6 +229,99 @@ export default function StockMovementsPage() {
     });
   }, [loans, loanSearch]);
 
+  // Pending approvals list
+  const pendingApprovals = useMemo(() => {
+    return movements.filter((m) => m.status === "PENDING_CONFIRMATION");
+  }, [movements]);
+
+  // Stock items list for Issue Modal
+  const { data: stockItems = [] } = useQuery<StockItem[]>({
+    queryKey: ['stock-items-options', selectedBranchId],
+    queryFn: async () => {
+      const endpoint = selectedBranchId 
+        ? `/stock-items?branchId=${selectedBranchId}` 
+        : `/stock-items`;
+      const res = await api.get(endpoint);
+      return res.data || [];
+    },
+    enabled: isStockStaff,
+  });
+
+  // Issue Stock Modal State
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+  const [issueItemId, setIssueItemId] = useState("");
+  const [issueQty, setIssueQty] = useState("");
+  const [issueReceivedBy, setIssueReceivedBy] = useState("");
+  const [issueReason, setIssueReason] = useState("");
+  const [isSubmittingIssue, setIsSubmittingIssue] = useState(false);
+
+  // Approval handlers
+  const [isConfirmingId, setIsConfirmingId] = useState<string | null>(null);
+
+  const handleConfirmMovement = async (movementId: string) => {
+    setIsConfirmingId(movementId);
+    try {
+      await api.post(`/stock-movements/${movementId}/confirm`);
+      toast.success(t('stockMovements.toastApproveSuccess') || "Stock intake approved & added to inventory");
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to confirm stock intake");
+    } finally {
+      setIsConfirmingId(null);
+    }
+  };
+
+  const handleRejectMovement = async (movementId: string) => {
+    const reason = window.prompt("Reason for rejection (optional):") ?? "";
+    try {
+      await api.post(`/stock-movements/${movementId}/reject`, { reason });
+      toast.success(t('stockMovements.toastRejectSuccess') || "Stock intake rejected");
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to reject stock intake");
+    }
+  };
+
+  const handleIssueStock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!issueItemId) {
+      toast.error("Please select a stock item");
+      return;
+    }
+    const qty = parseFloat(issueQty);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error("Please enter a valid positive quantity");
+      return;
+    }
+    setIsSubmittingIssue(true);
+    try {
+      await api.post("/stock-movements", {
+        stockItemId: issueItemId,
+        quantity: qty,
+        type: "OUT",
+        receivedBy: issueReceivedBy.trim() || undefined,
+        reason: issueReason.trim() || "Material issued from store",
+      });
+      toast.success("Stock deduction recorded successfully");
+      setIsIssueModalOpen(false);
+      setIssueItemId("");
+      setIssueQty("");
+      setIssueReceivedBy("");
+      setIssueReason("");
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to issue stock");
+    } finally {
+      setIsSubmittingIssue(false);
+    }
+  };
+
 
 
   const handlePayLoanSubmit = async (e: React.FormEvent) => {
@@ -283,7 +389,45 @@ export default function StockMovementsPage() {
     }
   };
 
-  if (user && !isGlobalAdmin) {
+  const getMovementStatusBadge = (mov: StockMovement) => {
+    switch (mov.status) {
+      case "PENDING_CONFIRMATION":
+        return (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+              ⏳ {t('stockMovements.statusPending')}
+            </span>
+            {isStockStaff && (
+              <Button
+                size="sm"
+                onClick={() => handleConfirmMovement(mov.id)}
+                disabled={isConfirmingId === mov.id}
+                className="h-6 px-2 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-2xs"
+              >
+                {isConfirmingId === mov.id ? "..." : (t('stockMovements.btnApprove') || "Accept")}
+              </Button>
+            )}
+          </div>
+        );
+      case "CONFIRMED":
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1 w-fit">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            {t('stockMovements.statusConfirmed')}
+          </span>
+        );
+      case "REJECTED":
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-50 text-rose-800 border border-rose-200">
+            {t('stockMovements.statusRejected')}
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (user && !isStockStaff) {
     return null;
   }
 
@@ -293,6 +437,15 @@ export default function StockMovementsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10]">{t('stockMovements.title')}</h1>
           <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">{t('stockMovements.subtitle')}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setIsIssueModalOpen(true)}
+            className="h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-xs"
+          >
+            <MinusCircle className="w-4 h-4 shrink-0" />
+            <span>{t('stockMovements.issueStockBtn') || "+ Issue / Deduct Stock"}</span>
+          </Button>
         </div>
       </div>
 
@@ -316,6 +469,24 @@ export default function StockMovementsPage() {
           >
             <ArrowRightLeft className={`w-4 h-4 shrink-0 ${activeTab === "movements" ? "text-amber-300" : "text-[#E87A18]"}`} />
             <span>{t('stockMovements.movementsLedger')} ({movements.length})</span>
+          </button>
+
+          <button
+            ref={(el) => { tabRefs.current["approvals"] = el; }}
+            onClick={() => setActiveTab("approvals")}
+            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap outline-none ${
+              activeTab === "approvals"
+                ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
+                : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
+            }`}
+          >
+            <ShieldCheck className={`w-4 h-4 shrink-0 ${activeTab === "approvals" ? "text-amber-300" : "text-amber-600"}`} />
+            <span>{t('stockMovements.pendingApprovalsTab')}</span>
+            {pendingApprovals.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-bold animate-pulse">
+                {pendingApprovals.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -355,14 +526,15 @@ export default function StockMovementsPage() {
                     <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMaterial')}</TableHead>
                     <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMovementType')}</TableHead>
                     <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colQtyDelta')}</TableHead>
-                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colMonetaryDelta')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colStatus')}</TableHead>
+                    <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colReceivedBy')}</TableHead>
                     <TableHead className="font-extrabold text-[#2C1B10]">{t('stockMovements.colReason')}</TableHead>
                     <TableHead className="pr-6 font-extrabold text-[#2C1B10]">{t('stockMovements.colRecordedBy')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {movements.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
                   ) : movements.map(mov => {
                     const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
                     const val = Number(mov.totalValue ?? (Number(mov.quantity) * price));
@@ -386,10 +558,11 @@ export default function StockMovementsPage() {
                           </span>{" "}
                           <span className="text-xs text-[#8C7361] font-semibold">{mov.stockItem?.unitType}</span>
                         </TableCell>
-                        <TableCell className="font-extrabold text-xs">
-                          <span className={isNegative ? "text-rose-600" : "text-emerald-700"}>
-                            {isNegative ? "-" : "+"}{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
-                          </span>
+                        <TableCell>
+                          {getMovementStatusBadge(mov)}
+                        </TableCell>
+                        <TableCell className="text-xs font-semibold text-[#2C1B10]">
+                          {mov.receivedBy || "—"}
                         </TableCell>
                         <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={mov.reason || "—"}>
                           {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, t('stockMovements.typeProductionUsage')) : "—"}
@@ -898,6 +1071,176 @@ export default function StockMovementsPage() {
                 <Button onClick={() => setSelectedLoanForHistory(null)} className="w-full rounded-xl">{t('common.close')}</Button>
               </DialogFooter>
             </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* TAB 2: PENDING APPROVALS */}
+      {activeTab === "approvals" && (
+        <div className="space-y-4">
+          {pendingApprovals.length === 0 ? (
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-12 text-center shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-[#2C1B10] text-base">All Inward Deliveries Approved</h3>
+              <p className="text-xs text-[#8C7361] mt-1 max-w-md mx-auto">
+                No pending stock intakes awaiting confirmation. All materials added by management have been verified and added to warehouse inventory.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {pendingApprovals.map((mov) => {
+                const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
+                const totalVal = Number(mov.totalValue ?? (Number(mov.quantity) * price));
+
+                return (
+                  <div key={mov.id} className="bg-white border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
+                            Awaiting Acceptance
+                          </span>
+                          <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{mov.stockItem?.name}</h3>
+                          <p className="text-xs text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xl font-black text-emerald-700 font-mono">
+                            +{Number(mov.quantity).toFixed(2)}
+                          </span>
+                          <span className="text-xs text-[#8C7361] font-bold block">{mov.stockItem?.unitType}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 p-3 bg-[#FAF7EE] rounded-xl border border-[#EDE4D5] text-xs space-y-1.5">
+                        <div className="flex justify-between">
+                          <span className="text-[#8C7361]">Added By:</span>
+                          <span className="font-bold text-[#2C1B10]">{mov.user?.fullName} ({mov.user?.role})</span>
+                        </div>
+                        {price > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-[#8C7361]">Total Value:</span>
+                            <span className="font-bold text-[#2C1B10] font-mono">{totalVal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB</span>
+                          </div>
+                        )}
+                        {mov.reason && (
+                          <div className="flex justify-between pt-1 border-t border-[#EDE4D5]">
+                            <span className="text-[#8C7361]">Notes:</span>
+                            <span className="font-semibold text-zinc-700 italic">{mov.reason}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-zinc-100">
+                      <Button
+                        onClick={() => handleConfirmMovement(mov.id)}
+                        disabled={isConfirmingId === mov.id}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-10 text-xs flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Check className="w-4 h-4 shrink-0" />
+                        <span>{isConfirmingId === mov.id ? "Confirming..." : (t('stockMovements.btnApprove') || "Accept & Confirm Receipt")}</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleRejectMovement(mov.id)}
+                        className="px-3 rounded-xl h-10 border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold"
+                      >
+                        <X className="w-4 h-4 mr-1 shrink-0" />
+                        {t('stockMovements.btnReject')}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ISSUE / DEDUCT STOCK MODAL */}
+      {isIssueModalOpen && (
+        <Dialog open={true} onOpenChange={(open) => { if (!open) setIsIssueModalOpen(false); }}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <MinusCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                <span>Issue / Deduct Stock</span>
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleIssueStock} className="space-y-4 py-2">
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Select Raw Material *</label>
+                <select
+                  required
+                  value={issueItemId}
+                  onChange={(e) => setIssueItemId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-white text-xs font-semibold focus:ring-[#E87A18] focus:border-[#E87A18]"
+                >
+                  <option value="">-- Choose Stock Item --</option>
+                  {stockItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({Number(item.currentQuantity).toFixed(2)} {item.unitType} available)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Quantity to Issue *</label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  required
+                  min="0.001"
+                  value={issueQty}
+                  onChange={(e) => setIssueQty(e.target.value)}
+                  placeholder="0.00"
+                  className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Taken By / Department *</label>
+                <Input
+                  required
+                  value={issueReceivedBy}
+                  onChange={(e) => setIssueReceivedBy(e.target.value)}
+                  placeholder="e.g. Baker Dawit, Cake Shift 1, Sambusa Team"
+                  className="h-10 rounded-xl border-zinc-200 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.notes')}</label>
+                <Input
+                  value={issueReason}
+                  onChange={(e) => setIssueReason(e.target.value)}
+                  placeholder="e.g. Daily morning bread dough, special order"
+                  className="h-10 rounded-xl border-zinc-200 text-xs"
+                />
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmittingIssue}
+                  className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl"
+                >
+                  {isSubmittingIssue ? t('common.loading') : "Confirm Issuance"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsIssueModalOpen(false)}
+                  className="w-full sm:w-auto rounded-xl"
+                >
+                  {t('common.cancel')}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       )}
