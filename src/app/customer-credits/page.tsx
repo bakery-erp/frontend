@@ -388,16 +388,14 @@ export default function CustomerCreditsPage() {
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {canManage && (
             <>
-              {isAdminOrOwner && (
-                <Button
-                  onClick={() => setIsAddCustomerOpen(true)}
-                  variant="outline"
-                  size="sm"
-                  className="border-[#E87A18]/40 text-[#E87A18] hover:bg-amber-50"
-                >
-                  <UserPlus className="w-4 h-4" /> {t("credits.addNewCustomerBtn")}
-                </Button>
-              )}
+              <Button
+                onClick={() => setIsAddCustomerOpen(true)}
+                variant="outline"
+                size="sm"
+                className="border-[#E87A18]/40 text-[#E87A18] hover:bg-amber-50"
+              >
+                <UserPlus className="w-4 h-4" /> {t("credits.addNewCustomerBtn")}
+              </Button>
               <Button
                 onClick={() => router.push("/customer-credits/new")}
                 size="sm"
