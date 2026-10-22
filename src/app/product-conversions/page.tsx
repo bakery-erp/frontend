@@ -210,7 +210,7 @@ export default function ProductConversionsPage() {
         }
     };
 
-    const [filterTab, setFilterTab] = useState<"RECENT" | "ALL" | "HISTORY">("RECENT");
+    const [filterTab, setFilterTab] = useState<"TODAY" | "YESTERDAY">("TODAY");
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     useEffect(() => {
@@ -247,14 +247,12 @@ export default function ProductConversionsPage() {
         }
     };
 
-    const recentConversions = conversions.filter((c) => isToday(c.createdAt) || isYesterday(c.createdAt));
-    const historyConversions = conversions.filter((c) => !isToday(c.createdAt) && !isYesterday(c.createdAt));
+    const todayConversions = conversions.filter((c) => isToday(c.createdAt));
+    const yesterdayConversions = conversions.filter((c) => isYesterday(c.createdAt));
 
-    const displayedConversions = filterTab === "RECENT"
-        ? recentConversions
-        : filterTab === "HISTORY"
-        ? historyConversions
-        : conversions;
+    const displayedConversions = filterTab === "TODAY"
+        ? todayConversions
+        : yesterdayConversions;
 
     const selectedStock = fromProductId ? sessionStockSummary[fromProductId] : undefined;
     const maxAvailableForConversion = selectedStock ? selectedStock.maxAvailable : 0;
@@ -262,11 +260,9 @@ export default function ProductConversionsPage() {
 
     const emptyMessage = (isLoading || !pageData)
         ? t('conversions.loading')
-        : filterTab === "RECENT"
-        ? "No product conversions recorded today or yesterday yet. Click 'New Conversion' to log one."
-        : filterTab === "HISTORY"
-        ? "No past conversion records found in history."
-        : t('conversions.noConversions');
+        : filterTab === "TODAY"
+        ? "No product conversions recorded today yet. Click 'New Conversion' to log one."
+        : "No product conversions recorded yesterday.";
 
     return (
         <DashboardLayout>
@@ -288,7 +284,7 @@ export default function ProductConversionsPage() {
                 </div>
             </div>
 
-            {/* Filter Tabs: Recent, All, History (Available for all roles) */}
+            {/* Filter Tabs: Today and Yesterday */}
             <div className="relative mb-4 overflow-hidden">
                 <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
                 <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
@@ -298,39 +294,28 @@ export default function ProductConversionsPage() {
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     <button
-                        ref={(el) => { tabRefs.current["RECENT"] = el; }}
-                        onClick={() => setFilterTab("RECENT")}
-                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                            filterTab === "RECENT"
+                        ref={(el) => { tabRefs.current["TODAY"] = el; }}
+                        onClick={() => setFilterTab("TODAY")}
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                            filterTab === "TODAY"
                                 ? "bg-emerald-700 text-white shadow-xs"
                                 : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
                         }`}
                     >
                         <Clock className="w-3.5 h-3.5" />
-                        Recent Conversions (Today & Yesterday) ({recentConversions.length})
+                        Today ({todayConversions.length})
                     </button>
                     <button
-                        ref={(el) => { tabRefs.current["ALL"] = el; }}
-                        onClick={() => setFilterTab("ALL")}
-                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-                            filterTab === "ALL"
-                                ? "bg-[#2C1B10] text-white shadow-xs"
-                                : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
-                        }`}
-                    >
-                        {t('conversions.tabAll')} ({conversions.length})
-                    </button>
-                    <button
-                        ref={(el) => { tabRefs.current["HISTORY"] = el; }}
-                        onClick={() => setFilterTab("HISTORY")}
-                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                            filterTab === "HISTORY"
+                        ref={(el) => { tabRefs.current["YESTERDAY"] = el; }}
+                        onClick={() => setFilterTab("YESTERDAY")}
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                            filterTab === "YESTERDAY"
                                 ? "bg-amber-700 text-white shadow-xs"
                                 : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
                         }`}
                     >
                         <History className="w-3.5 h-3.5" />
-                        {t('conversions.tabHistory')} ({historyConversions.length})
+                        Yesterday ({yesterdayConversions.length})
                     </button>
                 </div>
             </div>
