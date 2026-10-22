@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useRouter } from 'next/navigation';
 import { ChefHat, ShoppingBag, Flame, Store, LogOut, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function MobileWorkspaceSelector() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -47,9 +48,12 @@ export default function MobileWorkspaceSelector() {
             <p className="text-xs text-zinc-400">{user.fullName} ({user.role})</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={logout} className="text-zinc-400 hover:text-white hover:bg-zinc-900">
-          <LogOut className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center space-x-2">
+          <NotificationBell />
+          <Button variant="ghost" size="icon" onClick={logout} className="text-zinc-400 hover:text-white hover:bg-zinc-900">
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Role Selection Cards */}

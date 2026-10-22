@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, ShoppingBag, Lock, Plus, Minus, DollarSign, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import NotificationBell from '@/components/NotificationBell';
 
 interface Product {
   id: string;
@@ -115,9 +116,12 @@ export default function MobileCashierStation() {
           </div>
         </div>
 
-        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-          {activeSession ? t("sessions.statusOpen") : 'Day Register Active'}
-        </span>
+        <div className="flex items-center space-x-2">
+          <NotificationBell />
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+            {activeSession ? t("sessions.statusOpen") : 'Day Register Active'}
+          </span>
+        </div>
       </div>
 
       {/* Main Content Area */}

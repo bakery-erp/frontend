@@ -228,70 +228,75 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu & Mobile Backdrop */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[85vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40">
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold text-gray-900 dark:text-white text-sm">
-                {t('notifications.title')}
-              </span>
-              {unreadCount > 0 && (
-                <span className="px-2 py-0.5 text-[11px] font-medium bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-full">
-                  {t('notifications.unreadBadge', { count: unreadCount })}
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] sm:hidden z-40"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="fixed inset-x-2.5 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 max-h-[82vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/50">
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-gray-900 dark:text-white text-sm">
+                  {t('notifications.title')}
                 </span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-1">
-              {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  disabled={isLoading}
-                  className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 font-medium px-2 py-1 rounded hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors flex items-center gap-1"
-                  title={t('notifications.markAllAsRead')}
-                >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">{t('notifications.markAllAsRead')}</span>
-                </button>
-              )}
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Web Push Prompt Banner */}
-          {pushStatus.isSupported && (
-            <div className="px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-b border-amber-100/70 dark:border-amber-900/30 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300">
-                  {pushStatus.isSubscribed
-                    ? t('notifications.pushEnabled')
-                    : t('notifications.enablePush')}
-                </span>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 text-[11px] font-bold bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-full">
+                    {t('notifications.unreadBadge', { count: unreadCount })}
+                  </span>
+                )}
               </div>
-              {!pushStatus.isSubscribed && pushStatus.permission !== 'denied' && (
+
+              <div className="flex items-center space-x-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    disabled={isLoading}
+                    className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 font-semibold px-2 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors flex items-center gap-1"
+                    title={t('notifications.markAllAsRead')}
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">{t('notifications.markAllAsRead')}</span>
+                  </button>
+                )}
                 <button
-                  onClick={handleEnablePush}
-                  disabled={isSubscribing}
-                  className="px-2.5 py-1 font-semibold text-white bg-amber-600 hover:bg-amber-700 active:scale-95 rounded-lg shadow-sm transition-all shrink-0"
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
-                  {isSubscribing ? '...' : t('common.confirm')}
+                  <X className="w-4 h-4" />
                 </button>
-              )}
-              {pushStatus.isSubscribed && (
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  <Check className="w-3.5 h-3.5" /> Active
-                </span>
-              )}
+              </div>
             </div>
-          )}
+
+            {/* Web Push Prompt Banner */}
+            {pushStatus.isSupported && (
+              <div className="px-3.5 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-b border-amber-100/80 dark:border-amber-900/40 flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Smartphone className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span className="text-gray-800 dark:text-gray-200 font-medium truncate">
+                    {pushStatus.isSubscribed
+                      ? t('notifications.pushEnabled')
+                      : t('notifications.enablePush')}
+                  </span>
+                </div>
+                {!pushStatus.isSubscribed && pushStatus.permission !== 'denied' && (
+                  <button
+                    onClick={handleEnablePush}
+                    disabled={isSubscribing}
+                    className="px-3 py-1 font-bold text-white bg-amber-600 hover:bg-amber-700 active:scale-95 rounded-xl shadow-sm transition-all shrink-0 text-xs"
+                  >
+                    {isSubscribing ? '...' : t('common.confirm')}
+                  </button>
+                )}
+                {pushStatus.isSubscribed && (
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <Check className="w-3.5 h-3.5" /> Active
+                  </span>
+                )}
+              </div>
+            )}
 
           {/* Notifications List */}
           <div className="overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800/60 max-h-[55vh] flex-1">
@@ -352,6 +357,7 @@ export default function NotificationBell() {
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

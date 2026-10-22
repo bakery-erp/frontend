@@ -1,11 +1,25 @@
 import axios from 'axios';
 
+function getInitialBaseUrl() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1' && window.location.port) {
+      return `${window.location.protocol}//${host}:3001/api`;
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+}
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  baseURL: getInitialBaseUrl(),
 });
 
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1' && window.location.port) {
+      config.baseURL = `${window.location.protocol}//${host}:3001/api`;
+    }
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

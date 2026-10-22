@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import NotificationBell from '@/components/NotificationBell';
 import { isProductAllowedForRole, getStationMeta } from '@/lib/roleProductMapping';
 
 interface Product {
@@ -232,6 +233,7 @@ export default function MobileBakerStation() {
         </div>
 
         <div className="flex items-center space-x-2">
+          <NotificationBell />
           <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
             TODAY • {selectedShift} SHIFT
           </span>
