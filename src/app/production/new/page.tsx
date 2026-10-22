@@ -183,7 +183,7 @@ function ProductionFormContent() {
       const todayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
       const batchDateYmd = batch.date ? new Date(batch.date).toISOString().slice(0, 10) : "";
       if (!isGlobalAdmin && batchDateYmd && batchDateYmd !== todayYmd) {
-        toast.error("Bakers can only edit batches created today. Past batches cannot be modified.");
+        toast.error(t("production.cantEditPastBatches") || "Bakers can only edit batches created today. Past batches cannot be modified.");
         router.push("/production");
         return;
       }
@@ -467,42 +467,36 @@ function ProductionFormContent() {
     <DashboardLayout>
       <div className="w-full max-w-6xl mx-auto space-y-4 xs:space-y-6 pb-28 md:pb-12 min-w-0 overflow-x-hidden">
         {/* Top Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 xs:gap-4 bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs">
-          <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3 bg-white px-4 py-3 xs:px-5 xs:py-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
+              size="icon"
               onClick={() => guardedAction(() => router.push("/production"))}
-              className="text-[#8C7361] hover:text-[#2C1B10] mb-1.5 p-0 h-auto flex items-center gap-1 font-bold text-xs"
+              className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 w-9 shadow-2xs cursor-pointer shrink-0"
+              title={t("production.backToProductionLog")}
             >
-              <ArrowLeft className="w-4 h-4" /> {t("production.backToProductionLog")}
+              <ArrowLeft className="w-4 h-4 text-[#E87A18]" />
             </Button>
-            <h1 className="text-lg xs:text-xl sm:text-2xl font-extrabold text-[#2C1B10] flex items-center gap-2">
-              {isEditMode ? (
-                <>
-                  <Edit3 className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> {t("production.editBatchTitleModal")}
-                </>
-              ) : (
-                <>
-                  <PackageCheck className="w-5 h-5 xs:w-6 xs:h-6 text-[#E87A18] shrink-0" /> {t("production.multiItemBatchTitle")}
-                </>
-              )}
-            </h1>
-            <p className="text-xs text-[#8C7361] mt-1 max-w-2xl">
-              {isEditMode
-                ? t("production.editBatchSubtitle")
-                : t("production.multiItemBatchSubtitle")}
-            </p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-black text-[#2C1B10] tracking-tight truncate flex items-center gap-2">
+                {isEditMode ? (
+                  <>
+                    <Edit3 className="w-4 h-4 text-[#E87A18] shrink-0" />
+                    <span>{t("production.editBatchTitleModal")}</span>
+                  </>
+                ) : (
+                  <>
+                    <PackageCheck className="w-4 h-4 text-[#E87A18] shrink-0" />
+                    <span>{t("production.multiItemBatchTitle")}</span>
+                  </>
+                )}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {!isGlobalAdmin && (
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold whitespace-nowrap border shadow-2xs ${stationMeta.badgeColor}`}>
-                <ChefHat className="w-3.5 h-3.5 shrink-0" />
-                {stationBadgeLabel}
-              </span>
-            )}
-            {isEditMode && originalBatchStatus && (
+          {isEditMode && originalBatchStatus && (
+            <div className="shrink-0">
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
                   originalBatchStatus === "PENDING_APPROVAL"
@@ -525,14 +519,8 @@ function ProductionFormContent() {
                   ? t("production.statusRejected")
                   : originalBatchStatus}
               </span>
-            )}
-            <span
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs bg-emerald-50 text-emerald-900 border-emerald-300"
-            >
-              <span className="w-2 h-2 rounded-full shrink-0 bg-emerald-500 animate-pulse" />
-              Day-Based Production
-            </span>
-          </div>
+            </div>
+          )}
         </div>
 
 
