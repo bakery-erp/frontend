@@ -134,7 +134,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
     },
   });
 
-  const canManage = user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const canManage = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'CASHIER';
 
   // Filter deliveries
   const filteredDeliveries = useMemo(() => {
@@ -359,7 +359,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {canManage && (
               <>
                 <Button
@@ -450,11 +450,45 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                   <p className="text-[#8C7361] mt-0.5 italic">{supplier.notes}</p>
                 </div>
               )}
+
+              {/* Compact Mobile Financial Summary (hidden on desktop, shown on mobile for clarity) */}
+              <div className="md:hidden pt-3 border-t border-[#EDE4D5] space-y-2">
+                <span className="text-[10px] uppercase font-bold text-[#8C7361] tracking-wider block">
+                  {language === 'am' ? 'የክፍያና ርክክብ ማጠቃለያ' : language === 'om' ? 'Cuunfaa Kaffaltii' : 'Financial Summary'}
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-[#FAF6F0] p-2 rounded-xl border border-[#EDE4D5]">
+                    <span className="text-[9px] font-bold text-[#8C7361] uppercase block truncate">{t('suppliers.totalReceipts')}</span>
+                    <p className="text-base font-black text-[#2C1B10] mt-0.5">{stats.totalDeliveries}</p>
+                    <span className="text-[9px] text-[#8C7361] font-semibold block">{stats.paidCount} {t('suppliers.paidBadge').toLowerCase()}</span>
+                  </div>
+
+                  <div className="bg-emerald-50/70 p-2 rounded-xl border border-emerald-200">
+                    <span className="text-[9px] font-bold text-emerald-800 uppercase block truncate">{t('suppliers.colPaidAmount')}</span>
+                    <p className="text-sm font-black text-emerald-700 mt-0.5 truncate">
+                      {stats.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 })}
+                    </p>
+                    <span className="text-[9px] text-emerald-600 font-semibold block">{t('common.currency')}</span>
+                  </div>
+
+                  <div className={`p-2 rounded-xl border ${stats.totalBalanceDue > 0 ? 'bg-amber-50 border-amber-300' : 'bg-[#FAF6F0] border-[#EDE4D5]'}`}>
+                    <span className={`text-[9px] font-bold uppercase block truncate ${stats.totalBalanceDue > 0 ? 'text-amber-800' : 'text-[#8C7361]'}`}>
+                      {language === 'am' ? 'ቀሪ' : language === 'om' ? 'Haftee' : 'Balance'}
+                    </span>
+                    <p className={`text-sm font-black mt-0.5 truncate ${stats.totalBalanceDue > 0 ? 'text-amber-800' : 'text-[#2C1B10]'}`}>
+                      {stats.totalBalanceDue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 })}
+                    </p>
+                    <span className={`text-[9px] font-bold block ${stats.totalBalanceDue > 0 ? 'text-amber-700' : 'text-[#8C7361]'}`}>
+                      {stats.totalBalanceDue > 0 ? `${stats.pendingCount + stats.partialCount} due` : 'Settled ✓'}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 3 Financial KPI Cards */}
-          <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* 3 Financial KPI Cards (Visible on desktop, hidden on mobile) */}
+          <div className="hidden md:grid lg:col-span-3 grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Total Receipts */}
             <div className="bg-white p-4 rounded-2xl border border-[#EDE4D5] shadow-xs flex items-center justify-between">
               <div>
@@ -519,45 +553,47 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
             </h2>
 
             {/* Status Filter Tabs */}
-            <div className="flex items-center gap-1 bg-[#F4ECE1] p-1 rounded-xl border border-[#EDE4D5]">
-              {(['ALL', 'UNPAID', 'PARTIAL', 'PAID'] as const).map((tab) => {
-                const count =
-                  tab === 'ALL'
-                    ? supplier.deliveries.length
-                    : tab === 'UNPAID'
-                    ? stats.pendingCount
-                    : tab === 'PARTIAL'
-                    ? stats.partialCount
-                    : stats.paidCount;
+            <div className="w-full sm:w-auto overflow-x-auto scrollbar-none pb-0.5 sm:pb-0">
+              <div className="inline-flex items-center gap-1.5 bg-[#F4ECE1] p-1 rounded-xl border border-[#EDE4D5] min-w-max">
+                {(['ALL', 'UNPAID', 'PARTIAL', 'PAID'] as const).map((tab) => {
+                  const count =
+                    tab === 'ALL'
+                      ? supplier.deliveries.length
+                      : tab === 'UNPAID'
+                      ? stats.pendingCount
+                      : tab === 'PARTIAL'
+                      ? stats.partialCount
+                      : stats.paidCount;
 
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setStatusFilter(tab)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      statusFilter === tab
-                        ? 'bg-[#E87A18] text-white shadow-2xs'
-                        : 'text-[#8C7361] hover:text-[#4A2E1B]'
-                    }`}
-                  >
-                    <span>
-                      {tab === 'ALL'
-                        ? t('common.all') || 'All'
-                        : tab === 'UNPAID'
-                        ? t('suppliers.unpaidBadge')
-                        : tab === 'PARTIAL'
-                        ? t('suppliers.partialBadge')
-                        : t('suppliers.paidBadge')}
-                    </span>
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      statusFilter === tab ? 'bg-white/25 text-white' : 'bg-[#E0D5C3] text-[#4A2E1B]'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setStatusFilter(tab)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+                        statusFilter === tab
+                          ? 'bg-[#E87A18] text-white shadow-2xs'
+                          : 'text-[#8C7361] hover:text-[#4A2E1B]'
+                      }`}
+                    >
+                      <span>
+                        {tab === 'ALL'
+                          ? t('common.all') || 'All'
+                          : tab === 'UNPAID'
+                          ? t('suppliers.unpaidBadge')
+                          : tab === 'PARTIAL'
+                          ? t('suppliers.partialBadge')
+                          : t('suppliers.paidBadge')}
+                      </span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                        statusFilter === tab ? 'bg-white/25 text-white' : 'bg-[#E0D5C3] text-[#4A2E1B]'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

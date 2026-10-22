@@ -89,7 +89,7 @@ export default function SuppliersPage() {
     }
   }, [user, router]);
 
-  const canManage = user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const canManage = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'CASHIER';
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'deliveries' | 'suppliers'>('deliveries');
@@ -359,7 +359,7 @@ export default function SuppliersPage() {
         </div>
 
         {/* Action Buttons: Dedicated page navigation (NO popup!) */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canManage && (
             <Button onClick={() => setIsAddSupplierOpen(true)} variant="outline" size="default" className="rounded-xl font-bold">
               + {t('suppliers.newSupplier')}
