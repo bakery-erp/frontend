@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -797,7 +798,18 @@ export default function CustomerCreditsPage() {
 
                               {/* Customer & Contact Column */}
                               <TableCell className="max-w-[170px]">
-                                <div className="font-extrabold text-[#2C1B10] text-sm leading-tight truncate">{parsed.name}</div>
+                                {c.customer?.id ? (
+                                  <Link
+                                    href={`/customers/${c.customer.id}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="font-extrabold text-[#2C1B10] text-sm leading-tight truncate hover:text-[#E87A18] hover:underline block"
+                                    title="View Customer Profile & Ledger"
+                                  >
+                                    {parsed.name}
+                                  </Link>
+                                ) : (
+                                  <div className="font-extrabold text-[#2C1B10] text-sm leading-tight truncate">{parsed.name}</div>
+                                )}
                                 {parsed.phone && (
                                   <div className="text-xs text-[#8C7361] font-medium mt-0.5 flex items-center gap-1">
                                     📞 {parsed.phone}
@@ -1051,7 +1063,17 @@ export default function CustomerCreditsPage() {
                           </div>
 
                           <div>
-                            <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{parsed.name}</h3>
+                            {c.customer?.id ? (
+                              <Link
+                                href={`/customers/${c.customer.id}`}
+                                className="font-extrabold text-[#2C1B10] text-base leading-tight hover:text-[#E87A18] hover:underline block"
+                                title="View Customer Profile & Ledger"
+                              >
+                                {parsed.name}
+                              </Link>
+                            ) : (
+                              <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{parsed.name}</h3>
+                            )}
                             {parsed.phone && (
                               <a
                                 href={`tel:${parsed.phone}`}
@@ -1293,7 +1315,13 @@ export default function CustomerCreditsPage() {
                           return (
                             <TableRow key={c.id}>
                               <TableCell>
-                                <span className="font-extrabold text-[#2C1B10] text-sm block">{c.fullName}</span>
+                                <Link
+                                  href={`/customers/${c.id}`}
+                                  className="font-extrabold text-[#2C1B10] text-sm block hover:text-[#E87A18] hover:underline"
+                                  title="View Customer Profile & Ledger"
+                                >
+                                  {c.fullName}
+                                </Link>
                                 {c.notes && (
                                   <span className="text-[11px] text-[#8C7361] italic block truncate max-w-[200px]">
                                     {c.notes}
@@ -1329,17 +1357,29 @@ export default function CustomerCreditsPage() {
                                 </span>
                               </TableCell>
                               <TableCell className="text-right pr-4">
-                                {canManage && (
+                                <div className="flex items-center justify-end gap-1.5">
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => openEditCustomer(c)}
+                                    onClick={() => router.push(`/customers/${c.id}`)}
                                     className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs"
+                                    title="View Customer Profile & Ledger"
                                   >
-                                    <Pencil className="w-3.5 h-3.5 mr-1 text-[#E87A18]" />
-                                    {t("common.edit") || "Edit"}
+                                    <Eye className="w-3.5 h-3.5 mr-1 text-[#E87A18]" />
+                                    Ledger
                                   </Button>
-                                )}
+                                  {canManage && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openEditCustomer(c)}
+                                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl shadow-2xs"
+                                      title="Edit Customer"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -1372,7 +1412,13 @@ export default function CustomerCreditsPage() {
                         <div key={c.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-3">
                           <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2">
                             <div>
-                              <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{c.fullName}</h3>
+                              <Link
+                                href={`/customers/${c.id}`}
+                                className="font-extrabold text-[#2C1B10] text-base leading-tight hover:text-[#E87A18] hover:underline block"
+                                title="View Customer Profile & Ledger"
+                              >
+                                {c.fullName}
+                              </Link>
                               <a
                                 href={`tel:${c.phone}`}
                                 className="inline-flex items-center gap-1 text-xs text-[#E87A18] font-bold mt-0.5 hover:underline"
@@ -1391,6 +1437,15 @@ export default function CustomerCreditsPage() {
                               >
                                 {rem > 0.01 ? `${rem.toFixed(2)} ETB` : "Settled"}
                               </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => router.push(`/customers/${c.id}`)}
+                                className="h-7 w-7 p-0 rounded-lg border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
+                                title="View Customer Profile & Ledger"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                              </Button>
                               {canManage && (
                                 <Button
                                   size="sm"
@@ -1399,7 +1454,7 @@ export default function CustomerCreditsPage() {
                                   className="h-7 w-7 p-0 rounded-lg border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
                                   title="Edit Customer"
                                 >
-                                  <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
+                                  <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
                                 </Button>
                               )}
                             </div>

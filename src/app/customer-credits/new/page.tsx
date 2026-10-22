@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -62,8 +62,10 @@ interface CustomerRecord {
   totalCredits: number;
 }
 
-export default function NewCustomerCreditPage() {
+function NewCustomerCreditFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const customerIdFromQuery = searchParams.get("customerId");
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
@@ -105,14 +107,34 @@ export default function NewCustomerCreditPage() {
       ]);
 
       // Customers
-      const custList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
-      setCustomers(custList);
-      if (custList.length > 0) {
+      let custList: CustomerRecord[] = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
+      if (customerIdFromQuery) {
+        const found = custList.find((c: CustomerRecord) => c.id === customerIdFromQuery);
+        if (found) {
+          setSelectedCustomerId(customerIdFromQuery);
+          setCustomerMode("EXISTING");
+        } else {
+          try {
+            const singleCustRes = await api.get(`/customers/${customerIdFromQuery}`);
+            if (singleCustRes.data) {
+              custList = [singleCustRes.data, ...custList];
+              setSelectedCustomerId(customerIdFromQuery);
+              setCustomerMode("EXISTING");
+            }
+          } catch {
+            if (custList.length > 0) {
+              setSelectedCustomerId(custList[0].id);
+              setCustomerMode("EXISTING");
+            }
+          }
+        }
+      } else if (custList.length > 0) {
         setSelectedCustomerId(custList[0].id);
         setCustomerMode("EXISTING");
       } else {
         setCustomerMode("NEW");
       }
+      setCustomers(custList);
 
       // Products & Session
       const data = sessionRes.data;
@@ -850,5 +872,21 @@ export default function NewCustomerCreditPage() {
         }}
       />
     </DashboardLayout>
+  );
+}
+
+export default function NewCustomerCreditPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout>
+          <div className="max-w-4xl mx-auto py-12 text-center text-sm font-medium text-[#8C7361]">
+            Loading credit form...
+          </div>
+        </DashboardLayout>
+      }
+    >
+      <NewCustomerCreditFormContent />
+    </Suspense>
   );
 }

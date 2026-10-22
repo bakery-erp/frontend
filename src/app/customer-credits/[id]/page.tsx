@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -427,7 +428,17 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               </span>
               <div className="flex items-center gap-2 text-[#2C1B10] font-extrabold text-base sm:text-lg min-w-0">
                 <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#E87A18] shrink-0" />
-                <span className="truncate">{parsed.name}</span>
+                {credit.customer?.id ? (
+                  <Link
+                    href={`/customers/${credit.customer.id}`}
+                    className="hover:text-[#E87A18] hover:underline transition-colors truncate"
+                    title="View Customer Profile & Ledger"
+                  >
+                    {parsed.name}
+                  </Link>
+                ) : (
+                  <span className="truncate">{parsed.name}</span>
+                )}
               </div>
               {parsed.phone && (
                 <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B]">
@@ -441,6 +452,17 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                 <div className="flex items-center gap-2 text-xs font-medium text-[#8C7361]">
                   <MapPin className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
                   <span>{parsed.address}</span>
+                </div>
+              )}
+              {credit.customer?.id && (
+                <div className="pt-1">
+                  <Link
+                    href={`/customers/${credit.customer.id}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E87A18] hover:underline bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]"
+                  >
+                    <User className="w-3 h-3" />
+                    Customer Profile & Full Ledger →
+                  </Link>
                 </div>
               )}
             </div>
