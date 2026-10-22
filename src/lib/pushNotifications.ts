@@ -98,6 +98,56 @@ export async function subscribeToPushNotifications(): Promise<{ success: boolean
   }
 }
 
+export async function syncPushSubscription(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('Notification' in window)) {
+    return false;
+  }
+  if (Notification.permission !== 'granted') {
+    return false;
+  }
+  try {
+    const registration = await registerServiceWorker();
+    if (!registration) return false;
+
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      const vapidKey = await getVapidPublicKey();
+      if (!vapidKey) return false;
+      const convertedKey = urlBase64ToUint8Array(vapidKey);
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey,
+      });
+    }
+
+    if (subscription) {
+      await api.post('/notifications/subscribe', {
+        subscription: subscription.toJSON(),
+      });
+      return true;
+    }
+  } catch (err) {
+    console.warn('[Push] Auto-sync error:', err);
+  }
+  return false;
+}
+
+export async function unsubscribePush(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return false;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) {
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await api.post('/notifications/unsubscribe', { endpoint: sub.endpoint }).catch(() => {});
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function getPushSubscriptionState(): Promise<{
   isSupported: boolean;
   permission: NotificationPermission | 'unsupported';

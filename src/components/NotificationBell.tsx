@@ -23,7 +23,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { 
   getPushSubscriptionState, 
   subscribeToPushNotifications, 
-  registerServiceWorker 
+  registerServiceWorker,
+  syncPushSubscription
 } from '../lib/pushNotifications';
 
 interface NotificationItem {
@@ -60,10 +61,12 @@ export default function NotificationBell() {
   const knownIdsRef = useRef<Set<string>>(new Set());
   const initialLoadDoneRef = useRef(false);
 
-  // Load push status and register service worker on mount
+  // Load push status, register service worker, and auto-sync subscription on mount
   useEffect(() => {
     registerServiceWorker().catch(() => {});
-    getPushSubscriptionState().then(setPushStatus).catch(() => {});
+    syncPushSubscription()
+      .then(() => getPushSubscriptionState().then(setPushStatus).catch(() => {}))
+      .catch(() => getPushSubscriptionState().then(setPushStatus).catch(() => {}));
   }, []);
 
   const fetchNotifications = async () => {
@@ -128,13 +131,29 @@ export default function NotificationBell() {
   useEffect(() => {
     fetchNotifications();
 
-    const handleFocus = () => fetchNotifications();
-    window.addEventListener('focus', handleFocus);
+    const handleFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchNotifications();
+      }
+    };
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
 
-    // Poll every 15 seconds to keep notifications fresh
-    const interval = setInterval(fetchNotifications, 15000);
+    // Fast polling: 4s when tab is active/visible, 20s when in background
+    let interval: NodeJS.Timeout;
+    const startPolling = () => {
+      clearInterval(interval);
+      const isVisible = typeof document !== 'undefined' && document.visibilityState === 'visible';
+      interval = setInterval(fetchNotifications, isVisible ? 4000 : 20000);
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', startPolling);
+
     return () => {
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', startPolling);
       clearInterval(interval);
     };
   }, []);

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/axios';
+import { syncPushSubscription, unsubscribePush } from '@/lib/pushNotifications';
 
 export interface AuthUser {
   id: string;
@@ -69,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const { data } = await api.get<AuthUser>('/auth/me');
           setUser(data);
           localStorage.setItem('erp_user', JSON.stringify(data));
+          syncPushSubscription().catch(() => {});
         } catch (error) {
           localStorage.removeItem('token');
           localStorage.removeItem('erp_user');
@@ -100,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('erp_user', JSON.stringify(data.user));
     } catch {}
     setUser(data.user);
+    syncPushSubscription().catch(() => {});
     if (typeof window !== 'undefined') {
       window.scrollTo(0, 0);
     }
@@ -118,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      await unsubscribePush().catch(() => {});
       if (localStorage.getItem('token')) {
         await api.post('/auth/logout');
       }

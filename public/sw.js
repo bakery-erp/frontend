@@ -1,4 +1,4 @@
-const CACHE_NAME = 'koket-erp-v2';
+const CACHE_NAME = 'koket-erp-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -89,8 +89,8 @@ self.addEventListener('push', function (event) {
       link: payload.link || '/dashboard',
       timestamp: payload.timestamp || Date.now(),
     },
-    vibrate: [250, 100, 250],
-    tag: payload.type ? `${payload.type}-${Date.now()}` : 'bakery-notification',
+    vibrate: [300, 100, 300, 100, 300],
+    tag: payload.id || `${payload.type || 'alert'}-${Date.now()}`,
     renotify: true,
     requireInteraction: true,
   };
