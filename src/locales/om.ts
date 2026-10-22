@@ -1627,6 +1627,14 @@ export const om: TranslationDictionary = {
     passwordResetRequestedTitle: "Gaaffii Jecha Icchitii Haaromsuu",
     passwordResetRequestedBody: "{employeeName} ({phone}) jechi icciitii akka haaromfamu gaafateera.",
   },
+  pwa: {
+    installApp: "Appii Fe'i",
+    installDesc: "Koket ERP bilbila keessan irratti fe'uun tajaajila saffisaa fi salphaa argadhaa.",
+    installBtn: "Fe'i",
+    laterBtn: "Booda",
+    iosTitle: "iPhone / iPad irratti fe'uuf",
+    iosInstructions: "Mallattoo Share jala jiru tuqaa, itti aansuun 'Add to Home Screen' filadhaa.",
+  },
   languages: {
     en: "English",
     am: "አማርኛ",

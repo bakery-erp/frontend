@@ -1625,6 +1625,14 @@ export const en = {
     passwordResetRequestedTitle: "Password Reset Request",
     passwordResetRequestedBody: "{employeeName} ({phone}) requested a password reset.",
   },
+  pwa: {
+    installApp: "Install App",
+    installDesc: "Install Koket ERP on your home screen for quick access and full-screen experience.",
+    installBtn: "Install",
+    laterBtn: "Later",
+    iosTitle: "Install on iPhone / iPad",
+    iosInstructions: "Tap the Share button below, then scroll and select 'Add to Home Screen'.",
+  },
   languages: {
     en: "English",
     am: "አማርኛ",

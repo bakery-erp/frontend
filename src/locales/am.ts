@@ -1627,6 +1627,14 @@ export const am: TranslationDictionary = {
     passwordResetRequestedTitle: "የይለፍ ቃል መቀየሪያ ጥያቄ",
     passwordResetRequestedBody: "{employeeName} ({phone}) የይለፍ ቃል ዳግም እንዲጀመር ጠይቋል።",
   },
+  pwa: {
+    installApp: "መተግበሪያውን ጫን",
+    installDesc: "Koket ERPን በስልክዎ ላይ በቀጥታ በመጫን ፈጣን እና ምቹ አገልግሎት ያግኙ።",
+    installBtn: "ጫን",
+    laterBtn: "ይቆየኝ",
+    iosTitle: "በ iPhone / iPad ላይ ለመጫን",
+    iosInstructions: "ከታች ያለውን Share ምልክት ይጫኑ፣ ከዚያም 'Add to Home Screen' የሚለውን ይምረጡ።",
+  },
   languages: {
     en: "English",
     am: "አማርኛ",
