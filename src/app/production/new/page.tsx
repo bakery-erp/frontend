@@ -80,7 +80,6 @@ function ProductionFormContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showModalBreakdown, setShowModalBreakdown] = useState(false);
-  const [originalBatchStatus, setOriginalBatchStatus] = useState<string | null>(null);
 
   // Form Header State
   const [date, setDate] = useState<string>(
@@ -188,7 +187,6 @@ function ProductionFormContent() {
         return;
       }
 
-      setOriginalBatchStatus(batch.status);
       if (batch.date) {
         setDate(new Date(batch.date).toISOString().slice(0, 10));
       }
@@ -494,33 +492,6 @@ function ProductionFormContent() {
               </h1>
             </div>
           </div>
-
-          {isEditMode && originalBatchStatus && (
-            <div className="shrink-0">
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-2xs ${
-                  originalBatchStatus === "PENDING_APPROVAL"
-                    ? "bg-amber-50 text-amber-900 border-amber-300"
-                    : originalBatchStatus === "COMPLETED"
-                    ? "bg-emerald-50 text-emerald-900 border-emerald-300"
-                    : originalBatchStatus === "REJECTED"
-                    ? "bg-rose-50 text-rose-900 border-rose-300"
-                    : "bg-zinc-100 text-zinc-800 border-zinc-200"
-                }`}
-              >
-                {originalBatchStatus === "PENDING_APPROVAL" && <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
-                {originalBatchStatus === "COMPLETED" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
-                {originalBatchStatus === "REJECTED" && <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
-                {originalBatchStatus === "PENDING_APPROVAL"
-                  ? t("production.statusPendingApproval")
-                  : originalBatchStatus === "COMPLETED"
-                  ? t("production.statusCompleted")
-                  : originalBatchStatus === "REJECTED"
-                  ? t("production.statusRejected")
-                  : originalBatchStatus}
-              </span>
-            </div>
-          )}
         </div>
 
 
