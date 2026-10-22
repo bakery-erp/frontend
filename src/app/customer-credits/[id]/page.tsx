@@ -65,6 +65,16 @@ interface CustomerCredit {
   payments: CreditPayment[];
 }
 
+function extractCleanNotes(rawDesc?: string | null): string {
+  if (!rawDesc) return "";
+  let clean = rawDesc;
+  clean = clean.replace(/\[Products:\s*.*?\]/gi, "").trim();
+  clean = clean.replace(/\[CreditItems:\s*\[.*?\]\s*\]/gi, "").trim();
+  clean = clean.replace(/^[\s\-–—]+|[\s\-–—]+$/g, "").trim();
+  clean = clean.replace(/^[^|]+(?:\s*\|\s*[^|]+)?\s*\|\s*/, "").trim();
+  return clean;
+}
+
 function parseCustomerCreditStatement(
   rawDesc?: string | null,
   rawEntity?: string | null,
@@ -214,7 +224,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     setEditCreditAmount(String(credit.amount ?? credit.totalAmount ?? ""));
     setEditCreditDate((credit.date || credit.createdAt || "").slice(0, 10));
     setEditCreditDueDate((credit as any).dueDate ? String((credit as any).dueDate).slice(0, 10) : "");
-    setEditCreditDescription(credit.description || "");
+    setEditCreditDescription(extractCleanNotes(credit.description));
     setIsEditCreditOpen(true);
   };
 
@@ -240,12 +250,20 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
 
     setIsSubmittingEditCredit(true);
     try {
+      let finalDescription = editCreditDescription.trim();
+      const prodMatch = (credit.description || "").match(/\[Products:\s*.*?\]/);
+      const itemsMatch = (credit.description || "").match(/\[CreditItems:\s*\[.*?\]\s*\]/);
+      const tags = [prodMatch?.[0], itemsMatch?.[0]].filter(Boolean).join(" ");
+      if (tags) {
+        finalDescription = finalDescription ? `${tags} - ${finalDescription}` : tags;
+      }
+
       await api.patch(`/customers/credits/${credit.id}`, {
         customerId: editCreditCustomerId || undefined,
         amount: amtNum,
         date: editCreditDate || undefined,
         dueDate: editCreditDueDate || null,
-        description: editCreditDescription.trim() || null,
+        description: finalDescription || null,
       });
 
       toast.success(t("credits.toastCreditUpdated") || "Customer credit updated successfully!");
@@ -372,7 +390,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
             {canManage && (
               <Button
                 variant="outline"
-                onClick={openEditCredit}
+                onClick={() => router.push(`/customer-credits/new?edit=${credit.id}`)}
                 className="w-full sm:w-auto border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
               >
                 <Pencil className="w-4 h-4 text-[#E87A18]" /> {t("credits.editCreditBtn") || "Edit Credit"}

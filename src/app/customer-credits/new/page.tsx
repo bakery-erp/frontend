@@ -25,6 +25,7 @@ import {
   MapPin,
   Phone,
   Search,
+  Pencil,
 } from "lucide-react";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import { useQueryClient } from "@tanstack/react-query";
@@ -62,10 +63,24 @@ interface CustomerRecord {
   totalCredits: number;
 }
 
+function extractCleanNotes(rawDesc?: string | null): string {
+  if (!rawDesc) return "";
+  let clean = rawDesc;
+  clean = clean.replace(/\[Products:\s*.*?\]/gi, "").trim();
+  clean = clean.replace(/\[CreditItems:\s*\[.*?\]\s*\]/gi, "").trim();
+  clean = clean.replace(/^[\s\-–—]+|[\s\-–—]+$/g, "").trim();
+  clean = clean.replace(/^[^|]+(?:\s*\|\s*[^|]+)?\s*\|\s*/, "").trim();
+  return clean;
+}
+
 function NewCustomerCreditFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const customerIdFromQuery = searchParams.get("customerId");
+  const editCreditId = searchParams.get("edit");
+  const isEditMode = Boolean(editCreditId);
+  const [originalCredit, setOriginalCredit] = useState<any>(null);
+
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
@@ -159,9 +174,56 @@ function NewCustomerCreditFormContent() {
         setCreditDate(data.sessionDate);
       }
       setProducts(prods);
-      if (prods.length > 0) {
+
+      // Default line item if not in edit mode
+      if (!editCreditId && prods.length > 0) {
         const firstInStock = prods.find((p) => p.availableStock > 0) || prods[0];
         setLineItems([{ productId: firstInStock.id, quantity: "", unitPrice: Number(firstInStock.basePrice || 0) }]);
+      }
+
+      // If in edit mode, fetch the credit transaction to populate line items and customer
+      if (editCreditId) {
+        try {
+          const editRes = await api.get(`/customers/credits/${editCreditId}`);
+          const cData = editRes.data;
+          if (cData) {
+            setOriginalCredit(cData);
+            if (cData.customer) {
+              if (!custList.some((c) => c.id === cData.customer.id)) {
+                custList = [cData.customer, ...custList];
+                setCustomers(custList);
+              }
+              setSelectedCustomerId(cData.customer.id);
+              setCustomerMode("EXISTING");
+            } else if (cData.customerId) {
+              setSelectedCustomerId(cData.customerId);
+              setCustomerMode("EXISTING");
+            }
+
+            if (cData.date) {
+              setCreditDate(format(new Date(cData.date), "yyyy-MM-dd"));
+            }
+            setNotes(extractCleanNotes(cData.description));
+
+            const creditItemsMatch = (cData.description || "").match(/\[CreditItems:\s*(\[.*?\])\s*\]/);
+            if (creditItemsMatch) {
+              try {
+                const parsed = JSON.parse(creditItemsMatch[1]);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  setLineItems(
+                    parsed.map((it: any) => ({
+                      productId: it.productId,
+                      quantity: it.quantity,
+                      unitPrice: Number(it.unitPrice),
+                    }))
+                  );
+                }
+              } catch {}
+            }
+          }
+        } catch (e: any) {
+          toast.error("Failed to load credit details for editing");
+        }
       }
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to load initial data");
@@ -328,31 +390,49 @@ function NewCustomerCreditFormContent() {
 
     setIsSubmitting(true);
     try {
-      await api.post("/customers/credits", {
-        customerId: customerMode === "EXISTING" ? selectedCustomerId : undefined,
-        newCustomer:
-          customerMode === "NEW"
-            ? {
-                fullName: newCustomerName.trim(),
-                phone: newCustomerPhone.trim(),
-                address: newCustomerAddress.trim() || undefined,
-              }
-            : undefined,
-        branchId: selectedBranchId || undefined,
-        amount: effectiveTotalBirr,
-        date: creditDate,
-        items: itemsPayload,
-        description: notes.trim() || undefined,
-      });
+      if (isEditMode) {
+        await api.patch(`/customers/credits/${editCreditId}`, {
+          customerId: customerMode === "EXISTING" ? selectedCustomerId : undefined,
+          amount: effectiveTotalBirr,
+          date: creditDate,
+          description: notes.trim() || undefined,
+          items: itemsPayload,
+        });
 
-      toast.success(t("credits.toastCreditLogged"));
-      queryClient.invalidateQueries({ queryKey: ["customer-credits-page"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-credits"] });
-      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      router.push("/customer-credits");
+        toast.success(t("credits.toastCreditUpdated") || "Customer credit updated successfully!");
+        queryClient.invalidateQueries({ queryKey: ["customer-credits-page-credits"] });
+        queryClient.invalidateQueries({ queryKey: ["customer-credits-page-customers"] });
+        queryClient.invalidateQueries({ queryKey: ["customer-credits"] });
+        queryClient.invalidateQueries({ queryKey: ["customer-detail"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        router.push("/customer-credits");
+      } else {
+        await api.post("/customers/credits", {
+          customerId: customerMode === "EXISTING" ? selectedCustomerId : undefined,
+          newCustomer:
+            customerMode === "NEW"
+              ? {
+                  fullName: newCustomerName.trim(),
+                  phone: newCustomerPhone.trim(),
+                  address: newCustomerAddress.trim() || undefined,
+                }
+              : undefined,
+          branchId: selectedBranchId || undefined,
+          amount: effectiveTotalBirr,
+          date: creditDate,
+          items: itemsPayload,
+          description: notes.trim() || undefined,
+        });
+
+        toast.success(t("credits.toastCreditLogged"));
+        queryClient.invalidateQueries({ queryKey: ["customer-credits-page"] });
+        queryClient.invalidateQueries({ queryKey: ["customer-credits"] });
+        queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        router.push("/customer-credits");
+      }
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to log customer credit");
+      toast.error(e.response?.data?.error || (isEditMode ? "Failed to update customer credit" : "Failed to log customer credit"));
       console.error(e);
     } finally {
       setIsSubmitting(false);
@@ -363,7 +443,7 @@ function NewCustomerCreditFormContent() {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6 pb-12">
         {/* Header & Navigation */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Button
             variant="ghost"
             onClick={handleCancelClick}
@@ -378,13 +458,31 @@ function NewCustomerCreditFormContent() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-[#2C1B10] tracking-tight">
-                {t("credits.newCredit")}
+                {isEditMode ? (t("credits.editCreditBtn") || "Edit Customer Credit Sale") : t("credits.newCredit")}
               </h1>
               <p className="text-xs sm:text-sm text-[#8C7361] mt-0.5">
-                {t("credits.subtitle")}
+                {isEditMode
+                  ? "Adjust products, quantities, prices, or customer details for this transaction."
+                  : t("credits.subtitle")}
               </p>
             </div>
           </div>
+
+          {/* Edit Mode Context Banner */}
+          {isEditMode && originalCredit && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-950 font-medium animate-in fade-in duration-150">
+              <div className="flex items-center gap-2.5">
+                <Pencil className="w-4 h-4 text-[#E87A18] shrink-0" />
+                <span>
+                  Editing credit for <strong>{originalCredit.customer?.fullName || "Customer"}</strong>{" "}
+                  ({originalCredit.date ? format(new Date(originalCredit.date), "MMM d, yyyy") : "Recorded Credit"})
+                </span>
+              </div>
+              <span className="font-mono font-bold bg-white text-amber-900 px-2.5 py-1 rounded-xl border border-amber-300 self-start sm:self-auto">
+                Original Total: {Number(originalCredit.amount || 0).toFixed(2)} ETB
+              </span>
+            </div>
+          )}
         </div>
 
 
@@ -857,7 +955,7 @@ function NewCustomerCreditFormContent() {
               className="w-full sm:w-auto"
             >
               <Check className="w-4 h-4" />
-              {t("credits.newCredit")}
+              {isEditMode ? (t("common.save") || "Save Changes") : t("credits.newCredit")}
             </Button>
           </div>
         </form>
