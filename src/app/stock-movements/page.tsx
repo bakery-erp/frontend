@@ -536,7 +536,7 @@ export default function StockMovementsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs">
                 <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-                <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider">Date:</span>
+                <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.date')}:</span>
                 <input
                   type="date"
                   value={dateFilter}
@@ -569,7 +569,7 @@ export default function StockMovementsPage() {
                     : "border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE]"
                 }`}
               >
-                Today
+                {t('stockMovements.today')}
               </Button>
 
               {dateFilter && (
@@ -580,7 +580,7 @@ export default function StockMovementsPage() {
                   onClick={() => setDateFilter("")}
                   className="h-8 px-2 text-xs text-[#8C7361] hover:text-[#2C1B10]"
                 >
-                  Show All Dates
+                  {t('stockMovements.showAllDates')}
                 </Button>
               )}
             </div>
@@ -588,7 +588,7 @@ export default function StockMovementsPage() {
             <div className="relative w-full sm:w-64">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7361]" />
               <Input
-                placeholder="Search material, recipient..."
+                placeholder={t('stockMovements.searchMovementsPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-9 pl-8 text-xs rounded-xl border-[#EDE4D5] bg-[#FAF7EE]/50"
@@ -720,6 +720,13 @@ export default function StockMovementsPage() {
                           </div>
                         )}
                       </div>
+
+                      {mov.receivedBy && (
+                        <div className="flex items-center gap-1.5 text-xs bg-amber-50/80 text-amber-900 border border-amber-200/60 rounded-lg px-2 py-1 w-fit">
+                          <span className="text-[10px] uppercase font-bold text-[#8C7361]">{t('stockMovements.colReceivedBy')}:</span>
+                          <span className="font-extrabold text-[#2C1B10]">{mov.receivedBy}</span>
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
                         <span>{t('stockMovements.colRecordedBy')}: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
@@ -1202,9 +1209,9 @@ export default function StockMovementsPage() {
               <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h3 className="font-extrabold text-[#2C1B10] text-base">All Inward Deliveries Approved</h3>
+              <h3 className="font-extrabold text-[#2C1B10] text-base">{t('stockMovements.allInwardApprovedTitle')}</h3>
               <p className="text-xs text-[#8C7361] mt-1 max-w-md mx-auto">
-                No pending stock intakes awaiting confirmation. All materials added by management have been verified and added to warehouse inventory.
+                {t('stockMovements.allInwardApprovedDesc')}
               </p>
             </div>
           ) : (
@@ -1219,7 +1226,7 @@ export default function StockMovementsPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
-                            Awaiting Acceptance
+                            {t('stockMovements.awaitingAcceptance')}
                           </span>
                           <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{mov.stockItem?.name}</h3>
                           <p className="text-xs text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</p>
@@ -1234,18 +1241,18 @@ export default function StockMovementsPage() {
 
                       <div className="mt-3 p-3 bg-[#FAF7EE] rounded-xl border border-[#EDE4D5] text-xs space-y-1.5">
                         <div className="flex justify-between">
-                          <span className="text-[#8C7361]">Added By:</span>
+                          <span className="text-[#8C7361]">{t('stockMovements.addedBy')}:</span>
                           <span className="font-bold text-[#2C1B10]">{mov.user?.fullName} ({mov.user?.role})</span>
                         </div>
                         {isOwner && price > 0 && (
                           <div className="flex justify-between">
-                            <span className="text-[#8C7361]">Total Value:</span>
-                            <span className="font-bold text-[#2C1B10] font-mono">{totalVal.toLocaleString(undefined, { minimumFractionDigits: 2 })} ETB</span>
+                            <span className="text-[#8C7361]">{t('stockMovements.totalValue')}:</span>
+                            <span className="font-bold text-[#2C1B10] font-mono">{totalVal.toLocaleString(undefined, { minimumFractionDigits: 2 })} {t('common.currency')}</span>
                           </div>
                         )}
                         {mov.reason && (
                           <div className="flex justify-between pt-1 border-t border-[#EDE4D5]">
-                            <span className="text-[#8C7361]">Notes:</span>
+                            <span className="text-[#8C7361]">{t('common.notes')}:</span>
                             <span className="font-semibold text-zinc-700 italic">{mov.reason}</span>
                           </div>
                         )}
@@ -1259,7 +1266,7 @@ export default function StockMovementsPage() {
                         className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-10 text-xs flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <Check className="w-4 h-4 shrink-0" />
-                        <span>{isConfirmingId === mov.id ? "Confirming..." : (t('stockMovements.btnApprove') || "Accept & Confirm Receipt")}</span>
+                        <span>{isConfirmingId === mov.id ? t('stockMovements.confirming') : t('stockMovements.confirmReceiptBtn')}</span>
                       </Button>
                       <Button
                         type="button"
