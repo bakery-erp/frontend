@@ -250,13 +250,11 @@ export default function ProductConversionsPage() {
     const recentConversions = conversions.filter((c) => isToday(c.createdAt) || isYesterday(c.createdAt));
     const historyConversions = conversions.filter((c) => !isToday(c.createdAt) && !isYesterday(c.createdAt));
 
-    const displayedConversions = isGlobalAdmin
-        ? (filterTab === "RECENT"
-            ? recentConversions
-            : filterTab === "HISTORY"
-            ? historyConversions
-            : conversions)
-        : recentConversions;
+    const displayedConversions = filterTab === "RECENT"
+        ? recentConversions
+        : filterTab === "HISTORY"
+        ? historyConversions
+        : conversions;
 
     const selectedStock = fromProductId ? sessionStockSummary[fromProductId] : undefined;
     const maxAvailableForConversion = selectedStock ? selectedStock.maxAvailable : 0;
@@ -290,93 +288,52 @@ export default function ProductConversionsPage() {
                 </div>
             </div>
 
-            {/* Filter Tabs: Recent, All, History (Admin & Owner only) */}
-            {isGlobalAdmin && (
-                <div className="relative mb-4 overflow-hidden">
-                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
-                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+            {/* Filter Tabs: Recent, All, History (Available for all roles) */}
+            <div className="relative mb-4 overflow-hidden">
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#FAF7EE] to-transparent z-10 sm:hidden" />
 
-                    <div
-                        className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5"
-                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                <div
+                    className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2.5rem] px-0.5"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                    <button
+                        ref={(el) => { tabRefs.current["RECENT"] = el; }}
+                        onClick={() => setFilterTab("RECENT")}
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                            filterTab === "RECENT"
+                                ? "bg-emerald-700 text-white shadow-xs"
+                                : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                        }`}
                     >
-                        <button
-                            ref={(el) => { tabRefs.current["RECENT"] = el; }}
-                            onClick={() => setFilterTab("RECENT")}
-                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                                filterTab === "RECENT"
-                                    ? "bg-emerald-700 text-white shadow-xs"
-                                    : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-                            }`}
-                        >
-                            <Clock className="w-3.5 h-3.5" />
-                            Recent Conversions (Today & Yesterday) ({recentConversions.length})
-                        </button>
-                        <button
-                            ref={(el) => { tabRefs.current["ALL"] = el; }}
-                            onClick={() => setFilterTab("ALL")}
-                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-                                filterTab === "ALL"
-                                    ? "bg-[#2C1B10] text-white shadow-xs"
-                                    : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
-                            }`}
-                        >
-                            {t('conversions.tabAll')} ({conversions.length})
-                        </button>
-                        <button
-                            ref={(el) => { tabRefs.current["HISTORY"] = el; }}
-                            onClick={() => setFilterTab("HISTORY")}
-                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                                filterTab === "HISTORY"
-                                    ? "bg-amber-700 text-white shadow-xs"
-                                    : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
-                            }`}
-                        >
-                            <History className="w-3.5 h-3.5" />
-                            {t('conversions.tabHistory')} ({historyConversions.length})
-                        </button>
-                    </div>
+                        <Clock className="w-3.5 h-3.5" />
+                        Recent Conversions (Today & Yesterday) ({recentConversions.length})
+                    </button>
+                    <button
+                        ref={(el) => { tabRefs.current["ALL"] = el; }}
+                        onClick={() => setFilterTab("ALL")}
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                            filterTab === "ALL"
+                                ? "bg-[#2C1B10] text-white shadow-xs"
+                                : "text-[#8C7361] hover:bg-[#FAF6F0] border border-[#EDE4D5]"
+                        }`}
+                    >
+                        {t('conversions.tabAll')} ({conversions.length})
+                    </button>
+                    <button
+                        ref={(el) => { tabRefs.current["HISTORY"] = el; }}
+                        onClick={() => setFilterTab("HISTORY")}
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                            filterTab === "HISTORY"
+                                ? "bg-amber-700 text-white shadow-xs"
+                                : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+                        }`}
+                    >
+                        <History className="w-3.5 h-3.5" />
+                        {t('conversions.tabHistory')} ({historyConversions.length})
+                    </button>
                 </div>
-            )}
-
-            {/* Section Indicator */}
-            {isGlobalAdmin ? (
-                <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                        {filterTab === "RECENT" ? (
-                            <>
-                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                    Recent Conversions (Today & Yesterday) ({recentConversions.length})
-                                </h2>
-                            </>
-                        ) : filterTab === "HISTORY" ? (
-                            <>
-                                <History className="w-4 h-4 text-amber-700" />
-                                <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                    {t('conversions.tabHistory')} ({historyConversions.length})
-                                </h2>
-                            </>
-                        ) : (
-                            <>
-                                <ArrowRightLeft className="w-4 h-4 text-[#E87A18]" />
-                                <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                    {t('conversions.tabAll')} ({conversions.length})
-                                </h2>
-                            </>
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-emerald-700" />
-                        <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                            Recent Conversions (Today & Yesterday)
-                        </h2>
-                    </div>
-                </div>
-            )}
+            </div>
 
             {/* History: Desktop Table & Mobile Cards */}
             <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
