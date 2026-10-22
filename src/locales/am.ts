@@ -1592,6 +1592,8 @@ export const am: TranslationDictionary = {
     dailyCloseApprovedBody: "ለ {branchName} ({date}) የቀረበው የዕለት መዝጊያ ሪፖርት በማኔጅመንት ተገምግሞ ጸድቋል።",
 
     // Stock & Inventory
+    stockOutwardTitle: "ጥሬ ዕቃ ከስቶክ ወጥቷል",
+    stockOutwardBody: "{takenBy} {quantity} {unit} \"{itemName}\" ወስዷል ({reason})። ቀሪ: {remaining} {unit}።",
     lowStockTitle: "የዕቃ እጥረት ማስጠንቀቂያ",
     lowStockBody: "የጥሬ ዕቃ \"{itemName}\" ዝቅተኛ ደረጃ ላይ ደርሷል (ቀሪ: {quantity} {unit}፣ አነስተኛ: {minLevel})።",
     outOfStockTitle: "ዕቃው ሙሉ በሙሉ አልቋል",
@@ -1599,7 +1601,7 @@ export const am: TranslationDictionary = {
     stockPurchaseLoanTitle: "በብድር የተገዛ ጥሬ ዕቃ",
     stockPurchaseLoanBody: "የ \"{itemName}\" አዲስ የብድር ግዢ ከ {supplierName} በ {amount} ብር ተመዝግቧል።",
     stockInwardTitle: "አዲስ የገባ ጥሬ ዕቃ",
-    stockInwardBody: "ለ \"{itemName}\" አዲስ የገባ {quantity} {unit} ጥሬ ዕቃ ተመዝግቧል። እባክዎ ዕቃውን አይተው ያረጋግጡ።",
+    stockInwardBody: "{addedBy} {quantity} {unit} \"{itemName}\" አስገብቷል። እባክዎ ዕቃውን አይተው ያረጋግጡ።",
     stockConfirmedTitle: "የገባ ጥሬ ዕቃ ተረጋግጧል",
     stockConfirmedBody: "{confirmedBy} የ {quantity} {unit} \"{itemName}\" ገቢ መሆኑን አረጋግጧል።",
 

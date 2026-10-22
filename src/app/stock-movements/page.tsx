@@ -15,7 +15,7 @@ import { formatEthDate } from "@/lib/ethiopianDate";
 import { 
   CreditCard, Coins, CheckCircle2, AlertCircle, History, 
   Search, ArrowRightLeft, DollarSign, Package, Calendar, Clock, Receipt, UserCheck,
-  MinusCircle, ShieldCheck, Check, X, ChevronLeft, ChevronRight
+  MinusCircle, ShieldCheck, Check, X, ChevronLeft, ChevronRight, Loader2
 } from "lucide-react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -279,7 +279,11 @@ export default function StockMovementsPage() {
   const filteredLoans = loans;
 
   // Pending approvals list from server
-  const { data: pendingApprovals = [] } = useQuery<StockMovement[]>({
+  const { 
+    data: pendingApprovals = [], 
+    isFetching: isFetchingPending, 
+    refetch: refetchPending 
+  } = useQuery<StockMovement[]>({
     queryKey: ['stock-movements-pending', selectedBranchId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
@@ -326,9 +330,20 @@ export default function StockMovementsPage() {
     try {
       await api.post(`/stock-movements/${movementId}/confirm`);
       toast.success(t('stockMovements.toastApproveSuccess') || "Stock intake approved & added to inventory");
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
+
+      // Optimistically remove card from UI immediately
+      queryClient.setQueryData<StockMovement[]>(['stock-movements-pending', selectedBranchId], (old) => {
+        return (old || []).filter((m) => m.id !== movementId);
+      });
+
+      // Force refresh of pending cards and related stock tables
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['stock-movements-pending'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-items'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-summary'] }),
+      ]);
+      await refetchPending();
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to confirm stock intake");
     } finally {
@@ -341,9 +356,20 @@ export default function StockMovementsPage() {
     try {
       await api.post(`/stock-movements/${movementId}/reject`, { reason });
       toast.success(t('stockMovements.toastRejectSuccess') || "Stock intake rejected");
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-items'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
+
+      // Optimistically remove card from UI immediately
+      queryClient.setQueryData<StockMovement[]>(['stock-movements-pending', selectedBranchId], (old) => {
+        return (old || []).filter((m) => m.id !== movementId);
+      });
+
+      // Force refresh
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['stock-movements-pending'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-items'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-summary'] }),
+      ]);
+      await refetchPending();
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to reject stock intake");
     }
@@ -1204,7 +1230,12 @@ export default function StockMovementsPage() {
       {/* TAB 2: PENDING APPROVALS */}
       {activeTab === "approvals" && (
         <div className="space-y-4">
-          {pendingApprovals.length === 0 ? (
+          {isFetchingPending && pendingApprovals.length === 0 ? (
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-12 text-center shadow-xs">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-amber-600 mb-2" />
+              <p className="text-xs text-[#8C7361]">{t('common.loading') || 'Loading approvals...'}</p>
+            </div>
+          ) : pendingApprovals.length === 0 ? (
             <div className="bg-white border border-[#EDE4D5] rounded-2xl p-12 text-center shadow-xs">
               <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 className="w-6 h-6" />

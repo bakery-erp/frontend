@@ -1590,6 +1590,8 @@ export const en = {
     dailyCloseApprovedBody: "Daily session report for {branchName} ({date}) has been reviewed and approved by management.",
 
     // Stock & Inventory
+    stockOutwardTitle: "Material Taken from Stock",
+    stockOutwardBody: "{takenBy} took {quantity} {unit} of \"{itemName}\" ({reason}). Remaining: {remaining} {unit}.",
     lowStockTitle: "Low Stock Alert",
     lowStockBody: "Raw material \"{itemName}\" has reached low stock ({quantity} {unit} remaining, minimum: {minLevel}).",
     outOfStockTitle: "Out of Stock Critical Alert",
@@ -1597,7 +1599,7 @@ export const en = {
     stockPurchaseLoanTitle: "Stock Purchased on Credit",
     stockPurchaseLoanBody: "New credit purchase of \"{itemName}\" logged from {supplierName} for {amount} ETB.",
     stockInwardTitle: "Inward Stock Added",
-    stockInwardBody: "New inward stock added for \"{itemName}\" ({quantity} {unit}). Please inspect and confirm receipt.",
+    stockInwardBody: "{addedBy} added {quantity} {unit} of \"{itemName}\". Please inspect and confirm receipt.",
     stockConfirmedTitle: "Inward Stock Confirmed",
     stockConfirmedBody: "{confirmedBy} verified and confirmed receipt of {quantity} {unit} of \"{itemName}\".",
 

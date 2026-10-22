@@ -89,12 +89,24 @@ self.addEventListener('push', function (event) {
       link: payload.link || '/dashboard',
       timestamp: payload.timestamp || Date.now(),
     },
-    vibrate: [200, 100, 200],
+    vibrate: [250, 100, 250],
     tag: payload.type ? `${payload.type}-${Date.now()}` : 'bakery-notification',
     renotify: true,
+    requireInteraction: true,
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options).then(() => {
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        for (const client of clientList) {
+          client.postMessage({
+            type: 'PUSH_NOTIFICATION_RECEIVED',
+            payload: { title, body, ...payload }
+          });
+        }
+      });
+    })
+  );
 });
 
 // Notification Click event listener

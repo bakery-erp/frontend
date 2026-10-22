@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { api } from '@/lib/axios';
+import { toast } from 'sonner';
 import { useLanguage } from '../context/LanguageContext';
 import { 
   getPushSubscriptionState, 
@@ -56,6 +57,8 @@ export default function NotificationBell() {
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testSent, setTestSent] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  const initialLoadDoneRef = useRef(false);
 
   // Load push status and register service worker on mount
   useEffect(() => {
@@ -67,13 +70,60 @@ export default function NotificationBell() {
     try {
       const res = await api.get('/notifications?limit=25');
       if (res.data) {
-        setNotifications(res.data.items || []);
+        const items: NotificationItem[] = res.data.items || [];
+        setNotifications(items);
         setUnreadCount(res.data.unreadCount || 0);
+
+        if (!initialLoadDoneRef.current) {
+          items.forEach((item) => knownIdsRef.current.add(item.id));
+          initialLoadDoneRef.current = true;
+        } else {
+          // Find newly arrived unread notifications and pop up immediate toast
+          const newUnreads = items.filter((item) => !item.isRead && !knownIdsRef.current.has(item.id));
+          for (const item of newUnreads) {
+            knownIdsRef.current.add(item.id);
+            const title = t(item.titleKey, item.variables);
+            const body = t(item.bodyKey, item.variables);
+
+            toast(title, {
+              description: body,
+              duration: 8000,
+              icon: item.type.includes('OUT') || item.type.includes('LOW') ? '⚠️' : '🔔',
+              action: item.link ? {
+                label: t('common.view') || 'View',
+                onClick: () => {
+                  if (item.link) router.push(item.link);
+                },
+              } : undefined,
+            });
+
+            if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+              try {
+                navigator.vibrate([150, 75, 150]);
+              } catch {}
+            }
+          }
+        }
       }
     } catch (err) {
       // Silently ignore if not logged in or network error
     }
   };
+
+  // Listen to service worker push events for immediate popup
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const handleSwMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'PUSH_NOTIFICATION_RECEIVED') {
+          fetchNotifications();
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     fetchNotifications();

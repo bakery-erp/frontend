@@ -1592,6 +1592,8 @@ export const om: TranslationDictionary = {
     dailyCloseApprovedBody: "Gabaasni cufiinsa herrega guyyaa {branchName} ({date}) hoggansaan sakatta'amee mirkanaa'eera.",
 
     // Stock & Inventory
+    stockOutwardTitle: "Meeshaan Kuusaa Irraa Baafame",
+    stockOutwardBody: "{takenBy} meeshaa \"{itemName}\" {quantity} {unit} fudhateera ({reason}). Hafe: {remaining} {unit}.",
     lowStockTitle: "Akeekkachiisa Hir'ina Meeshaa",
     lowStockBody: "Meeshaan dheedhii \"{itemName}\" sadarkaa gadi aanaa irra ga'eera (hafe: {quantity} {unit}, kan xiqqaate: {minLevel}).",
     outOfStockTitle: "Akeekkachiisa Meeshaan Dhumachuu",
@@ -1599,7 +1601,7 @@ export const om: TranslationDictionary = {
     stockPurchaseLoanTitle: "Meeshaa Dheedhii Liqiin Bitame",
     stockPurchaseLoanBody: "Bittaa liqii haaraa \"{itemName}\" dhiyeessaa {supplierName} irraa qarshii {amount} galmaa'eera.",
     stockInwardTitle: "Meeshaan Dheedhii Haaraan Galeera",
-    stockInwardBody: "Meeshaan \"{itemName}\" baay'inni {quantity} {unit} haaraan galmaa'eera. Maaloo qulqullina isaa ilaaluun mirkaneessaa.",
+    stockInwardBody: "{addedBy} meeshaa \"{itemName}\" {quantity} {unit} haaraan galcheera. Maaloo qulqullina isaa ilaaluun mirkaneessaa.",
     stockConfirmedTitle: "Meeshaan Dheedhii Mirkanaa'eera",
     stockConfirmedBody: "{confirmedBy} meeshaa \"{itemName}\" baay'inni {quantity} {unit} galuu isaa mirkaneesseera.",
 
