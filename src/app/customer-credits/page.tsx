@@ -22,7 +22,6 @@ import {
   CreditCard,
   DollarSign,
   Trash2,
-  RefreshCw,
   ShoppingBag,
   Eye,
   AlertTriangle,
@@ -38,6 +37,9 @@ import {
   UserPlus,
   MoreVertical,
   ChevronRight,
+  Calendar,
+  Loader2,
+  X,
 } from "lucide-react";
 
 interface CreditPayment {
@@ -162,9 +164,10 @@ export default function CustomerCreditsPage() {
   // Active Main Tab: "CREDITS" vs "CUSTOMERS"
   const [activeMainTab, setActiveMainTab] = useState<"CREDITS" | "CUSTOMERS">("CREDITS");
 
-  // Credit Filter Pills
-  type CreditFilterTab = "ALL" | "OPEN" | "PAID" | "TODAY";
+  // Credit Filter Pills & Date Filter
+  type CreditFilterTab = "ALL" | "OPEN" | "PAID";
   const [filterTab, setFilterTab] = useState<CreditFilterTab>("ALL");
+  const [dateFilter, setDateFilter] = useState<string>("");
   const activeFilterRef = useRef<HTMLButtonElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [creditPage, setCreditPage] = useState(1);
@@ -216,11 +219,10 @@ export default function CustomerCreditsPage() {
     }
   }, [filterTab]);
 
-  const { data: creditsResponse, isLoading: isLoadingCredits } = useQuery({
-    queryKey: ['customer-credits-page-credits', selectedBranchId, filterTab, searchQuery, creditPage],
+  const { data: creditsResponse, isLoading: isLoadingCredits, isFetching: isFetchingCredits } = useQuery({
+    queryKey: ['customer-credits-page-credits', selectedBranchId, filterTab, dateFilter, searchQuery, creditPage],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const todayYmd = new Date().toISOString().slice(0, 10);
       const params: any = {
         page: creditPage,
         limit: 15,
@@ -228,9 +230,8 @@ export default function CustomerCreditsPage() {
       if (selectedBranchId) params.branchId = selectedBranchId;
       if (filterTab === 'OPEN') params.status = 'OPEN';
       if (filterTab === 'PAID') params.status = 'PAID';
-      if (filterTab === 'TODAY') {
-        params.from = todayYmd;
-        params.to = todayYmd;
+      if (dateFilter) {
+        params.date = dateFilter;
       }
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
@@ -385,27 +386,18 @@ export default function CustomerCreditsPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <Button
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
-              queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
-            }}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> {t("common.refresh")}
-          </Button>
-
           {canManage && (
             <>
-              <Button
-                onClick={() => setIsAddCustomerOpen(true)}
-                variant="outline"
-                size="sm"
-                className="border-[#E87A18]/40 text-[#E87A18] hover:bg-amber-50"
-              >
-                <UserPlus className="w-4 h-4" /> {t("credits.addNewCustomerBtn")}
-              </Button>
+              {isAdminOrOwner && (
+                <Button
+                  onClick={() => setIsAddCustomerOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="border-[#E87A18]/40 text-[#E87A18] hover:bg-amber-50"
+                >
+                  <UserPlus className="w-4 h-4" /> {t("credits.addNewCustomerBtn")}
+                </Button>
+              )}
               <Button
                 onClick={() => router.push("/customer-credits/new")}
                 size="sm"
@@ -472,70 +464,141 @@ export default function CustomerCreditsPage() {
       {/* TAB 1: CREDIT SALES VIEW */}
       {activeMainTab === "CREDITS" && (
         <>
-          {/* Filter Bar with Horizontal Auto-Centering Tabs */}
-          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            {(() => {
-              const todayYmd = new Date().toISOString().slice(0, 10);
-              const filterPills = [
-                { id: "ALL", label: t("credits.filterAll") || "All Credits", count: stats?.counts?.all ?? creditTotal },
-                {
-                  id: "OPEN",
-                  label: t("credits.statusOpen") || "Open / Unpaid",
-                  count: stats?.counts?.open ?? credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length,
-                },
-                {
-                  id: "PAID",
-                  label: t("credits.statusPaid") || "Fully Paid",
-                  count: stats?.counts?.paid ?? credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length,
-                },
-                {
-                  id: "TODAY",
-                  label: `📅 ${t("credits.filterToday") || "Today"}`,
-                  count: credits.filter((c) => (c.date || c.createdAt || "").slice(0, 10) === todayYmd).length,
-                },
-              ];
+          {/* Filter Bar with Status Tabs, Calendar Date Filter, and Search */}
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
+              {/* Status Pills */}
+              {(() => {
+                const filterPills = [
+                  { id: "ALL", label: t("credits.filterAll") || "All Credits", count: stats?.counts?.all ?? creditTotal },
+                  {
+                    id: "OPEN",
+                    label: t("credits.statusOpen") || "Open / Unpaid",
+                    count: stats?.counts?.open ?? credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length,
+                  },
+                  {
+                    id: "PAID",
+                    label: t("credits.statusPaid") || "Fully Paid",
+                    count: stats?.counts?.paid ?? credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length,
+                  },
+                ];
 
-              return (
-                <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
-                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+                return (
+                  <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
 
-                  <div
-                    className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-0.5 max-w-full"
-                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                  >
-                    {filterPills.map((pill) => {
-                      const isActive = filterTab === pill.id;
-                      return (
-                        <button
-                          key={pill.id}
-                          ref={isActive ? activeFilterRef : null}
-                          type="button"
-                          onClick={() => {
-                            setFilterTab(pill.id as CreditFilterTab);
-                            setCreditPage(1);
-                          }}
-                          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
-                            isActive
-                              ? "bg-[#4A2E1B] text-white shadow-xs ring-2 ring-[#4A2E1B]/20"
-                              : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
-                          }`}
-                        >
-                          <span>{pill.label}</span>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                              isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                    <div
+                      className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5 max-w-full"
+                      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                    >
+                      {filterPills.map((pill) => {
+                        const isActive = filterTab === pill.id;
+                        return (
+                          <button
+                            key={pill.id}
+                            ref={isActive ? activeFilterRef : null}
+                            type="button"
+                            onClick={() => {
+                              setFilterTab(pill.id as CreditFilterTab);
+                              setCreditPage(1);
+                            }}
+                            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
+                              isActive
+                                ? "bg-[#4A2E1B] text-white shadow-xs ring-2 ring-[#4A2E1B]/20"
+                                : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
                             }`}
                           >
-                            {pill.count}
-                          </span>
-                        </button>
-                      );
-                    })}
+                            <span>{pill.label}</span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                                isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                              }`}
+                            >
+                              {pill.count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+                );
+              })()}
+
+              {/* Date Filter & Quick Today */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
+                  {isFetchingCredits && !isLoadingCredits ? (
+                    <Loader2 className="w-3.5 h-3.5 text-[#E87A18] animate-spin shrink-0" />
+                  ) : (
+                    <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                  )}
+                  <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider hidden sm:inline">
+                    {t('stockMovements.date') || "Date"}:
+                  </span>
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => {
+                      setDateFilter(e.target.value);
+                      setCreditPage(1);
+                    }}
+                    className="text-xs font-semibold text-[#2C1B10] bg-transparent outline-none cursor-pointer"
+                  />
+                  {dateFilter && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDateFilter("");
+                        setCreditPage(1);
+                      }}
+                      className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white"
+                      title="Clear date filter"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-              );
-            })()}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isFetchingCredits && !isLoadingCredits}
+                  onClick={() => {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    setDateFilter(dateFilter === todayStr ? "" : todayStr);
+                    setCreditPage(1);
+                  }}
+                  className={`h-8 px-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
+                    dateFilter === new Date().toISOString().slice(0, 10)
+                      ? "bg-[#4A2E1B] text-white border-[#4A2E1B]"
+                      : "border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE]"
+                  }`}
+                >
+                  {isFetchingCredits && !isLoadingCredits && dateFilter === new Date().toISOString().slice(0, 10) && (
+                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                  )}
+                  <span>{t('stockMovements.today') || "Today"}</span>
+                </Button>
+
+                {dateFilter && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isFetchingCredits && !isLoadingCredits}
+                    onClick={() => {
+                      setDateFilter("");
+                      setCreditPage(1);
+                    }}
+                    className="h-8 px-2 text-xs text-[#8C7361] hover:text-[#2C1B10]"
+                  >
+                    {t('stockMovements.showAllDates') || "Show All Dates"}
+                  </Button>
+                )}
+              </div>
+            </div>
 
             <Input
               placeholder={t("credits.searchPlaceholder")}
@@ -544,20 +607,19 @@ export default function CustomerCreditsPage() {
                 setSearchQuery(e.target.value);
                 setCreditPage(1);
               }}
-              className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
+              className="w-full lg:w-64 rounded-xl border-zinc-200 text-xs h-9 shrink-0"
             />
           </div>
 
           {/* Credit Data: Desktop Table & Mobile Cards */}
           {(() => {
-            const todayYmd = new Date().toISOString().slice(0, 10);
             const filteredCredits = credits.filter((c) => {
               const isPaid = c.status === "PAID" || Number(c.remainingBalance) <= 0.01;
               const creditDate = (c.date || c.createdAt || "").slice(0, 10);
 
               if (filterTab === "OPEN" && isPaid) return false;
               if (filterTab === "PAID" && !isPaid) return false;
-              if (filterTab === "TODAY" && creditDate !== todayYmd) return false;
+              if (dateFilter && creditDate !== dateFilter) return false;
 
               if (searchQuery) {
                 const q = searchQuery.toLowerCase();
