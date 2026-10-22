@@ -448,7 +448,7 @@ function ProductionFormContent() {
 
   const totalProductsSelectedCount = Object.keys(selectedProducts).length;
   const totalMaterialsSelectedCount = Object.keys(selectedMaterials).length;
-  const isDirty = totalProductsSelectedCount > 0 || totalMaterialsSelectedCount > 0;
+  const isDirty = (totalProductsSelectedCount > 0 || totalMaterialsSelectedCount > 0) && !isSubmitting;
   const { showDiscardModal, guardedAction, confirmDiscard, cancelDiscard } = useUnsavedChanges({ isDirty });
 
   if (isLoading) {
