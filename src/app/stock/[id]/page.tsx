@@ -30,6 +30,7 @@ import {
   Layers,
   Calendar,
   X,
+  Loader2,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -135,7 +136,7 @@ export default function StockItemDetailPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(15);
 
-  const { data, isLoading } = useQuery<HistoryData>({
+  const { data, isLoading, isFetching } = useQuery<HistoryData>({
     queryKey: ['stock-item-history', itemId, currentPage, pageSize, filterType, dateFilter],
     placeholderData: (prev) => prev,
     staleTime: 60 * 1000,
@@ -423,20 +424,23 @@ export default function StockItemDetailPage() {
       {/* Top Header & Action Bar */}
       <div className="mb-6 space-y-4">
         {/* Navigation row with Back & Actions */}
-        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3 pb-3 border-b border-[#EDE4D5]">
+        <div className="flex items-center justify-between gap-2.5 pb-3 border-b border-[#EDE4D5]">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Link href="/stock">
+            <Link href="/stock" className="inline-flex items-center gap-2 group">
               <Button
                 variant="outline"
                 size="icon"
-                className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 w-9 shadow-2xs shrink-0 cursor-pointer"
+                className="border-[#EDE4D5] bg-white text-[#4A2E1B] group-hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 w-9 shadow-2xs shrink-0 cursor-pointer"
                 title={t("stock.backToStockInventory")}
               >
                 <ArrowLeft className="w-4 h-4 text-[#E87A18]" />
               </Button>
+              <span className="hidden xs:inline sm:hidden text-xs font-bold text-[#8C7361] group-hover:text-[#2C1B10]">
+                {t('common.back') || 'Back'}
+              </span>
             </Link>
             <div className="h-5 w-px bg-[#EDE4D5] hidden sm:block shrink-0" />
-            <div className="min-w-0">
+            <div className="hidden sm:block min-w-0">
               <div className="flex items-center gap-1.5 text-xs text-[#8C7361] font-semibold truncate">
                 <Link href="/stock" className="hover:text-[#4A2E1B] transition-colors">{t("stock.title")}</Link>
                 <span>/</span>
@@ -447,13 +451,13 @@ export default function StockItemDetailPage() {
 
           {/* Action buttons */}
           {isStockStaff && (
-            <div className="flex items-center gap-2 w-full xs:w-auto">
+            <div className="flex items-center gap-2 shrink-0">
               <Button 
                 onClick={() => setIsReduceOpen(true)}
-                className="flex-1 xs:flex-initial bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-10 px-3.5 sm:px-4 shadow-sm active:scale-98 transition-all"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-9 sm:h-10 px-3 sm:px-4 shadow-sm active:scale-98 transition-all shrink-0"
               >
                 <MinusCircle className="w-4 h-4 shrink-0" />
-                <span className="truncate">{t("stock.btnReduceStockBtn")}</span>
+                <span>{t("stock.btnReduceStockBtn")}</span>
               </Button>
               {isGlobalAdmin && (
                 <>
@@ -467,15 +471,15 @@ export default function StockItemDetailPage() {
                       setAddPaidAmount("");
                       setAddSupplierName("");
                     }}
-                    className="flex-1 xs:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm h-10 px-3 sm:px-4 active:scale-98 transition-all"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm h-9 sm:h-10 px-3 sm:px-4 active:scale-98 transition-all shrink-0"
                   >
                     <PlusCircle className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{t("stock.btnAddStockBtn")}</span>
+                    <span className="truncate hidden xs:inline">{t("stock.btnAddStockBtn")}</span>
                   </Button>
                   <Button 
                     onClick={() => setIsEditOpen(true)}
                     variant="outline"
-                    className="flex-1 xs:flex-initial text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-10 px-3 shadow-2xs"
+                    className="text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-9 sm:h-10 px-2.5 sm:px-3 shadow-2xs shrink-0"
                     title={t("stock.btnEditStockBtn")}
                   >
                     <Edit3 className="w-4 h-4 shrink-0 text-[#8C7361]" />
@@ -530,10 +534,49 @@ export default function StockItemDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Dedicated Mobile Current Stock Card (Clean & styled like the header card) */}
+        <div className="sm:hidden bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
+              isLowStock 
+                ? 'bg-rose-50 border border-rose-200 text-rose-600' 
+                : 'bg-emerald-50 border border-emerald-200 text-emerald-600'
+            }`}>
+              <Package className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider block">
+                {t("stock.kpiCurrentQty")}
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-2xl font-black font-mono tracking-tight ${
+                  isLowStock ? 'text-rose-600' : 'text-emerald-700'
+                }`}>
+                  {Number(stockItem.currentQuantity).toFixed(2)}
+                </span>
+                <span className="text-xs font-extrabold text-[#8C7361]">
+                  {stockItem.unitType}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right shrink-0">
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
+              isLowStock 
+                ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isLowStock ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+              {isLowStock ? t("stock.lowStockWarningBadge") : t("stock.stockInShop")}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Summary KPI Cards */}
-      <div className={`grid grid-cols-2 ${isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 sm:gap-3.5 mb-6`}>
+      <div className={`hidden sm:grid grid-cols-2 ${isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 sm:gap-3.5 mb-6`}>
         {/* Card 1: Current Stock Qty */}
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between">
           <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">{t("stock.kpiCurrentQty")}</span>
@@ -613,7 +656,11 @@ export default function StockItemDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             {/* Filter by Date with Quick Today & Clear */}
             <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
-              <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+              {isFetching && !isLoading ? (
+                <Loader2 className="w-3.5 h-3.5 text-[#E87A18] animate-spin shrink-0" />
+              ) : (
+                <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+              )}
               <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider hidden sm:inline">{t('stockMovements.date')}:</span>
               <input
                 type="date"
@@ -637,17 +684,21 @@ export default function StockItemDetailPage() {
               type="button"
               variant="outline"
               size="sm"
+              disabled={isFetching && !isLoading}
               onClick={() => {
                 const todayStr = new Date().toISOString().slice(0, 10);
                 setDateFilter(dateFilter === todayStr ? "" : todayStr);
               }}
-              className={`h-8 px-2.5 rounded-xl text-xs font-bold ${
+              className={`h-8 px-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
                 dateFilter === new Date().toISOString().slice(0, 10)
                   ? "bg-[#4A2E1B] text-white border-[#4A2E1B]"
                   : "border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE]"
               }`}
             >
-              {t('stockMovements.today')}
+              {isFetching && !isLoading && dateFilter === new Date().toISOString().slice(0, 10) && (
+                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+              )}
+              <span>{t('stockMovements.today')}</span>
             </Button>
 
             {dateFilter && (
@@ -655,6 +706,7 @@ export default function StockItemDetailPage() {
                 type="button"
                 variant="ghost"
                 size="sm"
+                disabled={isFetching && !isLoading}
                 onClick={() => setDateFilter("")}
                 className="h-8 px-2 text-xs text-[#8C7361] hover:text-[#2C1B10]"
               >
@@ -697,8 +749,16 @@ export default function StockItemDetailPage() {
           </div>
         </div>
 
+        {/* Loading Indicator for Day / Filter Refetching */}
+        {isFetching && !isLoading && (
+          <div className="flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold text-[#E87A18] bg-amber-50/70 rounded-xl border border-amber-200/60 mb-3 animate-in fade-in duration-150 shadow-2xs">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#E87A18]" />
+            <span>{t('common.loading')}...</span>
+          </div>
+        )}
+
         {/* Desktop Audit Trail Table */}
-        <div className="hidden sm:block border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs">
+        <div className={`hidden sm:block border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs transition-opacity duration-200 ${isFetching && !isLoading ? "opacity-60" : "opacity-100"}`}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -808,7 +868,7 @@ export default function StockItemDetailPage() {
         </div>
 
         {/* Mobile Audit History Cards */}
-        <div className="grid grid-cols-1 gap-3 sm:hidden">
+        <div className={`grid grid-cols-1 gap-3 sm:hidden transition-opacity duration-200 ${isFetching && !isLoading ? "opacity-60" : "opacity-100"}`}>
           {paginatedMovements.length === 0 ? (
             <div className="bg-[#FAF6F0] p-6 rounded-2xl text-center text-[#8C7361] font-medium border border-[#EDE4D5]">
               {t("stockMovements.noMovements")}
