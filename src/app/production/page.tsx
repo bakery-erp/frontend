@@ -168,8 +168,8 @@ export default function ProductionPage() {
     prevFilterRef.current = currentFilterKey;
   }, [currentFilterKey]);
 
-  // Track initial loading (only show full page skeletons if 0 batches are rendered)
-  const isInitialLoading = isLoading && accumulatedBatches.length === 0;
+  // Track initial loading (show full page skeletons if fetching and 0 batches are currently loaded)
+  const isInitialLoading = (isLoading || isFetching) && accumulatedBatches.length === 0;
 
   // Accumulate pages when user clicks "Show More"
   useEffect(() => {
@@ -572,9 +572,9 @@ export default function ProductionPage() {
         ) : filteredBatches.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
             {filterTab === "UNSEEN"
-              ? "All batches have been reviewed by you! 🎉"
+              ? t('production.allBatchesReviewed') || "All batches have been reviewed by you! 🎉"
               : filterTab === "FLAGGED"
-              ? "No batches are flagged for questions."
+              ? t('production.noFlaggedBatches') || "No batches are flagged for questions."
               : t('production.noBatches')}
           </div>
         ) : (
@@ -895,9 +895,9 @@ export default function ProductionPage() {
               <TableRow>
                 <TableCell colSpan={isGlobalAdmin ? (user?.role === 'OWNER' ? 6 : 5) : 4} className="text-center py-8 text-[#8C7361] font-medium">
                   {filterTab === "UNSEEN"
-                    ? "All batches have been reviewed by you! 🎉"
+                    ? t('production.allBatchesReviewed') || "All batches have been reviewed by you! 🎉"
                     : filterTab === "FLAGGED"
-                    ? "No batches are flagged for questions."
+                    ? t('production.noFlaggedBatches') || "No batches are flagged for questions."
                     : t('production.noBatches')}
                 </TableCell>
               </TableRow>
@@ -1079,6 +1079,20 @@ export default function ProductionPage() {
                         <span>{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
                       </Button>
                     )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/production/${batch.id}`);
+                      }}
+                      className="border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
+                      title={t('common.view') || "View"}
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                      <span>{t('common.view') || "View"}</span>
+                    </Button>
 
                     {canEditBatch && (
                       <Button

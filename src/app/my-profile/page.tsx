@@ -977,10 +977,10 @@ export default function MyProfilePage() {
 
             <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl">
               <p className="text-xs font-bold text-amber-900 mb-0.5">
-                📷 Supported Formats:
+                📷 {t('profile.supportedFormatsLabel') || "Supported Formats:"}
               </p>
               <p className="text-[11px] text-amber-800">
-                JPG, JPEG, PNG, WebP (Maximum allowed size: 5MB)
+                {t('profile.supportedFormatsDesc') || "JPG, JPEG, PNG, WebP (Maximum allowed size: 5MB)"}
               </p>
             </div>
 
