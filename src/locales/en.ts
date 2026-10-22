@@ -1564,6 +1564,67 @@ export const en = {
     totalSambusaProduced: "Total Sambusa Produced",
     noSambusaHistory: "No Sambusa production logged for this {shift} shift yet.",
   },
+  notifications: {
+    title: "Notifications",
+    noNotifications: "No notifications yet",
+    markAllAsRead: "Mark all as read",
+    viewAll: "View all notifications",
+    enablePush: "Enable Phone Alerts",
+    pushEnabled: "Phone Alerts Active",
+    pushBlocked: "Notifications Blocked in Browser",
+    pushPromptDesc: "Get instant browser and phone alerts when batches are baked, requests submitted, or stock is low.",
+    unreadBadge: "{count} new",
+    justNow: "Just now",
+    minutesAgo: "{minutes}m ago",
+    hoursAgo: "{hours}h ago",
+    daysAgo: "{days}d ago",
+
+    // Daily close
+    dailyCloseSubmittedTitle: "Daily Close Submitted",
+    dailyCloseSubmittedBody: "{cashierName} submitted daily close report for {branchName} ({date}). Awaiting review.",
+    dailyCloseApprovedTitle: "Daily Close Approved",
+    dailyCloseApprovedBody: "Daily session report for {branchName} ({date}) has been reviewed and approved by management.",
+
+    // Stock & Inventory
+    lowStockTitle: "Low Stock Alert",
+    lowStockBody: "Raw material \"{itemName}\" has reached low stock ({quantity} {unit} remaining, minimum: {minLevel}).",
+    outOfStockTitle: "Out of Stock Critical Alert",
+    outOfStockBody: "Raw material \"{itemName}\" is completely out of stock ({quantity} {unit} remaining). Immediate replenishment needed.",
+    stockPurchaseLoanTitle: "Stock Purchased on Credit",
+    stockPurchaseLoanBody: "New credit purchase of \"{itemName}\" logged from {supplierName} for {amount} ETB.",
+
+    // Deliveries
+    unpaidDeliveryTitle: "Unpaid Supplier Delivery",
+    unpaidDeliveryBody: "New delivery received on credit from {supplierName} totaling {totalAmount} ETB.",
+    deliveryReturnTitle: "Supplier Delivery Goods Returned",
+    deliveryReturnBody: "{returnedQuantity} pcs of {productName} returned to supplier {supplierName}.",
+
+    // Production
+    productionCompletedTitle: "Fresh Baked Batch Ready",
+    productionCompletedBody: "{bakerName} completed a fresh batch: {products}.",
+
+    // Staff loans
+    loanRequestedTitle: "New Employee Loan Request",
+    loanRequestedBody: "{employeeName} has submitted a loan request for {amount} ETB awaiting approval.",
+    loanApprovedTitle: "Loan Request Approved",
+    loanApprovedBody: "Your loan request of {amount} ETB has been approved.",
+    loanRejectedTitle: "Loan Request Rejected",
+    loanRejectedBody: "Your loan request of {amount} ETB has been rejected.",
+
+    // Penalties
+    penaltyIssuedTitle: "Penalty Notice Issued",
+    penaltyIssuedBody: "A penalty of {amount} ETB was issued for: {reason}.",
+
+    // Payroll
+    payrollGeneratedTitle: "Monthly Payslip Generated",
+    payrollGeneratedBody: "Your payslip for month {month}/{year} (Net Pay: {netPay} ETB) is ready for your review and sign-off.",
+    payrollSignedTitle: "Payslip Signed by Employee",
+    payrollSignedBody: "{employeeName} has reviewed and signed their payslip for month {month}/{year}.",
+
+    // Password reset
+    passwordResetRequestedTitle: "Password Reset Request",
+    passwordResetRequestedBody: "{employeeName} ({phone}) requested a password reset.",
+  },
   languages: {
     en: "English",
     am: "አማርኛ",

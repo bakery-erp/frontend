@@ -1566,6 +1566,67 @@ export const am: TranslationDictionary = {
     totalSambusaProduced: "ጠቅላላ የተመረተ ሳምቡሳ",
     noSambusaHistory: "ለዚህ {shift} ፈረቃ የተመዘገበ የሳምቡሳ ምርት እስካሁን የለም።",
   },
+  notifications: {
+    title: "ማሳወቂያዎች",
+    noNotifications: "ምንም ማሳወቂያ የለም",
+    markAllAsRead: "ሁሉንም እንደተነበበ ምልክት አድርግ",
+    viewAll: "ሁሉንም ማሳወቂያዎች ይመልከቱ",
+    enablePush: "የስልክ ማሳወቂያዎችን አንቃ",
+    pushEnabled: "የስልክ ማንቂያዎች ነቅተዋል",
+    pushBlocked: "ማሳወቂያዎች በብሮውዘር ታግደዋል",
+    pushPromptDesc: "ምርቶች ሲጋገሩ፣ ጥያቄዎች ሲቀርቡ ወይም እቃዎች ሲያልቁ ፈጣን የስልክ እና የብሮውዘር ማንቂያ ያግኙ።",
+    unreadBadge: "{count} አዲስ",
+    justNow: "አሁን",
+    minutesAgo: "ከ {minutes} ደቂቃ በፊት",
+    hoursAgo: "ከ {hours} ሰዓት በፊት",
+    daysAgo: "ከ {days} ቀን በፊት",
+
+    // Daily close
+    dailyCloseSubmittedTitle: "የዕለቱ ሪፖርት ቀርቧል",
+    dailyCloseSubmittedBody: "{cashierName} የዕለቱ ሂሳብ መዝጊያ ሪፖርት ለ {branchName} ({date}) አቅርቧል። ማረጋገጫ ይጠብቃል።",
+    dailyCloseApprovedTitle: "የዕለቱ ሪፖርት ጸድቋል",
+    dailyCloseApprovedBody: "ለ {branchName} ({date}) የቀረበው የዕለት መዝጊያ ሪፖርት በማኔጅመንት ተገምግሞ ጸድቋል።",
+
+    // Stock & Inventory
+    lowStockTitle: "የዕቃ እጥረት ማስጠንቀቂያ",
+    lowStockBody: "የጥሬ ዕቃ \"{itemName}\" ዝቅተኛ ደረጃ ላይ ደርሷል (ቀሪ: {quantity} {unit}፣ አነስተኛ: {minLevel})።",
+    outOfStockTitle: "ዕቃው ሙሉ በሙሉ አልቋል",
+    outOfStockBody: "የጥሬ ዕቃ \"{itemName}\" ሙሉ በሙሉ አልቋል (ቀሪ: {quantity} {unit})። አፋጣኝ ግዢ ያስፈልጋል።",
+    stockPurchaseLoanTitle: "በብድር የተገዛ ጥሬ ዕቃ",
+    stockPurchaseLoanBody: "የ \"{itemName}\" አዲስ የብድር ግዢ ከ {supplierName} በ {amount} ብር ተመዝግቧል።",
+
+    // Deliveries
+    unpaidDeliveryTitle: "ያልተከፈለ የአቅራቢ አቅርቦት",
+    unpaidDeliveryBody: "ከ {supplierName} በድምሩ {totalAmount} ብር የሚያወጣ አቅርቦት በብድር ገብቷል።",
+    deliveryReturnTitle: "የተመለሰ የአቅራቢ ዕቃ",
+    deliveryReturnBody: "{returnedQuantity} የ {productName} ዕቃ ለአቅራቢ {supplierName} ተመልሷል።",
+
+    // Production
+    productionCompletedTitle: "አዲስ የተጋገረ ምርት ዝግጁ ነው",
+    productionCompletedBody: "{bakerName} አዲስ የተጋገረ ባች አጠናቋል: {products}።",
+
+    // Staff loans
+    loanRequestedTitle: "አዲስ የሠራተኛ ብድር ጥያቄ",
+    loanRequestedBody: "{employeeName} የ {amount} ብር የብድር ጥያቄ አቅርቧል፣ ውሳኔ ይጠብቃል።",
+    loanApprovedTitle: "የብድር ጥያቄ ጸድቋል",
+    loanApprovedBody: "የጠየቁት የ {amount} ብር ብድር ጸድቋል።",
+    loanRejectedTitle: "የብድር ጥያቄ ውድቅ ተደርጓል",
+    loanRejectedBody: "የጠየቁት የ {amount} ብር ብድር ውድቅ ተደርጓል።",
+
+    // Penalties
+    penaltyIssuedTitle: "የቅጣት ማስታወቂያ ደርሷል",
+    penaltyIssuedBody: "የ {amount} ብር ቅጣት ተመዝግቧል: {reason}።",
+
+    // Payroll
+    payrollGeneratedTitle: "የወር ደመወዝ ተዘጋጅቷል",
+    payrollGeneratedBody: "የወር {month}/{year} የደመወዝ ዝርዝርዎ (የተጣራ: {netPay} ብር) ለግምገማ እና ፊርማ ዝግጁ ነው።",
+    payrollSignedTitle: "ደመወዝ በሠራተኛው ተፈርሟል",
+    payrollSignedBody: "{employeeName} የወር {month}/{year} የደመወዝ ወረቀታቸውን ፈርመዋል።",
+
+    // Password reset
+    passwordResetRequestedTitle: "የይለፍ ቃል መቀየሪያ ጥያቄ",
+    passwordResetRequestedBody: "{employeeName} ({phone}) የይለፍ ቃል ዳግም እንዲጀመር ጠይቋል።",
+  },
   languages: {
     en: "English",
     am: "አማርኛ",

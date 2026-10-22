@@ -1566,6 +1566,67 @@ export const om: TranslationDictionary = {
     totalSambusaProduced: "Waliigala Sambuusaa Oomishame",
     noSambusaHistory: "Geeggeeffama {shift} kanaaf oomishni Sambuusaa galmaa'e hin jiru.",
   },
+  notifications: {
+    title: "Beeksisa",
+    noNotifications: "Hanga ammaatti beeksisni hin jiru",
+    markAllAsRead: "Hunda akka dubbifametti mallatteessi",
+    viewAll: "Beeksisa hunda ilaali",
+    enablePush: "Beeksisa Bilbilaa Dandeessisi",
+    pushEnabled: "Akeekkachiisni Bilbilaa Ni Hojjeta",
+    pushBlocked: "Beeksisni Baraawzariin Cufameera",
+    pushPromptDesc: "Yeroo oomishni bilchaatu, gaaffiin dhiyaatu ykn meeshaan dhumatu akeekkachiisa battalaa argadhaa.",
+    unreadBadge: "{count} haaraa",
+    justNow: "Amma",
+    minutesAgo: "Daqiiqaa {minutes} dura",
+    hoursAgo: "Sa'aatii {hours} dura",
+    daysAgo: "Guyyaa {days} dura",
+
+    // Daily close
+    dailyCloseSubmittedTitle: "Gabaasni Cufiinsa Guyyaa Dhiyaateera",
+    dailyCloseSubmittedBody: "{cashierName} gabaasa cufiinsa herrega guyyaa {branchName} ({date}) dhiyeesseera. Mirkaneessa eegaa jira.",
+    dailyCloseApprovedTitle: "Gabaasni Cufiinsa Guyyaa Ragga'eera",
+    dailyCloseApprovedBody: "Gabaasni cufiinsa herrega guyyaa {branchName} ({date}) hoggansaan sakatta'amee mirkanaa'eera.",
+
+    // Stock & Inventory
+    lowStockTitle: "Akeekkachiisa Hir'ina Meeshaa",
+    lowStockBody: "Meeshaan dheedhii \"{itemName}\" sadarkaa gadi aanaa irra ga'eera (hafe: {quantity} {unit}, kan xiqqaate: {minLevel}).",
+    outOfStockTitle: "Akeekkachiisa Meeshaan Dhumachuu",
+    outOfStockBody: "Meeshaan dheedhii \"{itemName}\" guutummaatti dhumateera (hafe: {quantity} {unit}). Bittaa ariifachiisaa barbaada.",
+    stockPurchaseLoanTitle: "Meeshaa Dheedhii Liqiin Bitame",
+    stockPurchaseLoanBody: "Bittaa liqii haaraa \"{itemName}\" dhiyeessaa {supplierName} irraa qarshii {amount} galmaa'eera.",
+
+    // Deliveries
+    unpaidDeliveryTitle: "Dhiyeessa Hin Kaffalamne",
+    unpaidDeliveryBody: "Dhiyeessi haaraan dhiyeessaa {supplierName} irraa qarshii {totalAmount} liqiin galeera.",
+    deliveryReturnTitle: "Meeshaa Dhiyeessaa Deebifame",
+    deliveryReturnBody: "Meeshaan {productName} baay'inni {returnedQuantity} dhiyeessaa {supplierName}f deebifameera.",
+
+    // Production
+    productionCompletedTitle: "Oomishni Haaraa Qophaa'eera",
+    productionCompletedBody: "{bakerName} oomisha haaraa xumureera: {products}.",
+
+    // Staff loans
+    loanRequestedTitle: "Gaaffii Liqii Hojjetaa Haaraa",
+    loanRequestedBody: "{employeeName} gaaffii liqii qarshii {amount} dhiyeesseera, murtoo eegaa jira.",
+    loanApprovedTitle: "Gaaffiin Liqii Mirkanaa'eera",
+    loanApprovedBody: "Gaaffiin liqii qarshii {amount} dhiyeessitan mirkanaa'eera.",
+    loanRejectedTitle: "Gaaffiin Liqii Kufaa Ta'eera",
+    loanRejectedBody: "Gaaffiin liqii qarshii {amount} dhiyeessitan kufaa ta'eera.",
+
+    // Penalties
+    penaltyIssuedTitle: "Beeksisa Adabbii Kenname",
+    penaltyIssuedBody: "Adabbiin qarshii {amount} sababa kanaaf murtaa'eera: {reason}.",
+
+    // Payroll
+    payrollGeneratedTitle: "Kaffaltiin Mindaa Qophaa'eera",
+    payrollGeneratedBody: "Waraqaan mindaa ji'a {month}/{year} (Qulqulluu: {netPay} ETB) sakatta'iinsa fi mallattoof qophaa'eera.",
+    payrollSignedTitle: "Waraqaan Mindaa Hojjetaan Mallattaa'eera",
+    payrollSignedBody: "{employeeName} waraqaa mindaa isaanii ji'a {month}/{year} mallatteessaniiru.",
+
+    // Password reset
+    passwordResetRequestedTitle: "Gaaffii Jecha Icchitii Haaromsuu",
+    passwordResetRequestedBody: "{employeeName} ({phone}) jechi icciitii akka haaromfamu gaafateera.",
+  },
   languages: {
     en: "English",
     am: "አማርኛ",

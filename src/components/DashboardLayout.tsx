@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { getImageUrl } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
+import NotificationBell from '@/components/NotificationBell';
 import {
   LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
@@ -240,6 +241,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             <div className="flex items-center space-x-1.5 xs:space-x-2.5 md:space-x-4 shrink-0">
+              {/* Notification Bell */}
+              <NotificationBell />
+
               {/* Language Selector Dropdown */}
               <LanguageSelector variant="header" />
 
