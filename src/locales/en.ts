@@ -72,6 +72,9 @@ export const en = {
     showLess: "Show Less",
     remainingCount: "({count} remaining)",
     worker: "Worker",
+    today: "Today",
+    yesterday: "Yesterday",
+    back: "Back",
   },
   nav: {
     portal: "PORTAL",

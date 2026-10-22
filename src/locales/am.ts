@@ -74,6 +74,9 @@ export const am: TranslationDictionary = {
     showLess: "ያነሰ አሳይ",
     remainingCount: "({count} ቀሪ)",
     worker: "ሠራተኛ",
+    today: "ዛሬ",
+    yesterday: "ትናንት",
+    back: "ተመለስ",
   },
   nav: {
     portal: "ፖርታል",

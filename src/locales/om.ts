@@ -74,6 +74,9 @@ export const om: TranslationDictionary = {
     showLess: "Xiqqaasaa Agarsiisi",
     remainingCount: "({count} kan hafe)",
     worker: "Hojjetaa",
+    today: "Har'a",
+    yesterday: "Kaleessa",
+    back: "Duubatti",
   },
   nav: {
     portal: "POORTAALII",

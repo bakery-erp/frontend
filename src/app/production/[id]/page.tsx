@@ -250,6 +250,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
   }
 
   const todayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+  const yesterdayYmd = new Date(Date.now() + 3 * 3600 * 1000 - 86400000).toISOString().slice(0, 10);
   const batchDateYmd = (batch?.date || batch?.createdAt || "").slice(0, 10);
   const canEditBatch = isGlobalAdmin || ((user?.id === batch?.userId || user?.id === batch?.user?.id) && batchDateYmd === todayYmd);
 
@@ -274,6 +275,18 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                 <h1 className="text-sm xs:text-base sm:text-xl font-black text-[#2C1B10] tracking-tight truncate">
                   {formatEthDate(batch.date)}
                 </h1>
+                {batchDateYmd === todayYmd && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                    {t('common.today') || "Today"}
+                  </span>
+                )}
+                {batchDateYmd === yesterdayYmd && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                    {t('common.yesterday') || "Yesterday"}
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
                   {batch.shift === "NIGHT" ? `🌙 ${t("production.nightShift") || "Night"}` : `☀️ ${t("production.dayShift") || "Day"}`}
                 </span>
