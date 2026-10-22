@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 interface UseUnsavedChangesOptions {
   isDirty: boolean;
+  fallbackUrl?: string;
 }
 
 export function useUnsavedChanges(optionsOrDirty: boolean | UseUnsavedChangesOptions) {
   const isDirty = typeof optionsOrDirty === "boolean" ? optionsOrDirty : optionsOrDirty.isDirty;
+  const fallbackUrl = typeof optionsOrDirty === "object" ? optionsOrDirty.fallbackUrl : undefined;
+
+  const router = useRouter();
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const isNavigatingRef = useRef(false);
@@ -30,7 +35,9 @@ export function useUnsavedChanges(optionsOrDirty: boolean | UseUnsavedChangesOpt
     if (!isDirty || isNavigatingRef.current) return;
 
     // Push dummy history entry so back action triggers popstate instead of instantly unmounting
-    window.history.pushState({ unsavedChangesGuard: true }, "", window.location.href);
+    if (typeof window !== "undefined" && !window.history.state?.unsavedChangesGuard) {
+      window.history.pushState({ unsavedChangesGuard: true }, "", window.location.href);
+    }
 
     const handlePopState = () => {
       if (isNavigatingRef.current) return;
@@ -39,7 +46,11 @@ export function useUnsavedChanges(optionsOrDirty: boolean | UseUnsavedChangesOpt
       setShowDiscardModal(true);
       setPendingAction(() => () => {
         isNavigatingRef.current = true;
-        window.history.back();
+        if (fallbackUrl) {
+          router.push(fallbackUrl);
+        } else {
+          router.back();
+        }
       });
     };
 
@@ -47,7 +58,7 @@ export function useUnsavedChanges(optionsOrDirty: boolean | UseUnsavedChangesOpt
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [isDirty]);
+  }, [isDirty, fallbackUrl, router]);
 
   const guardedAction = useCallback(
     (action: () => void) => {
@@ -62,19 +73,25 @@ export function useUnsavedChanges(optionsOrDirty: boolean | UseUnsavedChangesOpt
   );
 
   const confirmDiscard = useCallback(() => {
-    setShowDiscardModal(false);
     isNavigatingRef.current = true;
-    if (pendingAction) {
-      pendingAction();
-      setPendingAction(null);
+    setShowDiscardModal(false);
+    const action = pendingAction;
+    setPendingAction(null);
+    if (action) {
+      action();
+    } else if (fallbackUrl) {
+      router.push(fallbackUrl);
+    } else {
+      router.back();
     }
-  }, [pendingAction]);
+  }, [pendingAction, fallbackUrl, router]);
 
   const cancelDiscard = useCallback(() => {
+    if (isNavigatingRef.current) return;
     setShowDiscardModal(false);
     setPendingAction(null);
     // User cancelled: re-push dummy history entry to continue guarding future back presses
-    if (isDirty) {
+    if (isDirty && typeof window !== "undefined" && !window.history.state?.unsavedChangesGuard) {
       window.history.pushState({ unsavedChangesGuard: true }, "", window.location.href);
     }
   }, [isDirty]);

@@ -45,7 +45,6 @@ export function ConfirmModal({
 
   const handleConfirm = async () => {
     await onConfirm();
-    if (onClose) onClose();
   };
 
   const getIcon = () => {
