@@ -53,6 +53,8 @@ export default function NotificationBell() {
     isSubscribed: false,
   });
   const [isSubscribing, setIsSubscribing] = useState<boolean>(false);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [testSent, setTestSent] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Load push status and register service worker on mount
@@ -163,6 +165,20 @@ export default function NotificationBell() {
       console.error('Failed to enable push notifications:', err);
     } finally {
       setIsSubscribing(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setIsTesting(true);
+    try {
+      await api.post('/notifications/test');
+      setTestSent(true);
+      setTimeout(() => setTestSent(false), 3000);
+      fetchNotifications();
+    } catch (err) {
+      console.error('Failed to send test push:', err);
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -290,10 +306,24 @@ export default function NotificationBell() {
                     {isSubscribing ? '...' : t('common.confirm')}
                   </button>
                 )}
-                {pushStatus.isSubscribed && (
-                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                    <Check className="w-3.5 h-3.5" /> Active
+                {pushStatus.permission === 'denied' && (
+                  <span className="text-[10px] text-rose-500 font-semibold shrink-0">
+                    {t('notifications.pushBlocked')}
                   </span>
+                )}
+                {pushStatus.isSubscribed && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <Check className="w-3.5 h-3.5" /> Active
+                    </span>
+                    <button
+                      onClick={handleSendTestPush}
+                      disabled={isTesting}
+                      className="px-2 py-0.5 text-[10px] font-semibold bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-50 active:scale-95 transition-all shadow-xs"
+                    >
+                      {isTesting ? '...' : testSent ? t('notifications.testSent') : t('notifications.sendTest')}
+                    </button>
+                  </div>
                 )}
               </div>
             )}

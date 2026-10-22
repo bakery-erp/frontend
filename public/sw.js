@@ -1,4 +1,4 @@
-const CACHE_NAME = 'koket-erp-v1';
+const CACHE_NAME = 'koket-erp-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
