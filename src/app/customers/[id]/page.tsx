@@ -102,8 +102,12 @@ function parseCreditDescription(rawDesc?: string | null) {
     remaining = remaining.replace(/\[CreditItems:\s*\[.*?\]\s*\]/g, "").trim();
   }
 
+  // Strip [Products: ...]
+  remaining = remaining.replace(/\[Products:\s*.*?\]/gi, "").trim();
   // Strip phone/address prefix if stored as Legacy format
   remaining = remaining.replace(/^[^|]+(?:\s*\|\s*[^|]+)?\s*\|\s*/, "").trim();
+  // Clean up any remaining dashes, colons or pipes
+  remaining = remaining.replace(/^[\s\-\–\|\:]+/, "").replace(/[\s\-\–\|\:]+$/, "").trim();
   return { items: itemsList, notes: remaining };
 }
 
@@ -268,8 +272,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     try {
       let finalDescription = editCreditDescription.trim();
       const creditItemsMatch = (editingCredit.description || "").match(/\[CreditItems:\s*(\[.*?\])\s*\]/);
-      if (creditItemsMatch) {
-        finalDescription = `${finalDescription} ${creditItemsMatch[0]}`.trim();
+      const productsMatch = (editingCredit.description || "").match(/\[Products:\s*.*?\]/);
+      const preservedTags = [productsMatch?.[0], creditItemsMatch?.[0]].filter(Boolean).join(" ");
+      if (preservedTags) {
+        finalDescription = finalDescription ? `${preservedTags} - ${finalDescription}` : preservedTags;
       }
 
       await api.patch(`/customers/credits/${editingCredit.id}`, {
@@ -334,35 +340,35 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     <DashboardLayout>
       <div className="space-y-6 max-w-6xl mx-auto pb-12">
         {/* Top Navigation & Breadcrumbs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2.5 print:hidden">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push("/customer-credits")}
-              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
+              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] shrink-0 h-8 px-2.5 text-xs font-bold"
             >
-              <ArrowLeft className="w-4 h-4 mr-1" />
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
               {t("common.back") || "Back"}
             </Button>
-            <div className="flex items-center text-xs text-[#8C7361] gap-1.5">
-              <Link href="/customer-credits" className="hover:underline">
+            <div className="flex items-center text-xs text-[#8C7361] gap-1.5 min-w-0 truncate">
+              <Link href="/customer-credits" className="hover:underline shrink-0 hidden sm:inline">
                 {t("credits.title") || "Customer Credits"}
               </Link>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <span className="font-bold text-[#2C1B10] truncate max-w-[180px]">{customer.fullName}</span>
+              <ChevronRight className="w-3.5 h-3.5 shrink-0 hidden sm:inline" />
+              <span className="font-bold text-[#2C1B10] truncate">{customer.fullName}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => window.print()}
-              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
+              className="hidden sm:inline-flex rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] h-8 text-xs font-bold px-2.5"
             >
-              <Printer className="w-4 h-4 mr-1.5 text-[#E87A18]" />
-              {t("credits.printBtn") || "Print Statement"}
+              <Printer className="w-3.5 h-3.5 mr-1.5 text-[#E87A18]" />
+              {t("credits.printBtn") || "Print"}
             </Button>
 
             {canManage && (
@@ -370,26 +376,71 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 variant="outline"
                 size="sm"
                 onClick={openEditCustomerModal}
-                className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
+                className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] h-8 text-xs font-bold px-2.5"
               >
-                <Pencil className="w-4 h-4 mr-1.5 text-[#E87A18]" />
-                {t("common.edit") || "Edit Customer"}
+                <Pencil className="w-3.5 h-3.5 mr-1 text-[#E87A18]" />
+                {t("common.edit") || "Edit"}
               </Button>
             )}
 
             <Button
               size="sm"
               onClick={() => router.push(`/customer-credits/new?customerId=${customer.id}`)}
-              className="rounded-xl bg-[#E87A18] hover:bg-[#D26911] text-white shadow-sm"
+              className="rounded-xl bg-[#E87A18] hover:bg-[#D26911] text-white shadow-sm h-8 text-xs font-bold px-2.5 whitespace-nowrap"
             >
-              <Plus className="w-4 h-4 mr-1.5" />
-              {t("credits.newCredit") || "Log New Credit"}
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              {t("credits.newCredit") || "Log Credit"}
             </Button>
           </div>
         </div>
 
-        {/* Hero Customer Profile Card */}
-        <div className="bg-white border border-[#EDE4D5] rounded-3xl p-6 sm:p-7 shadow-sm">
+        {/* Mobile Compact Customer Banner (md:hidden) */}
+        <div className="md:hidden bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-2.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-base font-black text-[#2C1B10] truncate">{customer.fullName}</h1>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#8C7361] mt-1">
+                <a href={`tel:${customer.phone}`} className="inline-flex items-center gap-1 font-bold text-[#4A2E1B] hover:underline">
+                  <Phone className="w-3 h-3 text-[#E87A18]" />
+                  {customer.phone}
+                </a>
+                {customer.branch?.name && (
+                  <span className="text-[10px] bg-[#FAF6F0] px-2 py-0.5 rounded-md border border-[#EDE4D5]">
+                    {customer.branch.name}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="text-right shrink-0">
+              <span className="text-[9px] font-black uppercase tracking-wider text-[#8C7361] block">Outstanding</span>
+              <span className={`text-base font-mono font-black ${isFullySettled ? "text-emerald-700" : "text-rose-700"}`}>
+                {Number(customer.totalRemaining || 0).toFixed(2)}
+                <span className="text-[10px] font-sans font-bold text-[#8C7361] ml-0.5">ETB</span>
+              </span>
+            </div>
+          </div>
+
+          {(customer.address || customer.notes) && (
+            <div className="pt-2 border-t border-[#F4ECE1] text-[11px] text-[#8C7361] space-y-1">
+              {customer.address && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3 h-3 text-[#8C7361] shrink-0" />
+                  <span className="truncate">{customer.address}</span>
+                </div>
+              )}
+              {customer.notes && (
+                <p className="italic line-clamp-2">
+                  <span className="font-bold text-[#4A2E1B] not-italic mr-1">Note:</span>
+                  {customer.notes}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Hero Customer Profile Card (hidden md:block) */}
+        <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-3xl p-6 sm:p-7 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex items-start gap-4">
               <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-[#FAF6F0] to-[#EDE4D5] border border-[#DFCBB5] flex items-center justify-center text-[#E87A18] font-black text-2xl shrink-0 shadow-inner">
@@ -478,8 +529,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
 
-        {/* 4 Financial KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* 4 Financial KPIs - Hidden on mobile */}
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between text-[#8C7361] mb-2">
               <span className="text-xs font-bold uppercase tracking-wider">{t("credits.totalCreditsCount") || "Total Credits"}</span>
@@ -672,7 +723,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => openEditCreditModal(cr)}
+                                  onClick={() => router.push(`/customer-credits/new?edit=${cr.id}`)}
                                   className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl"
                                   title="Edit Credit"
                                 >
@@ -794,11 +845,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => openEditCreditModal(cr)}
+                            onClick={() => router.push(`/customer-credits/new?edit=${cr.id}`)}
                             className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl"
                           >
                             <Pencil className="w-3.5 h-3.5 mr-1 text-[#8C7361]" />
-                            Edit
+                            {t("common.edit") || "Edit"}
                           </Button>
                         )}
                       </div>
@@ -1085,6 +1136,26 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
             {editingCredit && (
               <form onSubmit={handleCreditEditSubmit} className="space-y-4 pt-2">
+                <div className="p-3 bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl flex items-center justify-between gap-2">
+                  <div className="text-xs text-[#4A2E1B]">
+                    <span className="font-bold block">Need to edit items or quantities?</span>
+                    <span className="text-[11px] text-[#8C7361]">Use the full credit editor to change products.</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const cid = editingCredit.id;
+                      setEditingCredit(null);
+                      router.push(`/customer-credits/new?edit=${cid}`);
+                    }}
+                    className="border-[#DFCBB5] text-[#E87A18] hover:bg-white text-xs font-bold rounded-xl shrink-0"
+                  >
+                    Full Edit &rarr;
+                  </Button>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">

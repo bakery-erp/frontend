@@ -154,6 +154,16 @@ function parseCustomerCreditDescription(rawDesc?: string | null, rawEntity?: str
   };
 }
 
+function extractCleanNotes(rawDesc?: string | null): string {
+  if (!rawDesc) return "";
+  let cleaned = rawDesc;
+  cleaned = cleaned.replace(/\[CreditItems:\s*\[.*?\]\s*\]/gi, "");
+  cleaned = cleaned.replace(/\[Products:\s*.*?\]/gi, "");
+  cleaned = cleaned.replace(/^[^|]+(?:\s*\|\s*[^|]+)?\s*\|\s*/, "");
+  cleaned = cleaned.replace(/^[\s\-\–\|\:]+/, "").replace(/[\s\-\–\|\:]+$/, "").trim();
+  return cleaned;
+}
+
 export default function CustomerCreditsPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -239,7 +249,7 @@ export default function CustomerCreditsPage() {
     setEditCreditAmount(String(c.amount ?? c.totalAmount ?? ""));
     setEditCreditDate((c.date || c.createdAt || "").slice(0, 10));
     setEditCreditDueDate((c as any).dueDate ? String((c as any).dueDate).slice(0, 10) : "");
-    setEditCreditDescription(c.description || "");
+    setEditCreditDescription(extractCleanNotes(c.description));
   };
 
   const toggleCreditExpand = (id: string) => {
@@ -453,12 +463,20 @@ export default function CustomerCreditsPage() {
 
     setIsSubmittingEditCredit(true);
     try {
+      let finalDescription = editCreditDescription.trim();
+      const prodMatch = (editingCredit.description || "").match(/\[Products:\s*.*?\]/);
+      const itemsMatch = (editingCredit.description || "").match(/\[CreditItems:\s*\[.*?\]\s*\]/);
+      const tags = [prodMatch?.[0], itemsMatch?.[0]].filter(Boolean).join(" ");
+      if (tags) {
+        finalDescription = finalDescription ? `${tags} - ${finalDescription}` : tags;
+      }
+
       await api.patch(`/customers/credits/${editingCredit.id}`, {
         customerId: editCreditCustomerId || undefined,
         amount: amtNum,
         date: editCreditDate || undefined,
         dueDate: editCreditDueDate || null,
-        description: editCreditDescription.trim() || null,
+        description: finalDescription || null,
       });
 
       toast.success(t("credits.toastCreditUpdated") || "Customer credit updated successfully!");
@@ -929,9 +947,9 @@ export default function CustomerCreditsPage() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => openEditCredit(c)}
+                                      onClick={() => router.push(`/customer-credits/new?edit=${c.id}`)}
                                       className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl shadow-2xs shrink-0"
-                                      title={t("credits.editCreditBtn") || "Edit Credit"}
+                                      title={t("credits.editCreditBtn") || "Edit Credit & Products"}
                                     >
                                       <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
                                     </Button>
@@ -1130,9 +1148,9 @@ export default function CustomerCreditsPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => openEditCredit(c)}
+                                onClick={() => router.push(`/customer-credits/new?edit=${c.id}`)}
                                 className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] px-3 shrink-0"
-                                title="Edit Credit"
+                                title="Edit Credit & Products"
                               >
                                 <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
                               </Button>
@@ -1785,11 +1803,33 @@ export default function CustomerCreditsPage() {
               </label>
               <textarea
                 rows={3}
-                placeholder="Product summary, delivery references, notes..."
+                placeholder="Custom delivery references or notes (leave empty if none)..."
                 value={editCreditDescription}
                 onChange={(e) => setEditCreditDescription(e.target.value)}
                 className="w-full border border-zinc-200 rounded-xl p-2.5 text-xs text-[#2C1B10] outline-none focus:ring-2 focus:ring-[#E87A18]/30 resize-none"
               />
+            </div>
+
+            <div className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-3 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[#8C7361]">
+                Need to change products, quantities, or unit prices?
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (editingCredit) {
+                    const targetId = editingCredit.id;
+                    setEditingCredit(null);
+                    router.push(`/customer-credits/new?edit=${targetId}`);
+                  }
+                }}
+                className="h-7 text-xs px-2.5 font-bold border-[#E87A18]/40 text-[#E87A18] hover:bg-[#FAF6F0]"
+              >
+                <ShoppingBag className="w-3 h-3 mr-1" />
+                Edit Products →
+              </Button>
             </div>
 
             <DialogFooter className="pt-2 gap-2">
