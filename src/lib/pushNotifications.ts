@@ -30,6 +30,8 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   }
 }
 
+const DEFAULT_VAPID_PUBLIC_KEY = 'BNuLLLYPRoS_3gl__0KwuYjlmkAsAptU5fyEnGxZ4WDn4k94dBGsXDA2pFjpEid6SUztE4iVljbioypCbkzvdU8';
+
 export async function getVapidPublicKey(): Promise<string> {
   // Use environment variable if available
   if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
@@ -39,11 +41,14 @@ export async function getVapidPublicKey(): Promise<string> {
   // Fallback to fetch from backend API
   try {
     const res = await api.get('/notifications/public-key');
-    return res.data?.vapidPublicKey || '';
+    if (res.data?.vapidPublicKey) {
+      return res.data.vapidPublicKey;
+    }
   } catch (err) {
     console.warn('[Push] Failed to fetch VAPID public key:', err);
-    return '';
   }
+
+  return DEFAULT_VAPID_PUBLIC_KEY;
 }
 
 export async function subscribeToPushNotifications(): Promise<{ success: boolean; error?: string }> {
