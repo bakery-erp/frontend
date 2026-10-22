@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, CreditCard, ArrowRightLeft } from "lucide-react";
+import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton } from "@/components/ui/skeletons";
 
@@ -321,29 +321,14 @@ export default function StockPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('stock.title')}</h1>
         </div>
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          {isGlobalAdmin ? (
-            <Link href="/stock-movements" className="flex-1 sm:flex-initial">
-              <Button variant="outline" className="w-full h-10 rounded-xl border-purple-200 text-purple-900 bg-purple-50 hover:bg-purple-100 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-purple-600 shrink-0" />
-                <span>{t('stock.stockLoansAndCredit')}</span>
-              </Button>
-            </Link>
-          ) : (
-            <Link href="/stock-movements" className="flex-1 sm:flex-initial">
-              <Button variant="outline" className="w-full h-10 rounded-xl border-amber-200 text-amber-900 bg-amber-50 hover:bg-amber-100 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
-                <ArrowRightLeft className="w-4 h-4 text-[#E87A18] shrink-0" />
-                <span>{t('stockMovements.title') || "Stock Movements"}</span>
-              </Button>
-            </Link>
-          )}
-          {user?.role === "OWNER" && (
+        {user?.role === "OWNER" && (
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Button onClick={() => setIsAddOpen(true)} size="default" className="flex-1 sm:flex-initial">
               <Plus className="w-4 h-4 shrink-0" />
               <span>{t('stock.newItem')}</span>
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Filter Bar with Centered Segmented Control */}
@@ -979,49 +964,87 @@ export default function StockPage() {
       {/* Manual Stock Reduction Dialog */}
       {reducingItem && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setReducingItem(null); }}>
-          <DialogContent className="max-w-md rounded-2xl border-amber-200 max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+          <DialogContent className="bottom-0 top-auto translate-y-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 max-w-full sm:max-w-md w-full rounded-t-3xl sm:rounded-2xl rounded-b-none sm:rounded-b-2xl p-4 sm:p-6 border border-amber-200/80 shadow-2xl max-h-[92dvh] sm:max-h-[90vh] flex flex-col gap-0 overflow-hidden bg-white">
+            {/* Mobile visual drag handle */}
+            <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-2 sm:hidden shrink-0" />
+
+            <DialogHeader className="shrink-0 pb-3 border-b border-amber-100/70 pr-8">
+              <DialogTitle className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <MinusCircle className="w-5 h-5 text-amber-600 shrink-0" />
-                {t('stock.modalReduceStockTitle')}
+                <span>{t('stock.modalReduceStockTitle')}</span>
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleReduceStock}>
-              <div className="grid gap-3.5 py-3">
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-900">
-                  Reducing stock for <strong className="font-bold">{reducingItem.name}</strong>. Currently available: <span className="font-bold text-amber-700">{Number(reducingItem.currentQuantity).toFixed(2)} {reducingItem.unitType}</span> (Rate: <span className="font-bold text-amber-800">{Number(reducingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}/{reducingItem.unitType}</span>).
+
+            <form onSubmit={handleReduceStock} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto overscroll-contain py-3.5 space-y-3.5 pr-1 -mr-1">
+                {/* Item & Available info card */}
+                <div className="p-3 bg-amber-50/90 rounded-xl border border-amber-200/70 text-xs text-amber-950 flex flex-col xs:flex-row xs:items-center justify-between gap-2 shadow-2xs">
+                  <div>
+                    <span className="text-[#8C7361] font-bold block text-[10px] uppercase tracking-wider">
+                      {t('stock.itemToIssue')}
+                    </span>
+                    <strong className="font-extrabold text-sm text-[#2C1B10]">
+                      {reducingItem.name}
+                    </strong>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-lg border border-amber-200 w-fit self-start xs:self-auto">
+                    <span className="font-extrabold text-amber-800 text-xs sm:text-sm">
+                      {Number(reducingItem.currentQuantity).toFixed(2)} {reducingItem.unitType}
+                    </span>
+                    {isOwner && Number(reducingItem.unitPrice || 0) > 0 && (
+                      <span className="text-[10px] text-[#8C7361] font-semibold border-l border-amber-200 pl-2">
+                        @{Number(reducingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
+                {/* Quantity Input with 1-Tap Use Max Button */}
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    {t('stock.quantityToReduce')} ({reducingItem.unitType}) *
-                  </label>
-                  <Input 
-                    type="number" 
-                    step="0.001" 
-                    required 
-                    min="0.001"
-                    max={Number(reducingItem.currentQuantity)}
-                    value={reduceAmount} 
-                    onChange={(e) => setReduceAmount(e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    placeholder={`Max: ${Number(reducingItem.currentQuantity).toFixed(2)}`} 
-                    className="h-10 rounded-xl border-zinc-200 font-mono" 
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-[#2C1B10] block uppercase tracking-wide">
+                      {t('stock.quantityToReduce')} ({reducingItem.unitType}) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setReduceAmount(String(reducingItem.currentQuantity))}
+                      className="text-[11px] font-extrabold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md transition-colors flex items-center gap-1 active:scale-95"
+                    >
+                      {t('stock.useMax')} ({Number(reducingItem.currentQuantity).toFixed(2)})
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input 
+                      type="number" 
+                      step="0.001" 
+                      required 
+                      min="0.001"
+                      max={Number(reducingItem.currentQuantity)}
+                      value={reduceAmount} 
+                      onChange={(e) => setReduceAmount(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      placeholder={`Max: ${Number(reducingItem.currentQuantity).toFixed(2)}`} 
+                      className="h-11 rounded-xl border-zinc-200 font-mono text-base pr-16 bg-white focus:ring-2 focus:ring-[#E87A18]" 
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8C7361] pointer-events-none">
+                      {reducingItem.unitType}
+                    </span>
+                  </div>
                 </div>
 
+                {/* Taken By Dropdown */}
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase tracking-wide">
                     {t('stock.takenByLabel')} *
                   </label>
                   <select 
                     required
                     value={reduceReceivedBy} 
                     onChange={(e) => setReduceReceivedBy(e.target.value)}
-                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18] focus:border-[#E87A18] outline-none text-[#2C1B10]"
+                    className="w-full border border-zinc-200 rounded-xl h-11 px-3 bg-white text-sm sm:text-base focus:ring-2 focus:ring-[#E87A18] focus:border-[#E87A18] outline-none text-[#2C1B10]"
                   >
                     <option value="" disabled>
-                      {isUsersLoading ? "Loading staff members..." : "-- Select Staff Member (Who took item) * --"}
+                      {isUsersLoading ? t('stock.loadingStaff') : t('stock.selectStaffMember')}
                     </option>
                     {dbUsers.filter(u => u.isActive !== false).map((u) => (
                       <option key={u.id} value={u.fullName}>
@@ -1031,31 +1054,35 @@ export default function StockPage() {
                   </select>
                 </div>
 
+                {/* Notes Input */}
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase tracking-wide">
                     {t('common.notes')}
                   </label>
                   <Input 
                     value={reduceReason} 
                     onChange={(e) => setReduceReason(e.target.value)}
                     placeholder="e.g. Spoilage, Wastage, Production Handover" 
-                    className="h-10 rounded-xl border-zinc-200" 
+                    className="h-11 rounded-xl border-zinc-200 text-sm sm:text-base bg-white focus:ring-2 focus:ring-[#E87A18]" 
                   />
                 </div>
               </div>
-              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+
+              {/* Sticky Action Footer */}
+              <DialogFooter className="shrink-0 pt-3 border-t border-zinc-100 flex flex-col sm:flex-row gap-2 w-full mt-auto bg-white">
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full sm:w-auto h-11 sm:h-10 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                  className="w-full sm:w-auto h-11 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm flex items-center justify-center gap-1.5"
                 >
-                  {isSubmitting ? t('common.loading') : t('stock.recordUsageBtn')}
+                  <MinusCircle className="w-4 h-4 shrink-0" />
+                  <span>{isSubmitting ? t('common.loading') : t('stock.recordUsageBtn')}</span>
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setReducingItem(null)}
-                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                  className="w-full sm:w-auto h-11 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1 font-semibold text-[#8C7361]"
                 >
                   {t('common.cancel')}
                 </Button>
