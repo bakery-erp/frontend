@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -28,6 +29,7 @@ import {
   Clock,
   FileText,
   MapPin,
+  Pencil,
 } from "lucide-react";
 
 interface CreditPayment {
@@ -188,6 +190,76 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
   const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Edit Credit State
+  const [isEditCreditOpen, setIsEditCreditOpen] = useState(false);
+  const [editCreditCustomerId, setEditCreditCustomerId] = useState("");
+  const [editCreditAmount, setEditCreditAmount] = useState("");
+  const [editCreditDate, setEditCreditDate] = useState("");
+  const [editCreditDueDate, setEditCreditDueDate] = useState("");
+  const [editCreditDescription, setEditCreditDescription] = useState("");
+  const [isSubmittingEditCredit, setIsSubmittingEditCredit] = useState(false);
+
+  const { data: customersList } = useQuery<any[]>({
+    queryKey: ['customers-list-for-credit-detail-edit'],
+    queryFn: async () => {
+      const res = await api.get('/customers');
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    },
+    enabled: isEditCreditOpen,
+  });
+
+  const openEditCredit = () => {
+    if (!credit) return;
+    setEditCreditCustomerId(credit.customer?.id || (credit as any).customerId || "");
+    setEditCreditAmount(String(credit.amount ?? credit.totalAmount ?? ""));
+    setEditCreditDate((credit.date || credit.createdAt || "").slice(0, 10));
+    setEditCreditDueDate((credit as any).dueDate ? String((credit as any).dueDate).slice(0, 10) : "");
+    setEditCreditDescription(credit.description || "");
+    setIsEditCreditOpen(true);
+  };
+
+  const handleUpdateCredit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!credit) return;
+    const amtNum = Number(editCreditAmount);
+    if (isNaN(amtNum) || amtNum <= 0) {
+      toast.error("Please enter a valid total credit amount greater than 0.");
+      return;
+    }
+
+    const totalPaid = (credit.payments || []).reduce(
+      (sum, p) => sum + Number(p.amount ?? p.amountPaid ?? 0),
+      0
+    );
+    if (amtNum < totalPaid) {
+      toast.error(
+        `Credit amount (${amtNum.toFixed(2)} ETB) cannot be less than already recorded repayments (${totalPaid.toFixed(2)} ETB).`
+      );
+      return;
+    }
+
+    setIsSubmittingEditCredit(true);
+    try {
+      await api.patch(`/customers/credits/${credit.id}`, {
+        customerId: editCreditCustomerId || undefined,
+        amount: amtNum,
+        date: editCreditDate || undefined,
+        dueDate: editCreditDueDate || null,
+        description: editCreditDescription.trim() || null,
+      });
+
+      toast.success(t("credits.toastCreditUpdated") || "Customer credit updated successfully!");
+      setIsEditCreditOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['customer-credit', resolvedParams.id] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to update credit record");
+    } finally {
+      setIsSubmittingEditCredit(false);
+    }
+  };
+
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!credit || !amountPaid) return;
@@ -297,6 +369,16 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               <Printer className="w-4 h-4" /> {t("credits.printStatement")}
             </Button>
 
+            {canManage && (
+              <Button
+                variant="outline"
+                onClick={openEditCredit}
+                className="w-full sm:w-auto border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
+              >
+                <Pencil className="w-4 h-4 text-[#E87A18]" /> {t("credits.editCreditBtn") || "Edit Credit"}
+              </Button>
+            )}
+
             {!isSettled && canManage && (
               <Button
                 variant="success"
@@ -346,7 +428,17 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               </span>
               <div className="flex items-center gap-2 text-[#2C1B10] font-extrabold text-base sm:text-lg min-w-0">
                 <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#E87A18] shrink-0" />
-                <span className="truncate">{parsed.name}</span>
+                {credit.customer?.id ? (
+                  <Link
+                    href={`/customers/${credit.customer.id}`}
+                    className="hover:text-[#E87A18] hover:underline transition-colors truncate"
+                    title="View Customer Profile & Ledger"
+                  >
+                    {parsed.name}
+                  </Link>
+                ) : (
+                  <span className="truncate">{parsed.name}</span>
+                )}
               </div>
               {parsed.phone && (
                 <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B]">
@@ -360,6 +452,17 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                 <div className="flex items-center gap-2 text-xs font-medium text-[#8C7361]">
                   <MapPin className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
                   <span>{parsed.address}</span>
+                </div>
+              )}
+              {credit.customer?.id && (
+                <div className="pt-1">
+                  <Link
+                    href={`/customers/${credit.customer.id}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E87A18] hover:underline bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]"
+                  >
+                    <User className="w-3 h-3" />
+                    Customer Profile & Full Ledger →
+                  </Link>
                 </div>
               )}
             </div>
@@ -626,6 +729,113 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
           </DialogContent>
         </Dialog>
       )}
+
+      {/* EDIT CREDIT MODAL */}
+      <Dialog open={isEditCreditOpen} onOpenChange={setIsEditCreditOpen}>
+        <DialogContent className="max-w-md bg-white rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-[#E87A18]" />
+              {t("credits.editCreditModalTitle") || "Edit Customer Credit Record"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateCredit} className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.colCustomer")} <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={editCreditCustomerId}
+                onChange={(e) => setEditCreditCustomerId(e.target.value)}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-[#2C1B10] bg-white outline-none focus:ring-2 focus:ring-[#E87A18]/30 cursor-pointer"
+              >
+                {(customersList && customersList.length > 0
+                  ? customersList
+                  : credit?.customer
+                  ? [credit.customer]
+                  : []
+                ).map((cust: any) => (
+                  <option key={cust.id} value={cust.id}>
+                    {cust.fullName} ({cust.phone})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                  {t("credits.colTotalAmount")} (ETB) <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={editCreditAmount}
+                  onChange={(e) => setEditCreditAmount(e.target.value)}
+                  className="rounded-xl text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                  {t("common.date")} <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={editCreditDate}
+                  onChange={(e) => setEditCreditDate(e.target.value)}
+                  className="rounded-xl text-xs font-bold"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.dueDateLabel") || "Due Date"}
+              </label>
+              <Input
+                type="date"
+                value={editCreditDueDate}
+                onChange={(e) => setEditCreditDueDate(e.target.value)}
+                className="rounded-xl text-xs font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.notesCardTitle") || "Notes / Description"}
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Product summary, delivery references, notes..."
+                value={editCreditDescription}
+                onChange={(e) => setEditCreditDescription(e.target.value)}
+                className="w-full border border-zinc-200 rounded-xl p-2.5 text-xs text-[#2C1B10] outline-none focus:ring-2 focus:ring-[#E87A18]/30 resize-none"
+              />
+            </div>
+
+            <DialogFooter className="pt-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditCreditOpen(false)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                loading={isSubmittingEditCredit}
+              >
+                {t("common.save") || "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

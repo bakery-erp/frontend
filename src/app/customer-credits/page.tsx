@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/axios";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -22,7 +23,6 @@ import {
   CreditCard,
   DollarSign,
   Trash2,
-  RefreshCw,
   ShoppingBag,
   Eye,
   AlertTriangle,
@@ -38,6 +38,10 @@ import {
   UserPlus,
   MoreVertical,
   ChevronRight,
+  Calendar,
+  Loader2,
+  X,
+  Pencil,
 } from "lucide-react";
 
 interface CreditPayment {
@@ -162,9 +166,10 @@ export default function CustomerCreditsPage() {
   // Active Main Tab: "CREDITS" vs "CUSTOMERS"
   const [activeMainTab, setActiveMainTab] = useState<"CREDITS" | "CUSTOMERS">("CREDITS");
 
-  // Credit Filter Pills
-  type CreditFilterTab = "ALL" | "OPEN" | "PAID" | "TODAY";
+  // Credit Filter Pills & Date Filter
+  type CreditFilterTab = "ALL" | "OPEN" | "PAID";
   const [filterTab, setFilterTab] = useState<CreditFilterTab>("ALL");
+  const [dateFilter, setDateFilter] = useState<string>("");
   const activeFilterRef = useRef<HTMLButtonElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [creditPage, setCreditPage] = useState(1);
@@ -203,6 +208,40 @@ export default function CustomerCreditsPage() {
   const [newCustNotes, setNewCustNotes] = useState("");
   const [isSubmittingCust, setIsSubmittingCust] = useState(false);
 
+  // Edit Customer Modal
+  const [editingCustomer, setEditingCustomer] = useState<CustomerSummary | null>(null);
+  const [editCustName, setEditCustName] = useState("");
+  const [editCustPhone, setEditCustPhone] = useState("");
+  const [editCustAddress, setEditCustAddress] = useState("");
+  const [editCustNotes, setEditCustNotes] = useState("");
+  const [isSubmittingEditCust, setIsSubmittingEditCust] = useState(false);
+
+  const openEditCustomer = (c: CustomerSummary) => {
+    setEditingCustomer(c);
+    setEditCustName(c.fullName || "");
+    setEditCustPhone(c.phone || "");
+    setEditCustAddress(c.address || "");
+    setEditCustNotes(c.notes || "");
+  };
+
+  // Edit Customer Credit Modal
+  const [editingCredit, setEditingCredit] = useState<CustomerCredit | null>(null);
+  const [editCreditCustomerId, setEditCreditCustomerId] = useState("");
+  const [editCreditAmount, setEditCreditAmount] = useState("");
+  const [editCreditDate, setEditCreditDate] = useState("");
+  const [editCreditDueDate, setEditCreditDueDate] = useState("");
+  const [editCreditDescription, setEditCreditDescription] = useState("");
+  const [isSubmittingEditCredit, setIsSubmittingEditCredit] = useState(false);
+
+  const openEditCredit = (c: CustomerCredit) => {
+    setEditingCredit(c);
+    setEditCreditCustomerId(c.customer?.id || (c as any).customerId || "");
+    setEditCreditAmount(String(c.amount ?? c.totalAmount ?? ""));
+    setEditCreditDate((c.date || c.createdAt || "").slice(0, 10));
+    setEditCreditDueDate((c as any).dueDate ? String((c as any).dueDate).slice(0, 10) : "");
+    setEditCreditDescription(c.description || "");
+  };
+
   const toggleCreditExpand = (id: string) => {
     setExpandedCreditCards((prev) => ({
       ...prev,
@@ -216,11 +255,10 @@ export default function CustomerCreditsPage() {
     }
   }, [filterTab]);
 
-  const { data: creditsResponse, isLoading: isLoadingCredits } = useQuery({
-    queryKey: ['customer-credits-page-credits', selectedBranchId, filterTab, searchQuery, creditPage],
+  const { data: creditsResponse, isLoading: isLoadingCredits, isFetching: isFetchingCredits } = useQuery({
+    queryKey: ['customer-credits-page-credits', selectedBranchId, filterTab, dateFilter, searchQuery, creditPage],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const todayYmd = new Date().toISOString().slice(0, 10);
       const params: any = {
         page: creditPage,
         limit: 15,
@@ -228,9 +266,8 @@ export default function CustomerCreditsPage() {
       if (selectedBranchId) params.branchId = selectedBranchId;
       if (filterTab === 'OPEN') params.status = 'OPEN';
       if (filterTab === 'PAID') params.status = 'PAID';
-      if (filterTab === 'TODAY') {
-        params.from = todayYmd;
-        params.to = todayYmd;
+      if (dateFilter) {
+        params.date = dateFilter;
       }
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
@@ -363,6 +400,80 @@ export default function CustomerCreditsPage() {
     }
   };
 
+  // Update Customer Handler
+  const handleUpdateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCustomer) return;
+    if (!editCustName.trim() || !editCustPhone.trim()) {
+      toast.error("Customer full name and phone number are required.");
+      return;
+    }
+
+    setIsSubmittingEditCust(true);
+    try {
+      await api.patch(`/customers/${editingCustomer.id}`, {
+        fullName: editCustName.trim(),
+        phone: editCustPhone.trim(),
+        address: editCustAddress.trim() || null,
+        notes: editCustNotes.trim() || null,
+      });
+
+      toast.success(t("credits.toastCustomerUpdated") || "Customer updated successfully!");
+      setEditingCustomer(null);
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to update customer");
+    } finally {
+      setIsSubmittingEditCust(false);
+    }
+  };
+
+  // Update Customer Credit Handler
+  const handleUpdateCredit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCredit) return;
+    const amtNum = Number(editCreditAmount);
+    if (isNaN(amtNum) || amtNum <= 0) {
+      toast.error("Please enter a valid total credit amount greater than 0.");
+      return;
+    }
+
+    const totalPaid = (editingCredit.payments || []).reduce(
+      (sum, p) => sum + Number(p.amount ?? p.amountPaid ?? 0),
+      0
+    );
+    if (amtNum < totalPaid) {
+      toast.error(
+        `Credit amount (${amtNum.toFixed(2)} ETB) cannot be less than already recorded repayments (${totalPaid.toFixed(2)} ETB).`
+      );
+      return;
+    }
+
+    setIsSubmittingEditCredit(true);
+    try {
+      await api.patch(`/customers/credits/${editingCredit.id}`, {
+        customerId: editCreditCustomerId || undefined,
+        amount: amtNum,
+        date: editCreditDate || undefined,
+        dueDate: editCreditDueDate || null,
+        description: editCreditDescription.trim() || null,
+      });
+
+      toast.success(t("credits.toastCreditUpdated") || "Customer credit updated successfully!");
+      setEditingCredit(null);
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to update credit record");
+    } finally {
+      setIsSubmittingEditCredit(false);
+    }
+  };
+
   // Metrics
   const totalCreditGiven = stats?.totalCreditGiven ?? credits.reduce(
     (acc, c) => acc + Number(c.amount ?? c.totalAmount ?? 0),
@@ -385,17 +496,6 @@ export default function CustomerCreditsPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <Button
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
-              queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
-            }}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> {t("common.refresh")}
-          </Button>
-
           {canManage && (
             <>
               <Button
@@ -472,70 +572,141 @@ export default function CustomerCreditsPage() {
       {/* TAB 1: CREDIT SALES VIEW */}
       {activeMainTab === "CREDITS" && (
         <>
-          {/* Filter Bar with Horizontal Auto-Centering Tabs */}
-          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            {(() => {
-              const todayYmd = new Date().toISOString().slice(0, 10);
-              const filterPills = [
-                { id: "ALL", label: t("credits.filterAll") || "All Credits", count: stats?.counts?.all ?? creditTotal },
-                {
-                  id: "OPEN",
-                  label: t("credits.statusOpen") || "Open / Unpaid",
-                  count: stats?.counts?.open ?? credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length,
-                },
-                {
-                  id: "PAID",
-                  label: t("credits.statusPaid") || "Fully Paid",
-                  count: stats?.counts?.paid ?? credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length,
-                },
-                {
-                  id: "TODAY",
-                  label: `📅 ${t("credits.filterToday") || "Today"}`,
-                  count: credits.filter((c) => (c.date || c.createdAt || "").slice(0, 10) === todayYmd).length,
-                },
-              ];
+          {/* Filter Bar with Status Tabs, Calendar Date Filter, and Search */}
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
+              {/* Status Pills */}
+              {(() => {
+                const filterPills = [
+                  { id: "ALL", label: t("credits.filterAll") || "All Credits", count: stats?.counts?.all ?? creditTotal },
+                  {
+                    id: "OPEN",
+                    label: t("credits.statusOpen") || "Open / Unpaid",
+                    count: stats?.counts?.open ?? credits.filter((c) => c.status !== "PAID" && Number(c.remainingBalance) > 0.01).length,
+                  },
+                  {
+                    id: "PAID",
+                    label: t("credits.statusPaid") || "Fully Paid",
+                    count: stats?.counts?.paid ?? credits.filter((c) => c.status === "PAID" || Number(c.remainingBalance) <= 0.01).length,
+                  },
+                ];
 
-              return (
-                <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
-                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+                return (
+                  <div className="relative w-full sm:w-auto max-w-full overflow-hidden">
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
 
-                  <div
-                    className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-0.5 max-w-full"
-                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                  >
-                    {filterPills.map((pill) => {
-                      const isActive = filterTab === pill.id;
-                      return (
-                        <button
-                          key={pill.id}
-                          ref={isActive ? activeFilterRef : null}
-                          type="button"
-                          onClick={() => {
-                            setFilterTab(pill.id as CreditFilterTab);
-                            setCreditPage(1);
-                          }}
-                          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
-                            isActive
-                              ? "bg-[#4A2E1B] text-white shadow-xs ring-2 ring-[#4A2E1B]/20"
-                              : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
-                          }`}
-                        >
-                          <span>{pill.label}</span>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                              isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                    <div
+                      className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5 max-w-full"
+                      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                    >
+                      {filterPills.map((pill) => {
+                        const isActive = filterTab === pill.id;
+                        return (
+                          <button
+                            key={pill.id}
+                            ref={isActive ? activeFilterRef : null}
+                            type="button"
+                            onClick={() => {
+                              setFilterTab(pill.id as CreditFilterTab);
+                              setCreditPage(1);
+                            }}
+                            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
+                              isActive
+                                ? "bg-[#4A2E1B] text-white shadow-xs ring-2 ring-[#4A2E1B]/20"
+                                : "bg-[#FAF6F0] text-[#7A6251] hover:bg-[#F3ECE1] hover:text-[#4A2E1B] border border-[#EDE4D5]"
                             }`}
                           >
-                            {pill.count}
-                          </span>
-                        </button>
-                      );
-                    })}
+                            <span>{pill.label}</span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                                isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                              }`}
+                            >
+                              {pill.count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+                );
+              })()}
+
+              {/* Date Filter & Quick Today */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
+                  {isFetchingCredits && !isLoadingCredits ? (
+                    <Loader2 className="w-3.5 h-3.5 text-[#E87A18] animate-spin shrink-0" />
+                  ) : (
+                    <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                  )}
+                  <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider hidden sm:inline">
+                    {t('stockMovements.date') || "Date"}:
+                  </span>
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => {
+                      setDateFilter(e.target.value);
+                      setCreditPage(1);
+                    }}
+                    className="text-xs font-semibold text-[#2C1B10] bg-transparent outline-none cursor-pointer"
+                  />
+                  {dateFilter && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDateFilter("");
+                        setCreditPage(1);
+                      }}
+                      className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white"
+                      title="Clear date filter"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-              );
-            })()}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isFetchingCredits && !isLoadingCredits}
+                  onClick={() => {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    setDateFilter(dateFilter === todayStr ? "" : todayStr);
+                    setCreditPage(1);
+                  }}
+                  className={`h-8 px-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
+                    dateFilter === new Date().toISOString().slice(0, 10)
+                      ? "bg-[#4A2E1B] text-white border-[#4A2E1B]"
+                      : "border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE]"
+                  }`}
+                >
+                  {isFetchingCredits && !isLoadingCredits && dateFilter === new Date().toISOString().slice(0, 10) && (
+                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                  )}
+                  <span>{t('stockMovements.today') || "Today"}</span>
+                </Button>
+
+                {dateFilter && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isFetchingCredits && !isLoadingCredits}
+                    onClick={() => {
+                      setDateFilter("");
+                      setCreditPage(1);
+                    }}
+                    className="h-8 px-2 text-xs text-[#8C7361] hover:text-[#2C1B10]"
+                  >
+                    {t('stockMovements.showAllDates') || "Show All Dates"}
+                  </Button>
+                )}
+              </div>
+            </div>
 
             <Input
               placeholder={t("credits.searchPlaceholder")}
@@ -544,20 +715,19 @@ export default function CustomerCreditsPage() {
                 setSearchQuery(e.target.value);
                 setCreditPage(1);
               }}
-              className="w-full sm:w-64 rounded-xl border-zinc-200 text-xs h-9"
+              className="w-full lg:w-64 rounded-xl border-zinc-200 text-xs h-9 shrink-0"
             />
           </div>
 
           {/* Credit Data: Desktop Table & Mobile Cards */}
           {(() => {
-            const todayYmd = new Date().toISOString().slice(0, 10);
             const filteredCredits = credits.filter((c) => {
               const isPaid = c.status === "PAID" || Number(c.remainingBalance) <= 0.01;
               const creditDate = (c.date || c.createdAt || "").slice(0, 10);
 
               if (filterTab === "OPEN" && isPaid) return false;
               if (filterTab === "PAID" && !isPaid) return false;
-              if (filterTab === "TODAY" && creditDate !== todayYmd) return false;
+              if (dateFilter && creditDate !== dateFilter) return false;
 
               if (searchQuery) {
                 const q = searchQuery.toLowerCase();
@@ -576,7 +746,7 @@ export default function CustomerCreditsPage() {
             return (
               <>
                 {/* Desktop Table View */}
-                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -611,7 +781,7 @@ export default function CustomerCreditsPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredCredits.map((c) => {
+                        filteredCredits.map((c, idx) => {
                           const parsed = parseCustomerCreditDescription(c.description, c.entityId, c.customer);
                           const totalAmt = Number(c.amount ?? c.totalAmount ?? 0);
                           const remAmt = Number(c.remainingBalance || 0);
@@ -628,7 +798,18 @@ export default function CustomerCreditsPage() {
 
                               {/* Customer & Contact Column */}
                               <TableCell className="max-w-[170px]">
-                                <div className="font-extrabold text-[#2C1B10] text-sm leading-tight truncate">{parsed.name}</div>
+                                {c.customer?.id ? (
+                                  <Link
+                                    href={`/customers/${c.customer.id}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="font-extrabold text-[#2C1B10] text-sm leading-tight truncate hover:text-[#E87A18] hover:underline block"
+                                    title="View Customer Profile & Ledger"
+                                  >
+                                    {parsed.name}
+                                  </Link>
+                                ) : (
+                                  <div className="font-extrabold text-[#2C1B10] text-sm leading-tight truncate">{parsed.name}</div>
+                                )}
                                 {parsed.phone && (
                                   <div className="text-xs text-[#8C7361] font-medium mt-0.5 flex items-center gap-1">
                                     📞 {parsed.phone}
@@ -720,7 +901,7 @@ export default function CustomerCreditsPage() {
                               {/* Actions Column */}
                               <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-end gap-1.5 relative" data-actions-menu>
-                                  {remAmt > 0.01 && canManage ? (
+                                  {remAmt > 0.01 && canManage && (
                                     <Button
                                       size="sm"
                                       variant="success"
@@ -732,80 +913,68 @@ export default function CustomerCreditsPage() {
                                     >
                                       <DollarSign className="w-3.5 h-3.5" /> {t("credits.btnPay")}
                                     </Button>
-                                  ) : (
+                                  )}
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/customer-credits/${c.id}`)}
+                                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl flex items-center gap-1 shadow-2xs shrink-0"
+                                    title={t("common.details") || "Credit Details"}
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                                  </Button>
+
+                                  {canManage && (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => router.push(`/customer-credits/${c.id}`)}
-                                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0"
+                                      onClick={() => openEditCredit(c)}
+                                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl shadow-2xs shrink-0"
+                                      title={t("credits.editCreditBtn") || "Edit Credit"}
                                     >
-                                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" /> {t("common.details")}
+                                      <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
                                     </Button>
                                   )}
 
-                                  {/* Compact Actions Dropdown Menu */}
-                                  <div className="relative">
-                                    <button
-                                      type="button"
-                                      onClick={() => setOpenActionDropdownId(openActionDropdownId === c.id ? null : c.id)}
-                                      className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
-                                        openActionDropdownId === c.id
-                                          ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
-                                          : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
-                                      }`}
-                                      title="More Actions"
-                                    >
-                                      <MoreVertical className="w-4 h-4" />
-                                    </button>
+                                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={() => setOpenActionDropdownId(openActionDropdownId === c.id ? null : c.id)}
+                                        className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                                          openActionDropdownId === c.id
+                                            ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
+                                            : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                                        }`}
+                                        title="More Actions"
+                                      >
+                                        <MoreVertical className="w-4 h-4" />
+                                      </button>
 
-                                    {openActionDropdownId === c.id && (
-                                      <div className="absolute right-0 top-full mt-1.5 w-44 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95 duration-100">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenActionDropdownId(null);
-                                            router.push(`/customer-credits/${c.id}`);
-                                          }}
-                                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                                      {openActionDropdownId === c.id && (
+                                        <div
+                                          className={`absolute right-0 ${
+                                            idx >= filteredCredits.length - 2 || filteredCredits.length <= 3
+                                              ? "bottom-full mb-1.5"
+                                              : "top-full mt-1.5"
+                                          } w-44 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95 duration-100`}
                                         >
-                                          <Eye className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-                                          {t("common.details") || "Credit Details"}
-                                        </button>
-
-                                        {remAmt > 0.01 && canManage && (
                                           <button
                                             type="button"
                                             onClick={() => {
                                               setOpenActionDropdownId(null);
-                                              setPayingCredit(c);
-                                              setAmountPaid(String(remAmt));
+                                              handleDeleteCredit(c.id);
                                             }}
-                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
+                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
                                           >
-                                            <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                            {t("credits.btnPay") || "Record Payment"}
+                                            <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                            {t("common.delete") || "Delete Credit"}
                                           </button>
-                                        )}
-
-                                        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                                          <>
-                                            <div className="my-1 border-t border-[#F4ECE1]" />
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setOpenActionDropdownId(null);
-                                                handleDeleteCredit(c.id);
-                                              }}
-                                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                                              {t("common.delete") || "Delete Credit"}
-                                            </button>
-                                          </>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -868,7 +1037,17 @@ export default function CustomerCreditsPage() {
                           </div>
 
                           <div>
-                            <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{parsed.name}</h3>
+                            {c.customer?.id ? (
+                              <Link
+                                href={`/customers/${c.customer.id}`}
+                                className="font-extrabold text-[#2C1B10] text-base leading-tight hover:text-[#E87A18] hover:underline block"
+                                title="View Customer Profile & Ledger"
+                              >
+                                {parsed.name}
+                              </Link>
+                            ) : (
+                              <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{parsed.name}</h3>
+                            )}
                             {parsed.phone && (
                               <a
                                 href={`tel:${parsed.phone}`}
@@ -947,6 +1126,17 @@ export default function CustomerCreditsPage() {
                             >
                               <Eye className="w-3.5 h-3.5" /> {t("common.details")}
                             </Button>
+                            {canManage && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openEditCredit(c)}
+                                className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] px-3 shrink-0"
+                                title="Edit Credit"
+                              >
+                                <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
+                              </Button>
+                            )}
                             {remAmt > 0.01 && canManage && (
                               <Button
                                 size="sm"
@@ -1059,7 +1249,7 @@ export default function CustomerCreditsPage() {
             return (
               <>
                 {/* Desktop Customers Table */}
-                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1069,7 +1259,8 @@ export default function CustomerCreditsPage() {
                         <TableHead className="text-center">{t("credits.totalCreditsCount")}</TableHead>
                         <TableHead className="text-right">{t("credits.totalBorrowed")}</TableHead>
                         <TableHead className="text-right">{t("credits.totalRepaid")}</TableHead>
-                        <TableHead className="text-right pr-6">{t("credits.outstandingDebt")}</TableHead>
+                        <TableHead className="text-right">{t("credits.outstandingDebt")}</TableHead>
+                        <TableHead className="text-right pr-6">{t("common.actions") || "Actions"}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1082,12 +1273,13 @@ export default function CustomerCreditsPage() {
                             <TableCell className="text-center"><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
                             <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
                             <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
-                            <TableCell className="text-right pr-6"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                            <TableCell className="text-right pr-6"><Skeleton className="h-8 w-16 rounded-xl ml-auto" /></TableCell>
                           </TableRow>
                         ))
                       ) : filteredCusts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">
+                          <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
                             {t("credits.noCustomersFound")}
                           </TableCell>
                         </TableRow>
@@ -1097,7 +1289,13 @@ export default function CustomerCreditsPage() {
                           return (
                             <TableRow key={c.id}>
                               <TableCell>
-                                <span className="font-extrabold text-[#2C1B10] text-sm block">{c.fullName}</span>
+                                <Link
+                                  href={`/customers/${c.id}`}
+                                  className="font-extrabold text-[#2C1B10] text-sm block hover:text-[#E87A18] hover:underline"
+                                  title="View Customer Profile & Ledger"
+                                >
+                                  {c.fullName}
+                                </Link>
                                 {c.notes && (
                                   <span className="text-[11px] text-[#8C7361] italic block truncate max-w-[200px]">
                                     {c.notes}
@@ -1121,7 +1319,7 @@ export default function CustomerCreditsPage() {
                               <TableCell className="text-right font-mono font-bold text-xs text-emerald-700">
                                 {Number(c.totalPaid || 0).toFixed(2)} ETB
                               </TableCell>
-                              <TableCell className="text-right pr-6">
+                              <TableCell className="text-right">
                                 <span
                                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-black ${
                                     rem > 0.01
@@ -1131,6 +1329,31 @@ export default function CustomerCreditsPage() {
                                 >
                                   {rem.toFixed(2)} ETB
                                 </span>
+                              </TableCell>
+                              <TableCell className="text-right pr-4">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/customers/${c.id}`)}
+                                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs"
+                                    title="View Customer Profile & Ledger"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 mr-1 text-[#E87A18]" />
+                                    Ledger
+                                  </Button>
+                                  {canManage && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openEditCustomer(c)}
+                                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl shadow-2xs"
+                                      title="Edit Customer"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -1163,7 +1386,13 @@ export default function CustomerCreditsPage() {
                         <div key={c.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-sm space-y-3">
                           <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2">
                             <div>
-                              <h3 className="font-extrabold text-[#2C1B10] text-base leading-tight">{c.fullName}</h3>
+                              <Link
+                                href={`/customers/${c.id}`}
+                                className="font-extrabold text-[#2C1B10] text-base leading-tight hover:text-[#E87A18] hover:underline block"
+                                title="View Customer Profile & Ledger"
+                              >
+                                {c.fullName}
+                              </Link>
                               <a
                                 href={`tel:${c.phone}`}
                                 className="inline-flex items-center gap-1 text-xs text-[#E87A18] font-bold mt-0.5 hover:underline"
@@ -1172,15 +1401,37 @@ export default function CustomerCreditsPage() {
                               </a>
                             </div>
 
-                            <span
-                              className={`px-2.5 py-1 rounded-full text-[11px] font-mono font-black border ${
-                                rem > 0.01
-                                  ? "bg-rose-100 text-rose-800 border-rose-300"
-                                  : "bg-emerald-100 text-emerald-800 border-emerald-300"
-                              }`}
-                            >
-                              {rem > 0.01 ? `${rem.toFixed(2)} ETB Due` : "Settled"}
-                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-black border ${
+                                  rem > 0.01
+                                    ? "bg-rose-100 text-rose-800 border-rose-300"
+                                    : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                }`}
+                              >
+                                {rem > 0.01 ? `${rem.toFixed(2)} ETB` : "Settled"}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => router.push(`/customers/${c.id}`)}
+                                className="h-7 w-7 p-0 rounded-lg border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
+                                title="View Customer Profile & Ledger"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                              </Button>
+                              {canManage && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openEditCustomer(c)}
+                                  className="h-7 w-7 p-0 rounded-lg border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
+                                  title="Edit Customer"
+                                >
+                                  <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
 
                           {c.address && (
@@ -1372,6 +1623,188 @@ export default function CustomerCreditsPage() {
                 loading={isSubmittingCust}
               >
                 {t("credits.addNewCustomerBtn")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: Edit Customer Profile */}
+      <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && setEditingCustomer(null)}>
+        <DialogContent className="max-w-md bg-white rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-[#E87A18]" />
+              {t("credits.editCustomerModalTitle") || "Edit Customer Profile"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateCustomer} className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.customerNameLabel")} <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                required
+                placeholder={t("credits.customerNamePlaceholder")}
+                value={editCustName}
+                onChange={(e) => setEditCustName(e.target.value)}
+                className="rounded-xl text-xs font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.phoneNumberLabel")} <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                required
+                placeholder={t("credits.phonePlaceholder")}
+                value={editCustPhone}
+                onChange={(e) => setEditCustPhone(e.target.value)}
+                className="rounded-xl text-xs font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.addressLabel")}
+              </label>
+              <Input
+                placeholder={t("credits.addressPlaceholder")}
+                value={editCustAddress}
+                onChange={(e) => setEditCustAddress(e.target.value)}
+                className="rounded-xl text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.noteLabel")}
+              </label>
+              <Input
+                placeholder="Optional notes or references"
+                value={editCustNotes}
+                onChange={(e) => setEditCustNotes(e.target.value)}
+                className="rounded-xl text-xs"
+              />
+            </div>
+
+            <DialogFooter className="pt-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingCustomer(null)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                loading={isSubmittingEditCust}
+              >
+                {t("common.save") || "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: Edit Customer Credit Record */}
+      <Dialog open={!!editingCredit} onOpenChange={(open) => !open && setEditingCredit(null)}>
+        <DialogContent className="max-w-md bg-white rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-[#E87A18]" />
+              {t("credits.editCreditModalTitle") || "Edit Customer Credit Record"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateCredit} className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.colCustomer")} <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={editCreditCustomerId}
+                onChange={(e) => setEditCreditCustomerId(e.target.value)}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-[#2C1B10] bg-white outline-none focus:ring-2 focus:ring-[#E87A18]/30 cursor-pointer"
+              >
+                {customers.map((cust) => (
+                  <option key={cust.id} value={cust.id}>
+                    {cust.fullName} ({cust.phone})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                  {t("credits.colTotalAmount")} (ETB) <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={editCreditAmount}
+                  onChange={(e) => setEditCreditAmount(e.target.value)}
+                  className="rounded-xl text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                  {t("common.date")} <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={editCreditDate}
+                  onChange={(e) => setEditCreditDate(e.target.value)}
+                  className="rounded-xl text-xs font-bold"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.dueDateLabel") || "Due Date"}
+              </label>
+              <Input
+                type="date"
+                value={editCreditDueDate}
+                onChange={(e) => setEditCreditDueDate(e.target.value)}
+                className="rounded-xl text-xs font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                {t("credits.notesCardTitle") || "Notes / Description"}
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Product summary, delivery references, notes..."
+                value={editCreditDescription}
+                onChange={(e) => setEditCreditDescription(e.target.value)}
+                className="w-full border border-zinc-200 rounded-xl p-2.5 text-xs text-[#2C1B10] outline-none focus:ring-2 focus:ring-[#E87A18]/30 resize-none"
+              />
+            </div>
+
+            <DialogFooter className="pt-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingCredit(null)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                loading={isSubmittingEditCredit}
+              >
+                {t("common.save") || "Save Changes"}
               </Button>
             </DialogFooter>
           </form>
