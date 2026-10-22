@@ -746,7 +746,7 @@ export default function CustomerCreditsPage() {
             return (
               <>
                 {/* Desktop Table View */}
-                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -781,7 +781,7 @@ export default function CustomerCreditsPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredCredits.map((c) => {
+                        filteredCredits.map((c, idx) => {
                           const parsed = parseCustomerCreditDescription(c.description, c.entityId, c.customer);
                           const totalAmt = Number(c.amount ?? c.totalAmount ?? 0);
                           const remAmt = Number(c.remainingBalance || 0);
@@ -901,7 +901,7 @@ export default function CustomerCreditsPage() {
                               {/* Actions Column */}
                               <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-end gap-1.5 relative" data-actions-menu>
-                                  {remAmt > 0.01 && canManage ? (
+                                  {remAmt > 0.01 && canManage && (
                                     <Button
                                       size="sm"
                                       variant="success"
@@ -913,94 +913,68 @@ export default function CustomerCreditsPage() {
                                     >
                                       <DollarSign className="w-3.5 h-3.5" /> {t("credits.btnPay")}
                                     </Button>
-                                  ) : (
+                                  )}
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/customer-credits/${c.id}`)}
+                                    className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl flex items-center gap-1 shadow-2xs shrink-0"
+                                    title={t("common.details") || "Credit Details"}
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                                  </Button>
+
+                                  {canManage && (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => router.push(`/customer-credits/${c.id}`)}
-                                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0"
+                                      onClick={() => openEditCredit(c)}
+                                      className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl shadow-2xs shrink-0"
+                                      title={t("credits.editCreditBtn") || "Edit Credit"}
                                     >
-                                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" /> {t("common.details")}
+                                      <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
                                     </Button>
                                   )}
 
-                                  {/* Compact Actions Dropdown Menu */}
-                                  <div className="relative">
-                                    <button
-                                      type="button"
-                                      onClick={() => setOpenActionDropdownId(openActionDropdownId === c.id ? null : c.id)}
-                                      className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
-                                        openActionDropdownId === c.id
-                                          ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
-                                          : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
-                                      }`}
-                                      title="More Actions"
-                                    >
-                                      <MoreVertical className="w-4 h-4" />
-                                    </button>
+                                  {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={() => setOpenActionDropdownId(openActionDropdownId === c.id ? null : c.id)}
+                                        className={`h-8 w-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                                          openActionDropdownId === c.id
+                                            ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
+                                            : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                                        }`}
+                                        title="More Actions"
+                                      >
+                                        <MoreVertical className="w-4 h-4" />
+                                      </button>
 
-                                    {openActionDropdownId === c.id && (
-                                      <div className="absolute right-0 top-full mt-1.5 w-44 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95 duration-100">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenActionDropdownId(null);
-                                            router.push(`/customer-credits/${c.id}`);
-                                          }}
-                                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
+                                      {openActionDropdownId === c.id && (
+                                        <div
+                                          className={`absolute right-0 ${
+                                            idx >= filteredCredits.length - 2 || filteredCredits.length <= 3
+                                              ? "bottom-full mb-1.5"
+                                              : "top-full mt-1.5"
+                                          } w-44 z-50 rounded-2xl bg-white border border-[#EDE4D5] shadow-xl p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95 duration-100`}
                                         >
-                                          <Eye className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-                                          {t("common.details") || "Credit Details"}
-                                        </button>
-
-                                        {remAmt > 0.01 && canManage && (
                                           <button
                                             type="button"
                                             onClick={() => {
                                               setOpenActionDropdownId(null);
-                                              setPayingCredit(c);
-                                              setAmountPaid(String(remAmt));
+                                              handleDeleteCredit(c.id);
                                             }}
-                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer text-left"
+                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
                                           >
-                                            <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                            {t("credits.btnPay") || "Record Payment"}
+                                            <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                            {t("common.delete") || "Delete Credit"}
                                           </button>
-                                        )}
-
-                                        {canManage && (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setOpenActionDropdownId(null);
-                                              openEditCredit(c);
-                                            }}
-                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
-                                          >
-                                            <Pencil className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-                                            {t("credits.editCreditBtn") || "Edit Credit"}
-                                          </button>
-                                        )}
-
-                                        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                                          <>
-                                            <div className="my-1 border-t border-[#F4ECE1]" />
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setOpenActionDropdownId(null);
-                                                handleDeleteCredit(c.id);
-                                              }}
-                                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                                              {t("common.delete") || "Delete Credit"}
-                                            </button>
-                                          </>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1275,7 +1249,7 @@ export default function CustomerCreditsPage() {
             return (
               <>
                 {/* Desktop Customers Table */}
-                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
+                <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-sm">
                   <Table>
                     <TableHeader>
                       <TableRow>

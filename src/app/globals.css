@@ -186,36 +186,37 @@
 /* Universal Custom Scrollbar Utility */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(140, 115, 97, 0.3) transparent;
+  scrollbar-color: #B59A84 #F4ECE1;
 }
 
 .custom-scrollbar:hover {
-  scrollbar-color: rgba(232, 122, 24, 0.55) transparent;
+  scrollbar-color: #E87A18 #EDE4D5;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: #F4ECE1;
   border-radius: 9999px;
-  margin: 4px 0;
+  margin: 2px 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(140, 115, 97, 0.28);
+  background: #B59A84;
   border-radius: 9999px;
+  border: 1.5px solid #F4ECE1;
   transition: background-color 0.2s ease-in-out;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(232, 122, 24, 0.65);
+  background: #E87A18;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:active {
-  background: #E87A18;
+  background: #C4600C;
 }
 
 /* Hide scrollbar utility for clean mobile touch scrolling */
