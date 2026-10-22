@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
-import { Plus, ArrowRightLeft, Edit, Trash2, RefreshCw, AlertTriangle, Lock, Clock, User as UserIcon, History } from "lucide-react";
+import { Plus, ArrowRightLeft, Edit, Trash2, AlertTriangle, Lock, Clock, User as UserIcon, History } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton } from "@/components/ui/skeletons";
 
@@ -210,7 +210,7 @@ export default function ProductConversionsPage() {
         }
     };
 
-    const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "HISTORY">("ALL");
+    const [filterTab, setFilterTab] = useState<"RECENT" | "ALL" | "HISTORY">("RECENT");
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     useEffect(() => {
@@ -247,25 +247,25 @@ export default function ProductConversionsPage() {
         }
     };
 
-    const todayConversions = conversions.filter((c) => isToday(c.createdAt));
-    const historyConversions = conversions.filter((c) => !isToday(c.createdAt));
+    const recentConversions = conversions.filter((c) => isToday(c.createdAt) || isYesterday(c.createdAt));
+    const historyConversions = conversions.filter((c) => !isToday(c.createdAt) && !isYesterday(c.createdAt));
 
     const displayedConversions = isGlobalAdmin
-        ? (filterTab === "TODAY"
-            ? todayConversions
+        ? (filterTab === "RECENT"
+            ? recentConversions
             : filterTab === "HISTORY"
             ? historyConversions
             : conversions)
-        : conversions.filter((c) => isToday(c.createdAt) || isYesterday(c.createdAt));
+        : recentConversions;
 
     const selectedStock = fromProductId ? sessionStockSummary[fromProductId] : undefined;
     const maxAvailableForConversion = selectedStock ? selectedStock.maxAvailable : 0;
     const isExceedingStock = Boolean(fromProductId && selectedStock && Number(fromQuantity) > maxAvailableForConversion);
 
-    const emptyMessage = isLoading
+    const emptyMessage = (isLoading || !pageData)
         ? t('conversions.loading')
-        : filterTab === "TODAY"
-        ? "No product conversions recorded today yet. Click 'New Conversion' to log one."
+        : filterTab === "RECENT"
+        ? "No product conversions recorded today or yesterday yet. Click 'New Conversion' to log one."
         : filterTab === "HISTORY"
         ? "No past conversion records found in history."
         : t('conversions.noConversions');
@@ -281,16 +281,8 @@ export default function ProductConversionsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
-                        onClick={() => queryClient.invalidateQueries({ queryKey: ['product-conversions'] })}
-                        variant="outline"
-                        size="sm"
-                        className="border-zinc-300 text-zinc-700 hover:bg-zinc-100 font-bold rounded-xl"
-                    >
-                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> {t('common.refresh') || "Refresh"}
-                    </Button>
-                    <Button
                         onClick={handleOpenAdd}
-                        disabled={isLoading}
+                        disabled={isLoading || !pageData}
                         size="default"
                     >
                         <Plus className="w-4 h-4" /> {t('conversions.btnNewConversion')}
@@ -298,8 +290,7 @@ export default function ProductConversionsPage() {
                 </div>
             </div>
 
-
-            {/* Filter Tabs: All, Today, History (Admin & Owner only) */}
+            {/* Filter Tabs: Recent, All, History (Admin & Owner only) */}
             {isGlobalAdmin && (
                 <div className="relative mb-4 overflow-hidden">
                     <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
@@ -310,6 +301,18 @@ export default function ProductConversionsPage() {
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
                         <button
+                            ref={(el) => { tabRefs.current["RECENT"] = el; }}
+                            onClick={() => setFilterTab("RECENT")}
+                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                                filterTab === "RECENT"
+                                    ? "bg-emerald-700 text-white shadow-xs"
+                                    : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                            }`}
+                        >
+                            <Clock className="w-3.5 h-3.5" />
+                            Recent Conversions (Today & Yesterday) ({recentConversions.length})
+                        </button>
+                        <button
                             ref={(el) => { tabRefs.current["ALL"] = el; }}
                             onClick={() => setFilterTab("ALL")}
                             className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
@@ -319,18 +322,6 @@ export default function ProductConversionsPage() {
                             }`}
                         >
                             {t('conversions.tabAll')} ({conversions.length})
-                        </button>
-                        <button
-                            ref={(el) => { tabRefs.current["TODAY"] = el; }}
-                            onClick={() => setFilterTab("TODAY")}
-                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                                filterTab === "TODAY"
-                                    ? "bg-emerald-700 text-white shadow-xs"
-                                    : "text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
-                            }`}
-                        >
-                            <Clock className="w-3.5 h-3.5" />
-                            {t('conversions.tabToday')} ({todayConversions.length})
                         </button>
                         <button
                             ref={(el) => { tabRefs.current["HISTORY"] = el; }}
@@ -352,11 +343,11 @@ export default function ProductConversionsPage() {
             {isGlobalAdmin ? (
                 <div className="flex items-center justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
-                        {filterTab === "TODAY" ? (
+                        {filterTab === "RECENT" ? (
                             <>
                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                                 <h2 className="text-xs sm:text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">
-                                    {t('conversions.tabToday')} ({todayConversions.length})
+                                    Recent Conversions (Today & Yesterday) ({recentConversions.length})
                                 </h2>
                             </>
                         ) : filterTab === "HISTORY" ? (
@@ -375,9 +366,6 @@ export default function ProductConversionsPage() {
                             </>
                         )}
                     </div>
-                    <span className="text-[11px] font-semibold text-[#8C7361]">
-                        Showing {displayedConversions.length} record{displayedConversions.length === 1 ? "" : "s"}
-                    </span>
                 </div>
             ) : (
                 <div className="flex items-center justify-between gap-2 mb-3">
@@ -387,15 +375,12 @@ export default function ProductConversionsPage() {
                             Recent Conversions (Today & Yesterday)
                         </h2>
                     </div>
-                    <span className="text-[11px] font-semibold text-[#8C7361]">
-                        Showing {displayedConversions.length} record{displayedConversions.length === 1 ? "" : "s"}
-                    </span>
                 </div>
             )}
 
             {/* History: Desktop Table & Mobile Cards */}
             <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-sm">
-                {isLoading ? (
+                {isLoading || !pageData ? (
                     <div className="p-4">
                         <TableSkeleton rows={5} columns={6} hasActions={true} />
                     </div>
@@ -498,7 +483,7 @@ export default function ProductConversionsPage() {
 
             {/* Mobile Audit Cards View */}
             <div className="block md:hidden space-y-3">
-                {isLoading ? (
+                {isLoading || !pageData ? (
                     <TableSkeleton rows={4} columns={3} hasActions={false} />
                 ) : displayedConversions.length === 0 ? (
                     <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
@@ -593,119 +578,136 @@ export default function ProductConversionsPage() {
             {/* CREATE MODAL */}
             {isAddOpen && (
                 <Dialog open={true} onOpenChange={(open) => { if (!open) setIsAddOpen(false); }}>
-                    <DialogContent className="max-w-md rounded-2xl">
-                        <DialogHeader>
-                            <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                    <DialogContent className="max-w-md w-[calc(100%-1.5rem)] rounded-3xl p-4 sm:p-5 max-h-[88vh] overflow-y-auto bg-white border border-[#EDE4D5]">
+                        <DialogHeader className="pb-1">
+                            <DialogTitle className="text-base sm:text-lg font-black text-[#2C1B10] flex items-center gap-2">
                                 <ArrowRightLeft className="w-5 h-5 text-[#E87A18]" />
                                 {t('conversions.modalTitle')}
                             </DialogTitle>
                         </DialogHeader>
-                        <form onSubmit={handleCreate} className="space-y-4 mt-2">
-                            <div>
-                                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    {t('conversions.sourceProduct')} (Original)
-                                </label>
-                                <select
-                                    required
-                                    value={fromProductId}
-                                    onChange={(e) => setFromProductId(e.target.value)}
-                                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
-                                >
-                                    <option value="" disabled>Select Source Product</option>
-                                    {products.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.name} ({p.unitType})
-                                        </option>
-                                    ))}
-                                </select>
 
-                                {fromProductId && selectedStock && (
-                                    <div className="mt-2 flex items-center justify-between text-xs bg-amber-50 border border-amber-200 p-2.5 rounded-xl shadow-xs">
-                                        <span className="text-amber-950 font-semibold">
-                                            🛍️ Shop Available: <strong className="font-extrabold text-amber-900 text-sm">{maxAvailableForConversion} {selectedStock.unitType}</strong>
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFromQuantity(String(maxAvailableForConversion))}
-                                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[11px] rounded-lg shadow-xs active:scale-95 transition-all"
+                        <form onSubmit={handleCreate} className="space-y-3 mt-1">
+                            {/* 1. Source Product Card */}
+                            <div className="bg-[#FAF6F0] p-3 rounded-2xl border border-[#EDE4D5] space-y-2">
+                                <div className="flex items-center justify-between gap-1">
+                                    <label className="text-[10px] font-black uppercase text-[#8C7361] tracking-wider block">
+                                        {t('conversions.sourceProduct')} (Deduct)
+                                    </label>
+                                    {fromProductId && selectedStock && (
+                                        <div className="flex items-center gap-1.5 text-[10px] font-bold">
+                                            <span className="text-[#8C7361]">
+                                                Stock: <strong className="text-amber-900 font-extrabold">{maxAvailableForConversion} {selectedStock.unitType}</strong>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFromQuantity(String(maxAvailableForConversion))}
+                                                className="px-1.5 py-0.5 bg-[#E87A18] hover:bg-[#D26911] text-white font-black text-[9px] rounded-md active:scale-95 transition-all"
+                                            >
+                                                Max
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <select
+                                            required
+                                            value={fromProductId}
+                                            onChange={(e) => setFromProductId(e.target.value)}
+                                            className="w-full border border-[#EDE4D5] rounded-xl h-9 px-2.5 bg-white text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] outline-none truncate"
                                         >
-                                            Set Max ({maxAvailableForConversion})
-                                        </button>
+                                            <option value="" disabled>Select Source Product</option>
+                                            {products.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name} ({p.unitType})
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
-                                )}
-                            </div>
+                                    <div className="w-24 shrink-0">
+                                        <Input
+                                            type="number"
+                                            required
+                                            min="1"
+                                            max={selectedStock ? maxAvailableForConversion : undefined}
+                                            value={fromQuantity}
+                                            onFocus={(e) => e.target.select()}
+                                            onChange={(e) => setFromQuantity(e.target.value)}
+                                            placeholder="Qty"
+                                            className="rounded-xl border-[#EDE4D5] h-9 text-xs font-mono font-bold bg-white text-center"
+                                        />
+                                    </div>
+                                </div>
 
-                            <div>
-                                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    {t('conversions.sourceQty')}
-                                </label>
-                                <Input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    max={selectedStock ? maxAvailableForConversion : undefined}
-                                    value={fromQuantity}
-                                    onFocus={(e) => e.target.select()}
-                                    onChange={(e) => setFromQuantity(e.target.value)}
-                                    className="rounded-xl border-zinc-200 font-mono font-bold"
-                                />
                                 {isExceedingStock && (
-                                    <div className="mt-1.5 p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                                        <span>Source quantity ({fromQuantity}) exceeds shop stock ({maxAvailableForConversion} {selectedStock?.unitType}).</span>
+                                    <div className="p-1.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
+                                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                        <span>Exceeds shop stock ({maxAvailableForConversion} {selectedStock?.unitType}).</span>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="text-center text-xs text-amber-700 font-bold uppercase tracking-wider py-1">
-                                ⬇ Converts Into ⬇
+                            {/* Transition Indicator */}
+                            <div className="flex items-center justify-center gap-1.5 py-0.5">
+                                <ArrowRightLeft className="w-3.5 h-3.5 text-[#E87A18]" />
+                                <span className="text-[10px] font-black uppercase tracking-wider text-[#8C7361]">
+                                    Converts Into
+                                </span>
                             </div>
 
-                            <div>
-                                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    {t('conversions.targetProduct')} (Converted)
+                            {/* 2. Target Product Card */}
+                            <div className="bg-[#FAF6F0] p-3 rounded-2xl border border-[#EDE4D5] space-y-2">
+                                <label className="text-[10px] font-black uppercase text-[#8C7361] tracking-wider block">
+                                    {t('conversions.targetProduct')} (Produce)
                                 </label>
-                                <select
-                                    required
-                                    value={toProductId}
-                                    onChange={(e) => setToProductId(e.target.value)}
-                                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
+                                <div className="flex gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <select
+                                            required
+                                            value={toProductId}
+                                            onChange={(e) => setToProductId(e.target.value)}
+                                            className="w-full border border-[#EDE4D5] rounded-xl h-9 px-2.5 bg-white text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] outline-none truncate"
+                                        >
+                                            <option value="" disabled>Select Target Product</option>
+                                            {products.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name} ({p.unitType})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="w-24 shrink-0">
+                                        <Input
+                                            type="number"
+                                            required
+                                            min="1"
+                                            value={toQuantity}
+                                            onFocus={(e) => e.target.select()}
+                                            onChange={(e) => setToQuantity(e.target.value)}
+                                            placeholder="Qty"
+                                            className="rounded-xl border-[#EDE4D5] h-9 text-xs font-mono font-bold bg-white text-center"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <DialogFooter className="gap-2 pt-2 flex-row sm:justify-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsAddOpen(false)}
+                                    className="rounded-xl h-9 text-xs font-bold flex-1 sm:flex-initial border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
                                 >
-                                    <option value="" disabled>Select Target Product</option>
-                                    {products.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.name} ({p.unitType})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    {t('conversions.targetQty')}
-                                </label>
-                                <Input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    value={toQuantity}
-                                    onFocus={(e) => e.target.select()}
-                                    onChange={(e) => setToQuantity(e.target.value)}
-                                    className="rounded-xl border-zinc-200 font-mono font-bold"
-                                />
-                            </div>
-
-                            <DialogFooter className="gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
                                     {t('common.cancel')}
                                 </Button>
                                 <Button
                                     type="submit"
-                                    size="lg"
                                     loading={isSubmitting}
                                     disabled={isExceedingStock}
+                                    className="rounded-xl h-9 text-xs font-bold flex-1 sm:flex-initial bg-[#E87A18] hover:bg-[#D26911] text-white"
                                 >
-                                    {isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
+                                    {isExceedingStock ? "Exceeds Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -716,119 +718,136 @@ export default function ProductConversionsPage() {
             {/* EDIT MODAL */}
             {editingConversion && (
                 <Dialog open={true} onOpenChange={(open) => { if (!open) setEditingConversion(null); }}>
-                    <DialogContent className="max-w-md rounded-2xl">
-                        <DialogHeader>
-                            <DialogTitle className="text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
+                    <DialogContent className="max-w-md w-[calc(100%-1.5rem)] rounded-3xl p-4 sm:p-5 max-h-[88vh] overflow-y-auto bg-white border border-[#EDE4D5]">
+                        <DialogHeader className="pb-1">
+                            <DialogTitle className="text-base sm:text-lg font-black text-[#2C1B10] flex items-center gap-2">
                                 <Edit className="w-5 h-5 text-[#E87A18]" />
                                 {t('common.edit')} {t('conversions.title')}
                             </DialogTitle>
                         </DialogHeader>
-                        <form onSubmit={handleUpdate} className="space-y-4 mt-2">
-                            <div>
-                                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    {t('conversions.sourceProduct')} (Original)
-                                </label>
-                                <select
-                                    required
-                                    value={fromProductId}
-                                    onChange={(e) => setFromProductId(e.target.value)}
-                                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
-                                >
-                                    <option value="" disabled>Select Source Product</option>
-                                    {products.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.name} ({p.unitType})
-                                        </option>
-                                    ))}
-                                </select>
 
-                                {fromProductId && selectedStock && (
-                                    <div className="mt-2 flex items-center justify-between text-xs bg-amber-50 border border-amber-200 p-2.5 rounded-xl shadow-xs">
-                                        <span className="text-amber-950 font-semibold">
-                                            🛍️ Shop Available: <strong className="font-extrabold text-amber-900 text-sm">{maxAvailableForConversion} {selectedStock.unitType}</strong>
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFromQuantity(String(maxAvailableForConversion))}
-                                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[11px] rounded-lg shadow-xs active:scale-95 transition-all"
+                        <form onSubmit={handleUpdate} className="space-y-3 mt-1">
+                            {/* 1. Source Product Card */}
+                            <div className="bg-[#FAF6F0] p-3 rounded-2xl border border-[#EDE4D5] space-y-2">
+                                <div className="flex items-center justify-between gap-1">
+                                    <label className="text-[10px] font-black uppercase text-[#8C7361] tracking-wider block">
+                                        {t('conversions.sourceProduct')} (Deduct)
+                                    </label>
+                                    {fromProductId && selectedStock && (
+                                        <div className="flex items-center gap-1.5 text-[10px] font-bold">
+                                            <span className="text-[#8C7361]">
+                                                Stock: <strong className="text-amber-900 font-extrabold">{maxAvailableForConversion} {selectedStock.unitType}</strong>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFromQuantity(String(maxAvailableForConversion))}
+                                                className="px-1.5 py-0.5 bg-[#E87A18] hover:bg-[#D26911] text-white font-black text-[9px] rounded-md active:scale-95 transition-all"
+                                            >
+                                                Max
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <select
+                                            required
+                                            value={fromProductId}
+                                            onChange={(e) => setFromProductId(e.target.value)}
+                                            className="w-full border border-[#EDE4D5] rounded-xl h-9 px-2.5 bg-white text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] outline-none truncate"
                                         >
-                                            Set Max ({maxAvailableForConversion})
-                                        </button>
+                                            <option value="" disabled>Select Source Product</option>
+                                            {products.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name} ({p.unitType})
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
-                                )}
-                            </div>
+                                    <div className="w-24 shrink-0">
+                                        <Input
+                                            type="number"
+                                            required
+                                            min="1"
+                                            max={selectedStock ? maxAvailableForConversion : undefined}
+                                            value={fromQuantity}
+                                            onFocus={(e) => e.target.select()}
+                                            onChange={(e) => setFromQuantity(e.target.value)}
+                                            placeholder="Qty"
+                                            className="rounded-xl border-[#EDE4D5] h-9 text-xs font-mono font-bold bg-white text-center"
+                                        />
+                                    </div>
+                                </div>
 
-                            <div>
-                                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    {t('conversions.sourceQty')}
-                                </label>
-                                <Input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    max={selectedStock ? maxAvailableForConversion : undefined}
-                                    value={fromQuantity}
-                                    onFocus={(e) => e.target.select()}
-                                    onChange={(e) => setFromQuantity(e.target.value)}
-                                    className="rounded-xl border-zinc-200 font-mono font-bold"
-                                />
                                 {isExceedingStock && (
-                                    <div className="mt-1.5 p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                                        <span>Source quantity ({fromQuantity}) exceeds shop stock ({maxAvailableForConversion} {selectedStock?.unitType}).</span>
+                                    <div className="p-1.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
+                                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                        <span>Exceeds shop stock ({maxAvailableForConversion} {selectedStock?.unitType}).</span>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="text-center text-xs text-amber-700 font-bold uppercase tracking-wider py-1">
-                                ⬇ Converts Into ⬇
+                            {/* Transition Indicator */}
+                            <div className="flex items-center justify-center gap-1.5 py-0.5">
+                                <ArrowRightLeft className="w-3.5 h-3.5 text-[#E87A18]" />
+                                <span className="text-[10px] font-black uppercase tracking-wider text-[#8C7361]">
+                                    Converts Into
+                                </span>
                             </div>
 
-                            <div>
-                                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    {t('conversions.targetProduct')} (Converted)
+                            {/* 2. Target Product Card */}
+                            <div className="bg-[#FAF6F0] p-3 rounded-2xl border border-[#EDE4D5] space-y-2">
+                                <label className="text-[10px] font-black uppercase text-[#8C7361] tracking-wider block">
+                                    {t('conversions.targetProduct')} (Produce)
                                 </label>
-                                <select
-                                    required
-                                    value={toProductId}
-                                    onChange={(e) => setToProductId(e.target.value)}
-                                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
+                                <div className="flex gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <select
+                                            required
+                                            value={toProductId}
+                                            onChange={(e) => setToProductId(e.target.value)}
+                                            className="w-full border border-[#EDE4D5] rounded-xl h-9 px-2.5 bg-white text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] outline-none truncate"
+                                        >
+                                            <option value="" disabled>Select Target Product</option>
+                                            {products.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name} ({p.unitType})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="w-24 shrink-0">
+                                        <Input
+                                            type="number"
+                                            required
+                                            min="1"
+                                            value={toQuantity}
+                                            onFocus={(e) => e.target.select()}
+                                            onChange={(e) => setToQuantity(e.target.value)}
+                                            placeholder="Qty"
+                                            className="rounded-xl border-[#EDE4D5] h-9 text-xs font-mono font-bold bg-white text-center"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <DialogFooter className="gap-2 pt-2 flex-row sm:justify-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setEditingConversion(null)}
+                                    className="rounded-xl h-9 text-xs font-bold flex-1 sm:flex-initial border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
                                 >
-                                    <option value="" disabled>Select Target Product</option>
-                                    {products.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.name} ({p.unitType})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                                    {t('conversions.targetQty')}
-                                </label>
-                                <Input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    value={toQuantity}
-                                    onFocus={(e) => e.target.select()}
-                                    onChange={(e) => setToQuantity(e.target.value)}
-                                    className="rounded-xl border-zinc-200 font-mono font-bold"
-                                />
-                            </div>
-
-                            <DialogFooter className="gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => setEditingConversion(null)} className="rounded-xl">
                                     {t('common.cancel')}
                                 </Button>
                                 <Button
                                     type="submit"
-                                    size="lg"
                                     loading={isSubmitting}
                                     disabled={isExceedingStock}
+                                    className="rounded-xl h-9 text-xs font-bold flex-1 sm:flex-initial bg-[#E87A18] hover:bg-[#D26911] text-white"
                                 >
-                                    {isExceedingStock ? "Exceeds Shop Stock" : t('common.save')}
+                                    {isExceedingStock ? "Exceeds Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>
