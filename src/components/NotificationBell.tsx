@@ -76,9 +76,15 @@ export default function NotificationBell() {
   useEffect(() => {
     fetchNotifications();
 
-    // Poll every 35 seconds to keep notifications fresh
-    const interval = setInterval(fetchNotifications, 35000);
-    return () => clearInterval(interval);
+    const handleFocus = () => fetchNotifications();
+    window.addEventListener('focus', handleFocus);
+
+    // Poll every 15 seconds to keep notifications fresh
+    const interval = setInterval(fetchNotifications, 15000);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   // Close dropdown on outside click
@@ -181,6 +187,9 @@ export default function NotificationBell() {
       case 'DAILY_CLOSE_SUBMITTED':
       case 'DAILY_CLOSE_APPROVED':
         return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
+      case 'STOCK_INWARD_ADDED':
+      case 'STOCK_CONFIRMED':
+        return <Package className="w-4 h-4 text-emerald-500" />;
       case 'PRODUCTION_COMPLETED':
         return <Sparkles className="w-4 h-4 text-purple-500" />;
       case 'UNPAID_DELIVERY':

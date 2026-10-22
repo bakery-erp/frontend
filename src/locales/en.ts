@@ -1592,6 +1592,10 @@ export const en = {
     outOfStockBody: "Raw material \"{itemName}\" is completely out of stock ({quantity} {unit} remaining). Immediate replenishment needed.",
     stockPurchaseLoanTitle: "Stock Purchased on Credit",
     stockPurchaseLoanBody: "New credit purchase of \"{itemName}\" logged from {supplierName} for {amount} ETB.",
+    stockInwardTitle: "Inward Stock Added",
+    stockInwardBody: "New inward stock added for \"{itemName}\" ({quantity} {unit}). Please inspect and confirm receipt.",
+    stockConfirmedTitle: "Inward Stock Confirmed",
+    stockConfirmedBody: "{confirmedBy} verified and confirmed receipt of {quantity} {unit} of \"{itemName}\".",
 
     // Deliveries
     unpaidDeliveryTitle: "Unpaid Supplier Delivery",

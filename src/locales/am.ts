@@ -1594,6 +1594,10 @@ export const am: TranslationDictionary = {
     outOfStockBody: "የጥሬ ዕቃ \"{itemName}\" ሙሉ በሙሉ አልቋል (ቀሪ: {quantity} {unit})። አፋጣኝ ግዢ ያስፈልጋል።",
     stockPurchaseLoanTitle: "በብድር የተገዛ ጥሬ ዕቃ",
     stockPurchaseLoanBody: "የ \"{itemName}\" አዲስ የብድር ግዢ ከ {supplierName} በ {amount} ብር ተመዝግቧል።",
+    stockInwardTitle: "አዲስ የገባ ጥሬ ዕቃ",
+    stockInwardBody: "ለ \"{itemName}\" አዲስ የገባ {quantity} {unit} ጥሬ ዕቃ ተመዝግቧል። እባክዎ ዕቃውን አይተው ያረጋግጡ።",
+    stockConfirmedTitle: "የገባ ጥሬ ዕቃ ተረጋግጧል",
+    stockConfirmedBody: "{confirmedBy} የ {quantity} {unit} \"{itemName}\" ገቢ መሆኑን አረጋግጧል።",
 
     // Deliveries
     unpaidDeliveryTitle: "ያልተከፈለ የአቅራቢ አቅርቦት",

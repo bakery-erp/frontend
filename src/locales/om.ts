@@ -1594,6 +1594,10 @@ export const om: TranslationDictionary = {
     outOfStockBody: "Meeshaan dheedhii \"{itemName}\" guutummaatti dhumateera (hafe: {quantity} {unit}). Bittaa ariifachiisaa barbaada.",
     stockPurchaseLoanTitle: "Meeshaa Dheedhii Liqiin Bitame",
     stockPurchaseLoanBody: "Bittaa liqii haaraa \"{itemName}\" dhiyeessaa {supplierName} irraa qarshii {amount} galmaa'eera.",
+    stockInwardTitle: "Meeshaan Dheedhii Haaraan Galeera",
+    stockInwardBody: "Meeshaan \"{itemName}\" baay'inni {quantity} {unit} haaraan galmaa'eera. Maaloo qulqullina isaa ilaaluun mirkaneessaa.",
+    stockConfirmedTitle: "Meeshaan Dheedhii Mirkanaa'eera",
+    stockConfirmedBody: "{confirmedBy} meeshaa \"{itemName}\" baay'inni {quantity} {unit} galuu isaa mirkaneesseera.",
 
     // Deliveries
     unpaidDeliveryTitle: "Dhiyeessa Hin Kaffalamne",
