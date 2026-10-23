@@ -945,7 +945,7 @@ export default function ExpensesPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-4">
-              <TableSkeleton rows={5} columns={isManagement ? 8 : 7} />
+              <TableSkeleton rows={5} columns={isManagement ? 7 : 6} />
             </div>
           ) : displayExpenses.length === 0 ? (
             <div className="text-center py-10 text-[#8C7361]">
@@ -962,7 +962,6 @@ export default function ExpensesPage() {
                       <TableHead>{t('expenses.expenseType')}</TableHead>
                       <TableHead>{t('expenses.category')}</TableHead>
                       <TableHead>{t('expenses.description')}</TableHead>
-                      <TableHead>{t('nav.dailySessions')}</TableHead>
                       <TableHead>{t('expenses.loggedBy')}</TableHead>
                       <TableHead className="text-right">{t('expenses.amount')}</TableHead>
                       {isManagement && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
@@ -986,9 +985,6 @@ export default function ExpensesPage() {
                         <TableCell className="font-bold text-[#2C1B10]">{expense.financialCategory?.name || expense.category}</TableCell>
                         <TableCell className="text-xs text-[#8C7361] max-w-[220px] truncate">
                           {expense.description || "-"}
-                        </TableCell>
-                        <TableCell className="text-xs font-mono text-emerald-700 font-semibold">
-                          {expense.sessionId ? `#${expense.sessionId.slice(-6)}` : "-"}
                         </TableCell>
                         <TableCell className="text-xs font-medium text-[#2C1B10]">
                           {expense.user?.fullName || "-"}
@@ -1032,16 +1028,11 @@ export default function ExpensesPage() {
                       key={expense.id}
                       className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3"
                     >
-                      {/* Top Header: Date, Session, Type badge */}
+                      {/* Top Header: Date, Type badge */}
                       <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-2.5">
                         <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
                           <Clock className="w-3.5 h-3.5 text-[#8C7361]" />
                           <span className="font-semibold">{dateFormatted}</span>
-                          {expense.sessionId && (
-                            <span className="font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md text-[10px] font-bold">
-                              #{expense.sessionId.slice(-6)}
-                            </span>
-                          )}
                         </div>
                         <span
                           className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
@@ -1115,18 +1106,20 @@ export default function ExpensesPage() {
                 })}
               </div>
 
-              {/* Pagination Controls */}
-              <PaginationControls
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalExpenses}
-                pageSize={pageSize}
-                onPageChange={(p) => setCurrentPage(p)}
-                onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
-                isLoading={isLoading}
-                itemLabel={t('expenses.title') || "expenses"}
-                className="bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]"
-              />
+              {/* Pagination Controls - only displayed when more than 10 rows */}
+              {totalExpenses > 10 && (
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalExpenses}
+                  pageSize={pageSize}
+                  onPageChange={(p) => setCurrentPage(p)}
+                  onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
+                  isLoading={isLoading}
+                  itemLabel={t('expenses.title') || "expenses"}
+                  className="bg-white sm:bg-transparent p-3 sm:p-0 rounded-2xl border sm:border-0 border-[#EDE4D5]"
+                />
+              )}
             </>
           )}
         </CardContent>
@@ -1315,18 +1308,6 @@ export default function ExpensesPage() {
                   <p className="text-[#2C1B10] bg-[#FAF6F0] p-2 rounded-lg italic">{formDescription}</p>
                 </div>
               )}
-            </div>
-
-            {/* Warning / Deduct Notice */}
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs">
-              <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <p className="leading-relaxed">
-                {language === 'am'
-                  ? 'ይህ ወጪ ሲመዘገብ በቀጥታ ከዕለቱ የሽያጭ ካሽ ሂሳብ ይቀነሳል። እባክዎ መጠኑና ምክንያቱ ትክክል መሆኑን ያረጋግጡ።'
-                  : language === 'om'
-                  ? 'Baasiin kun yeroo galmaa\'u kaffaltii kashii guyyaa irraa hir\'ifama. Maaloo lakkoofsa fi sababa isaa mirkaneeffadhaa.'
-                  : 'This expense will be deducted from the active daily register cash reconciliation. Please confirm the amount and details are correct.'}
-              </p>
             </div>
           </div>
 
