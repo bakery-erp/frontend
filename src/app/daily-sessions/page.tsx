@@ -51,7 +51,9 @@ export default function DailySessionsPage() {
   const [isTodayOnly, setIsTodayOnly] = useState(false);
   const [page, setPage] = useState(1);
   
-  const canManageSessions = user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const isOwner = user?.role === 'OWNER';
+  const isAdmin = user?.role === 'ADMIN';
+  const canManageSessions = isOwner || isAdmin;
 
   useEffect(() => {
     if (user && !canManageSessions) {
@@ -207,7 +209,10 @@ export default function DailySessionsPage() {
 
 
   const handleReopenSession = async (session: DailySession) => {
-    if (!canManageSessions) return;
+    if (!isOwner) {
+      toast.error('Only the Owner can reopen closed sessions');
+      return;
+    }
     try {
       await api.post(`/daily-sessions/${session.id}/reopen`);
       toast.success('Business session reopened for editing');
@@ -219,8 +224,8 @@ export default function DailySessionsPage() {
   };
 
   const openFinalizeModal = (session: DailySession) => {
-    if (!canManageSessions) {
-      toast.error('Only Owners and Admins can finalize daily sessions');
+    if (!isOwner) {
+      toast.error('Only the Owner can finalize and approve daily sessions');
       return;
     }
     setActiveSession(session);
@@ -405,13 +410,13 @@ export default function DailySessionsPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap sm:flex-nowrap">
-              {todaySession.status !== 'CLOSED' && (
+              {todaySession.status === 'OPEN' && (
                 <Button
                   size="sm"
                   onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
                   className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-9 shadow-xs w-full sm:w-auto"
                 >
-                  <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
+                  <Lock className="w-3.5 h-3.5 mr-1" /> {isOwner ? (t('sessions.finalize') || 'Finalize Day') : 'Count & Submit'}
                 </Button>
               )}
               {todaySession.status === 'CLOSE_PENDING' && (
@@ -420,12 +425,21 @@ export default function DailySessionsPage() {
                   onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
                   className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs w-full sm:w-auto"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? t('sessions.reviewApproveClose') : t('sessions.viewCloseReport')}
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {isOwner ? (t('sessions.reviewApproveClose') || 'Review & Approve') : 'View Submitted Counts'}
                 </Button>
               )}
               {todaySession.status === 'CLOSED' && (
                 <>
-                  {canManageSessions && (
+                  {isOwner && (
+                    <Button
+                      size="sm"
+                      onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
+                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs flex-1 sm:flex-initial"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit
+                    </Button>
+                  )}
+                  {isOwner && (
                     <Button
                       size="sm"
                       onClick={() => handleReopenSession(todaySession)}
@@ -502,22 +516,13 @@ export default function DailySessionsPage() {
                         <Plus className="w-3.5 h-3.5 mr-1" /> Open Session
                       </Button>
                     )}
-                    {bSess?.status === 'CLOSED' && canManageSessions && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleReopenSession(bSess)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-8 px-3"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reopen
-                      </Button>
-                    )}
                     {bSess?.status === 'OPEN' && (
                       <Button
                         size="sm"
                         onClick={() => router.push(`/daily-sessions/${bSess.id}/close?mode=edit`)}
                         className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 px-3"
                       >
-                        <Lock className="w-3.5 h-3.5 mr-1" /> Finalize
+                        <Lock className="w-3.5 h-3.5 mr-1" /> {isOwner ? 'Finalize' : 'Submit'}
                       </Button>
                     )}
                     {bSess?.status === 'CLOSE_PENDING' && (
@@ -526,7 +531,25 @@ export default function DailySessionsPage() {
                         onClick={() => router.push(`/daily-sessions/${bSess.id}/close?mode=edit`)}
                         className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-8 px-3"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Review
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {isOwner ? 'Review' : 'Submitted'}
+                      </Button>
+                    )}
+                    {bSess?.status === 'CLOSED' && isOwner && (
+                      <Button
+                        size="sm"
+                        onClick={() => router.push(`/daily-sessions/${bSess.id}/close?mode=edit`)}
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-8 px-2.5"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit
+                      </Button>
+                    )}
+                    {bSess?.status === 'CLOSED' && isOwner && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleReopenSession(bSess)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-8 px-2.5"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reopen
                       </Button>
                     )}
                     {bSess?.status === 'CLOSED' && (
@@ -664,7 +687,7 @@ export default function DailySessionsPage() {
                       onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                       className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-8 shadow-xs w-full"
                     >
-                      <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
+                      <Lock className="w-3.5 h-3.5 mr-1" /> {isOwner ? (t('sessions.finalize') || 'Finalize') : 'Count & Submit'}
                     </Button>
                   )}
 
@@ -674,13 +697,22 @@ export default function DailySessionsPage() {
                       onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                       className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-8 shadow-xs w-full"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? t('sessions.reviewApproveClose') : t('sessions.viewCloseReport')}
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {isOwner ? (t('sessions.reviewApproveClose') || 'Review & Approve') : 'View Submitted Counts'}
                     </Button>
                   )}
 
                   {sess.status === 'CLOSED' && (
-                    <div className="flex items-center gap-1.5 w-full">
-                      {canManageSessions && (
+                    <div className="flex items-center gap-1.5 w-full flex-wrap">
+                      {isOwner && (
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-8 flex-1"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit
+                        </Button>
+                      )}
+                      {isOwner && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -785,7 +817,7 @@ export default function DailySessionsPage() {
                           className="bg-rose-700 text-white hover:bg-rose-800 font-bold rounded-xl text-xs shadow-xs"
                           onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                         >
-                          <Lock className="w-3.5 h-3.5 mr-1" /> {t('sessions.finalize')}
+                          <Lock className="w-3.5 h-3.5 mr-1" /> {isOwner ? (t('sessions.finalize') || 'Finalize') : 'Count & Submit'}
                         </Button>
                       )}
 
@@ -795,13 +827,22 @@ export default function DailySessionsPage() {
                           className="bg-amber-600 text-white hover:bg-amber-700 font-bold rounded-xl text-xs shadow-xs"
                           onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {canManageSessions ? t('sessions.reviewApproveClose') : t('sessions.viewCloseReport')}
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {isOwner ? (t('sessions.reviewApproveClose') || 'Review & Approve') : 'View Submission'}
                         </Button>
                       )}
 
                       {sess.status === 'CLOSED' && (
                         <>
-                          {canManageSessions && (
+                          {isOwner && (
+                            <Button
+                              size="sm"
+                              className="bg-amber-600 text-white hover:bg-amber-700 font-bold rounded-xl text-xs shadow-xs"
+                              onClick={() => router.push(`/daily-sessions/${sess.id}/close?mode=edit`)}
+                            >
+                              <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit
+                            </Button>
+                          )}
+                          {isOwner && (
                             <Button
                               size="sm"
                               variant="outline"

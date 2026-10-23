@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3, FileText, X, Check } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Plus, Trash2, Banknote, Smartphone, CreditCard, DollarSign, PackageCheck, ShoppingCart, Tag, RefreshCw, Eye, Edit3, FileText, X, Check, Lock, RotateCcw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
@@ -94,7 +94,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const { user } = useAuth();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const isAdminOrOwner = user?.role === "ADMIN" || user?.role === "OWNER";
+  const isOwner = user?.role === "OWNER";
+  const isAdmin = user?.role === "ADMIN";
+  const isAdminOrOwner = isOwner || isAdmin;
 
   useEffect(() => {
     if (user && !isAdminOrOwner) {
@@ -125,6 +127,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (session && session.status === "CLOSED" && !isOwner) {
+      setIsViewOnly(true);
+    }
+  }, [session, isOwner]);
 
   // Form State
   const [sessionLabel, setSessionLabel] = useState<string>("");
@@ -485,8 +493,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   };
 
   const handleFinalizeApprove = async () => {
-    if (!isAdminOrOwner) {
-      toast.error("Only Owners and Admins can finalize session approval");
+    if (!isOwner) {
+      toast.error("Only the Owner can finalize session approval");
       return;
     }
     const payload = buildPayload();
@@ -510,8 +518,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   };
 
   const handleReopenSession = async () => {
-    if (!isAdminOrOwner) {
-      toast.error("Only Owners and Admins can reopen a session");
+    if (!isOwner) {
+      toast.error("Only the Owner can reopen a closed session");
       return;
     }
     setIsSubmitting(true);
@@ -604,11 +612,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               size="sm"
               variant={!isViewOnly ? "default" : "ghost"}
               onClick={() => {
-                if (session.status === "CLOSED" || session.status === "CLOSE_PENDING") {
-                  if (!isAdminOrOwner) {
-                    toast.error("Cashiers cannot edit closed or pending-close sessions.");
-                    return;
-                  }
+                if (session.status === "CLOSED" && !isOwner) {
+                  toast.error("Session is closed. Only the Owner can modify closed sessions or reopen them.");
+                  return;
                 }
                 setIsViewOnly(false);
               }}
@@ -630,16 +636,42 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
+      {/* Owner Direct Edit Banner on CLOSED Sessions */}
+      {session.status === "CLOSED" && isOwner && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start space-x-3 shadow-sm">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-extrabold text-sm">Owner Direct Audit Mode</h4>
+            <p className="text-xs text-amber-800 mt-0.5">
+              You are directly modifying a <strong>CLOSED</strong> session. Any updates to counts or cash amounts will recalculate sales and automatically cascade forward to subsequent business days.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Closed Lock Banner */}
+      {session.status === "CLOSED" && !isOwner && (
+        <div className="mb-6 p-4 rounded-2xl bg-zinc-100 border border-zinc-200 text-zinc-900 flex items-start space-x-3 shadow-sm">
+          <Lock className="w-5 h-5 text-zinc-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-extrabold text-sm">Session Closed (Read Only)</h4>
+            <p className="text-xs text-zinc-700 mt-0.5">
+              This session is closed and locked. Only the Owner can modify closed sessions or reopen them. If corrections are needed, please request the Owner to reopen this session.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Approval Status Banner */}
       {session.status === "CLOSE_PENDING" && (
         <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start space-x-3 shadow-sm">
           <AlertTriangle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-extrabold text-sm">Session Close Pending Approval</h4>
+            <h4 className="font-extrabold text-sm">Session Close Submitted — Pending Owner Approval</h4>
             <p className="text-xs text-amber-800 mt-0.5">
-              {isAdminOrOwner
-                ? "The cashier has submitted the close report with cash types and expenses. You can review, edit any figures, and approve the closure below."
-                : "Your close request has been submitted to the Admin / Owner. Waiting for approval."}
+              {isOwner
+                ? "The closing report and inventory counts have been submitted. You can review, make adjustments, and click 'Approve & Finalize Session' below."
+                : "The daily closing counts have been submitted for approval. Waiting for the Owner to finalize the session."}
             </p>
           </div>
         </div>
@@ -1578,18 +1610,32 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               )}
 
               {/* Save Edits without changing status */}
-              <Button
-                onClick={handleSaveEdits}
-                loading={isSubmitting}
-                disabled={isViewOnly}
-                variant="brand"
-                className="justify-center"
-              >
-                <Save className="w-4 h-4 mr-1.5" /> {t("common.save")}
-              </Button>
+              {(session.status !== "CLOSED" || isOwner) && (
+                <Button
+                  onClick={handleSaveEdits}
+                  loading={isSubmitting}
+                  disabled={isViewOnly}
+                  variant="brand"
+                  className="justify-center"
+                >
+                  <Save className="w-4 h-4 mr-1.5" /> {session.status === "CLOSED" ? "Save Direct Changes" : t("common.save")}
+                </Button>
+              )}
 
-              {/* Admin / Owner Finalize & Approve */}
-              {session.status !== "CLOSED" && (
+              {/* Submit for Owner Approval (Admin & Owner when session is OPEN) */}
+              {session.status === "OPEN" && (
+                <Button
+                  onClick={handleSubmitClose}
+                  loading={isSubmitting}
+                  disabled={isViewOnly}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold justify-center"
+                >
+                  <Lock className="w-4 h-4 mr-1.5" /> Submit for Approval
+                </Button>
+              )}
+
+              {/* Owner Finalize & Approve */}
+              {isOwner && session.status !== "CLOSED" && (
                 <Button
                   onClick={handleFinalizeApprove}
                   loading={isSubmitting}
@@ -1600,14 +1646,15 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 </Button>
               )}
 
-              {isAdminOrOwner && session.status === "CLOSE_PENDING" && (
+              {/* Owner Reopen / Reject */}
+              {isOwner && (session.status === "CLOSE_PENDING" || session.status === "CLOSED") && (
                 <Button
                   onClick={handleReopenSession}
                   loading={isSubmitting}
                   variant="destructiveOutline"
                   className="justify-center"
                 >
-                  {t("sessions.reopenSession")}
+                  <RotateCcw className="w-4 h-4 mr-1.5" /> {session.status === "CLOSED" ? "Reopen Session for Admin" : "Reject to OPEN"}
                 </Button>
               )}
             </div>
