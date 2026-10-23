@@ -1187,14 +1187,10 @@ export default function SuppliersPage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colPaidFrom')}</label>
-                  <select
-                    name="paymentSource"
-                    defaultValue={editingDelivery.paymentSource}
-                    className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs"
-                  >
-                    <option value="DAILY_CASH">{t('suppliers.paidSourceDailyCash')}</option>
-                    <option value="OWNER">{t('suppliers.paidSourceOwner')}</option>
-                  </select>
+                  <div className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 flex items-center text-xs font-bold text-[#2C1B10]">
+                    💵 {t('suppliers.paidSourceDailyCash')}
+                  </div>
+                  <input type="hidden" name="paymentSource" value="DAILY_CASH" />
                 </div>
               </div>
 
@@ -1283,14 +1279,9 @@ export default function SuppliersPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1.5 block">{t('suppliers.colPaidFrom')}</label>
-                <select
-                  value={paymentSource}
-                  onChange={(e) => setPaymentSource(e.target.value as 'DAILY_CASH' | 'OWNER')}
-                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs font-semibold"
-                >
-                  <option value="DAILY_CASH">💵 {t('suppliers.paidSourceDailyCash')}</option>
-                  <option value="OWNER">👤 {t('suppliers.paidSourceOwner')}</option>
-                </select>
+                <div className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 flex items-center text-xs font-bold text-[#2C1B10]">
+                  💵 {t('suppliers.paidSourceDailyCash')}
+                </div>
               </div>
 
               <div>

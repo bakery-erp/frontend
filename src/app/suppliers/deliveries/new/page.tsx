@@ -356,14 +356,12 @@ function NewDeliveryContent() {
                 <label className="text-xs font-bold text-[#4A2E1B] block mb-1.5">
                   {t('suppliers.colPaidFrom')}
                 </label>
-                <select
-                  value={paymentSource}
-                  onChange={(e) => setPaymentSource(e.target.value as 'DAILY_CASH' | 'OWNER')}
-                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-semibold text-[#2C1B10] focus:ring-1 focus:ring-[#E87A18] focus:bg-white"
-                >
-                  <option value="DAILY_CASH">💵 {t('suppliers.paidSourceDailyCash')}</option>
-                  <option value="OWNER">👤 {t('suppliers.paidSourceOwner')}</option>
-                </select>
+                <div className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 flex items-center justify-between text-xs font-bold text-[#2C1B10]">
+                  <span className="flex items-center gap-1.5">💵 {t('suppliers.paidSourceDailyCash')}</span>
+                  <span className="text-[10px] font-normal text-[#8C7361]">
+                    ({language === 'am' ? 'የቀን መዝገብ ገንዘብ' : language === 'om' ? 'Qarshii Guyyaa' : 'Daily Cash Drawer'})
+                  </span>
+                </div>
               </div>
             </div>
 
