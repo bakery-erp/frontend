@@ -369,8 +369,8 @@ export default function OwnerLoansPage() {
           <p className="text-sm text-[#8C7361] mt-1 max-w-md">
             This module is reserved exclusively for the bakery business owner to track personal borrowings and repayments.
           </p>
-          <Button onClick={() => router.push("/")} size="lg" className="mt-6">
-            Return to Dashboard
+          <Button onClick={() => router.push(user.role === 'ADMIN' ? "/production/history" : "/")} size="lg" className="mt-6">
+            Return to Portal
           </Button>
         </div>
       </DashboardLayout>

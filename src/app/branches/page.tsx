@@ -66,8 +66,8 @@ export default function BranchesPage() {
 
   useEffect(() => {
     if (!user) return;
-    if (user.role !== "OWNER" && user.role !== "ADMIN") {
-      router.push("/");
+    if (user.role !== "OWNER") {
+      router.push("/production/history");
       toast.error("Unauthorized access to Branch Management.");
     }
   }, [user, router]);
@@ -78,7 +78,7 @@ export default function BranchesPage() {
       const res = await api.get("/branches");
       return res.data || [];
     },
-    enabled: !!user && (user.role === "OWNER" || user.role === "ADMIN"),
+    enabled: !!user && user.role === "OWNER",
   });
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {

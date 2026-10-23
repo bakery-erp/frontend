@@ -101,7 +101,11 @@ export default function Dashboard() {
   }, [ledgerFilter]);
 
   useEffect(() => {
-    if (user && user.role !== 'OWNER' && user.role !== 'ADMIN') {
+    if (user && user.role !== 'OWNER') {
+      if (user.role === 'ADMIN') {
+        router.push('/production/history');
+        return;
+      }
       if (user.role === 'EMPLOYEE') {
         router.push('/my-profile');
         return;
@@ -180,7 +184,7 @@ export default function Dashboard() {
         productValuation: totalVal,
       };
     },
-    enabled: !!user && (user.role === 'OWNER' || user.role === 'ADMIN'),
+    enabled: !!user && user.role === 'OWNER',
   });
 
   const totals = dashboardData?.totals || null;
