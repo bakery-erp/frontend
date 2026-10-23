@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History } from "lucide-react";
+import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, SlidersHorizontal, CheckCircle2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton } from "@/components/ui/skeletons";
 
@@ -99,6 +99,66 @@ export default function StockPage() {
   const [reduceAmount, setReduceAmount] = useState<string>("");
   const [reduceReason, setReduceReason] = useState<string>("");
   const [reduceReceivedBy, setReduceReceivedBy] = useState<string>("");
+
+  // Adjustment state for Owner
+  const [adjustingItem, setAdjustingItem] = useState<StockItem | null>(null);
+  const [adjustTo, setAdjustTo] = useState<string>("");
+  const [adjustReason, setAdjustReason] = useState<string>("");
+  const [isAdjusting, setIsAdjusting] = useState<boolean>(false);
+
+  const openAdjustStockModal = (item: StockItem) => {
+    if (!isOwner) return;
+    setAdjustingItem(item);
+    setAdjustTo(String(item.currentQuantity));
+    setAdjustReason("");
+  };
+
+  const handleAdjustStock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adjustingItem || !isOwner) return;
+    const newQty = parseFloat(adjustTo);
+    if (isNaN(newQty) || newQty < 0) {
+      toast.error("Please enter a valid non-negative physical count");
+      return;
+    }
+    if (!adjustReason.trim()) {
+      toast.error("Please provide a reason for the adjustment");
+      return;
+    }
+    setIsAdjusting(true);
+    try {
+      await api.post('/stock-movements', {
+        stockItemId: adjustingItem.id,
+        quantity: Math.abs(newQty - Number(adjustingItem.currentQuantity)),
+        adjustTo: newQty,
+        type: 'ADJUSTMENT',
+        reason: adjustReason.trim(),
+      });
+      toast.success(`Inventory successfully adjusted to ${newQty} ${adjustingItem.unitType}`);
+      setAdjustingItem(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['stock-items'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-summary'] }),
+      ]);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to adjust stock');
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
+
+  const { data: pendingApprovals = [] } = useQuery<any[]>({
+    queryKey: ['stock-movements-pending', selectedBranchId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ status: 'PENDING_CONFIRMATION', limit: '50' });
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      const res = await api.get(`/stock-movements?${params.toString()}`);
+      if (Array.isArray(res.data)) return res.data;
+      return res.data?.data || [];
+    },
+    enabled: isStockStaff,
+  });
 
   const { data: stockSummary } = useQuery({
     queryKey: ['stock-summary', selectedBranchId],
@@ -207,23 +267,24 @@ export default function StockPage() {
       return;
     }
 
+    const effectiveAutoConfirm = isOwner ? isAutoConfirm : false;
     setIsSubmitting(true);
     try {
       await api.post(`/stock-items/${addingItem.id}/add`, {
         quantity: qty,
         unitPrice: parsedUnitPrice,
-        reason: addReason.trim() || "Manual Stock Addition",
-        autoConfirm: isAutoConfirm,
+        reason: addReason.trim() || (effectiveAutoConfirm ? "Manual Stock Addition" : "Added by Admin/Owner (Awaiting Stock Keeper Verification)"),
+        autoConfirm: effectiveAutoConfirm,
         loanInfo: isAddLoan ? {
           isLoan: true,
           paidAmount: addPaidAmount !== "" ? Number(addPaidAmount) : 0,
           supplierName: addSupplierName.trim() || undefined,
         } : undefined,
       });
-      if (isAutoConfirm) {
+      if (effectiveAutoConfirm) {
         toast.success(`Successfully added ${qty} ${addingItem.unitType} to ${addingItem.name}`);
       } else {
-        toast.success(`Inward stock entry logged for ${addingItem.name}. Awaiting Stock Keeper confirmation.`);
+        toast.success(`Inward stock entry logged for ${addingItem.name}. Awaiting Stock Keeper physical count & verification.`);
       }
       setAddingItem(null);
       setAddAmount("");
@@ -235,6 +296,7 @@ export default function StockPage() {
       setIsAutoConfirm(false);
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements-pending'] });
       queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
       queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -330,6 +392,31 @@ export default function StockPage() {
           </div>
         )}
       </div>
+
+      {/* Pending Inward Deliveries Callout for Stock Keeper & Admins */}
+      {pendingApprovals.length > 0 && (
+        <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
+              <PackageCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-[#2C1B10]">
+                {pendingApprovals.length} Inward {pendingApprovals.length === 1 ? 'Delivery' : 'Deliveries'} Awaiting Verification
+              </h4>
+              <p className="text-xs text-[#8C7361]">
+                Goods added by Admin/Owner must be physically counted and confirmed by the Stock Keeper before updating warehouse inventory.
+              </p>
+            </div>
+          </div>
+          <Link href="/stock-movements?tab=approvals" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto h-9 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-xs">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Verify & Accept Deliveries</span>
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Filter Bar with Centered Segmented Control */}
       <div className="bg-white border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -477,6 +564,19 @@ export default function StockPage() {
                         </Button>
                       )}
 
+                      {isOwner && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => openAdjustStockModal(item)}
+                          className="h-8 px-2.5 text-xs text-orange-700 border-orange-300 hover:bg-orange-50 flex items-center gap-1 font-semibold"
+                          title="Audit / Adjust Physical Stock Count"
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5" />
+                          <span>Adjust</span>
+                        </Button>
+                      )}
+
                       {isStockStaff && (
                         <Button 
                           variant="outline" 
@@ -573,11 +673,11 @@ export default function StockPage() {
               )}
 
               {/* Primary Actions Row */}
-              <div className={`grid ${isGlobalAdmin ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 pt-2 border-t border-zinc-100`}>
+              <div className={`grid ${isOwner ? 'grid-cols-4' : (isGlobalAdmin ? 'grid-cols-3' : 'grid-cols-2')} gap-1.5 pt-2 border-t border-zinc-100`}>
                 <Link href={`/stock/${item.id}`} className="w-full">
                   <Button variant="outline" size="sm" className="w-full h-9 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold flex items-center justify-center gap-1 px-1">
                     <History className="w-3.5 h-3.5 shrink-0" />
-                    <span>{t('stock.viewHistory')}</span>
+                    <span className="truncate">{t('stock.viewHistory')}</span>
                   </Button>
                 </Link>
 
@@ -590,6 +690,19 @@ export default function StockPage() {
                   >
                     <PlusCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>{t('stock.addStock')}</span>
+                  </Button>
+                )}
+
+                {isOwner && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => openAdjustStockModal(item)}
+                    className="h-9 px-1 text-xs text-orange-700 border-orange-300 hover:bg-orange-50 font-bold flex items-center justify-center gap-1"
+                    title="Audit / Adjust Stock"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                    <span>Adjust</span>
                   </Button>
                 )}
 
@@ -924,20 +1037,22 @@ export default function StockPage() {
                   </div>
                 )}  </div>
 
-                <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={isAutoConfirm} 
-                      onChange={(e) => setIsAutoConfirm(e.target.checked)} 
-                      className="rounded border-zinc-300 text-[#4A2E1B] focus:ring-[#4A2E1B] w-4 h-4"
-                    />
-                    <span className="text-xs font-bold text-zinc-800">{t('stock.autoConfirmPrompt')}</span>
-                  </label>
-                  <p className="text-[10px] text-zinc-500 mt-1 pl-6">
-                    {isAutoConfirm ? "Stock balance will increment immediately without awaiting physical verification." : "Stock will be pending until Stock Keeper verifies and confirms physical receipt."}
-                  </p>
-                </div>
+                {isOwner && (
+                  <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isAutoConfirm} 
+                        onChange={(e) => setIsAutoConfirm(e.target.checked)} 
+                        className="rounded border-zinc-300 text-[#4A2E1B] focus:ring-[#4A2E1B] w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-zinc-800">{t('stock.autoConfirmPrompt')}</span>
+                    </label>
+                    <p className="text-[10px] text-zinc-500 mt-1 pl-6">
+                      {isAutoConfirm ? "Stock balance will increment immediately without awaiting physical verification." : "Stock will be pending until Stock Keeper verifies and confirms physical receipt."}
+                    </p>
+                  </div>
+                )}
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
                 <Button
@@ -1091,6 +1206,100 @@ export default function StockPage() {
           </DialogContent>
         </Dialog>
       )}
+
+        {/* Adjustment Modal (Owner Only) */}
+        {adjustingItem && (
+          <Dialog open={!!adjustingItem} onOpenChange={(open) => !open && setAdjustingItem(null)}>
+            <DialogContent className="max-w-md bg-white border-[#EDE4D5] rounded-3xl p-6">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+                  <SlidersHorizontal className="w-5 h-5 text-orange-600 shrink-0" />
+                  Adjust Stock Count (Audit)
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAdjustStock}>
+                <div className="grid gap-3.5 py-3">
+                  <div className="p-3 bg-orange-50 rounded-xl border border-orange-200 text-xs text-orange-900">
+                    Adjusting physical inventory count for <strong className="font-bold">{adjustingItem.name}</strong>. Current record: <span className="font-bold font-mono text-orange-800">{Number(adjustingItem.currentQuantity).toFixed(2)} {adjustingItem.unitType}</span>.
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                      New Actual Physical Count ({adjustingItem.unitType}) *
+                    </label>
+                    <Input 
+                      type="number" 
+                      step="0.001" 
+                      required 
+                      min="0"
+                      value={adjustTo} 
+                      onChange={(e) => setAdjustTo(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="e.g. 48.00" 
+                      className="h-10 rounded-xl border-zinc-200 font-mono font-bold" 
+                    />
+                  </div>
+
+                  {(() => {
+                    const current = Number(adjustingItem.currentQuantity);
+                    const entered = parseFloat(adjustTo);
+                    if (!isNaN(entered)) {
+                      const delta = entered - current;
+                      const isGain = delta > 0;
+                      const isLoss = delta < 0;
+                      return (
+                        <div className={`p-2.5 rounded-xl border text-xs flex items-center justify-between font-bold ${
+                          delta === 0 
+                            ? 'bg-zinc-50 border-zinc-200 text-zinc-700' 
+                            : isLoss 
+                              ? 'bg-rose-50 border-rose-200 text-rose-800' 
+                              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        }`}>
+                          <span>Inventory Difference:</span>
+                          <span className="font-mono text-sm">
+                            {delta > 0 ? `+${delta.toFixed(3)}` : delta.toFixed(3)} {adjustingItem.unitType} {isLoss ? '(Shrinkage / Loss)' : isGain ? '(Surplus / Found)' : '(No change)'}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  <div>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                      Reason for Adjustment *
+                    </label>
+                    <Input 
+                      required
+                      value={adjustReason} 
+                      onChange={(e) => setAdjustReason(e.target.value)} 
+                      placeholder="e.g. Damaged bag, spill, physical inventory audit" 
+                      className="h-10 rounded-xl border-zinc-200" 
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                  <Button
+                    type="submit"
+                    disabled={isAdjusting}
+                    className="w-full sm:w-auto h-11 sm:h-10 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                  >
+                    {isAdjusting ? t('common.loading') : "Confirm Adjustment"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAdjustingItem(null)}
+                    className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
