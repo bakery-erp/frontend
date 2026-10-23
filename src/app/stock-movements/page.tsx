@@ -116,6 +116,7 @@ export default function StockMovementsPage() {
   const isGlobalAdmin = user?.role === "ADMIN" || isOwner;
   const isStockKeeper = user?.role === "STOCK_KEEPER";
   const isStockStaff = isGlobalAdmin || isStockKeeper;
+  const canApprove = isStockKeeper || isOwner;
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -134,11 +135,13 @@ export default function StockMovementsPage() {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const tab = urlParams.get("tab");
-      if (tab === "approvals" || tab === "loans" || tab === "movements") {
+      if (tab === "approvals" && canApprove) {
+        setActiveTab("approvals");
+      } else if (tab === "loans" || tab === "movements") {
         setActiveTab(tab);
       }
     }
-  }, []);
+  }, [canApprove]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -303,6 +306,7 @@ export default function StockMovementsPage() {
       if (Array.isArray(res.data)) return res.data;
       return res.data?.data || [];
     },
+    enabled: canApprove,
   });
 
   // Calculations for Loans summary cards (from server-provided aggregate stats, fallback to current loans)
@@ -460,7 +464,7 @@ export default function StockMovementsPage() {
             <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
               ⏳ {t('stockMovements.statusPending')}
             </span>
-            {isStockStaff && (
+            {canApprove && (
               <Button
                 size="sm"
                 onClick={() => handleConfirmMovement(mov.id)}
@@ -524,23 +528,25 @@ export default function StockMovementsPage() {
             <span>{t('stockMovements.movementsLedger')} ({movements.length})</span>
           </button>
 
-          <button
-            ref={(el) => { tabRefs.current["approvals"] = el; }}
-            onClick={() => setActiveTab("approvals")}
-            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap outline-none ${
-              activeTab === "approvals"
-                ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
-                : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
-            }`}
-          >
-            <ShieldCheck className={`w-4 h-4 shrink-0 ${activeTab === "approvals" ? "text-amber-300" : "text-amber-600"}`} />
-            <span>{t('stockMovements.pendingApprovalsTab')}</span>
-            {pendingApprovals.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-bold animate-pulse">
-                {pendingApprovals.length}
-              </span>
-            )}
-          </button>
+          {canApprove && (
+            <button
+              ref={(el) => { tabRefs.current["approvals"] = el; }}
+              onClick={() => setActiveTab("approvals")}
+              className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap outline-none ${
+                activeTab === "approvals"
+                  ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
+                  : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
+              }`}
+            >
+              <ShieldCheck className={`w-4 h-4 shrink-0 ${activeTab === "approvals" ? "text-amber-300" : "text-amber-600"}`} />
+              <span>{t('stockMovements.pendingApprovalsTab')}</span>
+              {pendingApprovals.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-bold animate-pulse">
+                  {pendingApprovals.length}
+                </span>
+              )}
+            </button>
+          )}
 
           {isGlobalAdmin && (
             <button
@@ -1238,7 +1244,7 @@ export default function StockMovementsPage() {
       )}
 
       {/* TAB 2: PENDING APPROVALS */}
-      {activeTab === "approvals" && (
+      {activeTab === "approvals" && canApprove && (
         <div className="space-y-4">
           {isFetchingPending && pendingApprovals.length === 0 ? (
             <div className="bg-white border border-[#EDE4D5] rounded-2xl p-12 text-center shadow-xs">
