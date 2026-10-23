@@ -199,15 +199,6 @@ export default function MobileCashierStation() {
           <CheckCircle2 className="w-5 h-5" />
           {isSubmitting ? 'Saving...' : 'Save Cash & Leftovers'}
         </Button>
-
-        {activeSession && (
-          <Link
-            href={`/daily-sessions/${activeSession.id}/close`}
-            className="w-full h-11 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
-          >
-            <Lock className="w-4 h-4" /> {t("sessions.reviewApproveClose")}
-          </Link>
-        )}
       </div>
     </div>
   );
