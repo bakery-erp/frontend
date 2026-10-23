@@ -54,14 +54,22 @@ export default function ExpensesPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   const isManagement = user?.role === "OWNER" || user?.role === "ADMIN";
-  const canAccess = isManagement || user?.role === "CASHIER";
+  const isCashier = user?.role === "CASHIER";
+  const canAccess = isManagement || isCashier;
   const queryClient = useQueryClient();
 
   // Ethiopian local date helper (UTC+3)
   const getEthTodayStr = () => new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+  const getEthYesterdayStr = () => new Date(Date.now() + 3 * 3600 * 1000 - 24 * 3600 * 1000).toISOString().slice(0, 10);
+
+  // Cashier Date Tab state ("TODAY" | "YESTERDAY")
+  const [cashierDateTab, setCashierDateTab] = useState<"TODAY" | "YESTERDAY">("TODAY");
+
+  // Confirmation Modal state for Recording/Updating Expense
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   // Filter state
   const [filterMode, setFilterMode] = useState<"DAILY" | "RANGE">("DAILY");
@@ -70,6 +78,16 @@ export default function ExpensesPage() {
   const [filterTo, setFilterTo] = useState(getEthTodayStr());
   const [typeFilter, setTypeFilter] = useState<"ALL" | "COMPANY" | "OWNER">("ALL");
   const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+
+  const activeFrom = isCashier
+    ? (cashierDateTab === "TODAY" ? getEthTodayStr() : getEthYesterdayStr())
+    : filterFrom;
+
+  const activeTo = isCashier
+    ? (cashierDateTab === "TODAY" ? getEthTodayStr() : getEthYesterdayStr())
+    : filterTo;
+
+  const activeType = isCashier ? "COMPANY" : typeFilter;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -238,7 +256,7 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedBranchId, filterFrom, filterTo, typeFilter]);
+  }, [selectedBranchId, activeFrom, activeTo, activeType]);
 
   // React Query: Expenses
   const { data: expensesResponse, isLoading } = useQuery<{
@@ -254,17 +272,17 @@ export default function ExpensesPage() {
       count: number;
     };
   }>({
-    queryKey: ["expenses", selectedBranchId, filterFrom, filterTo, typeFilter, currentPage, pageSize],
+    queryKey: ["expenses", selectedBranchId, activeFrom, activeTo, activeType, currentPage, pageSize],
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const params: any = {
-        from: filterFrom,
-        to: filterTo,
+        from: activeFrom,
+        to: activeTo,
         page: currentPage,
         limit: pageSize,
       };
       if (selectedBranchId) params.branchId = selectedBranchId;
-      if (typeFilter !== "ALL") params.type = typeFilter;
+      if (activeType !== "ALL") params.type = activeType;
       const res = await api.get("/expenses", { params });
       if (Array.isArray(res.data)) {
         return {
@@ -278,6 +296,41 @@ export default function ExpensesPage() {
       return res.data;
     },
     enabled: !!canAccess,
+  });
+
+  // React Query: Cashier Today & Yesterday Counts
+  const { data: cashierTodayCount = 0 } = useQuery<number>({
+    queryKey: ["expenses-cashier-count", selectedBranchId, getEthTodayStr()],
+    queryFn: async () => {
+      const res = await api.get("/expenses", {
+        params: {
+          from: getEthTodayStr(),
+          to: getEthTodayStr(),
+          type: "COMPANY",
+          limit: 1,
+          ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+        },
+      });
+      return res.data?.total ?? (Array.isArray(res.data) ? res.data.length : 0);
+    },
+    enabled: isCashier,
+  });
+
+  const { data: cashierYesterdayCount = 0 } = useQuery<number>({
+    queryKey: ["expenses-cashier-count", selectedBranchId, getEthYesterdayStr()],
+    queryFn: async () => {
+      const res = await api.get("/expenses", {
+        params: {
+          from: getEthYesterdayStr(),
+          to: getEthYesterdayStr(),
+          type: "COMPANY",
+          limit: 1,
+          ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+        },
+      });
+      return res.data?.total ?? (Array.isArray(res.data) ? res.data.length : 0);
+    },
+    enabled: isCashier,
   });
 
   const expenses: Expense[] = expensesResponse?.data || [];
@@ -294,8 +347,9 @@ export default function ExpensesPage() {
     setFormCategory("");
     setFormFinancialCategoryId("");
     setFormDescription("");
-    setFormDate(new Date().toISOString().slice(0, 10));
+    setFormDate(getEthTodayStr());
     setShowForm(false);
+    setIsConfirmModalOpen(false);
   };
 
   const openCreateForm = () => {
@@ -305,7 +359,7 @@ export default function ExpensesPage() {
 
   const openEditForm = (expense: Expense) => {
     setEditingId(expense.id);
-    setFormType(expense.type || "COMPANY");
+    setFormType(isCashier ? "COMPANY" : (expense.type || "COMPANY"));
     setFormAmount(String(expense.amount));
     
     // Map category to dropdown selection
@@ -322,7 +376,7 @@ export default function ExpensesPage() {
     }
 
     setFormDescription(expense.description || "");
-    setFormDate(expense.date ? new Date(expense.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setFormDate(expense.date ? new Date(expense.date).toISOString().slice(0, 10) : getEthTodayStr());
     setShowForm(true);
   };
 
@@ -350,8 +404,8 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleSubmit = async () => {
-
+  const handleOpenConfirm = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!formAmount || parseFloat(formAmount) <= 0) {
       toast.error(t('expenses.amountRequiredError'));
       return;
@@ -362,10 +416,14 @@ export default function ExpensesPage() {
       return;
     }
 
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmedSubmit = async () => {
     setIsSaving(true);
     try {
       const payload: any = {
-        type: formType,
+        type: isCashier ? "COMPANY" : formType,
         amount: parseFloat(formAmount),
         category: formCategory.trim(),
         description: formDescription.trim() || null,
@@ -386,6 +444,7 @@ export default function ExpensesPage() {
       }
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-cashier-count"] });
       queryClient.invalidateQueries({ queryKey: ["expenses-active-session"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
@@ -459,31 +518,6 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Active Daily Session Status Banner (if open) */}
-      {!isLoadingSession && activeSession && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 rounded-xl text-emerald-700">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-emerald-950">{t('sessions.statusOpen')}</span>
-                <span className="bg-emerald-200 text-emerald-800 text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full">
-                  {t('dashboard.liveSessionActive')}
-                </span>
-              </div>
-              <p className="text-xs text-emerald-700 mt-0.5">
-                {t('expenses.attachedToSession')} <span className="font-mono font-bold">#{activeSession.id.slice(-6)}</span>
-              </p>
-            </div>
-          </div>
-          <div className="text-xs font-semibold text-emerald-800 bg-emerald-100/60 px-3 py-1.5 rounded-xl border border-emerald-200/60">
-            {t('expenses.openedAt')} {new Date(activeSession.createdAt || (activeSession as any).openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
-        </div>
-      )}
-
       {/* Create / Edit Form Modal/Card - Positioned on Top for Immediate Focus */}
       {showForm && (
         <div ref={formCardRef} className="scroll-mt-6">
@@ -494,7 +528,7 @@ export default function ExpensesPage() {
                   {editingId ? t('expenses.editExpenseRecord') : t('expenses.recordNewExpense')}
                 </CardTitle>
                 <CardDescription className="text-xs text-zinc-500 mt-0.5">
-                  {t('expenses.modalRecordDesc')} {activeSession?.id && <span className="font-mono font-bold text-emerald-700">#{activeSession.id.slice(-6)}</span>}
+                  {t('expenses.modalRecordDesc')}
                 </CardDescription>
               </div>
               <Button variant="ghost" size="sm" onClick={resetForm} className="rounded-xl">
@@ -504,19 +538,35 @@ export default function ExpensesPage() {
 
             <CardContent className="pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Requirement 1: Expense Type Choice (Company vs Owner) */}
+                {/* Expense Type: Locked for Cashier to Company Operating Expense from Daily Cash */}
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
                     {t('expenses.expenseType')} <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value)}
-                    className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
-                  >
-                    <option value="COMPANY">🏢 {t('expenses.typeCompanyOption')}</option>
-                    <option value="OWNER">👤 {t('expenses.typeOwnerOption')}</option>
-                  </select>
+                  {isCashier ? (
+                    <div>
+                      <div className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 flex items-center justify-between">
+                        <span className="text-xs font-black text-[#2C1B10] flex items-center gap-1.5">
+                          🏢 {t('expenses.typeCompanyOption')}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          💵 {language === 'am' ? 'ከዕለቱ ካሽ' : language === 'om' ? 'Kashii Guyyaa' : 'Daily Cash'}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
+                        {language === 'am' ? 'ይህ ወጪ ከዕለቱ የካሽ መመዝገቢያ ይቀነሳል' : language === 'om' ? 'Baasiin kun kashii guyyaa irraa hir\'ifama' : 'Deducted directly from daily register cash'}
+                      </p>
+                    </div>
+                  ) : (
+                    <select
+                      value={formType}
+                      onChange={(e) => setFormType(e.target.value)}
+                      className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
+                    >
+                      <option value="COMPANY">🏢 {t('expenses.typeCompanyOption')}</option>
+                      <option value="OWNER">👤 {t('expenses.typeOwnerOption')}</option>
+                    </select>
+                  )}
                 </div>
 
                 {/* Amount Input with Auto-Focus and Selection */}
@@ -593,8 +643,7 @@ export default function ExpensesPage() {
 
               <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Button
-                  onClick={handleSubmit}
-                  loading={isSaving}
+                  onClick={handleOpenConfirm}
                   size="lg"
                   className="w-full sm:w-auto"
                 >
@@ -667,169 +716,223 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Date Filters: Daily vs Range Mode */}
-      <Card className="mb-6 border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
-        <div className="bg-[#FAF6F0] px-4 py-3 border-b border-[#EDE4D5] flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold uppercase text-[#8C7361] tracking-wider">{t('expenses.modeLabel')}</span>
-            <div className="flex items-center bg-white p-1 rounded-xl border border-[#EDE4D5] shadow-2xs">
-              <button
-                type="button"
-                onClick={handleSelectDailyMode}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
-                  filterMode === "DAILY"
-                    ? "bg-[#4A2E1B] text-white shadow-xs"
-                    : "text-[#8C7361] hover:text-[#4A2E1B]"
-                }`}
-              >
-                <CalendarDays className="w-3.5 h-3.5" /> 📅 {t('expenses.filterDailyMode')}
-              </button>
-              <button
-                type="button"
-                onClick={handleSelectRangeMode}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
-                  filterMode === "RANGE"
-                    ? "bg-[#4A2E1B] text-white shadow-xs"
-                    : "text-[#8C7361] hover:text-[#4A2E1B]"
-                }`}
-              >
-                <Tag className="w-3.5 h-3.5" /> 📆 {t('expenses.filterRangeMode')}
-              </button>
-            </div>
-          </div>
-
-          {filterMode === "DAILY" ? (
+      {/* Date Filters: Daily vs Range Mode (Only for Admin & Owner, hidden for Cashier) */}
+      {!isCashier && (
+        <Card className="mb-6 border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
+          <div className="bg-[#FAF6F0] px-4 py-3 border-b border-[#EDE4D5] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={handleSetToday}
-                className={`h-8 border-[#EDE4D5] font-bold rounded-xl text-xs flex items-center gap-1 ${
-                  isTodayActive
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
-                    : "bg-white text-[#4A2E1B] hover:bg-[#FAF6F0]"
-                }`}
-              >
-                {t('expenses.filterToday')} {isTodayActive && "✓"}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => handleQuickRange(7)}
-                className="h-8 border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs"
-              >
-                {t('expenses.last7Days')}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => handleQuickRange(30)}
-                className="h-8 border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs"
-              >
-                {t('expenses.last30Days')}
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <CardContent className="flex flex-wrap items-end gap-4 pt-4 pb-4">
-          {filterMode === "DAILY" ? (
-            <div className="flex items-end gap-3 flex-wrap">
-              <div>
-                <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.selectDay')}</label>
-                <Input
-                  type="date"
-                  value={dailyDate}
-                  onChange={(e) => handleDailyDateChange(e.target.value)}
-                  className="w-48 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-                />
-              </div>
-              <Button
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
-                variant="outline"
-                className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
-              >
-                {t('expenses.refreshDayExpenses')}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-end gap-3 flex-wrap">
-              <div>
-                <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.fromDate')}</label>
-                <Input
-                  type="date"
-                  value={filterFrom}
-                  onChange={(e) => setFilterFrom(e.target.value)}
-                  className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.toDate')}</label>
-                <Input
-                  type="date"
-                  value={filterTo}
-                  onChange={(e) => setFilterTo(e.target.value)}
-                  className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
-                />
-              </div>
-              <Button
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
-                variant="outline"
-                className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
-              >
-                {t('expenses.filterRange')}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Expense View Mode Filter Tabs with Auto-Centering & Edge Fade Hints */}
-      <div className="relative w-full max-w-full overflow-hidden mb-4">
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
-
-        <div 
-          className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-1"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {[
-            { id: "ALL", label: t('common.all'), count: expenses.length, color: "bg-[#4A2E1B] text-white" },
-            { id: "COMPANY", label: `💵 ${t('expenses.tabCompany')}`, count: expenses.filter((e) => e.type === "COMPANY").length, color: "bg-blue-600 text-white" },
-            { id: "OWNER", label: `👤 ${t('expenses.tabOwner')}`, count: expenses.filter((e) => e.type === "OWNER").length, color: "bg-purple-600 text-white" },
-          ].map((tab) => {
-            const isActive = typeFilter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                ref={(el) => { tabRefs.current[tab.id] = el; }}
-                type="button"
-                onClick={() => setTypeFilter(tab.id as "ALL" | "COMPANY" | "OWNER")}
-                className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
-                  isActive
-                    ? `${tab.color} shadow-xs ring-2 ring-[#4A2E1B]/20`
-                    : "bg-[#FAF6F0] text-[#8C7361] hover:text-[#2C1B10] hover:bg-[#F3ECE1] border border-[#EDE4D5]"
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                    isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+              <span className="text-xs font-extrabold uppercase text-[#8C7361] tracking-wider">{t('expenses.modeLabel')}</span>
+              <div className="flex items-center bg-white p-1 rounded-xl border border-[#EDE4D5] shadow-2xs">
+                <button
+                  type="button"
+                  onClick={handleSelectDailyMode}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                    filterMode === "DAILY"
+                      ? "bg-[#4A2E1B] text-white shadow-xs"
+                      : "text-[#8C7361] hover:text-[#4A2E1B]"
                   }`}
                 >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+                  <CalendarDays className="w-3.5 h-3.5" /> 📅 {t('expenses.filterDailyMode')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectRangeMode}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                    filterMode === "RANGE"
+                      ? "bg-[#4A2E1B] text-white shadow-xs"
+                      : "text-[#8C7361] hover:text-[#4A2E1B]"
+                  }`}
+                >
+                  <Tag className="w-3.5 h-3.5" /> 📆 {t('expenses.filterRangeMode')}
+                </button>
+              </div>
+            </div>
+
+            {filterMode === "DAILY" ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSetToday}
+                  className={`h-8 border-[#EDE4D5] font-bold rounded-xl text-xs flex items-center gap-1 ${
+                    isTodayActive
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
+                      : "bg-white text-[#4A2E1B] hover:bg-[#FAF6F0]"
+                  }`}
+                >
+                  {t('expenses.filterToday')} {isTodayActive && "✓"}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleQuickRange(7)}
+                  className="h-8 border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs"
+                >
+                  {t('expenses.last7Days')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleQuickRange(30)}
+                  className="h-8 border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs"
+                >
+                  {t('expenses.last30Days')}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <CardContent className="flex flex-wrap items-end gap-4 pt-4 pb-4">
+            {filterMode === "DAILY" ? (
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.selectDay')}</label>
+                  <Input
+                    type="date"
+                    value={dailyDate}
+                    onChange={(e) => handleDailyDateChange(e.target.value)}
+                    className="w-48 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                  />
+                </div>
+                <Button
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
+                  variant="outline"
+                  className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
+                >
+                  {t('expenses.refreshDayExpenses')}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.fromDate')}</label>
+                  <Input
+                    type="date"
+                    value={filterFrom}
+                    onChange={(e) => setFilterFrom(e.target.value)}
+                    className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.toDate')}</label>
+                  <Input
+                    type="date"
+                    value={filterTo}
+                    onChange={(e) => setFilterTo(e.target.value)}
+                    className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                  />
+                </div>
+                <Button
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
+                  variant="outline"
+                  className="border-[#EDE4D5] hover:bg-[#FAF6F0] text-[#4A2E1B] font-bold rounded-xl text-xs h-10"
+                >
+                  {t('expenses.filterRange')}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* View Tabs: For Cashier (Today vs Yesterday) | For Owner/Admin (All, Company, Owner) */}
+      {isCashier ? (
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-none pb-1">
+          <div className="inline-flex items-center gap-1.5 p-1 bg-[#F4ECE1] rounded-xl border border-[#EDE4D5]">
+            <button
+              type="button"
+              onClick={() => {
+                setCashierDateTab("TODAY");
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+                cashierDateTab === "TODAY"
+                  ? "bg-[#E87A18] text-white shadow-xs"
+                  : "text-[#8C7361] hover:text-[#4A2E1B] hover:bg-white/50"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>{language === 'am' ? 'የዛሬ ወጪዎች' : language === 'om' ? 'Baasii Har\'aa' : 'Today'}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
+                  cashierDateTab === "TODAY" ? "bg-white/20 text-white" : "bg-[#E0D5C3] text-[#4A2E1B]"
+                }`}
+              >
+                {cashierTodayCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCashierDateTab("YESTERDAY");
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+                cashierDateTab === "YESTERDAY"
+                  ? "bg-[#E87A18] text-white shadow-xs"
+                  : "text-[#8C7361] hover:text-[#4A2E1B] hover:bg-white/50"
+              }`}
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>{language === 'am' ? 'የትናንት ወጪዎች' : language === 'om' ? 'Baasii Kaleessaa' : 'Yesterday'}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
+                  cashierDateTab === "YESTERDAY" ? "bg-white/20 text-white" : "bg-[#E0D5C3] text-[#4A2E1B]"
+                }`}
+              >
+                {cashierYesterdayCount}
+              </span>
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="relative w-full max-w-full overflow-hidden mb-4">
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+
+          <div 
+            className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_2rem] py-1"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {[
+              { id: "ALL", label: t('common.all'), count: expenses.length, color: "bg-[#4A2E1B] text-white" },
+              { id: "COMPANY", label: `💵 ${t('expenses.tabCompany')}`, count: expenses.filter((e) => e.type === "COMPANY").length, color: "bg-blue-600 text-white" },
+              { id: "OWNER", label: `👤 ${t('expenses.tabOwner')}`, count: expenses.filter((e) => e.type === "OWNER").length, color: "bg-purple-600 text-white" },
+            ].map((tab) => {
+              const isActive = typeFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  ref={(el) => { tabRefs.current[tab.id] = el; }}
+                  type="button"
+                  onClick={() => setTypeFilter(tab.id as "ALL" | "COMPANY" | "OWNER")}
+                  className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 outline-none ${
+                    isActive
+                      ? `${tab.color} shadow-xs ring-2 ring-[#4A2E1B]/20`
+                      : "bg-[#FAF6F0] text-[#8C7361] hover:text-[#2C1B10] hover:bg-[#F3ECE1] border border-[#EDE4D5]"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                      isActive ? "bg-white/20 text-white" : "bg-black/5 text-[#8C7361]"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Expenses Content Card */}
       <Card className="border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
@@ -1149,6 +1252,107 @@ export default function ExpensesPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Confirmation Modal for Record / Update Expense */}
+      <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
+        <DialogContent className="sm:max-w-md bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-[#E87A18]" />
+              <span>
+                {editingId
+                  ? (language === 'am' ? 'የወጪ ማሻሻያ ማረጋገጫ' : language === 'om' ? 'Mirkaneessa Fooyya\'iinsa Baasii' : 'Confirm Expense Update')
+                  : (language === 'am' ? 'የወጪ መዝገብ ማረጋገጫ' : language === 'om' ? 'Mirkaneessa Galmee Baasii' : 'Confirm Expense Record')}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Amount Box */}
+            <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] text-center">
+              <span className="text-xs uppercase font-extrabold text-[#8C7361] tracking-wider block">
+                {t('expenses.fieldAmount')}
+              </span>
+              <p className="text-3xl font-black text-rose-700 mt-1 font-mono">
+                {parseFloat(formAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                <span className="text-sm font-bold text-[#8C7361]">ETB</span>
+              </p>
+            </div>
+
+            {/* Summary Details */}
+            <div className="bg-white rounded-xl border border-[#EDE4D5] p-3.5 space-y-2.5 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
+                <span className="font-bold text-[#8C7361]">{t('expenses.category')}</span>
+                <span className="font-extrabold text-[#2C1B10]">{formCategory}</span>
+              </div>
+
+              <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
+                <span className="font-bold text-[#8C7361]">{t('expenses.expenseType')}</span>
+                <span className="font-bold text-[#2C1B10]">
+                  {formType === 'COMPANY'
+                    ? `🏢 ${t('expenses.typeCompanyOption')}`
+                    : `👤 ${t('expenses.typeOwnerOption')}`}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
+                <span className="font-bold text-[#8C7361]">
+                  {language === 'am' ? 'የክፍያ ምንጭ' : language === 'om' ? 'Maddi Kaffaltii' : 'Payment Source'}
+                </span>
+                <span className="font-extrabold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  💵 {language === 'am' ? 'ከዕለቱ ካሽ መመዝገቢያ' : language === 'om' ? 'Kashii Guyyaa Irraa' : 'Daily Cash Register'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
+                <span className="font-bold text-[#8C7361]">{t('expenses.fieldDate')}</span>
+                <span className="font-mono font-semibold text-[#2C1B10]">{formDate}</span>
+              </div>
+
+              {formDescription && (
+                <div className="pt-1">
+                  <span className="font-bold text-[#8C7361] block mb-0.5">{t('expenses.description')}</span>
+                  <p className="text-[#2C1B10] bg-[#FAF6F0] p-2 rounded-lg italic">{formDescription}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Warning / Deduct Notice */}
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                {language === 'am'
+                  ? 'ይህ ወጪ ሲመዘገብ በቀጥታ ከዕለቱ የሽያጭ ካሽ ሂሳብ ይቀነሳል። እባክዎ መጠኑና ምክንያቱ ትክክል መሆኑን ያረጋግጡ።'
+                  : language === 'om'
+                  ? 'Baasiin kun yeroo galmaa\'u kaffaltii kashii guyyaa irraa hir\'ifama. Maaloo lakkoofsa fi sababa isaa mirkaneeffadhaa.'
+                  : 'This expense will be deducted from the active daily register cash reconciliation. Please confirm the amount and details are correct.'}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsConfirmModalOpen(false)}
+              disabled={isSaving}
+              className="rounded-xl w-full sm:w-auto font-bold"
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="brand"
+              onClick={handleConfirmedSubmit}
+              loading={isSaving}
+              className="rounded-xl w-full sm:w-auto font-bold"
+            >
+              <Check className="w-4 h-4 mr-1.5" />
+              {language === 'am' ? 'አረጋግጥና መዝግብ' : language === 'om' ? 'Mirkaneessi & Galmeessi' : 'Confirm & Save Expense'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
