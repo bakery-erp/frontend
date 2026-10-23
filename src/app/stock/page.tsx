@@ -157,7 +157,7 @@ export default function StockPage() {
       if (Array.isArray(res.data)) return res.data;
       return res.data?.data || [];
     },
-    enabled: isStockStaff,
+    enabled: isStockKeeper,
   });
 
   const { data: stockSummary } = useQuery({
@@ -393,8 +393,8 @@ export default function StockPage() {
         )}
       </div>
 
-      {/* Pending Inward Deliveries Callout for Stock Keeper & Admins */}
-      {pendingApprovals.length > 0 && (
+      {/* Pending Inward Deliveries Callout for Stock Keeper */}
+      {isStockKeeper && pendingApprovals.length > 0 && (
         <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
