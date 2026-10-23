@@ -105,8 +105,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...(isOwner ? [
       { icon: HandCoins, label: t('nav.ownerLoans'), href: '/owner-loans' }
     ] : []),
-    ...((isOwner || isAdmin) ? [
+    ...(isOwner ? [
       { icon: Banknote, label: t('nav.payroll'), href: '/payroll' }
+    ] : isAdmin ? [
+      { icon: Banknote, label: `${t('payroll.navLoans')} & ${t('payroll.navPenalties')}`, href: '/payroll/loans' }
     ] : []),
     ...(isOwner ? [
       { icon: BarChart3, label: t('nav.reports'), href: '/reports' }
@@ -115,7 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Find the most specific active route match
   const matchingItems = menuItems.filter(
-    (item) => pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
+    (item) => pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`)) || (item.href === '/payroll/loans' && pathname.startsWith('/payroll/'))
   );
   const activeHref = [...matchingItems].sort((a, b) => b.href.length - a.href.length)[0]?.href;
 

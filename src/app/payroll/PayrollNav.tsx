@@ -6,15 +6,21 @@ import { usePathname } from "next/navigation";
 import { Wallet, FileText, DollarSign, FileWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 
 export function PayrollNav() {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const tabRefs = useRef<{ [key: string]: HTMLAnchorElement | null }>({});
 
+  const isOwner = user?.role === "OWNER";
+
   const tabs = [
-    { label: t('payroll.navPayroll'), href: "/payroll", icon: Wallet },
-    { label: t('payroll.navHistory'), href: "/payroll/history", icon: FileText },
+    ...(isOwner ? [
+      { label: t('payroll.navPayroll'), href: "/payroll", icon: Wallet },
+      { label: t('payroll.navHistory'), href: "/payroll/history", icon: FileText },
+    ] : []),
     { label: t('payroll.navLoans'), href: "/payroll/loans", icon: DollarSign },
     { label: t('payroll.navPenalties'), href: "/payroll/penalties", icon: FileWarning },
   ];

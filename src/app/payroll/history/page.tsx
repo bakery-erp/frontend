@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
@@ -42,10 +43,24 @@ interface PayrollRecord {
 }
 
 export default function PayrollHistoryPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== "OWNER") {
+      if (user.role === "ADMIN") {
+        router.push("/payroll/loans");
+      } else {
+        router.push("/production/history");
+      }
+      toast.error("Unauthorized access to Payroll history.");
+    }
+  }, [user, router]);
+
   const [editingPayroll, setEditingPayroll] = useState<PayrollRecord | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [payrollToSign, setPayrollToSign] = useState<PayrollRecord | null>(null);
@@ -61,6 +76,7 @@ export default function PayrollHistoryPage() {
   const { data: pageResult, isLoading } = useQuery<{ items: PayrollRecord[]; meta?: any }>({
     queryKey: ["payroll-history", selectedBranchId, currentPage],
     placeholderData: (prev) => prev,
+    enabled: !!user && user.role === "OWNER",
     queryFn: async () => {
       const params: any = { page: currentPage, limit: pageSize };
       if (selectedBranchId) params.branchId = selectedBranchId;

@@ -2,6 +2,7 @@
 
 import { EthDatePicker } from "@/components/EthDatePicker";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { PayrollNav } from "./PayrollNav";
 import { api } from "@/lib/axios";
@@ -120,15 +121,29 @@ interface CalcResult {
 }
 
 export default function PayrollPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("RUN");
 
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== "OWNER") {
+      if (user.role === "ADMIN") {
+        router.push("/payroll/loans");
+      } else {
+        router.push("/production/history");
+      }
+      toast.error("Unauthorized access to Payroll processing.");
+    }
+  }, [user, router]);
+
   const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["payroll-users", selectedBranchId],
     placeholderData: (prev) => prev,
+    enabled: !!user && user.role === "OWNER",
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/users", { params });
@@ -139,12 +154,12 @@ export default function PayrollPage() {
   const { data: history = [], isLoading: isLoadingHistory } = useQuery<PayrollRecord[]>({
     queryKey: ["payroll-history", selectedBranchId],
     placeholderData: (prev) => prev,
+    enabled: !!user && user.role === "OWNER" && activeTab === "HISTORY",
     queryFn: async () => {
       const params = selectedBranchId ? { branchId: selectedBranchId } : {};
       const { data } = await api.get("/payroll", { params });
       return data || [];
     },
-    enabled: activeTab === "HISTORY",
   });
 
   const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
