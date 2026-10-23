@@ -131,6 +131,16 @@ export default function StockMovementsPage() {
   const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get("tab");
+      if (tab === "approvals" || tab === "loans" || tab === "movements") {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       const btn = tabRefs.current[activeTab];
       if (btn) {
