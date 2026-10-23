@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
-import { Plus, Edit2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Edit2, CheckCircle2, XCircle, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +18,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface User {
   id: string;
@@ -47,7 +48,9 @@ export default function PayrollPenaltiesPage() {
   const [editingPenalty, setEditingPenalty] = useState<Penalty | null>(null);
   const [isEditPenaltyOpen, setIsEditPenaltyOpen] = useState(false);
   const [penaltyToSign, setPenaltyToSign] = useState<Penalty | null>(null);
+  const [penaltyToDelete, setPenaltyToDelete] = useState<Penalty | null>(null);
   const [isSigning, setIsSigning] = useState(false);
+  const [isDeletingPenalty, setIsDeletingPenalty] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
@@ -80,8 +83,13 @@ export default function PayrollPenaltiesPage() {
     },
   });
 
-  const penalties: Penalty[] = penaltiesResult?.items || (Array.isArray(penaltiesResult) ? penaltiesResult : []);
-  const meta = penaltiesResult?.meta;
+  const penalties: Penalty[] = (penaltiesResult as any)?.data || penaltiesResult?.items || (Array.isArray(penaltiesResult) ? penaltiesResult : []);
+  const meta = (penaltiesResult as any)?.pagination || penaltiesResult?.meta || {
+    totalItems: (penaltiesResult as any)?.total ?? penalties.length,
+    totalPages: (penaltiesResult as any)?.totalPages ?? 1,
+    limit: pageSize,
+    page: currentPage,
+  };
 
   const handleAddPenalty = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -129,13 +137,14 @@ export default function PayrollPenaltiesPage() {
     const fd = new FormData(e.currentTarget);
     try {
       await api.patch(`/penalties/${editingPenalty.id}`, {
+        userId: fd.get("userId"),
         amount: fd.get("amount"),
         reason: fd.get("reason"),
         date: fd.get("date"),
         isDeducted: fd.get("isDeducted") === "true",
         status: fd.get("status"),
       });
-      toast.success(t('common.success'));
+      toast.success(t('common.success') || "Penalty updated successfully");
       setIsEditPenaltyOpen(false);
       setEditingPenalty(null);
       queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
@@ -146,6 +155,24 @@ export default function PayrollPenaltiesPage() {
       toast.error(error.response?.data?.error || t('common.error'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeletePenalty = async () => {
+    if (!penaltyToDelete) return;
+    setIsDeletingPenalty(true);
+    try {
+      await api.delete(`/penalties/${penaltyToDelete.id}`);
+      toast.success(t('common.success') || "Penalty deleted successfully");
+      setPenaltyToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-penalties"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t('common.error') || "Failed to delete penalty");
+    } finally {
+      setIsDeletingPenalty(false);
     }
   };
 
@@ -281,6 +308,14 @@ export default function PayrollPenaltiesPage() {
                     >
                       <Edit2 className="w-3 h-3 mr-1" /> {t('common.edit')}
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPenaltyToDelete(p)}
+                      className="h-8 px-2.5 text-xs font-bold text-rose-700 border-rose-200 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> {t('common.delete')}
+                    </Button>
                   </div>
                 )}
               </div>
@@ -385,6 +420,14 @@ export default function PayrollPenaltiesPage() {
                       >
                         <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('common.edit')}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPenaltyToDelete(p)}
+                        className="font-bold text-xs text-rose-700 hover:text-rose-800 hover:bg-rose-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> {t('common.delete')}
+                      </Button>
                     </TableCell>
                   )}
                 </TableRow>
@@ -399,7 +442,7 @@ export default function PayrollPenaltiesPage() {
           <PaginationControls
             currentPage={currentPage}
             totalPages={meta.totalPages}
-            totalItems={meta.totalItems}
+            totalItems={meta.totalItems ?? (meta as any).total ?? penalties.length}
             pageSize={meta.limit}
             onPageChange={setCurrentPage}
           />
@@ -492,6 +535,16 @@ export default function PayrollPenaltiesPage() {
                 <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">{t('payroll.editPenalty')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3.5 py-3">
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.targetEmployee')}</label>
+                  <select name="userId" defaultValue={editingPenalty.userId} required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.fullName} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.colPenaltyAmount')} ({t('common.currency')})</label>
                   <Input
@@ -623,6 +676,22 @@ export default function PayrollPenaltiesPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* CONFIRM DELETE PENALTY MODAL */}
+      <ConfirmModal
+        isOpen={!!penaltyToDelete}
+        onClose={() => setPenaltyToDelete(null)}
+        onConfirm={handleDeletePenalty}
+        title={`${t("common.delete") || "Delete"} ${t("payroll.penaltiesTitle") || "Workplace Penalty"}`}
+        description={
+          penaltyToDelete
+            ? `Are you sure you want to permanently delete the penalty of ${penaltyToDelete.amount} ETB for ${penaltyToDelete.user?.fullName || "this staff member"}? This action cannot be undone.`
+            : ""
+        }
+        confirmText={t("common.delete") || "Delete"}
+        isLoading={isDeletingPenalty}
+        variant="danger"
+      />
     </DashboardLayout>
   );
 }

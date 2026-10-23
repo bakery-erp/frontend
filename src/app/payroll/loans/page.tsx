@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
-import { Plus, Edit2, CheckCircle2, XCircle, Clock, Search, Filter, RotateCcw } from "lucide-react";
+import { Plus, Edit2, CheckCircle2, XCircle, Clock, Search, Filter, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +18,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface User {
   id: string;
@@ -33,6 +34,7 @@ interface Loan {
   remainingBalance: number;
   type: string;
   status: string;
+  date?: string;
   createdAt: string;
   user?: User;
 }
@@ -47,7 +49,9 @@ export default function PayrollLoansPage() {
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
   const [loanToSign, setLoanToSign] = useState<Loan | null>(null);
+  const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
   const [isSigning, setIsSigning] = useState(false);
+  const [isDeletingLoan, setIsDeletingLoan] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters
@@ -88,8 +92,13 @@ export default function PayrollLoansPage() {
     },
   });
 
-  const loans: Loan[] = loansResult?.items || (Array.isArray(loansResult) ? loansResult : []);
-  const meta = loansResult?.meta;
+  const loans: Loan[] = (loansResult as any)?.data || loansResult?.items || (Array.isArray(loansResult) ? loansResult : []);
+  const meta = (loansResult as any)?.pagination || loansResult?.meta || {
+    totalItems: (loansResult as any)?.total ?? loans.length,
+    totalPages: (loansResult as any)?.totalPages ?? 1,
+    limit: pageSize,
+    page: currentPage,
+  };
   const filteredLoans = loans;
 
   const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL";
@@ -139,11 +148,13 @@ export default function PayrollLoansPage() {
     const fd = new FormData(e.currentTarget);
     try {
       await api.patch(`/loans/${editingLoan.id}`, {
+        userId: fd.get("userId"),
         totalAmount: fd.get("totalAmount"),
         remainingBalance: fd.get("remainingBalance"),
         status: fd.get("status"),
+        date: fd.get("date"),
       });
-      toast.success("Loan updated successfully");
+      toast.success(t("common.success") || "Loan updated successfully");
       setIsEditLoanOpen(false);
       setEditingLoan(null);
       queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
@@ -154,6 +165,24 @@ export default function PayrollLoansPage() {
       toast.error(error.response?.data?.error || "Failed to update loan");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteLoan = async () => {
+    if (!loanToDelete) return;
+    setIsDeletingLoan(true);
+    try {
+      await api.delete(`/loans/${loanToDelete.id}`);
+      toast.success(t("common.success") || "Loan deleted successfully");
+      setLoanToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || t("common.error") || "Failed to delete loan");
+    } finally {
+      setIsDeletingLoan(false);
     }
   };
 
@@ -331,7 +360,15 @@ export default function PayrollLoansPage() {
                     }}
                     className="h-8 text-xs font-bold text-blue-700 border-blue-200 hover:bg-blue-50"
                   >
-                    <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('payroll.editLoan')}
+                    <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('common.edit')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLoanToDelete(l)}
+                    className="h-8 text-xs font-bold text-rose-700 border-rose-200 hover:bg-rose-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> {t('common.delete')}
                   </Button>
                 </div>
               )}
@@ -421,6 +458,14 @@ export default function PayrollLoansPage() {
                       >
                         <Edit2 className="w-3.5 h-3.5 mr-1" /> {t('common.edit')}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setLoanToDelete(l)}
+                        className="font-bold text-xs text-rose-700 hover:text-rose-800 hover:bg-rose-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> {t('common.delete')}
+                      </Button>
                     </TableCell>
                   )}
                 </TableRow>
@@ -435,7 +480,7 @@ export default function PayrollLoansPage() {
           <PaginationControls
             currentPage={currentPage}
             totalPages={meta.totalPages}
-            totalItems={meta.totalItems}
+            totalItems={meta.totalItems ?? (meta as any).total ?? loans.length}
             pageSize={meta.limit}
             onPageChange={setCurrentPage}
           />
@@ -521,6 +566,16 @@ export default function PayrollLoansPage() {
               </DialogHeader>
               <div className="space-y-3.5 py-3">
                 <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.targetEmployee')}</label>
+                  <select name="userId" defaultValue={editingLoan.userId} required className="w-full h-10 border border-zinc-200 rounded-xl px-3 text-sm bg-white">
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.fullName} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('payroll.colLoanAmount')} ({t('common.currency')})</label>
                   <Input
                     name="totalAmount"
@@ -542,6 +597,16 @@ export default function PayrollLoansPage() {
                     onFocus={(e) => e.target.select()}
                     required
                     className="h-10 rounded-xl border-zinc-200 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date')}</label>
+                  <Input
+                    name="date"
+                    type="date"
+                    defaultValue={((editingLoan as any).date || editingLoan.createdAt || "").split("T")[0]}
+                    required
+                    className="h-10 rounded-xl border-zinc-200"
                   />
                 </div>
                 <div>
@@ -645,6 +710,22 @@ export default function PayrollLoansPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* CONFIRM DELETE LOAN MODAL */}
+      <ConfirmModal
+        isOpen={!!loanToDelete}
+        onClose={() => setLoanToDelete(null)}
+        onConfirm={handleDeleteLoan}
+        title={`${t("common.delete") || "Delete"} ${t("payroll.loansTitle") || "Staff Loan"}`}
+        description={
+          loanToDelete
+            ? `Are you sure you want to permanently delete the loan for ${loanToDelete.user?.fullName || "this staff member"} (${loanToDelete.totalAmount} ETB)? This action cannot be undone.`
+            : ""
+        }
+        confirmText={t("common.delete") || "Delete"}
+        isLoading={isDeletingLoan}
+        variant="danger"
+      />
     </DashboardLayout>
   );
 }

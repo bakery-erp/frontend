@@ -64,6 +64,7 @@ function NewDeliveryContent() {
   const { selectedBranchId, branches } = useBranch();
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
+  const isOwner = user?.role === 'OWNER';
 
   useEffect(() => {
     if (user && user.role === 'STOCK_KEEPER') {
@@ -404,14 +405,24 @@ function NewDeliveryContent() {
             </div>
 
             {/* Desktop Table Header */}
-            <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
-              <div className="col-span-4">{t('common.product')}</div>
-              <div className="col-span-2 text-center">{t('suppliers.colQtyReceived')}</div>
-              <div className="col-span-2 text-center">{t('suppliers.colUnitCost')} ({t('common.currency')})</div>
-              <div className="col-span-2 text-center">{t('stock.unitPriceLabel')}</div>
-              <div className="col-span-1 text-right">{t('common.total')}</div>
-              <div className="col-span-1 text-center">{t('common.delete')}</div>
-            </div>
+            {isOwner ? (
+              <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
+                <div className="col-span-4">{t('common.product')}</div>
+                <div className="col-span-2 text-center">{t('suppliers.colQtyReceived')}</div>
+                <div className="col-span-2 text-center">{t('suppliers.colUnitCost')} ({t('common.currency')})</div>
+                <div className="col-span-2 text-center">{t('stock.unitPriceLabel')}</div>
+                <div className="col-span-1 text-right">{t('common.total')}</div>
+                <div className="col-span-1 text-center">{t('common.delete')}</div>
+              </div>
+            ) : (
+              <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-[#FAF6F0] rounded-xl text-[11px] font-extrabold text-[#4A2E1B] border border-[#EDE4D5]">
+                <div className="col-span-5">{t('common.product')}</div>
+                <div className="col-span-2 text-center">{t('suppliers.colQtyReceived')}</div>
+                <div className="col-span-3 text-center">{t('suppliers.colUnitCost')} ({t('common.currency')})</div>
+                <div className="col-span-1 text-right">{t('common.total')}</div>
+                <div className="col-span-1 text-center">{t('common.delete')}</div>
+              </div>
+            )}
 
             {/* Line Items List */}
             <div className="space-y-3">
@@ -444,7 +455,7 @@ function NewDeliveryContent() {
                     {/* Desktop & Mobile Responsive Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:items-center">
                       {/* Product Selector */}
-                      <div className="sm:col-span-4">
+                      <div className={isOwner ? "sm:col-span-4" : "sm:col-span-5"}>
                         <label className="text-[10px] font-bold text-[#8C7361] uppercase block sm:hidden mb-1">
                           {t('common.product')}
                         </label>
@@ -477,7 +488,7 @@ function NewDeliveryContent() {
                       </div>
 
                       {/* Unit Buy Price */}
-                      <div className="sm:col-span-2">
+                      <div className={isOwner ? "sm:col-span-2" : "sm:col-span-3"}>
                         <label className="text-[10px] font-bold text-[#8C7361] uppercase block sm:hidden mb-1">
                           {t('suppliers.colUnitCost')} ({t('common.currency')})
                         </label>
@@ -492,21 +503,23 @@ function NewDeliveryContent() {
                         />
                       </div>
 
-                      {/* Unit Sell Price */}
-                      <div className="sm:col-span-2">
-                        <label className="text-[10px] font-bold text-[#8C7361] uppercase block sm:hidden mb-1">
-                          {t('stock.unitPriceLabel')}
-                        </label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={item.unitSellPrice}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => updateRow(index, 'unitSellPrice', e.target.value)}
-                          className="bg-[#FAF6F0] sm:bg-white border-[#EDE4D5] h-10 sm:h-9 text-xs font-mono font-bold text-[#E87A18] text-center rounded-xl sm:rounded-md"
-                        />
-                      </div>
+                      {/* Unit Sell Price (Owner only) */}
+                      {isOwner && (
+                        <div className="sm:col-span-2">
+                          <label className="text-[10px] font-bold text-[#8C7361] uppercase block sm:hidden mb-1">
+                            {t('stock.unitPriceLabel')}
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={item.unitSellPrice}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => updateRow(index, 'unitSellPrice', e.target.value)}
+                            className="bg-[#FAF6F0] sm:bg-white border-[#EDE4D5] h-10 sm:h-9 text-xs font-mono font-bold text-[#E87A18] text-center rounded-xl sm:rounded-md"
+                          />
+                        </div>
+                      )}
 
                       {/* Subtotal */}
                       <div className="sm:col-span-1 text-left sm:text-right">
