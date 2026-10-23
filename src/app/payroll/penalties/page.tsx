@@ -80,8 +80,13 @@ export default function PayrollPenaltiesPage() {
     },
   });
 
-  const penalties: Penalty[] = penaltiesResult?.items || (Array.isArray(penaltiesResult) ? penaltiesResult : []);
-  const meta = penaltiesResult?.meta;
+  const penalties: Penalty[] = (penaltiesResult as any)?.data || penaltiesResult?.items || (Array.isArray(penaltiesResult) ? penaltiesResult : []);
+  const meta = (penaltiesResult as any)?.pagination || penaltiesResult?.meta || {
+    totalItems: (penaltiesResult as any)?.total ?? penalties.length,
+    totalPages: (penaltiesResult as any)?.totalPages ?? 1,
+    limit: pageSize,
+    page: currentPage,
+  };
 
   const handleAddPenalty = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -399,7 +404,7 @@ export default function PayrollPenaltiesPage() {
           <PaginationControls
             currentPage={currentPage}
             totalPages={meta.totalPages}
-            totalItems={meta.totalItems}
+            totalItems={meta.totalItems ?? (meta as any).total ?? penalties.length}
             pageSize={meta.limit}
             onPageChange={setCurrentPage}
           />

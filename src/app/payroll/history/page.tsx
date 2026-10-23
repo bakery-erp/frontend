@@ -85,8 +85,13 @@ export default function PayrollHistoryPage() {
     },
   });
 
-  const history: PayrollRecord[] = pageResult?.items || (Array.isArray(pageResult) ? pageResult : []);
-  const meta = pageResult?.meta;
+  const history: PayrollRecord[] = (pageResult as any)?.data || pageResult?.items || (Array.isArray(pageResult) ? pageResult : []);
+  const meta = (pageResult as any)?.pagination || pageResult?.meta || {
+    totalItems: (pageResult as any)?.total ?? history.length,
+    totalPages: (pageResult as any)?.totalPages ?? 1,
+    limit: pageSize,
+    page: currentPage,
+  };
 
   const handleUpdatePayroll = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

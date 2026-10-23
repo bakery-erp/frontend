@@ -88,8 +88,13 @@ export default function PayrollLoansPage() {
     },
   });
 
-  const loans: Loan[] = loansResult?.items || (Array.isArray(loansResult) ? loansResult : []);
-  const meta = loansResult?.meta;
+  const loans: Loan[] = (loansResult as any)?.data || loansResult?.items || (Array.isArray(loansResult) ? loansResult : []);
+  const meta = (loansResult as any)?.pagination || loansResult?.meta || {
+    totalItems: (loansResult as any)?.total ?? loans.length,
+    totalPages: (loansResult as any)?.totalPages ?? 1,
+    limit: pageSize,
+    page: currentPage,
+  };
   const filteredLoans = loans;
 
   const hasActiveFilters = searchTerm.trim() !== "" || statusFilter !== "ALL";
@@ -435,7 +440,7 @@ export default function PayrollLoansPage() {
           <PaginationControls
             currentPage={currentPage}
             totalPages={meta.totalPages}
-            totalItems={meta.totalItems}
+            totalItems={meta.totalItems ?? (meta as any).total ?? loans.length}
             pageSize={meta.limit}
             onPageChange={setCurrentPage}
           />
