@@ -56,7 +56,9 @@ export default function ExpensesPage() {
   const { selectedBranchId } = useBranch();
   const { t, language } = useLanguage();
   
-  const isManagement = user?.role === "OWNER" || user?.role === "ADMIN";
+  const isOwner = user?.role === "OWNER";
+  const isAdmin = user?.role === "ADMIN";
+  const isManagement = isOwner || isAdmin;
   const isCashier = user?.role === "CASHIER";
   const canAccess = isManagement || isCashier;
   const queryClient = useQueryClient();
@@ -64,9 +66,13 @@ export default function ExpensesPage() {
   // Ethiopian local date helper (UTC+3)
   const getEthTodayStr = () => new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
   const getEthYesterdayStr = () => new Date(Date.now() + 3 * 3600 * 1000 - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const getEthOneWeekAgoStr = () => new Date(Date.now() + 3 * 3600 * 1000 - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
   // Cashier Date Tab state ("TODAY" | "YESTERDAY")
   const [cashierDateTab, setCashierDateTab] = useState<"TODAY" | "YESTERDAY">("TODAY");
+
+  // Admin Date Tab state ("ALL" | "TODAY") - where ALL is the 1 week window
+  const [adminDateTab, setAdminDateTab] = useState<"ALL" | "TODAY">("ALL");
 
   // Confirmation Modal state for Recording/Updating Expense
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -81,13 +87,17 @@ export default function ExpensesPage() {
 
   const activeFrom = isCashier
     ? (cashierDateTab === "TODAY" ? getEthTodayStr() : getEthYesterdayStr())
+    : isAdmin
+    ? (adminDateTab === "TODAY" ? getEthTodayStr() : getEthOneWeekAgoStr())
     : filterFrom;
 
   const activeTo = isCashier
     ? (cashierDateTab === "TODAY" ? getEthTodayStr() : getEthYesterdayStr())
+    : isAdmin
+    ? getEthTodayStr()
     : filterTo;
 
-  const activeType = isCashier ? "COMPANY" : typeFilter;
+  const activeType = (isCashier || isAdmin) ? "COMPANY" : typeFilter;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -333,6 +343,41 @@ export default function ExpensesPage() {
     enabled: isCashier,
   });
 
+  // React Query: Admin Today & 1-Week (All Expenses) Counts
+  const { data: adminTodayCount = 0 } = useQuery<number>({
+    queryKey: ["expenses-admin-today-count", selectedBranchId, getEthTodayStr()],
+    queryFn: async () => {
+      const res = await api.get("/expenses", {
+        params: {
+          from: getEthTodayStr(),
+          to: getEthTodayStr(),
+          type: "COMPANY",
+          limit: 1,
+          ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+        },
+      });
+      return res.data?.total ?? (Array.isArray(res.data) ? res.data.length : 0);
+    },
+    enabled: isAdmin,
+  });
+
+  const { data: adminWeekCount = 0 } = useQuery<number>({
+    queryKey: ["expenses-admin-week-count", selectedBranchId, getEthOneWeekAgoStr(), getEthTodayStr()],
+    queryFn: async () => {
+      const res = await api.get("/expenses", {
+        params: {
+          from: getEthOneWeekAgoStr(),
+          to: getEthTodayStr(),
+          type: "COMPANY",
+          limit: 1,
+          ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+        },
+      });
+      return res.data?.total ?? (Array.isArray(res.data) ? res.data.length : 0);
+    },
+    enabled: isAdmin,
+  });
+
   const expenses: Expense[] = expensesResponse?.data || [];
   const totalExpenses: number = expensesResponse?.total || 0;
   const totalPages: number = expensesResponse?.totalPages || 1;
@@ -359,7 +404,7 @@ export default function ExpensesPage() {
 
   const openEditForm = (expense: Expense) => {
     setEditingId(expense.id);
-    setFormType(isCashier ? "COMPANY" : (expense.type || "COMPANY"));
+    setFormType((isCashier || isAdmin) ? "COMPANY" : (expense.type || "COMPANY"));
     setFormAmount(String(expense.amount));
     
     // Map category to dropdown selection
@@ -423,7 +468,7 @@ export default function ExpensesPage() {
     setIsSaving(true);
     try {
       const payload: any = {
-        type: isCashier ? "COMPANY" : formType,
+        type: (isCashier || isAdmin) ? "COMPANY" : formType,
         amount: parseFloat(formAmount),
         category: formCategory.trim(),
         description: formDescription.trim() || null,
@@ -445,6 +490,8 @@ export default function ExpensesPage() {
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["expenses-cashier-count"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-admin-today-count"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-admin-week-count"] });
       queryClient.invalidateQueries({ queryKey: ["expenses-active-session"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
@@ -463,6 +510,9 @@ export default function ExpensesPage() {
       await api.delete(`/expenses/${expenseToDelete}`);
       toast.success(t('expenses.expenseDeleted'));
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-cashier-count"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-admin-today-count"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-admin-week-count"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
     } catch (e: any) {
@@ -496,7 +546,7 @@ export default function ExpensesPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          {isManagement && (
+          {isOwner && (
             <Button
               onClick={() => setIsManageCategoriesOpen(true)}
               variant="outline"
@@ -538,23 +588,25 @@ export default function ExpensesPage() {
 
             <CardContent className="pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Expense Type: Locked for Cashier to Company Operating Expense from Daily Cash */}
+                {/* Expense Type: Locked for Cashier & Admin to Company Operating Expense */}
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
                     {t('expenses.expenseType')} <span className="text-rose-500">*</span>
                   </label>
-                  {isCashier ? (
+                  {isCashier || isAdmin ? (
                     <div>
                       <div className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 flex items-center justify-between">
                         <span className="text-xs font-black text-[#2C1B10] flex items-center gap-1.5">
                           🏢 {t('expenses.typeCompanyOption')}
                         </span>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          💵 {language === 'am' ? 'ከዕለቱ ካሽ' : language === 'om' ? 'Kashii Guyyaa' : 'Daily Cash'}
+                          💵 {isCashier ? (language === 'am' ? 'ከዕለቱ ካሽ' : language === 'om' ? 'Kashii Guyyaa' : 'Daily Cash') : 'Company Operating'}
                         </span>
                       </div>
                       <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
-                        {language === 'am' ? 'ይህ ወጪ ከዕለቱ የካሽ መመዝገቢያ ይቀነሳል' : language === 'om' ? 'Baasiin kun kashii guyyaa irraa hir\'ifama' : 'Deducted directly from daily register cash'}
+                        {isCashier
+                          ? (language === 'am' ? 'ይህ ወጪ ከዕለቱ የካሽ መመዝገቢያ ይቀነሳል' : language === 'om' ? 'Baasiin kun kashii guyyaa irraa hir\'ifama' : 'Deducted directly from daily register cash')
+                          : (language === 'am' ? 'የድርጅቱ መደበኛ የሥራ ማስኬጃ ወጪ' : language === 'om' ? 'Baasii hojii dhaabbataa' : 'Regular company operational expense')}
                       </p>
                     </div>
                   ) : (
@@ -663,8 +715,8 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Summary Cards (Only for Admin & Owner, hidden for Cashier) */}
-      {user?.role !== 'CASHIER' && (
+      {/* Summary Cards (Strictly for Owner only) */}
+      {isOwner && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-white shadow-xs rounded-2xl">
             <CardHeader className="pb-2">
@@ -716,8 +768,8 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Date Filters: Daily vs Range Mode (Only for Admin & Owner, hidden for Cashier) */}
-      {!isCashier && (
+      {/* Date Filters: Daily vs Range Mode (Strictly for Owner only) */}
+      {isOwner && (
         <Card className="mb-6 border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
           <div className="bg-[#FAF6F0] px-4 py-3 border-b border-[#EDE4D5] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -841,8 +893,8 @@ export default function ExpensesPage() {
         </Card>
       )}
 
-      {/* View Tabs: For Cashier (Today vs Yesterday) | For Owner/Admin (All, Company, Owner) */}
-      {isCashier ? (
+      {/* View Tabs: For Cashier (Today vs Yesterday) */}
+      {isCashier && (
         <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-none pb-1">
           <div className="inline-flex items-center gap-1.5 p-1 bg-[#F4ECE1] rounded-xl border border-[#EDE4D5]">
             <button
@@ -892,7 +944,63 @@ export default function ExpensesPage() {
             </button>
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* View Tabs: For Admin (All Expenses / 1 Week vs Today) */}
+      {isAdmin && (
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-none pb-1">
+          <div className="inline-flex items-center gap-1.5 p-1 bg-[#F4ECE1] rounded-xl border border-[#EDE4D5]">
+            <button
+              type="button"
+              onClick={() => {
+                setAdminDateTab("ALL");
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+                adminDateTab === "ALL"
+                  ? "bg-[#4A2E1B] text-white shadow-xs"
+                  : "text-[#8C7361] hover:text-[#4A2E1B] hover:bg-white/50"
+              }`}
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>{language === 'am' ? 'ሁሉም ወጪዎች (1 ሳምንት)' : language === 'om' ? 'Baasii Hundaa (Torban 1)' : 'All Expenses (1 Week)'}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
+                  adminDateTab === "ALL" ? "bg-white/20 text-white" : "bg-[#E0D5C3] text-[#4A2E1B]"
+                }`}
+              >
+                {adminWeekCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAdminDateTab("TODAY");
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+                adminDateTab === "TODAY"
+                  ? "bg-[#4A2E1B] text-white shadow-xs"
+                  : "text-[#8C7361] hover:text-[#4A2E1B] hover:bg-white/50"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>{language === 'am' ? 'የዛሬ ወጪዎች' : language === 'om' ? 'Baasii Har\'aa' : 'Today'}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
+                  adminDateTab === "TODAY" ? "bg-white/20 text-white" : "bg-[#E0D5C3] text-[#4A2E1B]"
+                }`}
+              >
+                {adminTodayCount}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* View Tabs: For Owner (All, Company, Owner) */}
+      {isOwner && (
         <div className="relative w-full max-w-full overflow-hidden mb-4">
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />

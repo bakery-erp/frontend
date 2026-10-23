@@ -98,6 +98,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
   const { branches } = useBranch();
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
+  const isOwner = user?.role === 'OWNER';
 
   // Status Filter State
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'UNPAID' | 'PARTIAL' | 'PAID'>('ALL');
@@ -202,15 +203,17 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
     setIsSubmittingDeliveryEdit(true);
     const formData = new FormData(e.currentTarget);
 
-    const payload = {
+    const payload: any = {
       quantityReceived: Number(formData.get('quantityReceived')),
       returnedQuantity: Number(formData.get('returnedQuantity') || 0),
       unitBuyPrice: Number(formData.get('unitBuyPrice')),
-      unitSellPrice: Number(formData.get('unitSellPrice') || 0),
       paidAmount: Number(formData.get('paidAmount') || 0),
       paymentSource: formData.get('paymentSource'),
       notes: String(formData.get('notes') || '').trim() || null,
     };
+    if (isOwner && formData.get('unitSellPrice') !== null) {
+      payload.unitSellPrice = Number(formData.get('unitSellPrice') || 0);
+    }
 
     try {
       await api.patch(`/supplier-deliveries/${editingDelivery.id}`, payload);
@@ -1027,7 +1030,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className={isOwner ? "grid grid-cols-2 gap-3" : ""}>
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colUnitCost')}</label>
                   <Input
@@ -1039,16 +1042,18 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                     className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono"
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('stock.unitPriceLabel')}</label>
-                  <Input
-                    name="unitSellPrice"
-                    type="number"
-                    step="0.01"
-                    defaultValue={Number(editingDelivery.unitSellPrice || 0)}
-                    className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono text-[#E87A18]"
-                  />
-                </div>
+                {isOwner && (
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('stock.unitPriceLabel')}</label>
+                    <Input
+                      name="unitSellPrice"
+                      type="number"
+                      step="0.01"
+                      defaultValue={Number(editingDelivery.unitSellPrice || 0)}
+                      className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-mono text-[#E87A18]"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
