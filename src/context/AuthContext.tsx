@@ -108,6 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     if (data.user.role === 'EMPLOYEE') {
       router.push('/my-profile');
+    } else if (data.user.role === 'ADMIN') {
+      router.push('/production/history');
     } else if (data.user.role === 'CASHIER') {
       router.push('/customer-credits');
     } else if (data.user.role === 'STOCK_KEEPER') {

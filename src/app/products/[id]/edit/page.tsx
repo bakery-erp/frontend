@@ -73,7 +73,7 @@ export default function EditProductPage() {
   useEffect(() => {
     if (user && user.role !== 'OWNER') {
       toast.error(t("products.toastRestrictedOwnerEdit"));
-      router.replace('/products');
+      router.replace('/production/history');
     }
   }, [user, router, t]);
 
@@ -83,6 +83,7 @@ export default function EditProductPage() {
     queryKey: ['product-edit', productId],
     placeholderData: (prev) => prev,
     staleTime: 60 * 1000,
+    enabled: !!productId && !!user && user.role === 'OWNER',
     queryFn: async () => {
       const [prodRes, catRes, finCatRes] = await Promise.all([
         api.get(`/products/${productId}`).catch(async () => {
@@ -104,7 +105,6 @@ export default function EditProductPage() {
         financialCategories: (Array.isArray(finCatRes.data) ? finCatRes.data : []) as FinancialCategory[],
       };
     },
-    enabled: !!productId,
   });
 
   const product = data?.product;

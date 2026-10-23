@@ -3,6 +3,7 @@ import { api } from "@/lib/axios";
 import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -27,9 +28,18 @@ interface Category {
 }
 
 export default function ProductCategoriesPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { t } = useLanguage();
   const canManage = user?.role === "OWNER";
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== "OWNER") {
+      router.push("/production/history");
+      toast.error("Unauthorized access to Product Categories.");
+    }
+  }, [user, router]);
 
   const queryClient = useQueryClient();
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -46,6 +56,7 @@ export default function ProductCategoriesPage() {
       const res = await api.get("/product-categories");
       return res.data || [];
     },
+    enabled: !!user && user.role === "OWNER",
   });
 
   const renderRoleBadge = (role?: string | null) => {

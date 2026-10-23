@@ -68,6 +68,14 @@ export default function ProductsPage() {
   const { t } = useLanguage();
   const isOwner = user?.role === 'OWNER';
 
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== 'OWNER') {
+      router.push('/production/history');
+      toast.error('Unauthorized access to Products.');
+    }
+  }, [user, router]);
+
   const [viewMode, setViewMode] = useState<'GRID' | 'TABLE'>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -77,6 +85,7 @@ export default function ProductsPage() {
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['products', selectedBranchId],
     placeholderData: (prev) => prev,
+    enabled: !!user && user.role === 'OWNER',
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (selectedBranchId) params.branchId = selectedBranchId;

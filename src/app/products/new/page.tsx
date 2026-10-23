@@ -56,7 +56,7 @@ export default function NewProductPage() {
   useEffect(() => {
     if (user && user.role !== 'OWNER') {
       toast.error(t("products.toastRestrictedOwner"));
-      router.replace('/products');
+      router.replace('/production/history');
     }
   }, [user, router, t]);
 
@@ -66,6 +66,7 @@ export default function NewProductPage() {
     queryKey: ['product-new-metadata'],
     placeholderData: (prev) => prev,
     staleTime: 60 * 1000,
+    enabled: !!user && user.role === 'OWNER',
     queryFn: async () => {
       const [resCat, resFinCat] = await Promise.all([
         api.get("/product-categories"),

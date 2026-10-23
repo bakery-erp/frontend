@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
@@ -56,9 +57,18 @@ interface ProductItem {
 }
 
 export default function FinancialReportsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
   const { t } = useLanguage();
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== 'OWNER') {
+      router.push('/production/history');
+      toast.error('Unauthorized access to Financial Reports.');
+    }
+  }, [user, router]);
 
   // Date range state (defaulting to current month in YMD)
   const todayYmd = useMemo(() => {
@@ -95,6 +105,7 @@ export default function FinancialReportsPage() {
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['financial-reports', selectedBranchId, from, to],
     placeholderData: (prev) => prev,
+    enabled: !!user && user.role === 'OWNER',
     queryFn: async () => {
       const params: any = { from, to };
       if (selectedBranchId) params.branchId = selectedBranchId;

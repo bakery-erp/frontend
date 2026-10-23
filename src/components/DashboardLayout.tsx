@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = role === 'ADMIN';
 
   const menuItems = [
-    ...(isOwner || isAdmin ? [{ icon: LayoutDashboard, label: t('nav.dashboard'), href: '/' }] : []),
+    ...(isOwner ? [{ icon: LayoutDashboard, label: t('nav.dashboard'), href: '/' }] : []),
     { icon: UserCheck, label: t('nav.profileSalary'), href: '/my-profile' },
     ...(isOwner ? [{ icon: MapPin, label: t('nav.branches'), href: '/branches' }] : []),
     ...((isOwner || isAdmin) ? [{ icon: Users, label: t('nav.users'), href: '/users' }] : []),
@@ -81,10 +81,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
       { icon: CreditCard, label: t('nav.customerCreditSales'), href: '/customer-credits' }
     ] : []),
-    ...((isOwner || isAdmin) ? [
+    ...(isOwner ? [
       { icon: Layers, label: t('nav.categories'), href: '/product-categories' }
     ] : []),
-    ...((isOwner || isAdmin) ? [
+    ...(isOwner ? [
       { icon: Package, label: t('nav.products'), href: '/products' }
     ] : []),
     ...((isOwner || isAdmin || role === 'CASHIER') ? [
@@ -106,7 +106,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { icon: HandCoins, label: t('nav.ownerLoans'), href: '/owner-loans' }
     ] : []),
     ...((isOwner || isAdmin) ? [
-      { icon: Banknote, label: t('nav.payroll'), href: '/payroll' },
+      { icon: Banknote, label: t('nav.payroll'), href: '/payroll' }
+    ] : []),
+    ...(isOwner ? [
       { icon: BarChart3, label: t('nav.reports'), href: '/reports' }
     ] : []),
   ];
