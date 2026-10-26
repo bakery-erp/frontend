@@ -295,7 +295,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                     ✏️ {t("production.edited") || "Edited"}
                   </span>
                 )}
-                {batch.isFlagged && (
+                {user?.role === "OWNER" && batch.isFlagged && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 shrink-0">
                     🚩 {t("production.flagged") || "Flagged"}
                   </span>
@@ -310,8 +310,8 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Mark as seen quick action if unseen for current manager */}
-            {isGlobalAdmin && !isBatchSeenByMe(batch) && (
+            {/* Mark as seen quick action if unseen for owner */}
+            {user?.role === "OWNER" && !isBatchSeenByMe(batch) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -326,7 +326,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
             )}
 
             {/* Flag / Resolve action: visible if unseen or if flagged */}
-            {isGlobalAdmin && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
+            {user?.role === "OWNER" && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -363,8 +363,8 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
           </div>
         </div>
 
-          {/* Flagged Clarification Notice Banner (Collapsible) */}
-          {batch.isFlagged && (
+          {/* Flagged Clarification Notice Banner (Collapsible - Owner only) */}
+          {user?.role === "OWNER" && batch.isFlagged && (
             <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 flex flex-col gap-2 text-xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -382,16 +382,14 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                     </button>
                   )}
                 </div>
-                {isGlobalAdmin && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleToggleFlag(false)}
-                    className="border-rose-300 bg-white text-rose-700 hover:bg-rose-100 font-bold text-xs h-7 px-2.5 rounded-lg shrink-0 cursor-pointer"
-                  >
-                    {t('production.clearFlag') || 'Resolve'}
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleToggleFlag(false)}
+                  className="border-rose-300 bg-white text-rose-700 hover:bg-rose-100 font-bold text-xs h-7 px-2.5 rounded-lg shrink-0 cursor-pointer"
+                >
+                  {t('production.clearFlag') || 'Resolve'}
+                </Button>
               </div>
               {batch.flagReason && isFlagNoteExpanded && (
                 <div className="mt-1 p-3 bg-white/90 rounded-xl border border-rose-200 text-rose-900 font-medium leading-relaxed animate-in fade-in duration-150">
@@ -404,31 +402,6 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                   )}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Owner-Only Admin Audit Review Status Card */}
-          {user?.role === "OWNER" && (
-            <div className="mt-4 pt-3.5 border-t border-[#F4ECE1] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-[#8C7361] uppercase tracking-wider">{t('production.adminReviewStatus')}:</span>
-                  <span className={`inline-flex items-center gap-1 font-extrabold px-2.5 py-1 rounded-lg ${
-                    batch.adminSeenAt
-                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      : "bg-amber-50 text-amber-800 border border-amber-200"
-                  }`}>
-                    {batch.adminSeenAt ? `✓ ${t('production.reviewedAt', { date: formatEthDate(batch.adminSeenAt) })}` : `⏳ ${t('production.notReviewedYet')}`}
-                  </span>
-                </div>
-              </div>
-              <div className="text-[11px] font-semibold text-[#8C7361]">
-                {batch.isFlagged ? (
-                  <span className="text-rose-700 font-bold flex items-center gap-1">🚩 {t('production.flaggedBatches')}</span>
-                ) : (
-                  <span className="text-emerald-700 font-bold flex items-center gap-1">✓ {t('production.noActiveFlags') || "No active flags"}</span>
-                )}
-              </div>
             </div>
           )}
 

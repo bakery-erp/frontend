@@ -55,6 +55,7 @@ export default function ProductionPage() {
   const [filterTab, setFilterTab] = useState<"ALL" | "TODAY" | "UNSEEN" | "FLAGGED">("ALL");
   const [workerTab, setWorkerTab] = useState<"TODAY" | "YESTERDAY">("TODAY");
   const [shiftFilter, setShiftFilter] = useState<"ALL" | "DAY" | "NIGHT">("ALL");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | "BAKER" | "CAKE_WORKER" | "SAMBUSA_WORKER">("ALL");
   const [page, setPage] = useState<number>(1);
   const [accumulatedBatches, setAccumulatedBatches] = useState<ProductionBatch[]>([]);
 
@@ -115,14 +116,15 @@ export default function ProductionPage() {
 
     if (isGlobalAdmin) {
       if (filterTab === "TODAY") params.append("date", todayYmd);
-      else if (filterTab === "UNSEEN") params.append("seenFilter", "UNSEEN");
-      else if (filterTab === "FLAGGED") params.append("seenFilter", "FLAGGED");
+      else if (user?.role === "OWNER" && filterTab === "UNSEEN") params.append("seenFilter", "UNSEEN");
+      else if (user?.role === "OWNER" && filterTab === "FLAGGED") params.append("seenFilter", "FLAGGED");
       if (shiftFilter !== "ALL") params.append("shift", shiftFilter);
+      if (roleFilter !== "ALL") params.append("role", roleFilter);
     } else {
       params.append("date", workerTab === "TODAY" ? todayYmd : yesterdayYmd);
     }
     return params.toString();
-  }, [selectedBranchId, page, isGlobalAdmin, filterTab, shiftFilter, workerTab, todayYmd, yesterdayYmd]);
+  }, [selectedBranchId, page, isGlobalAdmin, user?.role, filterTab, shiftFilter, roleFilter, workerTab, todayYmd, yesterdayYmd]);
 
   // 1. Primary backend-paginated query
   const { data: pageData, isLoading, isFetching } = useQuery({
@@ -131,6 +133,7 @@ export default function ProductionPage() {
       selectedBranchId,
       isGlobalAdmin ? filterTab : workerTab,
       isGlobalAdmin ? shiftFilter : null,
+      isGlobalAdmin ? roleFilter : null,
       page,
     ],
     refetchOnMount: "always",
@@ -157,9 +160,9 @@ export default function ProductionPage() {
     },
   });
 
-  // Reset accumulated batches and page when switching tabs, branches, or shift filters
+  // Reset accumulated batches and page when switching tabs, branches, shift, or role filters
   const prevFilterRef = useRef<string>("");
-  const currentFilterKey = `${selectedBranchId}-${isGlobalAdmin ? filterTab : workerTab}-${isGlobalAdmin ? shiftFilter : ""}`;
+  const currentFilterKey = `${selectedBranchId}-${isGlobalAdmin ? filterTab : workerTab}-${isGlobalAdmin ? shiftFilter : ""}-${isGlobalAdmin ? roleFilter : ""}`;
   useEffect(() => {
     if (prevFilterRef.current && prevFilterRef.current !== currentFilterKey) {
       setPage(1);
@@ -202,25 +205,38 @@ export default function ProductionPage() {
     },
   });
 
-  // Admin tab counts
+  // Admin/Owner tab counts
   const { data: adminCounts } = useQuery({
-    queryKey: ["production-admin-counts", selectedBranchId],
+    queryKey: ["production-admin-counts", selectedBranchId, user?.role],
     enabled: isGlobalAdmin,
     refetchOnMount: "always",
     queryFn: async () => {
       const branchParam = selectedBranchId ? `&branchId=${selectedBranchId}` : "";
-      const [resAll, resToday, resUnseen, resFlagged] = await Promise.all([
-        api.get(`/production-batches?limit=1${branchParam}`),
-        api.get(`/production-batches?date=${todayYmd}&limit=1${branchParam}`),
-        api.get(`/production-batches?seenFilter=UNSEEN&limit=1${branchParam}`),
-        api.get(`/production-batches?seenFilter=FLAGGED&limit=1${branchParam}`),
-      ]);
-      return {
-        all: resAll.data?.total ?? 0,
-        today: resToday.data?.total ?? 0,
-        unseen: resUnseen.data?.total ?? 0,
-        flagged: resFlagged.data?.total ?? 0,
-      };
+      if (user?.role === "OWNER") {
+        const [resAll, resToday, resUnseen, resFlagged] = await Promise.all([
+          api.get(`/production-batches?limit=1${branchParam}`),
+          api.get(`/production-batches?date=${todayYmd}&limit=1${branchParam}`),
+          api.get(`/production-batches?seenFilter=UNSEEN&limit=1${branchParam}`),
+          api.get(`/production-batches?seenFilter=FLAGGED&limit=1${branchParam}`),
+        ]);
+        return {
+          all: resAll.data?.total ?? 0,
+          today: resToday.data?.total ?? 0,
+          unseen: resUnseen.data?.total ?? 0,
+          flagged: resFlagged.data?.total ?? 0,
+        };
+      } else {
+        const [resAll, resToday] = await Promise.all([
+          api.get(`/production-batches?limit=1${branchParam}`),
+          api.get(`/production-batches?date=${todayYmd}&limit=1${branchParam}`),
+        ]);
+        return {
+          all: resAll.data?.total ?? 0,
+          today: resToday.data?.total ?? 0,
+          unseen: 0,
+          flagged: 0,
+        };
+      }
     },
   });
 
@@ -481,73 +497,116 @@ export default function ProductionPage() {
               >
                 📅 {t('production.todayBatches')} ({todayCount})
               </button>
-              <button
-                ref={(el) => { tabRefs.current["UNSEEN"] = el; }}
-                onClick={() => { setFilterTab("UNSEEN"); setPage(1); }}
-                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
-                  filterTab === "UNSEEN"
-                    ? "bg-sky-700 text-white shadow-xs"
-                    : "text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200"
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                {t('production.unseenBatches')}
-                {unseenCount > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                    filterTab === "UNSEEN" ? "bg-white text-sky-800" : "bg-sky-600 text-white"
-                  }`}>
-                    {unseenCount}
-                  </span>
-                )}
-              </button>
-              <button
-                ref={(el) => { tabRefs.current["FLAGGED"] = el; }}
-                onClick={() => { setFilterTab("FLAGGED"); setPage(1); }}
-                className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
-                  filterTab === "FLAGGED"
-                    ? "bg-rose-700 text-white shadow-xs"
-                    : "text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200"
-                }`}
-              >
-                <Flag className="w-3.5 h-3.5" />
-                {t('production.flaggedBatches')}
-                {flaggedCount > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                    filterTab === "FLAGGED" ? "bg-white text-rose-800" : "bg-rose-600 text-white"
-                  }`}>
-                    {flaggedCount}
-                  </span>
-                )}
-              </button>
+              {user?.role === "OWNER" && (
+                <>
+                  <button
+                    ref={(el) => { tabRefs.current["UNSEEN"] = el; }}
+                    onClick={() => { setFilterTab("UNSEEN"); setPage(1); }}
+                    className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                      filterTab === "UNSEEN"
+                        ? "bg-sky-700 text-white shadow-xs"
+                        : "text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200"
+                    }`}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    {t('production.unseenBatches')}
+                    {unseenCount > 0 && (
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                        filterTab === "UNSEEN" ? "bg-white text-sky-800" : "bg-sky-600 text-white"
+                      }`}>
+                        {unseenCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    ref={(el) => { tabRefs.current["FLAGGED"] = el; }}
+                    onClick={() => { setFilterTab("FLAGGED"); setPage(1); }}
+                    className={`px-3 xs:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                      filterTab === "FLAGGED"
+                        ? "bg-rose-700 text-white shadow-xs"
+                        : "text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200"
+                    }`}
+                  >
+                    <Flag className="w-3.5 h-3.5" />
+                    {t('production.flaggedBatches')}
+                    {flaggedCount > 0 && (
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                        filterTab === "FLAGGED" ? "bg-white text-rose-800" : "bg-rose-600 text-white"
+                      }`}>
+                        {flaggedCount}
+                      </span>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Shift Filter Pill Group */}
-          <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 self-start sm:self-auto max-w-full overflow-x-auto no-scrollbar">
-            <button
-              onClick={() => { setShiftFilter("ALL"); setPage(1); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                shiftFilter === "ALL" ? "bg-[#4A2E1B] text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
-              }`}
-            >
-              {t('production.allShifts')}
-            </button>
-            <button
-              onClick={() => { setShiftFilter("DAY"); setPage(1); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                shiftFilter === "DAY" ? "bg-amber-500 text-zinc-950 shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
-              }`}
-            >
-              ☀️ {t('production.dayShift')}
-            </button>
-            <button
-              onClick={() => { setShiftFilter("NIGHT"); setPage(1); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                shiftFilter === "NIGHT" ? "bg-indigo-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
-              }`}
-            >
-              🌙 {t('production.nightShift')}
-            </button>
+          {/* Filters: Role & Shift Filter Pill Groups */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto max-w-full">
+            {/* Role Filter Pill Group */}
+            <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 max-w-full overflow-x-auto no-scrollbar">
+              <button
+                onClick={() => { setRoleFilter("ALL"); setPage(1); }}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  roleFilter === "ALL" ? "bg-[#4A2E1B] text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                {t('common.all') || "All Roles"}
+              </button>
+              <button
+                onClick={() => { setRoleFilter("BAKER"); setPage(1); }}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  roleFilter === "BAKER" ? "bg-amber-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                🥖 {t('users.roleBaker') || "Baker"}
+              </button>
+              <button
+                onClick={() => { setRoleFilter("CAKE_WORKER"); setPage(1); }}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  roleFilter === "CAKE_WORKER" ? "bg-pink-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                🎂 {t('users.roleCakeWorker') || "Cake Worker"}
+              </button>
+              <button
+                onClick={() => { setRoleFilter("SAMBUSA_WORKER"); setPage(1); }}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  roleFilter === "SAMBUSA_WORKER" ? "bg-orange-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                🥟 {t('users.roleSambusaWorker') || "Sambusa"}
+              </button>
+            </div>
+
+            {/* Shift Filter Pill Group */}
+            <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0 max-w-full overflow-x-auto no-scrollbar">
+              <button
+                onClick={() => { setShiftFilter("ALL"); setPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  shiftFilter === "ALL" ? "bg-[#4A2E1B] text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                {t('production.allShifts')}
+              </button>
+              <button
+                onClick={() => { setShiftFilter("DAY"); setPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  shiftFilter === "DAY" ? "bg-amber-500 text-zinc-950 shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                ☀️ {t('production.dayShift')}
+              </button>
+              <button
+                onClick={() => { setShiftFilter("NIGHT"); setPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  shiftFilter === "NIGHT" ? "bg-indigo-600 text-white shadow-xs" : "text-[#8C7361] hover:text-[#2C1B10]"
+                }`}
+              >
+                🌙 {t('production.nightShift')}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -587,9 +646,9 @@ export default function ProductionPage() {
               <div
                 key={batch.id}
                 className={`bg-white rounded-2xl border p-3.5 xs:p-4 shadow-xs space-y-3 overflow-hidden ${
-                  isGlobalAdmin && !isBatchSeenByMe(batch)
+                  user?.role === "OWNER" && !isBatchSeenByMe(batch)
                     ? "border-sky-300 ring-1 ring-sky-100"
-                    : batch.isFlagged
+                    : user?.role === "OWNER" && batch.isFlagged
                     ? "border-rose-300 ring-1 ring-rose-100"
                     : "border-[#EDE4D5]"
                 }`}
@@ -616,12 +675,12 @@ export default function ProductionPage() {
                         ✏️ {t('production.edited') || "Edited"}
                       </span>
                     )}
-                    {isGlobalAdmin && !isBatchSeenByMe(batch) && (
+                    {user?.role === "OWNER" && !isBatchSeenByMe(batch) && (
                       <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800 border border-sky-300">
                         🔵 {t('production.unseenForMe')}
                       </span>
                     )}
-                    {batch.isFlagged && (
+                    {user?.role === "OWNER" && batch.isFlagged && (
                       <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
                         🚩 {t('production.flaggedBatches')}
                       </span>
@@ -631,21 +690,10 @@ export default function ProductionPage() {
                     {batch.shift === "NIGHT" ? `🌙 ${t('production.nightShiftFull')}` : `☀️ ${t('production.dayShiftFull')}`}
                   </span>
                 </div>
-
-                {/* Owner-Only Admin Checked Indicator (Tiny pill at the top right) */}
-                {user?.role === "OWNER" && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border shrink-0 ${
-                    batch.adminSeenAt
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                      : "bg-amber-50 text-amber-800 border-amber-200"
-                  }`}>
-                    {batch.adminSeenAt ? `✓ ${t('production.adminChecked') || 'Admin: Checked'}` : `⏳ ${t('production.adminUnchecked') || 'Admin: Unchecked'}`}
-                  </span>
-                )}
               </div>
 
-              {/* Collapsible Flagged Clarification Notice */}
-              {batch.isFlagged && (
+              {/* Collapsible Flagged Clarification Notice (Owner only) */}
+              {user?.role === "OWNER" && batch.isFlagged && (
                 <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 text-xs">
                   <div className="flex items-center justify-between gap-2">
                     <button
@@ -659,16 +707,14 @@ export default function ProductionPage() {
                         {expandedFlagNotes[batch.id] ? "▲" : "..."}
                       </span>
                     </button>
-                    {isGlobalAdmin && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => handleToggleFlag(batch, e)}
-                        className="border-rose-300 text-rose-700 bg-white hover:bg-rose-100 font-bold text-[10px] h-6 px-2 rounded-lg shrink-0"
-                      >
-                        {t('production.clearFlag')}
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => handleToggleFlag(batch, e)}
+                      className="border-rose-300 text-rose-700 bg-white hover:bg-rose-100 font-bold text-[10px] h-6 px-2 rounded-lg shrink-0"
+                    >
+                      {t('production.clearFlag')}
+                    </Button>
                   </div>
                   {expandedFlagNotes[batch.id] && (
                     <div className="mt-2 pt-2 border-t border-rose-200/80 text-[11px] text-rose-800 space-y-1">
@@ -766,7 +812,7 @@ export default function ProductionPage() {
                 )}
 
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end" onClick={(e) => e.stopPropagation()}>
-                  {isGlobalAdmin && !isBatchSeenByMe(batch) && (
+                  {user?.role === "OWNER" && !isBatchSeenByMe(batch) && (
                     <>
                       <Button
                         size="sm"
@@ -791,7 +837,7 @@ export default function ProductionPage() {
                     </>
                   )}
 
-                  {isGlobalAdmin && batch.isFlagged && (
+                  {user?.role === "OWNER" && batch.isFlagged && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -857,7 +903,6 @@ export default function ProductionPage() {
               <TableHead>{t('production.colProductsBaked')}</TableHead>
               <TableHead>{t('production.colRawMaterialsConsumed')}</TableHead>
               {isGlobalAdmin && <TableHead className="w-32">{t('production.colLoggedBy')}</TableHead>}
-              {user?.role === 'OWNER' && <TableHead className="w-36">{t('production.adminReviewStatus')}</TableHead>}
               <TableHead className="text-right pr-6 w-36">{t('production.colBatchActions')}</TableHead>
             </TableRow>
           </TableHeader>
@@ -881,11 +926,6 @@ export default function ProductionPage() {
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
                   )}
-                  {user?.role === 'OWNER' && (
-                    <TableCell className="w-36">
-                      <Skeleton className="h-4 w-20" />
-                    </TableCell>
-                  )}
                   <TableCell className="text-right pr-6 w-36">
                     <Skeleton className="h-8 w-24 ml-auto rounded-xl" />
                   </TableCell>
@@ -893,7 +933,7 @@ export default function ProductionPage() {
               ))
             ) : filteredBatches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isGlobalAdmin ? (user?.role === 'OWNER' ? 6 : 5) : 4} className="text-center py-8 text-[#8C7361] font-medium">
+                <TableCell colSpan={isGlobalAdmin ? 5 : 4} className="text-center py-8 text-[#8C7361] font-medium">
                   {filterTab === "UNSEEN"
                     ? t('production.allBatchesReviewed') || "All batches have been reviewed by you! 🎉"
                     : filterTab === "FLAGGED"
@@ -911,9 +951,9 @@ export default function ProductionPage() {
                 key={batch.id}
                 onClick={() => router.push(`/production/${batch.id}`)}
                 className={`hover:bg-[#FAF8F5]/80 transition-colors cursor-pointer ${
-                  isGlobalAdmin && !isBatchSeenByMe(batch)
+                  user?.role === "OWNER" && !isBatchSeenByMe(batch)
                     ? "bg-sky-50/40"
-                    : batch.isFlagged
+                    : user?.role === "OWNER" && batch.isFlagged
                     ? "bg-rose-50/30"
                     : ""
                 }`}
@@ -938,12 +978,12 @@ export default function ProductionPage() {
                         ✏️ {t('production.edited') || "Edited"}
                       </span>
                     )}
-                    {isGlobalAdmin && !isBatchSeenByMe(batch) && (
+                    {user?.role === "OWNER" && !isBatchSeenByMe(batch) && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800 border border-sky-300">
                         🔵 {t('production.unseenForMe')}
                       </span>
                     )}
-                    {batch.isFlagged && (
+                    {user?.role === "OWNER" && batch.isFlagged && (
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
                         <span>🚩</span>
                         <span>{t('production.flagged') || 'Flagged'}</span>
@@ -961,7 +1001,7 @@ export default function ProductionPage() {
                     )}
                   </div>
                   <div className="text-xs font-semibold text-[#8C7361] mt-0.5">{batch.shift === "NIGHT" ? t('production.nightShiftFull') : t('production.dayShiftFull')}</div>
-                  {batch.isFlagged && batch.flagReason && expandedFlagNotes[batch.id] && (
+                  {user?.role === "OWNER" && batch.isFlagged && batch.flagReason && expandedFlagNotes[batch.id] && (
                     <div className="mt-1.5 text-xs font-medium text-rose-900 bg-rose-50/90 p-2 rounded-lg border border-rose-200 max-w-xs shadow-xs animate-in fade-in duration-150">
                       <div className="text-[10px] uppercase tracking-wider font-bold text-rose-600 mb-0.5">Note:</div>
                       {batch.flagReason}
@@ -1036,20 +1076,9 @@ export default function ProductionPage() {
                     <span className="text-xs font-bold text-[#2C1B10] block">{batch.user.fullName}</span>
                   </TableCell>
                 )}
-                {user?.role === 'OWNER' && (
-                  <TableCell className="w-36">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
-                      batch.adminSeenAt
-                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                        : "bg-amber-50 text-amber-800 border-amber-200"
-                    }`}>
-                      {batch.adminSeenAt ? `✓ ${t('production.adminChecked') || 'Admin: Checked'}` : `⏳ ${t('production.adminUnchecked') || 'Admin: Unchecked'}`}
-                    </span>
-                  </TableCell>
-                )}
                 <TableCell className="text-right pr-6 w-36 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1.5">
-                    {isGlobalAdmin && !isBatchSeenByMe(batch) && (
+                    {user?.role === "OWNER" && !isBatchSeenByMe(batch) && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -1063,7 +1092,7 @@ export default function ProductionPage() {
                       </Button>
                     )}
 
-                    {isGlobalAdmin && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
+                    {user?.role === "OWNER" && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
                       <Button
                         size="sm"
                         variant="outline"
