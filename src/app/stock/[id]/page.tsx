@@ -19,6 +19,7 @@ import {
   AlertCircle, 
   MinusCircle, 
   PlusCircle, 
+  Edit3, 
   History, 
   ArrowUpRight, 
   ArrowDownLeft, 
@@ -337,6 +338,10 @@ export default function StockItemDetailPage() {
   const handleEditItem = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!data?.stockItem) return;
+    if (!isOwner) {
+      toast.error("Access Restricted: Only Owner can edit stock items");
+      return;
+    }
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     const updatePayload = {
@@ -459,23 +464,32 @@ export default function StockItemDetailPage() {
                 <span>{t("stock.btnReduceStockBtn")}</span>
               </Button>
               {isGlobalAdmin && (
-                <>
-                  <Button 
-                    onClick={() => {
-                      setIsAddOpen(true);
-                      setAddAmount("");
-                      setAddUnitPrice(unitPrice ? String(unitPrice) : "");
-                      setAddReason("");
-                      setIsAddLoan(false);
-                      setAddPaidAmount("");
-                      setAddSupplierName("");
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm h-9 sm:h-10 px-3 sm:px-4 active:scale-98 transition-all shrink-0"
-                  >
-                    <PlusCircle className="w-4 h-4 shrink-0" />
-                    <span className="truncate hidden xs:inline">{t("stock.btnAddStockBtn")}</span>
-                  </Button>
-                </>
+                <Button 
+                  onClick={() => {
+                    setIsAddOpen(true);
+                    setAddAmount("");
+                    setAddUnitPrice(unitPrice ? String(unitPrice) : "");
+                    setAddReason("");
+                    setIsAddLoan(false);
+                    setAddPaidAmount("");
+                    setAddSupplierName("");
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm h-9 sm:h-10 px-3 sm:px-4 active:scale-98 transition-all shrink-0"
+                >
+                  <PlusCircle className="w-4 h-4 shrink-0" />
+                  <span className="truncate hidden xs:inline">{t("stock.btnAddStockBtn")}</span>
+                </Button>
+              )}
+              {isOwner && (
+                <Button 
+                  onClick={() => setIsEditOpen(true)}
+                  variant="outline"
+                  className="text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-9 sm:h-10 px-2.5 sm:px-3 shadow-2xs shrink-0"
+                  title={t("stock.btnEditStockBtn")}
+                >
+                  <Edit3 className="w-4 h-4 shrink-0 text-[#8C7361]" />
+                  <span className="truncate hidden sm:inline">{t("stock.btnEditStockBtn")}</span>
+                </Button>
               )}
             </div>
           )}
