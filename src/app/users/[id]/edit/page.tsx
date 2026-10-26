@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getFileUrl, getImageUrl } from "@/lib/utils";
-import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save } from "lucide-react";
+import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
@@ -48,6 +48,8 @@ export default function EditUserPage() {
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isFormChanged, setIsFormChanged] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [startDateVal, setStartDateVal] = useState<string>("");
@@ -170,6 +172,32 @@ export default function EditUserPage() {
       toast.error(error.response?.data?.error || "Failed to update user");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!userData) return;
+    if (user?.role !== "OWNER") {
+      toast.error("Access Restricted: Only Owner can delete users");
+      setIsDeleteModalOpen(false);
+      return;
+    }
+    try {
+      setIsDeleting(true);
+      const res = await api.delete(`/users/${userData.id}`);
+      if (res.data?.deactivated) {
+        toast.info(res.data.message || "User deactivated (historical transaction records preserved)");
+      } else {
+        toast.success("User deleted successfully");
+      }
+      queryClient.invalidateQueries({ queryKey: ["users-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
+      router.push("/users");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to delete user");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -483,6 +511,18 @@ export default function EditUserPage() {
               <Save className="w-4 h-4" />
               {t('users.btnUpdatePersonnel')}
             </Button>
+            {user?.role === "OWNER" && userData.id !== user?.id && (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="w-full sm:w-auto order-3 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold"
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" />
+                {t('common.delete') || "Delete"}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -505,6 +545,18 @@ export default function EditUserPage() {
         variant="warning"
         onConfirm={confirmAction}
         onCancel={() => setShowPrompt(false)}
+      />
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title={t('users.deleteUserTitle') || "Delete User"}
+        description={`Are you sure you want to delete ${userData.fullName}? This action will permanently remove the user, or deactivate them if existing business transaction records are linked.`}
+        confirmText={t('common.delete') || "Delete"}
+        cancelText={t('common.cancel') || "Cancel"}
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
       />
     </DashboardLayout>
   );
