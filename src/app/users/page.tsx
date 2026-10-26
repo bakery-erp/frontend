@@ -10,7 +10,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getImageUrl, getFileUrl } from "@/lib/utils";
-import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle, FileText, Trash2 } from "lucide-react";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -169,6 +170,35 @@ export default function UsersPage() {
   // Dialog states
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
+
+  // Delete User Modal State (Owner only)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    if (user?.role !== "OWNER") {
+      toast.error("Access Restricted: Only Owner can delete users");
+      setUserToDelete(null);
+      return;
+    }
+    try {
+      setIsDeleting(true);
+      const res = await api.delete(`/users/${userToDelete.id}`);
+      if (res.data?.deactivated) {
+        toast.info(res.data.message || "User deactivated (historical transaction records preserved)");
+      } else {
+        toast.success("User deleted successfully");
+      }
+      setUserToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["users-page"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to delete user");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const pendingCount = resetRequests.filter((r) => r.status === "PENDING").length;
 
@@ -391,7 +421,7 @@ export default function UsersPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#FAF6F0]">
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#FAF6F0] flex-wrap">
                       <Button variant="outline" size="sm" className="h-8 text-xs font-bold border-[#EDE4D5] text-[#4A2E1B] rounded-xl flex items-center gap-1" onClick={() => openView(u)}>
                         <Eye className="w-3.5 h-3.5" /> View
                       </Button>
@@ -409,6 +439,16 @@ export default function UsersPage() {
                             <Edit2 className="w-3.5 h-3.5" /> Edit
                           </Button>
                         </>
+                      )}
+                      {user?.role === "OWNER" && u.id !== user?.id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs font-bold border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl flex items-center gap-1"
+                          onClick={() => setUserToDelete(u)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -496,7 +536,7 @@ export default function UsersPage() {
                         </TableCell>
                         <TableCell className="text-right pr-6">
                           <div className="flex justify-end gap-1.5">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openView(u)}>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openView(u)} title="View User">
                               <Eye className="w-4 h-4" />
                             </Button>
                             {(user?.role === "OWNER" || user?.role === "ADMIN") && (
@@ -510,10 +550,21 @@ export default function UsersPage() {
                                 >
                                   <Key className="w-4 h-4" />
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEdit(u)}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEdit(u)} title="Edit User">
                                   <Edit2 className="w-4 h-4" />
                                 </Button>
                               </>
+                            )}
+                            {user?.role === "OWNER" && u.id !== user?.id && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title={t('common.delete') || "Delete User"}
+                                className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                                onClick={() => setUserToDelete(u)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             )}
                           </div>
                         </TableCell>
@@ -936,6 +987,18 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmModal
+        isOpen={!!userToDelete}
+        title={t('users.deleteUserTitle') || "Delete User"}
+        description={`Are you sure you want to delete ${userToDelete?.fullName}? This action will permanently remove the user, or deactivate them if existing business transaction records are linked.`}
+        confirmText={t('common.delete') || "Delete"}
+        cancelText={t('common.cancel') || "Cancel"}
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDeleteUser}
+        onCancel={() => setUserToDelete(null)}
+      />
     </DashboardLayout>
   );
 }

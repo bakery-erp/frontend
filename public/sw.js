@@ -1,9 +1,10 @@
-const CACHE_NAME = 'koket-erp-v4';
+const CACHE_NAME = 'koket-erp-v5';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/badge-96.png',
   '/icons/apple-touch-icon.png',
 ];
 
@@ -83,8 +84,8 @@ self.addEventListener('push', function (event) {
 
   const options = {
     body: body,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    icon: payload.icon || '/icons/icon-192.png',
+    badge: payload.badge || '/icons/badge-96.png',
     data: {
       link: payload.link || '/dashboard',
       timestamp: payload.timestamp || Date.now(),
