@@ -227,3 +227,25 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Sonner Toast Notification Styling - Crisp High-Contrast Legibility */
+[data-sonner-toaster] [data-description] {
+  color: #4A2E1B !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.35 !important;
+}
+
+[data-sonner-toaster] [data-title] {
+  color: #2C1B10 !important;
+  font-weight: 800 !important;
+  font-size: 0.875rem !important;
+}
+
+[data-sonner-toaster] .cn-toast {
+  background: #FFFDF8 !important;
+  border-color: #EDE4D5 !important;
+  color: #2C1B10 !important;
+  box-shadow: 0 10px 25px -5px rgba(74, 46, 27, 0.1), 0 8px 10px -6px rgba(74, 46, 27, 0.1) !important;
+}
