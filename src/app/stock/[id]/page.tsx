@@ -19,7 +19,6 @@ import {
   AlertCircle, 
   MinusCircle, 
   PlusCircle, 
-  Edit3, 
   History, 
   ArrowUpRight, 
   ArrowDownLeft, 
@@ -475,15 +474,6 @@ export default function StockItemDetailPage() {
                   >
                     <PlusCircle className="w-4 h-4 shrink-0" />
                     <span className="truncate hidden xs:inline">{t("stock.btnAddStockBtn")}</span>
-                  </Button>
-                  <Button 
-                    onClick={() => setIsEditOpen(true)}
-                    variant="outline"
-                    className="text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-9 sm:h-10 px-2.5 sm:px-3 shadow-2xs shrink-0"
-                    title={t("stock.btnEditStockBtn")}
-                  >
-                    <Edit3 className="w-4 h-4 shrink-0 text-[#8C7361]" />
-                    <span className="truncate hidden sm:inline">{t("stock.btnEditStockBtn")}</span>
                   </Button>
                 </>
               )}

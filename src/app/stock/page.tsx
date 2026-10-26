@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { AlertCircle, MinusCircle, PlusCircle, Plus, PackageCheck, History, SlidersHorizontal, CheckCircle2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton } from "@/components/ui/skeletons";
 
@@ -594,26 +594,6 @@ export default function StockPage() {
                         </Button>
                       )}
 
-                      {isGlobalAdmin && (
-                        <>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => setEditingItem(item)}
-                            className="h-8 px-2 text-zinc-600 hover:text-zinc-900"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => setItemToDelete(item)}
-                            className="h-8 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </>
-                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -724,27 +704,6 @@ export default function StockPage() {
                 )}
               </div>
 
-              {/* Admin Manage Row (Edit / Delete) */}
-              {isGlobalAdmin && (
-                <div className="flex items-center gap-2 pt-1 border-t border-dashed border-zinc-150">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditingItem(item)}
-                    className="flex-1 h-8 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] flex items-center justify-center gap-1"
-                  >
-                    <Edit3 className="w-3 h-3 text-[#8C7361]" /> {t('common.edit')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setItemToDelete(item)}
-                    className="flex-1 h-8 text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 flex items-center justify-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3 text-rose-500" /> {t('common.delete')}
-                  </Button>
-                </div>
-              )}
             </div>
           );
         })}
