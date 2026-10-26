@@ -222,6 +222,11 @@ export default function StockPage() {
       } : undefined,
     };
 
+    if (isEdit && !isOwner) {
+      toast.error("Access Restricted: Only Owner can edit stock items");
+      return;
+    }
+
     try {
       if (isEdit && editingItem) {
         await api.patch(`/stock-items/${editingItem.id}`, data);
@@ -349,6 +354,11 @@ export default function StockPage() {
 
   const confirmDelete = async () => {
     if (!itemToDelete) return;
+    if (!isOwner) {
+      toast.error("Access Restricted: Only Owner can delete stock items");
+      setItemToDelete(null);
+      return;
+    }
     try {
       await api.delete(`/stock-items/${itemToDelete.id}`);
       toast.success("Stock item deleted");
@@ -594,7 +604,7 @@ export default function StockPage() {
                         </Button>
                       )}
 
-                      {isGlobalAdmin && (
+                      {isOwner && (
                         <>
                           <Button 
                             variant="ghost" 
@@ -724,8 +734,8 @@ export default function StockPage() {
                 )}
               </div>
 
-              {/* Admin Manage Row (Edit / Delete) */}
-              {isGlobalAdmin && (
+              {/* Owner Manage Row (Edit / Delete) */}
+              {isOwner && (
                 <div className="flex items-center gap-2 pt-1 border-t border-dashed border-zinc-150">
                   <Button
                     variant="outline"
