@@ -15,7 +15,8 @@ import { formatEthDate } from "@/lib/ethiopianDate";
 import { 
   CreditCard, Coins, CheckCircle2, AlertCircle, History, 
   Search, ArrowRightLeft, DollarSign, Package, Calendar, Clock, Receipt, UserCheck,
-  MinusCircle, ShieldCheck, Check, X, ChevronLeft, ChevronRight, Loader2
+  MinusCircle, ShieldCheck, Check, X, ChevronLeft, ChevronRight, Loader2,
+  RotateCcw
 } from "lucide-react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -126,7 +127,7 @@ export default function StockMovementsPage() {
     }
   }, [user, isStockStaff, router]);
 
-  const [activeTab, setActiveTab] = useState<"movements" | "approvals" | "loans">("movements");
+  const [activeTab, setActiveTab] = useState<"movements" | "approvals" | "rejected" | "loans">("movements");
 
   // Tab auto-centering ref like in profile page
   const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
@@ -137,6 +138,8 @@ export default function StockMovementsPage() {
       const tab = urlParams.get("tab");
       if (tab === "approvals" && canApprove) {
         setActiveTab("approvals");
+      } else if (tab === "rejected") {
+        setActiveTab("rejected");
       } else if (tab === "loans" || tab === "movements") {
         setActiveTab(tab);
       }
@@ -336,8 +339,38 @@ export default function StockMovementsPage() {
     return { totalCredit, totalPaid, totalRemaining, activeLoansCount };
   }, [loansResponse, loans]);
 
+  // Rejected stock intakes query (for Admin / Owner)
+  const {
+    data: rejectedMovements = [],
+    isFetching: isFetchingRejected,
+    refetch: refetchRejected,
+  } = useQuery<StockMovement[]>({
+    queryKey: ['stock-movements-rejected', selectedBranchId],
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const params = new URLSearchParams({ status: 'REJECTED', limit: '100' });
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      const res = await api.get(`/stock-movements?${params.toString()}`);
+      if (Array.isArray(res.data)) return res.data;
+      return res.data?.data || [];
+    },
+    enabled: isGlobalAdmin,
+  });
+
   // Approval handlers
   const [isConfirmingId, setIsConfirmingId] = useState<string | null>(null);
+
+  // Reject Modal State
+  const [rejectingMovement, setRejectingMovement] = useState<StockMovement | null>(null);
+  const [rejectReason, setRejectReason] = useState<string>("");
+  const [isSubmittingReject, setIsSubmittingReject] = useState<boolean>(false);
+
+  // Edit & Resubmit Modal State (Admin / Owner)
+  const [resubmittingMovement, setResubmittingMovement] = useState<StockMovement | null>(null);
+  const [resubmitQuantity, setResubmitQuantity] = useState<string>("");
+  const [resubmitUnitPrice, setResubmitUnitPrice] = useState<string>("");
+  const [resubmitReason, setResubmitReason] = useState<string>("");
+  const [isSubmittingResubmit, setIsSubmittingResubmit] = useState<boolean>(false);
 
   const handleConfirmMovement = async (movementId: string) => {
     setIsConfirmingId(movementId);
@@ -365,20 +398,26 @@ export default function StockMovementsPage() {
     }
   };
 
-  const handleRejectMovement = async (movementId: string) => {
-    const reason = window.prompt("Reason for rejection (optional):") ?? "";
+  const handleConfirmRejectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectingMovement) return;
+    setIsSubmittingReject(true);
     try {
-      await api.post(`/stock-movements/${movementId}/reject`, { reason });
+      await api.post(`/stock-movements/${rejectingMovement.id}/reject`, { reason: rejectReason.trim() });
       toast.success(t('stockMovements.toastRejectSuccess') || "Stock intake rejected");
 
       // Optimistically remove card from UI immediately
       queryClient.setQueryData<StockMovement[]>(['stock-movements-pending', selectedBranchId], (old) => {
-        return (old || []).filter((m) => m.id !== movementId);
+        return (old || []).filter((m) => m.id !== rejectingMovement.id);
       });
+
+      setRejectingMovement(null);
+      setRejectReason("");
 
       // Force refresh
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['stock-movements-pending'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-movements-rejected'] }),
         queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
         queryClient.invalidateQueries({ queryKey: ['stock-items'] }),
         queryClient.invalidateQueries({ queryKey: ['stock-summary'] }),
@@ -386,6 +425,56 @@ export default function StockMovementsPage() {
       await refetchPending();
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to reject stock intake");
+    } finally {
+      setIsSubmittingReject(false);
+    }
+  };
+
+  const handleOpenResubmit = (mov: StockMovement) => {
+    setResubmittingMovement(mov);
+    setResubmitQuantity(String(Number(mov.quantity) || ""));
+    setResubmitUnitPrice(mov.unitPrice ? String(mov.unitPrice) : (mov.stockItem?.unitPrice ? String(mov.stockItem.unitPrice) : ""));
+    setResubmitReason(mov.reason || "Manual Stock Addition");
+  };
+
+  const handleResubmitSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resubmittingMovement) return;
+
+    const qty = Number(resubmitQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error("Please enter a valid positive quantity");
+      return;
+    }
+
+    setIsSubmittingResubmit(true);
+    try {
+      await api.patch(`/stock-movements/${resubmittingMovement.id}/resubmit`, {
+        quantity: qty,
+        unitPrice: resubmitUnitPrice ? Number(resubmitUnitPrice) : undefined,
+        reason: resubmitReason.trim(),
+      });
+      toast.success("Delivery resubmitted for Storekeeper approval");
+
+      // Optimistically remove from rejected
+      queryClient.setQueryData<StockMovement[]>(['stock-movements-rejected', selectedBranchId], (old) => {
+        return (old || []).filter((m) => m.id !== resubmittingMovement.id);
+      });
+
+      setResubmittingMovement(null);
+
+      // Force refresh
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['stock-movements-rejected'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-movements-pending'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-items'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-summary'] }),
+      ]);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to resubmit stock delivery");
+    } finally {
+      setIsSubmittingResubmit(false);
     }
   };
 
@@ -543,6 +632,26 @@ export default function StockMovementsPage() {
               {pendingApprovals.length > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-bold animate-pulse">
                   {pendingApprovals.length}
+                </span>
+              )}
+            </button>
+          )}
+
+          {isGlobalAdmin && (
+            <button
+              ref={(el) => { tabRefs.current["rejected"] = el; }}
+              onClick={() => setActiveTab("rejected")}
+              className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap outline-none ${
+                activeTab === "rejected"
+                  ? "bg-[#4A2E1B] text-white shadow-sm ring-2 ring-[#4A2E1B]/20"
+                  : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-white/60"
+              }`}
+            >
+              <AlertCircle className={`w-4 h-4 shrink-0 ${activeTab === "rejected" ? "text-rose-300" : "text-rose-600"}`} />
+              <span>Rejected Deliveries</span>
+              {rejectedMovements.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-600 text-white font-bold animate-pulse">
+                  {rejectedMovements.length}
                 </span>
               )}
             </button>
@@ -1318,7 +1427,10 @@ export default function StockMovementsPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => handleRejectMovement(mov.id)}
+                        onClick={() => {
+                          setRejectingMovement(mov);
+                          setRejectReason("");
+                        }}
                         className="px-3 rounded-xl h-10 border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold"
                       >
                         <X className="w-4 h-4 mr-1 shrink-0" />
@@ -1331,6 +1443,257 @@ export default function StockMovementsPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB 3: REJECTED DELIVERIES (ADMIN / OWNER) */}
+      {activeTab === "rejected" && isGlobalAdmin && (
+        <div className="space-y-4">
+          {isFetchingRejected && rejectedMovements.length === 0 ? (
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-12 text-center shadow-xs">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-amber-600 mb-2" />
+              <p className="text-xs text-[#8C7361]">{t('common.loading') || 'Loading rejected deliveries...'}</p>
+            </div>
+          ) : rejectedMovements.length === 0 ? (
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-12 text-center shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-[#2C1B10] text-base">No Rejected Deliveries</h3>
+              <p className="text-xs text-[#8C7361] mt-1 max-w-md mx-auto">
+                All stock inward deliveries have either been verified by the Storekeeper or none have been rejected.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {rejectedMovements.map((mov) => {
+                const price = Number(mov.unitPrice ?? mov.stockItem?.unitPrice ?? 0);
+                const totalVal = Number(mov.totalValue ?? (Number(mov.quantity) * price));
+
+                return (
+                  <div key={mov.id} className="bg-white border-2 border-rose-300 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
+                            Rejected by Storekeeper
+                          </span>
+                          <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{mov.stockItem?.name}</h3>
+                          <p className="text-xs text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xl font-black text-rose-600 font-mono">
+                            {Number(mov.quantity).toFixed(2)}
+                          </span>
+                          <span className="text-xs text-[#8C7361] font-bold block">{mov.stockItem?.unitType}</span>
+                        </div>
+                      </div>
+
+                      {/* Storekeeper Rejection Reason Notice */}
+                      <div className="mt-3 p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 text-rose-800 font-extrabold uppercase text-[10px]">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Storekeeper Rejection Note</span>
+                        </div>
+                        <p className="text-rose-900 font-medium text-xs pl-5">
+                          {mov.reason || "No explicit reason was provided by the storekeeper."}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 p-3 bg-[#FAF7EE] rounded-xl border border-[#EDE4D5] text-xs space-y-1.5">
+                        <div className="flex justify-between">
+                          <span className="text-[#8C7361]">{t('stockMovements.addedBy')}:</span>
+                          <span className="font-bold text-[#2C1B10]">{mov.user?.fullName} ({mov.user?.role})</span>
+                        </div>
+                        {isOwner && price > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-[#8C7361]">{t('stockMovements.totalValue')}:</span>
+                            <span className="font-bold text-[#2C1B10] font-mono">{totalVal.toLocaleString(undefined, { minimumFractionDigits: 2 })} {t('common.currency')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-100 flex items-center justify-end">
+                      <Button
+                        type="button"
+                        onClick={() => handleOpenResubmit(mov)}
+                        className="w-full sm:w-auto bg-[#4A2E1B] hover:bg-[#382315] text-white font-bold rounded-xl h-10 text-xs flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <RotateCcw className="w-4 h-4 shrink-0 text-amber-300" />
+                        <span>Edit & Resubmit Delivery</span>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* REJECT CONFIRMATION MODAL */}
+      {rejectingMovement && (
+        <Dialog open={true} onOpenChange={(open) => { if (!open) setRejectingMovement(null); }}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                Reject Stock Intake
+              </DialogTitle>
+            </DialogHeader>
+
+            <form onSubmit={handleConfirmRejectSubmit} className="space-y-4 py-2">
+              <div className="bg-[#FAF7EE] p-3.5 rounded-2xl border border-[#EDE4D5] text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361] font-semibold">Stock Item:</span>
+                  <span className="font-bold text-[#2C1B10]">{rejectingMovement.stockItem?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361] font-semibold">Quantity:</span>
+                  <span className="font-bold text-[#2C1B10]">{Number(rejectingMovement.quantity)} {rejectingMovement.stockItem?.unitType}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8C7361] font-semibold">Added By:</span>
+                  <span className="font-bold text-[#2C1B10]">{rejectingMovement.user?.fullName} ({rejectingMovement.user?.role})</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
+                  Reason for Rejection (Optional)
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="e.g. Quantity discrepancy, damaged packaging, wrong delivery..."
+                  rows={3}
+                  className="w-full text-xs rounded-xl border border-[#EDE4D5] bg-white p-2.5 outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmittingReject}
+                  className="w-full sm:w-auto h-10 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
+                  {isSubmittingReject ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Rejecting...
+                    </>
+                  ) : (
+                    "Confirm Rejection"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRejectingMovement(null)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  {t('common.cancel')}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* EDIT & RESUBMIT MODAL (ADMIN / OWNER) */}
+      {resubmittingMovement && (
+        <Dialog open={true} onOpenChange={(open) => { if (!open) setResubmittingMovement(null); }}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
+                <RotateCcw className="w-5 h-5 text-amber-600 shrink-0" />
+                Edit & Resubmit Stock Delivery
+              </DialogTitle>
+            </DialogHeader>
+
+            <form onSubmit={handleResubmitSubmit} className="space-y-4 py-2">
+              <div className="bg-rose-50 p-3 rounded-xl border border-rose-200 text-xs space-y-1">
+                <span className="text-[10px] uppercase font-bold text-rose-800 block">Storekeeper Rejection Feedback:</span>
+                <p className="text-rose-900 font-semibold">{resubmittingMovement.reason || "None specified"}</p>
+              </div>
+
+              <div>
+                <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
+                  Item: <span className="text-amber-800">{resubmittingMovement.stockItem?.name}</span>
+                </label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={resubmitQuantity}
+                    onChange={(e) => setResubmitQuantity(e.target.value)}
+                    placeholder="Correct Quantity"
+                    className="h-10 rounded-xl font-mono font-bold text-base pr-16"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8C7361]">
+                    {resubmittingMovement.stockItem?.unitType}
+                  </span>
+                </div>
+              </div>
+
+              {isOwner && (
+                <div>
+                  <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
+                    Unit Price ({t('common.currency')})
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={resubmitUnitPrice}
+                    onChange={(e) => setResubmitUnitPrice(e.target.value)}
+                    placeholder="Optional Unit Price"
+                    className="h-10 rounded-xl font-mono text-sm"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
+                  Updated Reason / Note to Storekeeper
+                </label>
+                <Input
+                  value={resubmitReason}
+                  onChange={(e) => setResubmitReason(e.target.value)}
+                  placeholder="e.g. Corrected quantity to 150 liters as verified"
+                  className="h-10 rounded-xl text-xs"
+                />
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmittingResubmit}
+                  className="w-full sm:w-auto h-10 bg-[#4A2E1B] hover:bg-[#382315] text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
+                  {isSubmittingResubmit ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Resubmitting...
+                    </>
+                  ) : (
+                    "Resubmit for Verification"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setResubmittingMovement(null)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  {t('common.cancel')}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
 
     </DashboardLayout>
