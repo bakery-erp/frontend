@@ -41,8 +41,9 @@ interface ProductCategory {
   id: string;
   name: string;
   type: string;
+  productionRole?: string | null;
   parentId?: string | null;
-  parent?: { id: string; name: string } | null;
+  parent?: { id: string; name: string; type?: string; productionRole?: string | null } | null;
 }
 
 interface Product {

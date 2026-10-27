@@ -33,7 +33,12 @@ interface Product {
   name: string;
   flavor?: string;
   unitType: string;
-  category?: { name: string; type: string };
+  category?: {
+    name: string;
+    type: string;
+    productionRole?: string | null;
+    parent?: { id?: string; name?: string; type?: string; productionRole?: string | null } | null;
+  };
 }
 
 interface StockItem {
