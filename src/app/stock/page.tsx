@@ -1313,15 +1313,51 @@ export default function StockPage() {
                   })()}
 
                   <div>
-                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase tracking-wider">
                       Reason for Adjustment *
                     </label>
+
+                    {/* Quick reason presets */}
+                    <div className="flex flex-wrap gap-1.5 mb-2.5">
+                      {[
+                        { label: "🥀 Expired / Spoilage", val: "Expired / Spoilage" },
+                        { label: "📦 Damaged Packaging", val: "Damaged Packaging / Contaminated" },
+                        { label: "🧹 Spillage / Handling", val: "Spillage / Handling Waste" },
+                        { label: "🔍 Audit Variance", val: "Physical Inventory Count Audit (Variance)" },
+                        { label: "📝 Other Reason", val: "" },
+                      ].map((preset) => {
+                        const isSelected = preset.val 
+                          ? adjustReason.startsWith(preset.val) 
+                          : (!adjustReason || (!adjustReason.startsWith("Expired") && !adjustReason.startsWith("Damaged") && !adjustReason.startsWith("Spillage") && !adjustReason.startsWith("Physical")));
+                        return (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => {
+                              if (preset.val) {
+                                setAdjustReason(preset.val);
+                              } else {
+                                setAdjustReason("");
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                              isSelected
+                                ? "bg-orange-600 text-white border-orange-600 shadow-2xs"
+                                : "bg-[#FAF7EE] text-[#4A2E1B] border-[#EDE4D5] hover:bg-orange-50"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
                     <Input 
                       required
                       value={adjustReason} 
                       onChange={(e) => setAdjustReason(e.target.value)} 
-                      placeholder="e.g. Damaged bag, spill, physical inventory audit" 
-                      className="h-10 rounded-xl border-zinc-200" 
+                      placeholder="e.g. Expired batch, torn sack, physical count discrepancy..." 
+                      className="h-10 rounded-xl border-zinc-200 text-xs" 
                     />
                   </div>
                 </div>

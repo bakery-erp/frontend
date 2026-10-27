@@ -32,7 +32,8 @@ import {
   X,
   Loader2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  SlidersHorizontal
 } from "lucide-react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -109,6 +110,11 @@ interface HistoryData {
   totalOut: number;
   totalValueIn?: number;
   totalValueOut?: number;
+  totalAdjustmentPos?: number;
+  totalAdjustmentNeg?: number;
+  totalAdjustmentCount?: number;
+  totalAdjustmentValuePos?: number;
+  totalAdjustmentValueNeg?: number;
   currentValuation?: number;
   total?: number;
   page?: number;
@@ -195,6 +201,12 @@ export default function StockItemDetailPage() {
   const [reduceAmount, setReduceAmount] = useState<string>("");
   const [reduceReason, setReduceReason] = useState<string>("");
   const [reduceReceivedBy, setReduceReceivedBy] = useState<string>("");
+
+  // Adjustment Modal state (Owner Only)
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [adjustTo, setAdjustTo] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [isAdjusting, setIsAdjusting] = useState(false);
 
   const { data: dbUsers = [], isLoading: isUsersLoading } = useQuery<{
     id: string;
@@ -335,6 +347,49 @@ export default function StockItemDetailPage() {
     }
   };
 
+  const openAdjustModal = () => {
+    if (!data?.stockItem || !isOwner) return;
+    setAdjustTo(String(data.stockItem.currentQuantity));
+    setAdjustReason("");
+    setIsAdjustOpen(true);
+  };
+
+  const handleAdjustStock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data?.stockItem || !isOwner) return;
+    const newQty = parseFloat(adjustTo);
+    if (isNaN(newQty) || newQty < 0) {
+      toast.error("Please enter a valid non-negative physical count");
+      return;
+    }
+    if (!adjustReason.trim()) {
+      toast.error("Please provide a reason for the adjustment");
+      return;
+    }
+    setIsAdjusting(true);
+    try {
+      await api.post('/stock-movements', {
+        stockItemId: data.stockItem.id,
+        quantity: Math.abs(newQty - Number(data.stockItem.currentQuantity)),
+        adjustTo: newQty,
+        type: 'ADJUSTMENT',
+        reason: adjustReason.trim(),
+      });
+      toast.success(`Inventory successfully adjusted to ${newQty} ${data.stockItem.unitType}`);
+      setIsAdjustOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['stock-item-history', itemId] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-items'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to adjust stock');
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
+
   const handleEditItem = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!data?.stockItem) return;
@@ -371,7 +426,7 @@ export default function StockItemDetailPage() {
   const totalPages = data?.totalPages || 1;
   const totalMovements = data?.total || paginatedMovements.length;
 
-  const getMovementBadge = (type: string) => {
+  const getMovementBadge = (type: string, reason?: string) => {
     switch (type) {
       case "IN":
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600" /> {t("stock.stockInBadge")}</span>;
@@ -379,8 +434,13 @@ export default function StockItemDetailPage() {
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800"><ArrowUpRight className="w-3.5 h-3.5 text-red-600" /> {t("stock.stockOutBadge")}</span>;
       case "PRODUCTION_USAGE":
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800"><RefreshCw className="w-3.5 h-3.5 text-purple-600" /> {t("stock.tabFilterProduction")}</span>;
-      case "ADJUSTMENT":
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">{t("stock.tabFilterAdjustment")}</span>;
+      case "ADJUSTMENT": {
+        const isLoss = reason?.startsWith('[-]') || /spoilage|expired|damaged|shrinkage|loss|waste|spill|torn/i.test(reason || '');
+        if (isLoss) {
+          return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">🥀 Wastage / Loss</span>;
+        }
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">🔍 {t("stock.tabFilterAdjustment")}</span>;
+      }
       default:
         return <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-zinc-100 text-zinc-800">{type}</span>;
     }
@@ -423,6 +483,12 @@ export default function StockItemDetailPage() {
   const unitPrice = Number(stockItem.unitPrice || 0);
   const calculatedValuation = currentValuation ?? (Number(stockItem.currentQuantity) * unitPrice);
 
+  const adjPos = Number(data.totalAdjustmentPos || 0);
+  const adjNeg = Number(data.totalAdjustmentNeg || 0);
+  const adjCount = Number(data.totalAdjustmentCount || 0);
+  const adjValNeg = Number(data.totalAdjustmentValueNeg || (adjNeg * unitPrice));
+  const netAdj = adjPos - adjNeg;
+
   return (
     <DashboardLayout>
       {/* Top Header & Action Bar */}
@@ -456,6 +522,16 @@ export default function StockItemDetailPage() {
           {/* Action buttons */}
           {isStockStaff && (
             <div className="flex items-center gap-2 shrink-0">
+              {isOwner && (
+                <Button 
+                  onClick={openAdjustModal}
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-9 sm:h-10 px-3 sm:px-3.5 shadow-sm active:scale-98 transition-all shrink-0"
+                  title="Adjust Physical Inventory Count (Audit & Waste)"
+                >
+                  <SlidersHorizontal className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Adjust Count</span>
+                </Button>
+              )}
               <Button 
                 onClick={() => setIsReduceOpen(true)}
                 className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 h-9 sm:h-10 px-3 sm:px-4 shadow-sm active:scale-98 transition-all shrink-0"
@@ -635,14 +711,39 @@ export default function StockItemDetailPage() {
           </div>
         </div>
 
-        {/* Card 5: Audit Movements */}
-        <div className={`${isOwner ? 'col-span-2 lg:col-span-1' : 'col-span-2 lg:col-span-1'} bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between`}>
-          <span className="text-[11px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider block">{t("stock.kpiAuditMovements")}</span>
-          <div className="mt-1">
-            <span className="text-xl sm:text-2xl font-black text-[#2C1B10] font-mono block">
-              {data.movements?.length ?? 0}
+        {/* Card 5: Total Adjustments (- and +) & Waste */}
+        <div className={`${isOwner ? 'col-span-2 lg:col-span-1' : 'col-span-2 lg:col-span-1'} bg-orange-50/70 border border-orange-200/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col justify-between`}>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] sm:text-xs font-bold text-orange-950 uppercase tracking-wider block">
+              Total Adjustments
             </span>
-            <span className="text-[11px] font-semibold text-[#8C7361]">{t("stock.totalLogEntries")}</span>
+            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-orange-200/80 text-orange-950 font-mono">
+              {adjCount} logs
+            </span>
+          </div>
+          <div className="mt-1">
+            <div className="flex items-baseline gap-1.5 font-mono">
+              <span className="text-base sm:text-lg font-black text-emerald-700">
+                +{adjPos.toFixed(2)}
+              </span>
+              <span className="text-zinc-400 font-bold">/</span>
+              <span className="text-base sm:text-lg font-black text-rose-700">
+                -{adjNeg.toFixed(2)}
+              </span>
+              <span className="text-xs font-semibold text-[#8C7361]">{stockItem.unitType}</span>
+            </div>
+            <div className="text-[11px] font-bold mt-1 text-[#8C7361] flex items-center justify-between">
+              <span>
+                Net: <strong className={netAdj >= 0 ? "text-emerald-700 font-mono" : "text-rose-700 font-mono"}>
+                  {netAdj >= 0 ? `+${netAdj.toFixed(2)}` : netAdj.toFixed(2)} {stockItem.unitType}
+                </strong>
+              </span>
+              {isOwner && adjValNeg > 0 && (
+                <span className="text-rose-700 font-mono font-extrabold truncate text-[10px]" title="Estimated waste/loss cost">
+                  -{adjValNeg.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ETB
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -718,16 +819,17 @@ export default function StockItemDetailPage() {
               </Button>
             )}
 
-            {/* Exactly 3 Tabs: ALL, IN, OUT */}
+            {/* Filter Tabs: ALL, IN, OUT, ADJUSTMENT */}
             <div className="relative overflow-hidden">
               <div 
                 className="bg-[#FAF7EE] p-1.5 rounded-2xl border border-[#EDE4D5] flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {[
-                  { id: "ALL", label: t("stock.tabFilterAll"), count: (data.movements || []).filter(m => (m.type === 'IN' || m.type === 'OUT') && (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
+                  { id: "ALL", label: t("stock.tabFilterAll"), count: (data.movements || []).filter(m => (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
                   { id: "IN", label: t("stock.tabFilterIn"), count: (data.movements || []).filter(m => m.type === 'IN' && (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
-                  { id: "OUT", label: t("stock.tabFilterOut"), count: (data.movements || []).filter(m => m.type === 'OUT' && (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
+                  { id: "OUT", label: t("stock.tabFilterOut"), count: (data.movements || []).filter(m => (m.type === 'OUT' || m.type === 'PRODUCTION_USAGE') && (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
+                  { id: "ADJUSTMENT", label: "Adjustments & Waste", count: (data.movements || []).filter(m => m.type === 'ADJUSTMENT' && (!dateFilter || new Date(m.createdAt).toISOString().slice(0, 10) === dateFilter)).length },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -787,7 +889,10 @@ export default function StockItemDetailPage() {
                 paginatedMovements.map((m) => {
                   const mPrice = Number(m.unitPrice ?? unitPrice);
                   const mTotalValue = Number(m.totalValue ?? (Number(m.quantity) * mPrice));
-                  const isNegative = m.type === "OUT";
+                  const isAdjustment = m.type === "ADJUSTMENT";
+                  const isNegAdjustment = isAdjustment && (m.reason?.startsWith('[-]') || /spoilage|expired|damaged|shrinkage|loss|waste|spill|torn/i.test(m.reason || ''));
+                  const isPositive = m.type === "IN" || (isAdjustment && !isNegAdjustment);
+                  const cleanReason = (m.reason || '—').replace(/^\[[-+]\]\s*/, '');
                   const loan = m.purchaseLoan;
 
                   return (
@@ -796,7 +901,7 @@ export default function StockItemDetailPage() {
                         {format(new Date(m.createdAt), "MMM d, yyyy · h:mm a")}
                       </TableCell>
                       <TableCell>
-                        {getMovementBadge(m.type)}
+                        {getMovementBadge(m.type, m.reason)}
                       </TableCell>
                       {isGlobalAdmin && (
                         <TableCell>
@@ -826,15 +931,15 @@ export default function StockItemDetailPage() {
                         </TableCell>
                       )}
                       <TableCell className="font-bold text-sm">
-                        <span className={m.type === "IN" ? "text-emerald-700" : "text-rose-700"}>
-                          {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)}
+                        <span className={isPositive ? "text-emerald-700 font-mono" : "text-rose-700 font-mono"}>
+                          {isPositive ? "+" : "-"}{Number(m.quantity).toFixed(2)}
                         </span>{" "}
                         <span className="text-xs text-[#8C7361] font-normal">{stockItem.unitType}</span>
                       </TableCell>
                       {isOwner && (
                         <TableCell className="font-extrabold text-xs">
-                          <span className={isNegative ? "text-rose-700" : "text-emerald-700"}>
-                            {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          <span className={isPositive ? "text-emerald-700 font-mono" : "text-rose-700 font-mono"}>
+                            {isPositive ? "+" : "-"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                           </span>
                           {mPrice > 0 && (
                             <div className="text-[10px] text-[#8C7361] font-normal">
@@ -861,7 +966,7 @@ export default function StockItemDetailPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-[#8C7361] font-medium pr-6">
-                        {m.reason || "—"}
+                        {cleanReason}
                       </TableCell>
                     </TableRow>
                   );
@@ -881,7 +986,10 @@ export default function StockItemDetailPage() {
             paginatedMovements.map((m) => {
               const mPrice = Number(m.unitPrice ?? unitPrice);
               const mTotalValue = Number(m.totalValue ?? (Number(m.quantity) * mPrice));
-              const isNegative = m.type === "OUT";
+              const isAdjustment = m.type === "ADJUSTMENT";
+              const isNegAdjustment = isAdjustment && (m.reason?.startsWith('[-]') || /spoilage|expired|damaged|shrinkage|loss|waste|spill|torn/i.test(m.reason || ''));
+              const isPositive = m.type === "IN" || (isAdjustment && !isNegAdjustment);
+              const cleanReason = (m.reason || '—').replace(/^\[[-+]\]\s*/, '');
               const loan = m.purchaseLoan;
 
               return (
@@ -889,7 +997,7 @@ export default function StockItemDetailPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {getMovementBadge(m.type)}
+                        {getMovementBadge(m.type, m.reason)}
                         {isGlobalAdmin && loan && (
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                             loan.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' :
@@ -905,12 +1013,12 @@ export default function StockItemDetailPage() {
                       </span>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className={`text-base font-black font-mono ${m.type === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
-                        {m.type === "IN" ? "+" : "-"}{Number(m.quantity).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
+                      <div className={`text-base font-black font-mono ${isPositive ? "text-emerald-700" : "text-rose-700"}`}>
+                        {isPositive ? "+" : "-"}{Number(m.quantity).toFixed(2)} <span className="text-xs font-semibold">{stockItem.unitType}</span>
                       </div>
                       {isOwner && (
-                        <div className={`text-[11px] font-bold font-mono ${isNegative ? "text-rose-700" : "text-emerald-700"}`}>
-                          {isNegative ? "-" : "+"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        <div className={`text-[11px] font-bold font-mono ${isPositive ? "text-emerald-700" : "text-rose-700"}`}>
+                          {isPositive ? "+" : "-"}{mTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                         </div>
                       )}
                     </div>
@@ -951,7 +1059,7 @@ export default function StockItemDetailPage() {
                       <UserCheck className="w-3.5 h-3.5 text-[#8C7361]" />
                       <span className="font-semibold text-[#2C1B10]">{m.user?.fullName || "System"}</span>
                     </div>
-                    <span className="text-[11px] italic text-[#8C7361] truncate max-w-[150px]">{m.reason || "—"}</span>
+                    <span className="text-[11px] font-medium text-[#8C7361] truncate max-w-[150px]">{cleanReason}</span>
                   </div>
                 </div>
               );
@@ -1405,6 +1513,136 @@ export default function StockItemDetailPage() {
                 </Button>
                 <Button type="button" variant="outline" size="lg" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto order-2 sm:order-1">
                   {t("common.cancel")}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Adjustment Modal (Owner Only) */}
+      {isAdjustOpen && stockItem && (
+        <Dialog open={true} onOpenChange={(open) => !open && setIsAdjustOpen(false)}>
+          <DialogContent className="max-w-md bg-white border-[#EDE4D5] rounded-3xl p-6">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-black text-[#2C1B10] flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5 text-orange-600 shrink-0" />
+                Adjust Stock Count (Audit & Waste)
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAdjustStock}>
+              <div className="grid gap-3.5 py-3">
+                <div className="p-3 bg-orange-50 rounded-xl border border-orange-200 text-xs text-orange-900">
+                  Adjusting physical inventory count for <strong className="font-bold">{stockItem.name}</strong>. Current record: <span className="font-bold font-mono text-orange-800">{Number(stockItem.currentQuantity).toFixed(2)} {stockItem.unitType}</span>.
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    New Actual Physical Count ({stockItem.unitType}) *
+                  </label>
+                  <Input 
+                    type="number" 
+                    step="0.001" 
+                    required 
+                    min="0"
+                    value={adjustTo} 
+                    onChange={(e) => setAdjustTo(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="e.g. 48.00" 
+                    className="h-10 rounded-xl border-zinc-200 font-mono font-bold" 
+                  />
+                </div>
+
+                {(() => {
+                  const current = Number(stockItem.currentQuantity);
+                  const entered = parseFloat(adjustTo);
+                  if (!isNaN(entered)) {
+                    const delta = entered - current;
+                    const isGain = delta > 0;
+                    const isLoss = delta < 0;
+                    return (
+                      <div className={`p-2.5 rounded-xl border text-xs flex items-center justify-between font-bold ${
+                        delta === 0 
+                          ? 'bg-zinc-50 border-zinc-200 text-zinc-700' 
+                          : isLoss 
+                            ? 'bg-rose-50 border-rose-200 text-rose-800' 
+                            : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      }`}>
+                        <span>Inventory Difference:</span>
+                        <span className="font-mono text-sm">
+                          {delta > 0 ? `+${delta.toFixed(3)}` : delta.toFixed(3)} {stockItem.unitType} {isLoss ? '(Shrinkage / Waste)' : isGain ? '(Surplus / Found)' : '(No change)'}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase tracking-wider">
+                    Reason for Adjustment *
+                  </label>
+
+                  {/* Quick reason presets */}
+                  <div className="flex flex-wrap gap-1.5 mb-2.5">
+                    {[
+                      { label: "🥀 Expired / Spoilage", val: "Expired / Spoilage" },
+                      { label: "📦 Damaged Packaging", val: "Damaged Packaging / Contaminated" },
+                      { label: "🧹 Spillage / Handling", val: "Spillage / Handling Waste" },
+                      { label: "🔍 Audit Variance", val: "Physical Inventory Count Audit (Variance)" },
+                      { label: "📝 Other Reason", val: "" },
+                    ].map((preset) => {
+                      const isSelected = preset.val 
+                        ? adjustReason.startsWith(preset.val) 
+                        : (!adjustReason || (!adjustReason.startsWith("Expired") && !adjustReason.startsWith("Damaged") && !adjustReason.startsWith("Spillage") && !adjustReason.startsWith("Physical")));
+                      return (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => {
+                            if (preset.val) {
+                              setAdjustReason(preset.val);
+                            } else {
+                              setAdjustReason("");
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                            isSelected
+                              ? "bg-orange-600 text-white border-orange-600 shadow-2xs"
+                              : "bg-[#FAF7EE] text-[#4A2E1B] border-[#EDE4D5] hover:bg-orange-50"
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <Input 
+                    required
+                    value={adjustReason} 
+                    onChange={(e) => setAdjustReason(e.target.value)} 
+                    placeholder="e.g. Expired batch, torn sack, physical count discrepancy..." 
+                    className="h-10 rounded-xl border-zinc-200 text-xs" 
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
+                <Button
+                  type="submit"
+                  disabled={isAdjusting}
+                  className="w-full sm:w-auto h-11 sm:h-10 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
+                >
+                  {isAdjusting ? t('common.loading') : "Confirm Adjustment"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAdjustOpen(false)}
+                  className="w-full sm:w-auto h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] order-2 sm:order-1"
+                >
+                  {t('common.cancel')}
                 </Button>
               </DialogFooter>
             </form>
