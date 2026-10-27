@@ -135,10 +135,11 @@ export function isRouteAllowed(role: string | undefined | null, pathname: string
 
   // 3. BAKER
   if (role === 'BAKER') {
-    // Baker can only access general production batch entry and mobile baker station
-    if (path === '/production/history') return false;
+    // Baker can access production pages (except history) and mobile baker station
+    if (path === '/production/history' || path.startsWith('/production/history/')) return false;
     return (
       path === '/production' ||
+      path.startsWith('/production/') ||
       path === '/mobile/baker' ||
       path === '/mobile'
     );
@@ -146,18 +147,20 @@ export function isRouteAllowed(role: string | undefined | null, pathname: string
 
   // 4. CAKE WORKER
   if (role === 'CAKE_WORKER') {
-    if (path === '/production/history') return false;
+    if (path === '/production/history' || path.startsWith('/production/history/')) return false;
     return (
       path === '/production' ||
+      path.startsWith('/production/') ||
       path === '/mobile'
     );
   }
 
   // 5. SAMBUSA WORKER
   if (role === 'SAMBUSA_WORKER') {
-    if (path === '/production/history') return false;
+    if (path === '/production/history' || path.startsWith('/production/history/')) return false;
     return (
       path === '/production' ||
+      path.startsWith('/production/') ||
       path === '/mobile/sambusa' ||
       path === '/mobile'
     );
