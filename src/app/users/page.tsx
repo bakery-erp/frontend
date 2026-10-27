@@ -51,6 +51,7 @@ interface User {
   isActive: boolean;
   createdAt: string;
   salary: number | null;
+  dailyExpense?: number | null;
   startDate: string | null;
   lastPaidDate: string | null;
   shift: string | null;
@@ -805,6 +806,10 @@ export default function UsersPage() {
                 <div>
                   <p className="text-zinc-500 font-medium mb-1">Base Salary</p>
                   <p className="font-semibold text-zinc-900">{viewingUser.salary ? `${viewingUser.salary} ETB` : "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.dailyExpenseLabel') || "Daily Expense"}</p>
+                  <p className="font-semibold text-zinc-900">{viewingUser.dailyExpense ? `${viewingUser.dailyExpense} ETB` : "N/A"}</p>
                 </div>
 
                 <div>

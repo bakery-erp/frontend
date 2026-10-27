@@ -1295,6 +1295,7 @@ export const om: TranslationDictionary = {
     sectionPayrollTimeline: "Mindaa & Guyyoota Waliigaltee",
     sectionPayrollTimelineDesc: "Mindaa bu'uuraa ji'aa fi daangaa yeroo waliigaltee",
     monthlyBaseSalaryLabel: "Mindaa Bu'uuraa Ji'aa (ETB)",
+    dailyExpenseLabel: "Baasii Guyyaa",
     employmentStartDateLabel: "Guyyaa Hojii Jalqabaa",
     lastPaidDateLabel: "Guyyaa Kaffaltii Dhumaa",
     sectionDocs: "Waraqaalee Ragaa & Mirkaneessa",
