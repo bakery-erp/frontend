@@ -583,6 +583,16 @@ export default function StockMovementsPage() {
     }
   };
 
+  const formatMovementReason = (reason?: string | null) => {
+    if (!reason) return "—";
+    const cleaned = reason
+      .replace(/Production batch\s+[a-z0-9]+/gi, t('stockMovements.typeProductionUsage'))
+      .replace(/Added by Admin\/Owner \(Awaiting Stock Keeper Verification\)/gi, "Manual Stock Addition")
+      .replace(/\(Awaiting Stock Keeper.*?\)/gi, "")
+      .trim();
+    return cleaned || "—";
+  };
+
   if (user && !isStockStaff) {
     return null;
   }
@@ -799,8 +809,8 @@ export default function StockMovementsPage() {
                         <TableCell className="text-xs font-semibold text-[#2C1B10]">
                           {mov.receivedBy || "—"}
                         </TableCell>
-                        <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={mov.reason || "—"}>
-                          {mov.reason ? mov.reason.replace(/Production batch\s+[a-z0-9]+/gi, t('stockMovements.typeProductionUsage')) : "—"}
+                        <TableCell className="max-w-[220px] truncate text-xs text-[#8C7361]" title={formatMovementReason(mov.reason)}>
+                          {formatMovementReason(mov.reason)}
                         </TableCell>
                         <TableCell className="text-xs font-bold text-[#2C1B10] pr-6">{mov.user?.fullName || "System"}</TableCell>
                       </TableRow>
@@ -881,7 +891,7 @@ export default function StockMovementsPage() {
 
                       <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-100 text-[#8C7361]">
                         <span>{t('stockMovements.colRecordedBy')}: <strong className="text-[#2C1B10]">{mov.user?.fullName || "System"}</strong></span>
-                        <span className="truncate max-w-[150px]">{mov.reason || "—"}</span>
+                        <span className="truncate max-w-[150px]">{formatMovementReason(mov.reason)}</span>
                       </div>
                     </div>
                   );
