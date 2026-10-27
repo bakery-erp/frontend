@@ -83,7 +83,7 @@ export function isRouteAllowed(role: string | undefined | null, pathname: string
     if (path === '/products' || path.startsWith('/products/')) return false;
     if (path === '/owner-loans' || path.startsWith('/owner-loans/')) return false;
     if (path === '/reports' || path.startsWith('/reports/')) return false;
-    if (path === '/payroll' || (path.startsWith('/payroll/') && !path.startsWith('/payroll/loans'))) {
+    if (path === '/payroll' || (path.startsWith('/payroll/') && !path.startsWith('/payroll/loans') && !path.startsWith('/payroll/penalties'))) {
       return false;
     }
 
@@ -110,6 +110,7 @@ export function isRouteAllowed(role: string | undefined | null, pathname: string
       path === '/expenses' ||
       path.startsWith('/expenses/') ||
       path.startsWith('/payroll/loans') ||
+      path.startsWith('/payroll/penalties') ||
       path.startsWith('/mobile')
     );
   }
@@ -151,6 +152,7 @@ export function isRouteAllowed(role: string | undefined | null, pathname: string
     return (
       path === '/production' ||
       path.startsWith('/production/') ||
+      path === '/mobile/baker' ||
       path === '/mobile'
     );
   }
