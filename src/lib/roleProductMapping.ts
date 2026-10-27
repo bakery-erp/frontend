@@ -12,8 +12,9 @@ export interface CategoryLike {
   id?: string;
   name?: string;
   type?: string;
+  productionRole?: string | null;
   parentId?: string | null;
-  parent?: { id?: string; name?: string; type?: string } | null;
+  parent?: { id?: string; name?: string; type?: string; productionRole?: string | null } | null;
 }
 
 export interface ProductLike {
@@ -37,13 +38,13 @@ const BAKER_KEYWORDS = [
 ];
 
 const CAKE_KEYWORDS = [
-  'cake', 'pastry', 'cupcake', 'torte', 'sponge', 'gateau', 'tart', 'dessert',
+  'cake', 'cupcake', 'torte', 'sponge', 'gateau', 'tart', 'dessert',
   'sweet', 'fondant', 'icing', 'crepe', 'muffin', 'keek', 'keekii', 'ኬክ', 'ፓስትሪ'
 ];
 
 const SAMBUSA_KEYWORDS = [
   'sambusa', 'sambuusa', 'spring', 'roll', 'fetira', 'pizza', 'sandwich',
-  'wrap', 'sheet', 'snack', 'pie', 'pasty', 'ሳምቡሳ', 'ፒዛ', 'ሳንድዊች', 'ፈጢራ'
+  'wrap', 'sheet', 'snack', 'pie', 'pasty', 'pastry', 'lentil', 'meat', 'ሳምቡሳ', 'ፒዛ', 'ሳንድዊች', 'ፈጢራ'
 ];
 
 /**
@@ -61,6 +62,12 @@ export function isCategoryAllowedForRole(category: CategoryLike | string | null 
 
   const catName = typeof category === 'string' ? category : category?.name;
   const catType = typeof category === 'object' ? category?.type : undefined;
+  const catProdRole = typeof category === 'object' ? category?.productionRole : undefined;
+
+  // Direct explicit match on database productionRole
+  if (catProdRole) {
+    return catProdRole === role;
+  }
 
   // Resell categories should never be logged in production
   if (catType === 'RESELL') return false;
@@ -68,32 +75,28 @@ export function isCategoryAllowedForRole(category: CategoryLike | string | null 
 
   const normalized = catName.toLowerCase();
 
+  if (role === 'SAMBUSA_WORKER') {
+    // If category has sambusa, snack, or pastry (e.g. "Pastry & Snacks")
+    if (normalized.includes('sambusa') || normalized.includes('snack') || normalized.includes('pastry')) {
+      return true;
+    }
+    return SAMBUSA_KEYWORDS.some(k => normalized.includes(k));
+  }
+
   if (role === 'BAKER') {
-    // Must not be cake, sambusa, or resell
     const hasCake = CAKE_KEYWORDS.some(k => normalized.includes(k));
     const hasSambusa = SAMBUSA_KEYWORDS.some(k => normalized.includes(k));
     if (hasCake || hasSambusa) return false;
 
-    // Checks bakery keywords or is a generic produced bakery category
-    return BAKER_KEYWORDS.some(k => normalized.includes(k)) || normalized.includes('produced');
+    return BAKER_KEYWORDS.some(k => normalized.includes(k)) || normalized.includes('bread');
   }
 
   if (role === 'CAKE_WORKER') {
-    // Must not be bread or sambusa
     const hasBread = BAKER_KEYWORDS.some(k => normalized.includes(k));
-    const hasSambusa = SAMBUSA_KEYWORDS.some(k => normalized.includes(k));
+    const hasSambusa = normalized.includes('sambusa') || normalized.includes('snack');
     if (hasBread || hasSambusa) return false;
 
     return CAKE_KEYWORDS.some(k => normalized.includes(k));
-  }
-
-  if (role === 'SAMBUSA_WORKER') {
-    // Must not be bread or cake
-    const hasBread = BAKER_KEYWORDS.some(k => normalized.includes(k));
-    const hasCake = CAKE_KEYWORDS.some(k => normalized.includes(k));
-    if (hasBread || hasCake) return false;
-
-    return SAMBUSA_KEYWORDS.some(k => normalized.includes(k));
   }
 
   return true;
@@ -108,37 +111,52 @@ export function isProductAllowedForRole(product: ProductLike, role?: string): bo
   // Never allow resell products in production batches
   if (product.category?.type === 'RESELL') return false;
 
+  // 1. Direct explicit category productionRole match
+  const catProdRole = product.category?.productionRole || product.category?.parent?.productionRole;
+  if (catProdRole) {
+    return catProdRole === role;
+  }
+
   const pName = (product.name || '').toLowerCase();
   const cName = (product.category?.name || '').toLowerCase();
   const parentName = (product.category?.parent?.name || '').toLowerCase();
-  const fullText = `${pName} ${cName} ${parentName}`;
 
-  if (role === 'BAKER') {
-    // Reject cakes, pastries, sambusas, pizzas
-    const isCake = CAKE_KEYWORDS.some(k => fullText.includes(k));
-    const isSambusa = SAMBUSA_KEYWORDS.some(k => fullText.includes(k));
-    if (isCake || isSambusa) return false;
+  // 2. Check if product name itself contains explicit Sambusa keywords
+  const isExplicitSambusa = SAMBUSA_KEYWORDS.some(k => pName.includes(k));
+  if (isExplicitSambusa) {
+    return role === 'SAMBUSA_WORKER';
+  }
 
-    // Must match baker keywords, or if category matches
-    return BAKER_KEYWORDS.some(k => fullText.includes(k)) || isCategoryAllowedForRole(product.category, role);
+  // 3. Check if product name itself contains explicit Baker / Bread keywords
+  const isExplicitBread = BAKER_KEYWORDS.some(k => pName.includes(k));
+  if (isExplicitBread) {
+    return role === 'BAKER';
+  }
+
+  // 4. Check if product name itself contains explicit Cake keywords
+  const isExplicitCake = CAKE_KEYWORDS.some(k => pName.includes(k));
+  if (isExplicitCake) {
+    return role === 'CAKE_WORKER';
+  }
+
+  // 5. Fallback matching via category name
+  const catText = `${cName} ${parentName}`;
+
+  if (role === 'SAMBUSA_WORKER') {
+    if (catText.includes('sambusa') || catText.includes('snack') || (catText.includes('pastry') && !catText.includes('cake'))) {
+      return true;
+    }
+    return SAMBUSA_KEYWORDS.some(k => catText.includes(k));
   }
 
   if (role === 'CAKE_WORKER') {
-    // Reject breads and sambusas
-    const isBread = BAKER_KEYWORDS.some(k => fullText.includes(k));
-    const isSambusa = SAMBUSA_KEYWORDS.some(k => fullText.includes(k));
-    if (isBread || isSambusa) return false;
-
-    return CAKE_KEYWORDS.some(k => fullText.includes(k));
+    if (catText.includes('sambusa') || catText.includes('snack')) return false;
+    return CAKE_KEYWORDS.some(k => catText.includes(k));
   }
 
-  if (role === 'SAMBUSA_WORKER') {
-    // Reject breads and cakes
-    const isBread = BAKER_KEYWORDS.some(k => fullText.includes(k));
-    const isCake = CAKE_KEYWORDS.some(k => fullText.includes(k));
-    if (isBread || isCake) return false;
-
-    return SAMBUSA_KEYWORDS.some(k => fullText.includes(k));
+  if (role === 'BAKER') {
+    if (catText.includes('sambusa') || catText.includes('cake') || catText.includes('snack')) return false;
+    return BAKER_KEYWORDS.some(k => catText.includes(k)) || catText.includes('bread');
   }
 
   return true;
