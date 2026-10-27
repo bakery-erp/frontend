@@ -38,6 +38,14 @@ interface NotificationItem {
   createdAt: string;
 }
 
+function sanitizeNotificationLink(link?: string | null): string {
+  if (!link) return '/';
+  if (link.startsWith('/dashboard')) {
+    return link.replace(/^\/dashboard(?=\/|$)/, '') || '/';
+  }
+  return link;
+}
+
 export default function NotificationBell() {
   const { t } = useLanguage();
   const router = useRouter();
@@ -95,7 +103,7 @@ export default function NotificationBell() {
               action: item.link ? {
                 label: t('common.view') || 'View',
                 onClick: () => {
-                  if (item.link) router.push(item.link);
+                  router.push(sanitizeNotificationLink(item.link));
                 },
               } : undefined,
             });
@@ -220,7 +228,7 @@ export default function NotificationBell() {
     }
     setIsOpen(false);
     if (item.link) {
-      router.push(item.link);
+      router.push(sanitizeNotificationLink(item.link));
     }
   };
 

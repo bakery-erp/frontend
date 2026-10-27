@@ -1,4 +1,4 @@
-const CACHE_NAME = 'koket-erp-v5';
+const CACHE_NAME = 'koket-erp-v6';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -75,7 +75,7 @@ self.addEventListener('push', function (event) {
     payload = {
       title: 'Koket Bakery ERP',
       body: event.data.text(),
-      link: '/dashboard',
+      link: '/',
     };
   }
 
@@ -87,7 +87,7 @@ self.addEventListener('push', function (event) {
     icon: payload.icon || '/icons/icon-192.png',
     badge: payload.badge || '/icons/badge-96.png',
     data: {
-      link: payload.link || '/dashboard',
+      link: payload.link || '/',
       timestamp: payload.timestamp || Date.now(),
     },
     vibrate: [300, 100, 300, 100, 300],
@@ -113,19 +113,22 @@ self.addEventListener('push', function (event) {
 // Notification Click event listener
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  const rawLink = (event.notification.data && event.notification.data.link) || '/dashboard';
+  let targetLink = (event.notification.data && event.notification.data.link) || '/';
+  if (targetLink.startsWith('/dashboard')) {
+    targetLink = targetLink.replace(/^\/dashboard(?=\/|$)/, '') || '/';
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if ('focus' in client) {
-          client.navigate(rawLink);
+          client.navigate(targetLink);
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(rawLink);
+        return clients.openWindow(targetLink);
       }
     })
   );

@@ -1629,6 +1629,8 @@ export const om: TranslationDictionary = {
     productionCompletedBody: "{bakerName} oomisha haaraa xumureera: {products}.",
 
     // Staff loans
+    loanIssuedTitle: "Liqiin Hojjetaa Galmaa'eera",
+    loanIssuedBody: "Liqiin hojjetaa qarshii {amount} isiniif galmaa'eera.",
     loanRequestedTitle: "Gaaffii Liqii Hojjetaa Haaraa",
     loanRequestedBody: "{employeeName} gaaffii liqii qarshii {amount} dhiyeesseera, murtoo eegaa jira.",
     loanApprovedTitle: "Gaaffiin Liqii Mirkanaa'eera",

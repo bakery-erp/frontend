@@ -1629,6 +1629,8 @@ export const am: TranslationDictionary = {
     productionCompletedBody: "{bakerName} አዲስ የተጋገረ ባች አጠናቋል: {products}።",
 
     // Staff loans
+    loanIssuedTitle: "የሠራተኛ ብድር ተመዝግቧል",
+    loanIssuedBody: "የ {amount} ብር የሠራተኛ ብድር ለእርስዎ ተመዝግቧል።",
     loanRequestedTitle: "አዲስ የሠራተኛ ብድር ጥያቄ",
     loanRequestedBody: "{employeeName} የ {amount} ብር የብድር ጥያቄ አቅርቧል፣ ውሳኔ ይጠብቃል።",
     loanApprovedTitle: "የብድር ጥያቄ ጸድቋል",
