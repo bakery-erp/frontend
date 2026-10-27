@@ -1,19 +1,27 @@
 /**
  * Role-Based Product & Production Station Scoping Utility
  *
- * Ensures bakery floor workers (Bakers, Cake Workers, Sambusa Workers) only see
- * and interact with the catalog products and ingredients relevant to their role,
- * eliminating cognitive overload, confusion, and wrong product logging.
+ * 100% database-driven role mapping based on category.productionRole.
+ * Eliminates keyword guessing and enforces backend database consistency.
  */
 
-export type ProductionRole = 'OWNER' | 'ADMIN' | 'BAKER' | 'CAKE_WORKER' | 'SAMBUSA_WORKER' | 'STOCK_KEEPER' | 'CASHIER' | 'EMPLOYEE';
+export type ProductionRole =
+  | 'OWNER'
+  | 'ADMIN'
+  | 'BAKER'
+  | 'CAKE_WORKER'
+  | 'SAMBUSA_WORKER'
+  | 'STOCK_KEEPER'
+  | 'CASHIER'
+  | 'EMPLOYEE';
 
 export interface CategoryLike {
   id?: string;
   name?: string;
   type?: string;
+  productionRole?: string | null;
   parentId?: string | null;
-  parent?: { id?: string; name?: string; type?: string } | null;
+  parent?: { id?: string; name?: string; type?: string; productionRole?: string | null } | null;
 }
 
 export interface ProductLike {
@@ -30,22 +38,6 @@ export interface StockItemLike {
   currentQuantity?: number | string;
 }
 
-// Normalized keywords for matching category and product names
-const BAKER_KEYWORDS = [
-  'bread', 'machine', 'loaf', 'bun', 'roll', 'baguette', 'toast', 'donut',
-  'doughnut', 'bomboloni', 'croissant', 'dabbo', 'dabboo', 'bakery', 'ዳቦ', 'ቦምቦሊኖ'
-];
-
-const CAKE_KEYWORDS = [
-  'cake', 'pastry', 'cupcake', 'torte', 'sponge', 'gateau', 'tart', 'dessert',
-  'sweet', 'fondant', 'icing', 'crepe', 'muffin', 'keek', 'keekii', 'ኬክ', 'ፓስትሪ'
-];
-
-const SAMBUSA_KEYWORDS = [
-  'sambusa', 'sambuusa', 'spring', 'roll', 'fetira', 'pizza', 'sandwich',
-  'wrap', 'sheet', 'snack', 'pie', 'pasty', 'ሳምቡሳ', 'ፒዛ', 'ሳንድዊች', 'ፈጢራ'
-];
-
 /**
  * Returns true if the user role has full admin access across all production lines.
  */
@@ -54,53 +46,30 @@ export function isGlobalAdminRole(role?: string): boolean {
 }
 
 /**
- * Validates whether a category is appropriate for a worker's role.
+ * Validates whether a category is appropriate for a worker's role using database productionRole.
  */
 export function isCategoryAllowedForRole(category: CategoryLike | string | null | undefined, role?: string): boolean {
   if (!role || isGlobalAdminRole(role)) return true;
-
-  const catName = typeof category === 'string' ? category : category?.name;
-  const catType = typeof category === 'object' ? category?.type : undefined;
+  if (!category) return false;
 
   // Resell categories should never be logged in production
-  if (catType === 'RESELL') return false;
-  if (!catName) return true;
+  if (typeof category === 'object' && category.type === 'RESELL') return false;
 
-  const normalized = catName.toLowerCase();
+  const prodRole = typeof category === 'object'
+    ? (category.productionRole || category.parent?.productionRole)
+    : null;
 
-  if (role === 'BAKER') {
-    // Must not be cake, sambusa, or resell
-    const hasCake = CAKE_KEYWORDS.some(k => normalized.includes(k));
-    const hasSambusa = SAMBUSA_KEYWORDS.some(k => normalized.includes(k));
-    if (hasCake || hasSambusa) return false;
-
-    // Checks bakery keywords or is a generic produced bakery category
-    return BAKER_KEYWORDS.some(k => normalized.includes(k)) || normalized.includes('produced');
+  if (prodRole) {
+    return prodRole === role;
   }
 
-  if (role === 'CAKE_WORKER') {
-    // Must not be bread or sambusa
-    const hasBread = BAKER_KEYWORDS.some(k => normalized.includes(k));
-    const hasSambusa = SAMBUSA_KEYWORDS.some(k => normalized.includes(k));
-    if (hasBread || hasSambusa) return false;
-
-    return CAKE_KEYWORDS.some(k => normalized.includes(k));
-  }
-
-  if (role === 'SAMBUSA_WORKER') {
-    // Must not be bread or cake
-    const hasBread = BAKER_KEYWORDS.some(k => normalized.includes(k));
-    const hasCake = CAKE_KEYWORDS.some(k => normalized.includes(k));
-    if (hasBread || hasCake) return false;
-
-    return SAMBUSA_KEYWORDS.some(k => normalized.includes(k));
-  }
-
-  return true;
+  // If no productionRole is set, only global admins can access
+  return isGlobalAdminRole(role);
 }
 
 /**
  * Validates whether a specific product is produced by the specified worker role.
+ * Derived purely from the product category's database productionRole.
  */
 export function isProductAllowedForRole(product: ProductLike, role?: string): boolean {
   if (!role || isGlobalAdminRole(role)) return true;
@@ -108,40 +77,13 @@ export function isProductAllowedForRole(product: ProductLike, role?: string): bo
   // Never allow resell products in production batches
   if (product.category?.type === 'RESELL') return false;
 
-  const pName = (product.name || '').toLowerCase();
-  const cName = (product.category?.name || '').toLowerCase();
-  const parentName = (product.category?.parent?.name || '').toLowerCase();
-  const fullText = `${pName} ${cName} ${parentName}`;
-
-  if (role === 'BAKER') {
-    // Reject cakes, pastries, sambusas, pizzas
-    const isCake = CAKE_KEYWORDS.some(k => fullText.includes(k));
-    const isSambusa = SAMBUSA_KEYWORDS.some(k => fullText.includes(k));
-    if (isCake || isSambusa) return false;
-
-    // Must match baker keywords, or if category matches
-    return BAKER_KEYWORDS.some(k => fullText.includes(k)) || isCategoryAllowedForRole(product.category, role);
+  const prodRole = product.category?.productionRole || product.category?.parent?.productionRole;
+  if (prodRole) {
+    return prodRole === role;
   }
 
-  if (role === 'CAKE_WORKER') {
-    // Reject breads and sambusas
-    const isBread = BAKER_KEYWORDS.some(k => fullText.includes(k));
-    const isSambusa = SAMBUSA_KEYWORDS.some(k => fullText.includes(k));
-    if (isBread || isSambusa) return false;
-
-    return CAKE_KEYWORDS.some(k => fullText.includes(k));
-  }
-
-  if (role === 'SAMBUSA_WORKER') {
-    // Reject breads and cakes
-    const isBread = BAKER_KEYWORDS.some(k => fullText.includes(k));
-    const isCake = CAKE_KEYWORDS.some(k => fullText.includes(k));
-    if (isBread || isCake) return false;
-
-    return SAMBUSA_KEYWORDS.some(k => fullText.includes(k));
-  }
-
-  return true;
+  // If unassigned, only global admins can produce
+  return isGlobalAdminRole(role);
 }
 
 /**

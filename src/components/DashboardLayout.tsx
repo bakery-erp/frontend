@@ -10,6 +10,8 @@ import { getImageUrl } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
 import NotificationBell from '@/components/NotificationBell';
+import { toast } from 'sonner';
+import { isRouteAllowed, getRoleHomeRoute } from '@/lib/routeGuard';
 import {
   LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
@@ -38,10 +40,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   useEffect(() => {
-    if (isMounted && !isLoading && !isAuthenticated) {
+    if (!isMounted || isLoading) return;
+    if (!isAuthenticated) {
       router.push('/login');
+      return;
     }
-  }, [isMounted, isLoading, isAuthenticated, router]);
+    if (user?.role && !isRouteAllowed(user.role, pathname)) {
+      const home = getRoleHomeRoute(user.role);
+      toast.error(`Access restricted: Your role (${user.role}) cannot access this section.`);
+      router.replace(home);
+    }
+  }, [isMounted, isLoading, isAuthenticated, user, pathname, router]);
 
   // Close mobile drawer and scroll to top on route change
   useEffect(() => {
@@ -49,14 +58,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
 
-  if (!isMounted || isLoading || !isAuthenticated) {
+  const isUnauthorized = Boolean(isMounted && !isLoading && isAuthenticated && user?.role && !isRouteAllowed(user.role, pathname));
+
+  if (!isMounted || isLoading || !isAuthenticated || isUnauthorized) {
     return (
       <div className="min-h-screen bg-[#FAF7EE] flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-12 h-12 bg-[#E87A18] rounded-2xl flex items-center justify-center animate-bounce shadow-lg">
             <Utensils className="w-6 h-6 text-white" />
           </div>
-          <p className="text-[#4A2E1B] font-bold text-sm tracking-wide">Loading Bakery ERP Portal...</p>
+          <p className="text-[#4A2E1B] font-bold text-sm tracking-wide">
+            {isUnauthorized ? 'Restricted route. Redirecting to your station...' : 'Loading Bakery ERP Portal...'}
+          </p>
         </div>
       </div>
     );
