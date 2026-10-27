@@ -8,7 +8,9 @@ import { toast } from 'sonner';
 import { ArrowLeft, ShoppingBag, Lock, Plus, Minus, DollarSign, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
+import { getRoleHomeRoute } from '@/lib/routeGuard';
 
 interface Product {
   id: string;
@@ -26,8 +28,18 @@ interface ActiveSession {
 }
 
 export default function MobileCashierStation() {
+  const router = useRouter();
   const { user } = useAuth();
   const { t } = useLanguage();
+
+  useEffect(() => {
+    if (!user) return;
+    const isAllowed = user.role === 'CASHIER' || user.role === 'OWNER' || user.role === 'ADMIN';
+    if (!isAllowed) {
+      toast.error(`Access restricted: Your role (${user.role}) cannot access the Mobile Cashier Station.`);
+      router.replace(getRoleHomeRoute(user.role));
+    }
+  }, [user, router]);
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [leftoverCounts, setLeftoverCounts] = useState<Record<string, number>>({});

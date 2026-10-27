@@ -21,8 +21,10 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { isProductAllowedForRole } from '@/lib/roleProductMapping';
 import { useLanguage } from '@/context/LanguageContext';
+import { getRoleHomeRoute } from '@/lib/routeGuard';
 
 interface Product {
   id: string;
@@ -54,9 +56,19 @@ interface ProductionBatch {
 }
 
 export default function MobileSambusaStation() {
+  const router = useRouter();
   const { user } = useAuth();
   const { t } = useLanguage();
   const isGlobalAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+
+  useEffect(() => {
+    if (!user) return;
+    const isAllowed = user.role === 'SAMBUSA_WORKER' || user.role === 'OWNER' || user.role === 'ADMIN';
+    if (!isAllowed) {
+      toast.error(`Access restricted: Your role (${user.role}) cannot access the Sambusa Station.`);
+      router.replace(getRoleHomeRoute(user.role));
+    }
+  }, [user, router]);
 
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [activeTab, setActiveTab] = useState<'NEW_BATCH' | 'SHIFT_HISTORY'>('NEW_BATCH');
