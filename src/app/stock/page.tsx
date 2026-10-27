@@ -160,6 +160,18 @@ export default function StockPage() {
     enabled: isStockKeeper,
   });
 
+  const { data: rejectedDeliveries = [] } = useQuery<any[]>({
+    queryKey: ['stock-movements-rejected', selectedBranchId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ status: 'REJECTED', limit: '50' });
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      const res = await api.get(`/stock-movements?${params.toString()}`);
+      if (Array.isArray(res.data)) return res.data;
+      return res.data?.data || [];
+    },
+    enabled: isGlobalAdmin,
+  });
+
   const { data: stockSummary } = useQuery({
     queryKey: ['stock-summary', selectedBranchId],
     queryFn: async () => {
@@ -278,7 +290,7 @@ export default function StockPage() {
       await api.post(`/stock-items/${addingItem.id}/add`, {
         quantity: qty,
         unitPrice: parsedUnitPrice,
-        reason: addReason.trim() || (effectiveAutoConfirm ? "Manual Stock Addition" : "Added by Admin/Owner (Awaiting Stock Keeper Verification)"),
+        reason: addReason.trim() || "Manual Stock Addition",
         autoConfirm: effectiveAutoConfirm,
         loanInfo: isAddLoan ? {
           isLoan: true,
@@ -423,6 +435,31 @@ export default function StockPage() {
             <Button className="w-full sm:w-auto h-9 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-xs">
               <CheckCircle2 className="w-4 h-4" />
               <span>Verify & Accept Deliveries</span>
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Rejected Inward Deliveries Callout for Admin/Owner */}
+      {isGlobalAdmin && rejectedDeliveries.length > 0 && (
+        <div className="mb-6 p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-200 text-rose-900 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-[#2C1B10]">
+                {rejectedDeliveries.length} Inward {rejectedDeliveries.length === 1 ? 'Delivery Was' : 'Deliveries Were'} Rejected by Stock Keeper
+              </h4>
+              <p className="text-xs text-[#8C7361]">
+                Stock intakes rejected during physical inspection need your review, quantity adjustment, and resubmission.
+              </p>
+            </div>
+          </div>
+          <Link href="/stock-movements?tab=rejected" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto h-9 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-xs">
+              <Edit3 className="w-4 h-4" />
+              <span>Review & Resubmit</span>
             </Button>
           </Link>
         </div>

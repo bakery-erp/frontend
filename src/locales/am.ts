@@ -1618,6 +1618,10 @@ export const am: TranslationDictionary = {
     stockInwardBody: "{addedBy} {quantity} {unit} \"{itemName}\" አስገብቷል። እባክዎ ዕቃውን አይተው ያረጋግጡ።",
     stockConfirmedTitle: "የገባ ጥሬ ዕቃ ተረጋግጧል",
     stockConfirmedBody: "{confirmedBy} የ {quantity} {unit} \"{itemName}\" ገቢ መሆኑን አረጋግጧል።",
+    stockRejectedTitle: "የገባ ጥሬ ዕቃ ውድቅ ተደርጓል",
+    stockRejectedBody: "{rejectedBy} {quantity} {unit} \"{itemName}\" ውድቅ አድርጓል። ምክንያት፡ {reason}።",
+    stockResubmittedTitle: "የገባ ጥሬ ዕቃ እንደገና ቀርቧል",
+    stockResubmittedBody: "{resubmittedBy} {quantity} {unit} \"{itemName}\" አዘምኖ እንደገና አቅርቧል። እባክዎ እንደገና ያረጋግጡ።",
 
     // Deliveries
     unpaidDeliveryTitle: "ያልተከፈለ የአቅራቢ አቅርቦት",

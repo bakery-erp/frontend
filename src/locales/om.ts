@@ -1618,6 +1618,10 @@ export const om: TranslationDictionary = {
     stockInwardBody: "{addedBy} meeshaa \"{itemName}\" {quantity} {unit} haaraan galcheera. Maaloo qulqullina isaa ilaaluun mirkaneessaa.",
     stockConfirmedTitle: "Meeshaan Dheedhii Mirkanaa'eera",
     stockConfirmedBody: "{confirmedBy} meeshaa \"{itemName}\" baay'inni {quantity} {unit} galuu isaa mirkaneesseera.",
+    stockRejectedTitle: "Meeshaan Dheedhii Kufaa Ta'eera",
+    stockRejectedBody: "{rejectedBy}n meeshaa \"{itemName}\" {quantity} {unit} kufaa godheera. Sababa: {reason}.",
+    stockResubmittedTitle: "Meeshaan Dheedhii Irra Deebiin Dhiyaateera",
+    stockResubmittedBody: "{resubmittedBy}n {quantity} {unit} \"{itemName}\" haaromsee irra deebiin dhiyeesseera. Maaloo irra deebiin mirkaneessaa.",
 
     // Deliveries
     unpaidDeliveryTitle: "Dhiyeessa Hin Kaffalamne",

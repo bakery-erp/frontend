@@ -1616,6 +1616,10 @@ export const en = {
     stockInwardBody: "{addedBy} added {quantity} {unit} of \"{itemName}\". Please inspect and confirm receipt.",
     stockConfirmedTitle: "Inward Stock Confirmed",
     stockConfirmedBody: "{confirmedBy} verified and confirmed receipt of {quantity} {unit} of \"{itemName}\".",
+    stockRejectedTitle: "Inward Stock Rejected",
+    stockRejectedBody: "{rejectedBy} rejected {quantity} {unit} of \"{itemName}\". Reason: {reason}.",
+    stockResubmittedTitle: "Inward Stock Resubmitted",
+    stockResubmittedBody: "{resubmittedBy} updated and resubmitted {quantity} {unit} of \"{itemName}\". Please re-inspect and confirm receipt.",
 
     // Deliveries
     unpaidDeliveryTitle: "Unpaid Supplier Delivery",
