@@ -78,11 +78,18 @@ export default function ProductCategoriesPage() {
     e.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
+    const catType = formData.get("type");
     const prodRole = formData.get("productionRole");
+
+    if (catType === "PRODUCED" && (!prodRole || prodRole === "")) {
+      setIsSubmitting(false);
+      return toast.error("Production Station / Role is required for PRODUCED categories (Baker, Cake Worker, or Sambusa Worker).");
+    }
+
     try {
       await api.post("/product-categories", {
         name: formData.get("name"),
-        type: formData.get("type"),
+        type: catType,
         parentId: null,
         productionRole: prodRole && prodRole !== "" ? prodRole : null,
       });
@@ -116,6 +123,11 @@ export default function ProductCategoriesPage() {
       ? (parentCat ? parentCat.type : editingCategory.type)
       : formData.get("type");
     const prodRole = formData.get("productionRole");
+
+    if (type === "PRODUCED" && (!prodRole || prodRole === "")) {
+      setIsSubmitting(false);
+      return toast.error("Production Station / Role is required for PRODUCED categories (Baker, Cake Worker, or Sambusa Worker).");
+    }
 
     try {
       await api.patch(`/product-categories/${editingCategory.id}`, {
