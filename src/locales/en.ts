@@ -1627,6 +1627,8 @@ export const en = {
     productionCompletedBody: "{bakerName} completed a fresh batch: {products}.",
 
     // Staff loans
+    loanIssuedTitle: "Staff Loan Recorded",
+    loanIssuedBody: "A staff loan of {amount} ETB has been recorded for you.",
     loanRequestedTitle: "New Employee Loan Request",
     loanRequestedBody: "{employeeName} has submitted a loan request for {amount} ETB awaiting approval.",
     loanApprovedTitle: "Loan Request Approved",
