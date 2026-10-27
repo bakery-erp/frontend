@@ -19,7 +19,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { isProductAllowedForRole, getStationMeta } from "@/lib/roleProductMapping";
 
 interface Branch { id: string; name: string; }
-interface Product { id: string; name: string; unitType: string; category?: { type: string } }
+interface Product {
+  id: string;
+  name: string;
+  unitType: string;
+  category?: {
+    name?: string;
+    type: string;
+    productionRole?: string | null;
+    parent?: { id?: string; name?: string; type?: string; productionRole?: string | null } | null;
+  };
+}
 interface StockItem { id: string; name: string; unitType: string; currentQuantity: number; }
 interface ActiveSession { id: string; status: "OPEN" | "PAUSED" | "CLOSE_PENDING" | "CLOSED" }
 
