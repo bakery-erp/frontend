@@ -1295,6 +1295,7 @@ export const am: TranslationDictionary = {
     sectionPayrollTimeline: "የደመወዝና የቅጥር ጊዜያት",
     sectionPayrollTimelineDesc: "ወርሃዊ መሰረታዊ ደመወዝ እና የኮንትራት ጊዜ",
     monthlyBaseSalaryLabel: "ወርሃዊ መሰረታዊ ደመወዝ (ብር)",
+    dailyExpenseLabel: "የዕለት ወጪ",
     employmentStartDateLabel: "የቅጥር መጀመሪያ ቀን",
     lastPaidDateLabel: "ለመጨረሻ ጊዜ የተከፈለበት ቀን",
     sectionDocs: "ሰነዶች እና ማረጋገጫ",

@@ -30,6 +30,7 @@ interface UserData {
   branchId: string | null;
   isActive: boolean;
   salary: number | null;
+  dailyExpense: number | null;
   startDate: string | null;
   lastPaidDate: string | null;
   shift: string | null;
@@ -134,6 +135,7 @@ export default function EditUserPage() {
 
       // Clean up empty strings
       if (!formData.get("salary")) formData.delete("salary");
+      if (!formData.get("dailyExpense")) formData.delete("dailyExpense");
       if (!formData.get("startDate")) formData.delete("startDate");
       if (!formData.get("lastPaidDate")) formData.delete("lastPaidDate");
       if (!formData.get("branchId")) formData.delete("branchId");
@@ -373,7 +375,7 @@ export default function EditUserPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
+              <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
                   {t('users.monthlyBaseSalaryLabel')}
                 </label>
@@ -383,6 +385,22 @@ export default function EditUserPage() {
                   step="0.01"
                   min="0"
                   defaultValue={userData.salary ?? ""}
+                  placeholder="0.00"
+                  onFocus={(e) => e.target.select()}
+                  className="h-11 rounded-xl border-[#EDE4D5] text-sm font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
+                  {t('users.dailyExpenseLabel') || "Daily Expense"}
+                </label>
+                <Input
+                  name="dailyExpense"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={userData.dailyExpense ?? ""}
                   placeholder="0.00"
                   onFocus={(e) => e.target.select()}
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm font-mono"

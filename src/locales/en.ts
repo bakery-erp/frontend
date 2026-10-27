@@ -1293,6 +1293,7 @@ export const en = {
     sectionPayrollTimeline: "Payroll & Term Dates",
     sectionPayrollTimelineDesc: "Monthly base salary and contract timeline",
     monthlyBaseSalaryLabel: "Monthly Base Salary (ETB)",
+    dailyExpenseLabel: "Daily Expense",
     employmentStartDateLabel: "Employment Start Date",
     lastPaidDateLabel: "Last Paid Date",
     sectionDocs: "Documentation & Verification",
