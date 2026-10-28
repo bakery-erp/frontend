@@ -23,6 +23,8 @@ import {
   X,
   ShieldCheck,
   FileText,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -120,6 +122,7 @@ export default function MyProfilePage() {
       DELIVERY_MAN: 'users.roleDeliveryMan',
       STOCK_KEEPER: 'users.roleStockKeeper',
       AUDITOR: 'users.roleAuditor',
+      EMPLOYEE: 'users.roleEmployee',
     };
     const key = roleKeyMap[role];
     return key ? t(key as any) : role.replace('_', ' ');
@@ -164,11 +167,35 @@ export default function MyProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [heroAvatarError, setHeroAvatarError] = useState(false);
+
+  // Revoke object URL on cleanup
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleAvatarModalClose = (open: boolean) => {
+    setIsAvatarModalOpen(open);
+    if (!open) {
+      setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+    }
+  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,8 +203,16 @@ export default function MyProfilePage() {
       toast.error(t('profile.enterBothPasswords'));
       return;
     }
+    if (newPassword.length < 4) {
+      toast.error(t('profile.passwordTooShort') || 'New password must be at least 4 characters long');
+      return;
+    }
     if (newPassword !== confirmPassword) {
       toast.error(t('profile.passwordsDoNotMatch'));
+      return;
+    }
+    if (currentPassword === newPassword) {
+      toast.error(t('profile.passwordSameError') || 'New password cannot be the same as your current password');
       return;
     }
     setIsChangingPass(true);
@@ -197,20 +232,36 @@ export default function MyProfilePage() {
   const handleFileSelection = (file: File | null) => {
     if (!file) {
       setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
       return;
     }
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     if (!allowed.includes(file.type.toLowerCase())) {
       toast.error(t('profile.unsupportedFileFormat') || "Unsupported file format. Please select a JPG, PNG, or WebP image.");
       setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       toast.error(t('profile.fileTooLarge') || "File is too large. Maximum allowed size is 5MB.");
       setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
       return;
     }
     setSelectedFile(file);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const handleAvatarUpload = async (e: React.FormEvent) => {
@@ -238,6 +289,10 @@ export default function MyProfilePage() {
       });
       toast.success(t('profile.avatarSuccess'));
       setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
       setIsAvatarModalOpen(false);
       if (res.data?.avatarUrl && updateUser) {
         setHeroAvatarError(false);
@@ -288,7 +343,7 @@ export default function MyProfilePage() {
   const baseSalary = Number(u?.salary || 0);
   const netThisMonth = currentMonthPayroll
     ? Number(currentMonthPayroll.finalAmount || 0)
-    : Math.max(0, baseSalary - totalLoanBalance - totalPenaltyAmount);
+    : Math.max(0, baseSalary - totalPenaltyAmount);
 
   return (
     <DashboardLayout>
@@ -645,7 +700,7 @@ export default function MyProfilePage() {
                           <TableHead className="text-right">{t('profile.colLoanDeductionMinus')}</TableHead>
                           <TableHead className="text-right">{t('profile.colPenaltyDeductionMinus')}</TableHead>
                           <TableHead className="text-right">{t('profile.colFinalNetPaid')}</TableHead>
-                          <TableHead className="text-center">{t('profile.colStatus')}</TableHead>
+                          <TableHead className="text-center">{t('profile.colStatus') || t('common.status') || 'Status'}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -755,7 +810,7 @@ export default function MyProfilePage() {
                           <TableHead>{t('common.date')}</TableHead>
                           <TableHead className="text-right">{t('profile.colOriginalAmount')}</TableHead>
                           <TableHead className="text-right">{t('profile.remainingBalance')}</TableHead>
-                          <TableHead className="text-center">{t('profile.colStatus')}</TableHead>
+                          <TableHead className="text-center">{t('profile.colStatus') || t('common.status') || 'Status'}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -916,37 +971,82 @@ export default function MyProfilePage() {
 
                 <form onSubmit={handlePasswordChange} className="space-y-3.5 xs:space-y-4">
                   <div>
-                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">{t('profile.currentPasswordLabel')}</label>
-                    <Input
-                      type="password"
-                      required
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-11 text-sm"
-                    />
+                    <label htmlFor="currentPasswordInput" className="text-xs font-bold text-[#2C1B10] mb-1 block">
+                      {t('profile.currentPasswordLabel')}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="currentPasswordInput"
+                        type={showCurrentPass ? "text" : "password"}
+                        required
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="bg-white border-zinc-200 rounded-xl h-11 text-sm pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 focus:outline-none p-1 cursor-pointer"
+                        aria-label={showCurrentPass ? "Hide current password" : "Show current password"}
+                      >
+                        {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">{t('profile.newPasswordLabel')}</label>
-                    <Input
-                      type="password"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-11 text-sm"
-                    />
+                    <label htmlFor="newPasswordInput" className="text-xs font-bold text-[#2C1B10] mb-1 block">
+                      {t('profile.newPasswordLabel')}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="newPasswordInput"
+                        type={showNewPass ? "text" : "password"}
+                        required
+                        minLength={4}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="bg-white border-zinc-200 rounded-xl h-11 text-sm pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPass(!showNewPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 focus:outline-none p-1 cursor-pointer"
+                        aria-label={showNewPass ? "Hide new password" : "Show new password"}
+                      >
+                        {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-[#8C7361] mt-1">
+                      {t('profile.passwordMinLengthHint') || 'Minimum 4 characters'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block">{t('profile.confirmNewPasswordLabel')}</label>
-                    <Input
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="bg-white border-zinc-200 rounded-xl h-11 text-sm"
-                    />
+                    <label htmlFor="confirmPasswordInput" className="text-xs font-bold text-[#2C1B10] mb-1 block">
+                      {t('profile.confirmNewPasswordLabel')}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPasswordInput"
+                        type={showConfirmPass ? "text" : "password"}
+                        required
+                        minLength={4}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="bg-white border-zinc-200 rounded-xl h-11 text-sm pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPass(!showConfirmPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 focus:outline-none p-1 cursor-pointer"
+                        aria-label={showConfirmPass ? "Hide confirm password" : "Show confirm password"}
+                      >
+                        {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
+                    loading={isChangingPass}
                     disabled={isChangingPass}
                     className="min-h-[44px] h-11 w-full xs:w-auto bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs px-6 mt-2"
                   >
@@ -962,7 +1062,7 @@ export default function MyProfilePage() {
       </div>
 
       {/* ── PROFILE PICTURE POPUP DIALOG ── */}
-      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+      <Dialog open={isAvatarModalOpen} onOpenChange={handleAvatarModalClose}>
         <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-2xl p-4 xs:p-6 bg-white border-[#EDE4D5]">
           <DialogHeader>
             <DialogTitle className="text-base xs:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
@@ -974,6 +1074,45 @@ export default function MyProfilePage() {
             <p className="text-xs text-[#8C7361]">
               {t('profile.changeProfilePicDesc')}
             </p>
+
+            {/* Avatar Live Preview or Current Avatar */}
+            {previewUrl ? (
+              <div className="flex flex-col items-center justify-center p-3 bg-amber-50/50 rounded-2xl border border-amber-200/60">
+                <div className="relative">
+                  <img
+                    src={previewUrl}
+                    alt="Avatar Preview"
+                    className="w-24 h-24 xs:w-28 xs:h-28 rounded-full object-cover border-4 border-[#E87A18] shadow-md"
+                  />
+                  <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white rounded-full p-1.5 shadow-sm">
+                    <Check className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-[#2C1B10] mt-2 truncate max-w-[240px]">
+                  {selectedFile?.name}
+                </span>
+                <span className="text-[11px] text-[#8C7361] font-semibold">
+                  {((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB · {t('profile.readyToSave') || 'Ready to upload'}
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-2">
+                {u?.avatarUrl && !heroAvatarError ? (
+                  <img
+                    src={getImageUrl(u.avatarUrl)!}
+                    alt="Current Avatar"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-zinc-200 shadow-xs opacity-75"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-[#E87A18]/15 text-[#E87A18] flex items-center justify-center font-extrabold text-2xl border-2 border-[#E87A18]/30">
+                    {u?.fullName ? u.fullName.charAt(0).toUpperCase() : 'E'}
+                  </div>
+                )}
+                <span className="text-[11px] text-[#8C7361] mt-1.5 font-medium">
+                  {t('profile.currentPhotoLabel') || 'Current Photo'}
+                </span>
+              </div>
+            )}
 
             <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl">
               <p className="text-xs font-bold text-amber-900 mb-0.5">
@@ -991,11 +1130,6 @@ export default function MyProfilePage() {
                 onChange={(e) => handleFileSelection(e.target.files?.[0] || null)}
                 className="w-full text-xs text-[#2C1B10] file:mr-2.5 file:py-2 file:px-3 xs:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#E87A18] file:text-white hover:file:bg-[#d46d13]"
               />
-              {selectedFile && (
-                <div className="mt-2.5 text-xs text-emerald-700 font-semibold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                  <span>✓ {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
-                </div>
-              )}
             </div>
 
             <DialogFooter className="flex-col xs:flex-row gap-2 pt-2">
@@ -1003,7 +1137,7 @@ export default function MyProfilePage() {
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={() => setIsAvatarModalOpen(false)}
+                onClick={() => handleAvatarModalClose(false)}
                 className="w-full xs:w-auto"
               >
                 {t('common.cancel')}
