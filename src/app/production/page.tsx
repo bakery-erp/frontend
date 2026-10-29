@@ -59,7 +59,7 @@ export default function ProductionPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
-  const { t } = useLanguage();
+  const { t, getItemName } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
   const queryClient = useQueryClient();
 
@@ -716,7 +716,7 @@ export default function ProductionPage() {
                 ) : (
                   <div className="space-y-1.5">
                     <div className="inline-flex max-w-full items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]">
-                      <span className="truncate">{batch.items[0].product.name}</span>
+                      <span className="truncate">{getItemName(batch.items[0].product)}</span>
                       <span className="text-[#E87A18] font-black shrink-0">
                         × {batch.items[0].quantityProduced} {batch.items[0].product.unitType}
                       </span>
@@ -1017,7 +1017,7 @@ export default function ProductionPage() {
                   ) : (
                     <div className="space-y-1.5">
                       <div className="font-bold text-[#2C1B10] text-sm">
-                        {batch.items[0].product.name}
+                        {getItemName(batch.items[0].product)}
                         <span className="font-extrabold text-[#E87A18]">
                           : {batch.items[0].quantityProduced} {batch.items[0].product.unitType}
                         </span>

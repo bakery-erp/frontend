@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LayoutGrid, List, Plus, PackageCheck, TrendingUp, ShoppingBag, ShieldAlert, Image as ImageIcon, Truck, AlertTriangle } from "lucide-react";
+import { LayoutGrid, List, Plus, PackageCheck, TrendingUp, ShoppingBag, ShieldAlert, Boxes, Truck, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CardGridSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,9 +19,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface ProductCategory {
   id: string;
   name: string;
+  nameLatin?: string | null;
   type: "PRODUCED" | "RESELL";
   parentId?: string | null;
-  parent?: { id: string; name: string; type: "PRODUCED" | "RESELL" } | null;
+  parent?: { id: string; name: string; nameLatin?: string | null; type: "PRODUCED" | "RESELL" } | null;
 }
 
 interface FinancialCategory {
@@ -33,6 +34,7 @@ interface FinancialCategory {
 interface Product {
   id: string;
   name: string;
+  nameLatin?: string | null;
   flavor?: string;
   unitType: "PIECE" | "KG" | "LITER";
   basePrice: number;
@@ -50,22 +52,11 @@ interface Product {
   totalDamaged?: number;
 }
 
-const PRODUCT_PRESET_IMAGES: { label: string; url: string }[] = [
-  { label: 'French Bread', url: 'https://www.melskitchencafe.com/wp-content/uploads/french-bread1.webp' },
-  { label: 'Loaf Bread', url: 'https://www.thespruceeats.com/thmb/j4mujy24lcmnyW_a7VS1sVP4Mw4=/750x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/loaf-of-bread-182835505-58a7008c5f9b58a3c91c9a14.jpg' },
-  { label: 'Barley Bread', url: 'https://live.staticflickr.com/2835/8764387785_85b54dae35_z.jpg' },
-  { label: 'Croissant / Pastry', url: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Bomboloni / Donut', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Sambusa / Snack', url: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Cake / Dessert', url: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Cookies / Biscuit', url: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=600&q=80' },
-];
-
 export default function ProductsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
-  const { t } = useLanguage();
+  const { t, language, getItemName } = useLanguage();
   const isOwner = user?.role === 'OWNER';
 
   useEffect(() => {
@@ -77,10 +68,15 @@ export default function ProductsPage() {
   }, [user, router]);
 
   const [viewMode, setViewMode] = useState<'GRID' | 'TABLE'>('GRID');
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string>('ALL');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const formatCategoryLabel = (category: ProductCategory) =>
-    category.parent ? `${category.parent.name} / ${category.name}` : category.name;
+  const formatCategoryLabel = (category: ProductCategory) => {
+    const parentLabel = category.parent ? getItemName(category.parent) : null;
+    const catLabel = getItemName(category);
+    return parentLabel ? `${parentLabel} / ${catLabel}` : catLabel;
+  };
 
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['products', selectedBranchId],
@@ -107,21 +103,37 @@ export default function ProductsPage() {
   const categories = pageData?.categories || [];
   const financialCategories = pageData?.financialCategories || [];
 
-  const getProductImage = (product: Product): string => {
-    if (product.imageUrl) return product.imageUrl;
-    const nameLower = product.name.toLowerCase();
-    if (nameLower.includes('sambusa')) return PRODUCT_PRESET_IMAGES[3].url;
-    if (nameLower.includes('bomboloni') || nameLower.includes('donut')) return PRODUCT_PRESET_IMAGES[2].url;
-    if (nameLower.includes('croissant')) return PRODUCT_PRESET_IMAGES[1].url;
-    if (nameLower.includes('cake')) return PRODUCT_PRESET_IMAGES[4].url;
-    if (nameLower.includes('cookie') || nameLower.includes('biscuit')) return PRODUCT_PRESET_IMAGES[5].url;
-    return PRODUCT_PRESET_IMAGES[0].url;
-  };
+  const mainCategories = categories.filter((c) => !c.parentId);
+  const activeSubCategories = selectedMainCategory === 'ALL'
+    ? []
+    : categories.filter((c) => c.parentId === selectedMainCategory);
 
   const filteredProducts = products.filter((p) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return p.name.toLowerCase().includes(q) || (p.flavor && p.flavor.toLowerCase().includes(q));
+    // 1. Category filter
+    if (selectedMainCategory !== 'ALL') {
+      if (selectedSubCategory !== 'ALL') {
+        if (p.categoryId !== selectedSubCategory) return false;
+      } else {
+        const subCatIds = categories.filter((c) => c.parentId === selectedMainCategory).map((c) => c.id);
+        const validCategoryIds = [selectedMainCategory, ...subCatIds];
+        if (!validCategoryIds.includes(p.categoryId)) return false;
+      }
+    }
+
+    // 2. Search query filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const nameStr = (p.name || '').toLowerCase();
+      const nameLatinStr = (p.nameLatin || '').toLowerCase();
+      const flavorStr = (p.flavor || '').toLowerCase();
+      const catName = (p.category?.name || '').toLowerCase();
+      const catNameLatin = (p.category?.nameLatin || '').toLowerCase();
+      if (!nameStr.includes(q) && !nameLatinStr.includes(q) && !flavorStr.includes(q) && !catName.includes(q) && !catNameLatin.includes(q)) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   const totalHouseStock = products.reduce((sum, p) => sum + (p.currentHouseStock || 0), 0);
@@ -265,7 +277,7 @@ export default function ProductsPage() {
           <div className="flex items-center justify-between gap-1.5 mb-1.5">
             <p className="text-[10px] sm:text-xs font-bold text-[#8C7361] uppercase tracking-wider leading-tight">{t('products.totalVarieties')}</p>
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-              <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Boxes className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
@@ -280,15 +292,111 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Filter / Search Bar */}
-      <div className="mb-6">
-        <Input
-          type="text"
-          placeholder={t('products.searchPlaceholder')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full sm:max-w-md bg-white border-[#EDE4D5] rounded-xl text-sm"
-        />
+      {/* Category Filter Pills & Search */}
+      <div className="mb-6 space-y-3">
+        {/* Main Categories Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedMainCategory('ALL');
+              setSelectedSubCategory('ALL');
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+              selectedMainCategory === 'ALL'
+                ? 'bg-[#E87A18] text-white shadow-xs'
+                : 'bg-white border border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]'
+            }`}
+          >
+            <span>{language === 'en' ? 'All Products' : 'ሁሉም ምርቶች'}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+              selectedMainCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-[#EDE4D5] text-[#4A2E1B]'
+            }`}>
+              {products.length}
+            </span>
+          </button>
+
+          {mainCategories.map((cat) => {
+            const subCatIds = categories.filter((c) => c.parentId === cat.id).map((c) => c.id);
+            const validIds = [cat.id, ...subCatIds];
+            const count = products.filter((p) => validIds.includes(p.categoryId)).length;
+            const isSelected = selectedMainCategory === cat.id;
+
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  setSelectedMainCategory(cat.id);
+                  setSelectedSubCategory('ALL');
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-[#E87A18] text-white shadow-xs'
+                    : 'bg-white border border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]'
+                }`}
+              >
+                <span>{getItemName(cat)}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                  isSelected ? 'bg-white/20 text-white' : 'bg-[#EDE4D5] text-[#4A2E1B]'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Subcategories (if any for selected main category) */}
+        {activeSubCategories.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pl-2 scrollbar-none border-l-2 border-[#E87A18]/40">
+            <button
+              type="button"
+              onClick={() => setSelectedSubCategory('ALL')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 ${
+                selectedSubCategory === 'ALL'
+                  ? 'bg-[#4A2E1B] text-white shadow-2xs'
+                  : 'bg-[#F4ECE1] text-[#4A2E1B] hover:bg-[#EDE4D5]'
+              }`}
+            >
+              {language === 'en' ? 'All Subcategories' : 'ሁሉም ንዑስ ምድቦች'}
+            </button>
+            {activeSubCategories.map((sub) => {
+              const count = products.filter((p) => p.categoryId === sub.id).length;
+              const isSelected = selectedSubCategory === sub.id;
+              return (
+                <button
+                  key={sub.id}
+                  type="button"
+                  onClick={() => setSelectedSubCategory(sub.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 flex items-center gap-1 ${
+                    isSelected
+                      ? 'bg-[#4A2E1B] text-white shadow-2xs'
+                      : 'bg-[#F4ECE1] text-[#4A2E1B] hover:bg-[#EDE4D5]'
+                  }`}
+                >
+                  <span>{getItemName(sub)}</span>
+                  <span className={`text-[9px] px-1 rounded-full font-mono ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-white/80 text-[#8C7361]'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Filter / Search Bar */}
+        <div className="pt-1">
+          <Input
+            type="text"
+            placeholder={t('products.searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:max-w-md bg-white border-[#EDE4D5] rounded-xl text-sm"
+          />
+        </div>
       </div>
 
       {/* Content Rendering: Visual Grid View vs Table View */}
@@ -305,41 +413,34 @@ export default function ProductsPage() {
       ) : viewMode === 'GRID' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
           {filteredProducts.map((prod) => {
-            const imgUrl = getProductImage(prod);
             const stockQty = prod.currentHouseStock ?? 0;
             return (
               <div key={prod.id} className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
-                <div className="relative h-40 sm:h-44 bg-zinc-100 overflow-hidden">
-                  <img
-                    src={imgUrl}
-                    alt={prod.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-2.5 right-2.5">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border shadow-xs ${
+                <div className="p-3.5 sm:p-4 bg-gradient-to-br from-[#FAF6F0] to-[#F4ECE1] border-b border-[#EDE4D5]">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#4A2E1B] border border-[#E0D5C3] shadow-xs">
+                      {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border shadow-xs shrink-0 ${
                       stockQty > 20
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         : stockQty > 0
                         ? 'bg-amber-100 text-amber-800 border-amber-300'
                         : 'bg-rose-100 text-rose-800 border-rose-300'
                     }`}>
-                      {stockQty} {prod.unitType} in House
+                      {stockQty} {prod.unitType}
                     </span>
                   </div>
-                  {prod.category && (
-                    <div className="absolute bottom-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-md max-w-[80%] truncate">
-                      {prod.category.name}
-                    </div>
-                  )}
+                  <h3 className="font-extrabold text-base text-[#2C1B10] tracking-tight">
+                    {getItemName(prod)}
+                  </h3>
+                  {prod.flavor && <p className="text-xs text-[#8C7361]">{prod.flavor}</p>}
                 </div>
 
                 <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-extrabold text-base text-[#2C1B10] tracking-tight">
-                      {prod.name} {prod.flavor && <span className="text-xs font-normal text-[#8C7361]">({prod.flavor})</span>}
-                    </h3>
-                    <div className="text-xs text-[#8C7361] mt-0.5 font-medium">
-                      <p>Selling Price: <strong className="text-[#E87A18]">{Number(prod.basePrice).toFixed(2)} ETB</strong></p>
+                    <div className="text-xs text-[#8C7361] font-medium">
+                      <p>Selling Price: <strong className="text-[#E87A18] font-black">{Number(prod.basePrice).toFixed(2)} ETB</strong></p>
                       {prod.category?.type === 'RESELL' && prod.buyPrice != null && (
                         <p className="text-[11px] font-mono text-zinc-500 mt-0.5">Buy Cost: {Number(prod.buyPrice).toFixed(2)} ETB</p>
                       )}
@@ -383,20 +484,14 @@ export default function ProductsPage() {
           {/* Mobile Touch Cards View (md:hidden) */}
           <div className="block md:hidden space-y-3">
             {filteredProducts.map((prod) => {
-              const imgUrl = getProductImage(prod);
               const stockQty = prod.currentHouseStock ?? 0;
               return (
                 <div key={prod.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs">
                   <div className="flex items-start gap-3">
-                    <img
-                      src={imgUrl}
-                      alt={prod.name}
-                      className="w-16 h-16 rounded-xl object-cover border border-[#EDE4D5] shrink-0"
-                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-1">
                         <div>
-                          <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{prod.name}</h4>
+                          <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{getItemName(prod)}</h4>
                           {prod.flavor && <p className="text-xs text-[#8C7361]">{prod.flavor}</p>}
                         </div>
                         <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
@@ -410,7 +505,11 @@ export default function ProductsPage() {
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
                           {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
                         </span>
-                        <span className="text-[10px] font-semibold text-[#8C7361]">({prod.unitType})</span>
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                          stockQty > 20 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : stockQty > 0 ? 'bg-amber-100 text-amber-900 border-amber-200' : 'bg-rose-100 text-rose-800 border-rose-200'
+                        }`}>
+                          {stockQty} {prod.unitType}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -475,7 +574,6 @@ export default function ProductsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">Preview</TableHead>
                   <TableHead>{t('products.colName')}</TableHead>
                   <TableHead>{t('products.colCategory')}</TableHead>
                   <TableHead>{t('stock.title')}</TableHead>
@@ -491,15 +589,11 @@ export default function ProductsPage() {
               </TableHeader>
               <TableBody>
                 {filteredProducts.map((prod) => {
-                  const imgUrl = getProductImage(prod);
                   const stockQty = prod.currentHouseStock ?? 0;
                   return (
                     <TableRow key={prod.id}>
-                      <TableCell>
-                        <img src={imgUrl} alt={prod.name} className="w-11 h-11 rounded-xl object-cover border border-[#EDE4D5] shadow-xs" />
-                      </TableCell>
                       <TableCell className="font-bold text-[#2C1B10]">
-                        <div>{prod.name}</div>
+                        <div>{getItemName(prod)}</div>
                         {prod.flavor && <span className="text-xs font-normal text-[#8C7361]">({prod.flavor})</span>}
                       </TableCell>
                       <TableCell>

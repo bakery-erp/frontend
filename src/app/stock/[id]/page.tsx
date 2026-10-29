@@ -48,6 +48,9 @@ interface Branch {
 interface StockItem {
   id: string;
   name: string;
+  nameLatin?: string | null;
+  category?: string | null;
+  categoryLatin?: string | null;
   unitType: "PIECE" | "KG" | "LITER";
   currentQuantity: number;
   unitPrice?: number;
@@ -55,6 +58,14 @@ interface StockItem {
   branchId: string;
   branch?: Branch;
 }
+
+const STOCK_CATEGORIES = [
+  { name: 'መሰረታዊ ጥሬ እቃዎች', nameLatin: 'Meseretawi T\'ire Ekawoch' },
+  { name: 'ክሬም፣ ግሌዝ እና ፍሌቨር', nameLatin: 'Cream, Glaze ena Flavor' },
+  { name: 'የሳምቡሳ ግብዓቶች እና የምግብ ዘይት', nameLatin: 'Ye Sambusa Gib\'atoch ena Ye Migib Zeyt' },
+  { name: 'ሳጥኖች፣ ሰሌዳዎች እና ፓኬጂንግ', nameLatin: 'Sat\'inoch, Seledawoch ena Packaging' },
+  { name: 'የጽዳት እቃዎች እና ነዳጅ', nameLatin: 'Ye Tsedat Ekawoch ena Nedaj' },
+];
 
 interface StockPurchasePayment {
   id: string;
@@ -127,7 +138,7 @@ export default function StockItemDetailPage() {
   const router = useRouter();
   const itemId = params.id as string;
   const queryClient = useQueryClient();
-  const { t } = useLanguage();
+  const { t, language, getItemName } = useLanguage();
   const { selectedBranchId } = useBranch();
 
   const { user } = useAuth();
@@ -399,8 +410,16 @@ export default function StockItemDetailPage() {
     }
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
+    const catVal = (formData.get("category") as string) || "";
+    const matchedCat = STOCK_CATEGORIES.find(c => c.name === catVal || c.nameLatin === catVal);
+    const category = matchedCat ? matchedCat.name : (catVal || undefined);
+    const categoryLatin = matchedCat ? matchedCat.nameLatin : undefined;
+
     const updatePayload = {
       name: formData.get("name"),
+      nameLatin: (formData.get("nameLatin") as string)?.trim() || undefined,
+      category,
+      categoryLatin,
       unitType: formData.get("unitType"),
       currentQuantity: Number(formData.get("currentQuantity")),
       unitPrice: formData.get("unitPrice") ? Number(formData.get("unitPrice")) : 0,
@@ -514,7 +533,7 @@ export default function StockItemDetailPage() {
               <div className="flex items-center gap-1.5 text-xs text-[#8C7361] font-semibold truncate">
                 <Link href="/stock" className="hover:text-[#4A2E1B] transition-colors">{t("stock.title")}</Link>
                 <span>/</span>
-                <span className="text-[#2C1B10] font-bold truncate">{stockItem.name}</span>
+                <span className="text-[#2C1B10] font-bold truncate">{getItemName(stockItem)}</span>
               </div>
             </div>
           </div>
@@ -580,8 +599,13 @@ export default function StockItemDetailPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#2C1B10] tracking-tight truncate">
-                  {stockItem.name}
+                  {getItemName(stockItem)}
                 </h1>
+                {stockItem.category && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] shadow-2xs">
+                    {getItemName({ name: stockItem.category, nameLatin: stockItem.categoryLatin })}
+                  </span>
+                )}
                 {isLowStock ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
                     <AlertCircle className="w-3.5 h-3.5 text-rose-600" /> {t("stock.stockLow")}
@@ -1477,8 +1501,38 @@ export default function StockItemDetailPage() {
             <form onSubmit={handleEditItem}>
               <div className="grid gap-4 py-4">
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t("stock.colItemName")}</label>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {language === 'en' ? 'Stock Category' : 'የእቃ ምድብ (Category)'}
+                  </label>
+                  <select 
+                    name="category" 
+                    required 
+                    defaultValue={stockItem.category || ""} 
+                    className="w-full border border-[#EDE4D5] rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
+                  >
+                    <option value="" disabled>
+                      {language === 'en' ? '-- Select Category --' : '-- ምድብ ይምረጡ --'}
+                    </option>
+                    {STOCK_CATEGORIES.map(cat => (
+                      <option key={cat.name} value={cat.name}>
+                        {getItemName(cat)} ({cat.nameLatin})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {language === 'en' ? 'Item Name (Ge\'ez)' : 'የእቃ ስም በግዕዝ'}
+                  </label>
                   <Input name="name" required defaultValue={stockItem.name} className="rounded-xl border-[#EDE4D5] h-10" />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {language === 'en' ? 'Item Name (Latin Letters)' : 'የእቃ ስም በላቲን ፊደላት'}
+                  </label>
+                  <Input name="nameLatin" defaultValue={stockItem.nameLatin || ""} placeholder="e.g. Sinde Duket" className="rounded-xl border-[#EDE4D5] h-10" />
                 </div>
                 
                 <div>

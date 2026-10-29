@@ -1725,8 +1725,8 @@ export const en = {
     iosInstructions: "Tap the Share button below, then scroll and select 'Add to Home Screen'.",
   },
   languages: {
-    en: "English",
-    am: "አማርኛ",
+    en: "Amharic (English letters)",
+    am: "አማርኛ (Ge'ez letters)",
     om: "Afaan Oromoo",
   }
 };

@@ -20,9 +20,10 @@ type CategoryType = "PRODUCED" | "RESELL";
 interface Category {
   id: string;
   name: string;
+  nameLatin?: string | null;
   type: CategoryType;
   parentId: string | null;
-  parent?: { id: string; name: string; type: CategoryType } | null;
+  parent?: { id: string; name: string; nameLatin?: string | null; type: CategoryType } | null;
   productionRole?: "BAKER" | "CAKE_WORKER" | "SAMBUSA_WORKER" | null;
   _count: { products: number; children: number };
 }
@@ -30,7 +31,7 @@ interface Category {
 export default function ProductCategoriesPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, getItemName } = useLanguage();
   const canManage = user?.role === "OWNER";
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export default function ProductCategoriesPage() {
     try {
       await api.post("/product-categories", {
         name: formData.get("name"),
+        nameLatin: (formData.get("nameLatin") as string)?.trim() || undefined,
         type: catType,
         parentId: null,
         productionRole: prodRole && prodRole !== "" ? prodRole : null,
@@ -132,6 +134,7 @@ export default function ProductCategoriesPage() {
     try {
       await api.patch(`/product-categories/${editingCategory.id}`, {
         name: formData.get("name"),
+        nameLatin: (formData.get("nameLatin") as string)?.trim() || undefined,
         type,
         parentId,
         productionRole: prodRole && prodRole !== "" ? prodRole : null,
@@ -212,8 +215,12 @@ export default function ProductCategoriesPage() {
             <form onSubmit={handleCreate}>
               <div className="space-y-4 mb-4">
                 <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.colCategoryName')}</label>
-                  <Input name="name" required placeholder="e.g. Bread (Machine)" className="h-10" />
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.colCategoryName')} (Ge'ez / በግዕዝ)</label>
+                  <Input name="name" required placeholder="e.g. የዳቦ ምርቶች" className="h-10" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.colCategoryName')} (Latin / በላቲን)</label>
+                  <Input name="nameLatin" placeholder="e.g. Bakery Products" className="h-10 font-mono" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colProductType')}</label>
@@ -273,6 +280,7 @@ export default function ProductCategoriesPage() {
                 try {
                   await api.post("/product-categories", {
                     name: formData.get("name"),
+                    nameLatin: (formData.get("nameLatin") as string)?.trim() || undefined,
                     type: subParent.type,
                     parentId: subParent.id,
                   });
@@ -291,8 +299,12 @@ export default function ProductCategoriesPage() {
             >
               <div className="space-y-4 mb-4">
                 <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.subcategory')} Name</label>
-                  <Input name="name" required placeholder="e.g. Strawberry flavor" className="h-10" />
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.subcategory')} Name (Ge'ez / በግዕዝ)</label>
+                  <Input name="name" required placeholder="e.g. ድፎ ዳቦ" className="h-10" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.subcategory')} Name (Latin / በላቲን)</label>
+                  <Input name="nameLatin" placeholder="e.g. Difo Dabo" className="h-10 font-mono" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colParentCategory')}</label>
@@ -370,7 +382,7 @@ export default function ProductCategoriesPage() {
                   <div key={cat.id} className="bg-[#FCFAF8] border border-[#EDE4D5] rounded-2xl p-4 shadow-xs">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-extrabold text-base text-[#2C1B10]">{cat.name}</h3>
+                        <h3 className="font-extrabold text-base text-[#2C1B10]">{getItemName(cat)}</h3>
                         {cat.productionRole && (
                           <div className="mt-1">
                             {renderRoleBadge(cat.productionRole)}
@@ -438,7 +450,7 @@ export default function ProductCategoriesPage() {
                     ) : rootCategories.map((cat) => (
                   <TableRow key={cat.id}>
                     <TableCell className="font-bold text-[#2C1B10]">
-                      {cat.name}
+                      {getItemName(cat)}
                     </TableCell>
                     <TableCell>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${cat.type === 'PRODUCED' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-purple-100 text-purple-800 border-purple-200'}`}>
@@ -507,11 +519,11 @@ export default function ProductCategoriesPage() {
                 <div key={cat.id} className="p-4 space-y-2">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-bold text-sm text-[#2C1B10]">↳ {cat.name}</h4>
+                      <h4 className="font-bold text-sm text-[#2C1B10]">↳ {getItemName(cat)}</h4>
                       <p className="text-xs text-[#8C7361] mt-0.5">
                         {t('categories.colParentCategory')}:{" "}
                         <span className="font-bold text-[#2C1B10] bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[11px]">
-                          {cat.parent?.name || getCategoryNameById(cat.parentId) || "—"}
+                          {getItemName(cat.parent) || getCategoryNameById(cat.parentId) || "—"}
                         </span>
                       </p>
                     </div>
@@ -550,10 +562,10 @@ export default function ProductCategoriesPage() {
                 <TableBody>
                   {subcategories.map((cat) => (
                     <TableRow key={cat.id}>
-                      <TableCell className="font-bold text-[#2C1B10] pl-6">↳ {cat.name}</TableCell>
+                      <TableCell className="font-bold text-[#2C1B10] pl-6">↳ {getItemName(cat)}</TableCell>
                       <TableCell>
                         <span className="inline-flex items-center gap-1 font-bold text-xs text-[#2C1B10] bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
-                          📁 {cat.parent?.name || getCategoryNameById(cat.parentId) || "—"}
+                          📁 {getItemName(cat.parent) || getCategoryNameById(cat.parentId) || "—"}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -609,9 +621,16 @@ export default function ProductCategoriesPage() {
                 <div className="space-y-4 mb-4">
                   <div>
                     <label className="text-xs font-semibold text-[#2C1B10] block mb-1">
-                      {editingCategory.parentId ? `${t('categories.subcategory')} Name` : t('categories.colCategoryName')}
+                      {editingCategory.parentId ? `${t('categories.subcategory')} Name (Ge'ez / በግዕዝ)` : `${t('categories.colCategoryName')} (Ge'ez / በግዕዝ)`}
                     </label>
                     <Input name="name" required defaultValue={editingCategory.name} className="h-10" />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-[#2C1B10] block mb-1">
+                      {editingCategory.parentId ? `${t('categories.subcategory')} Name (Latin / በላቲን)` : `${t('categories.colCategoryName')} (Latin / በላቲን)`}
+                    </label>
+                    <Input name="nameLatin" defaultValue={editingCategory.nameLatin || ""} placeholder="e.g. Difo Dabo" className="h-10 font-mono" />
                   </div>
 
                   {editingCategory.parentId ? (

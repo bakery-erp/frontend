@@ -59,7 +59,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
               >
                 <span className="text-sm">{item.flag}</span>
                 <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-full">
-                  {item.code === 'en' ? 'EN' : item.code === 'am' ? 'አማ' : 'OM'}
+                  {item.code === 'en' ? 'AM (Latin)' : item.code === 'am' ? 'አማ' : 'OM'}
                 </span>
               </button>
             );
@@ -81,7 +81,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       >
         <span className="text-sm sm:text-base leading-none">{activeOption.flag}</span>
         <span className="hidden sm:inline font-bold tracking-tight">{activeOption.nativeName}</span>
-        <span className="sm:hidden font-bold">{activeOption.code.toUpperCase()}</span>
+        <span className="sm:hidden font-bold">{activeOption.code === 'en' ? 'AM' : activeOption.code.toUpperCase()}</span>
         <ChevronDown className={`w-3.5 h-3.5 text-[#8C7361] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

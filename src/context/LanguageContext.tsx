@@ -7,6 +7,7 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (keyPath: string, variables?: Record<string, string | number>) => string;
+  getItemName: (item?: { name: string; nameLatin?: string | null } | null) => string;
   languages: typeof languageOptions;
 }
 
@@ -45,8 +46,17 @@ function humanizeKey(keyPath: string): string {
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
 
+export function getItemNameByLang(
+  item?: { name: string; nameLatin?: string | null } | null,
+  lang: Language = 'am'
+): string {
+  if (!item) return '';
+  if (lang === 'am') return item.name;
+  return item.nameLatin || item.name;
+}
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>('en');
+  const [language, setLanguageState] = useState<Language>('am');
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -70,6 +80,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.warn('Failed to save language preference to localStorage:', e);
     }
   };
+
+  const getItemName = useMemo(() => {
+    return (item?: { name: string; nameLatin?: string | null } | null): string => {
+      if (!item) return '';
+      if (language === 'am') return item.name;
+      return item.nameLatin || item.name;
+    };
+  }, [language]);
 
   const t = useMemo(() => {
     return (keyPath: string, variables?: Record<string, string | number>): string => {
@@ -107,7 +125,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [language]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, languages: languageOptions }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, getItemName, languages: languageOptions }}>
       {children}
     </LanguageContext.Provider>
   );

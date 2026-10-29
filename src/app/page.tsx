@@ -75,7 +75,7 @@ export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
-  const { t } = useLanguage();
+  const { t, getItemName } = useLanguage();
   // Expand/collapse states for the two big cards
   const [showGainDetail, setShowGainDetail] = useState(false);
   const [showExpenseDetail, setShowExpenseDetail] = useState(false);
@@ -224,9 +224,10 @@ export default function Dashboard() {
   for (const session of sessions) {
     for (const sale of session.sales || []) {
       for (const item of sale.items || []) {
+        const prodName = getItemName(item.product);
         const name = item.product?.flavor
-          ? `${item.product.name} (${item.product.flavor})`
-          : item.product?.name || 'Product';
+          ? `${prodName} (${item.product.flavor})`
+          : prodName || 'Product';
         salesDetailRows.push({ product: name, qty: item.quantity, subtotal: Number(item.subtotal || 0) });
       }
     }

@@ -1727,8 +1727,8 @@ export const am: TranslationDictionary = {
     iosInstructions: "ከታች ያለውን Share ምልክት ይጫኑ፣ ከዚያም 'Add to Home Screen' የሚለውን ይምረጡ።",
   },
   languages: {
-    en: "English",
-    am: "አማርኛ",
+    en: "Amharic (በእንግሊዝኛ ፊደላት)",
+    am: "አማርኛ (በግዕዝ ፊደላት)",
     om: "Afaan Oromoo",
   }
 };

@@ -43,8 +43,9 @@ interface ProductItem {
   product: {
     id?: string;
     name: string;
+    nameLatin?: string | null;
     unitType: string;
-    category?: { id?: string; name?: string; type?: string };
+    category?: { id?: string; name?: string; nameLatin?: string | null; type?: string };
   };
 }
 
@@ -111,7 +112,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
   const batchId = resolvedParams.id;
   const router = useRouter();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, getItemName } = useLanguage();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
   const queryClient = useQueryClient();
 
@@ -198,10 +199,14 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
     const term = productSearch.trim().toLowerCase();
     if (!term) return batch.items;
     return batch.items.filter(
-      (item) =>
-        item.product.name.toLowerCase().includes(term) ||
-        (item.product.unitType && item.product.unitType.toLowerCase().includes(term)) ||
-        (item.product.category?.name && item.product.category.name.toLowerCase().includes(term))
+      (item) => {
+        const n = (item.product.name || '').toLowerCase();
+        const nl = (item.product.nameLatin || '').toLowerCase();
+        const u = (item.product.unitType || '').toLowerCase();
+        const c = (item.product.category?.name || '').toLowerCase();
+        const cl = (item.product.category?.nameLatin || '').toLowerCase();
+        return n.includes(term) || nl.includes(term) || u.includes(term) || c.includes(term) || cl.includes(term);
+      }
     );
   }, [batch?.items, productSearch]);
 
@@ -620,7 +625,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                     <div key={item.id || index} className="p-3.5 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5] space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <span className="font-extrabold text-sm text-[#2C1B10] block truncate">{item.product.name}</span>
+                          <span className="font-extrabold text-sm text-[#2C1B10] block truncate">{getItemName(item.product)}</span>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white text-[#4A2E1B] border border-[#EDE4D5]">
                               {item.product.category?.name || t('production.generalCategory') || "General"}
@@ -666,7 +671,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                             {index + 1}
                           </TableCell>
                           <TableCell>
-                            <div className="font-extrabold text-[#2C1B10] text-sm">{item.product.name}</div>
+                            <div className="font-extrabold text-[#2C1B10] text-sm">{getItemName(item.product)}</div>
                             <div className="text-[11px] text-[#8C7361] font-semibold">{item.product.unitType}</div>
                           </TableCell>
                           <TableCell>

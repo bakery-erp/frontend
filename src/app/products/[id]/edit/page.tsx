@@ -32,6 +32,7 @@ interface FinancialCategory {
 interface ProductData {
   id: string;
   name: string;
+  nameLatin?: string | null;
   flavor?: string;
   categoryId: string;
   unitType: string;
@@ -43,29 +44,17 @@ interface ProductData {
   branchIds?: string[];
 }
 
-const PRODUCT_PRESET_IMAGES = [
-  { label: 'French Bread', url: 'https://www.melskitchencafe.com/wp-content/uploads/french-bread1.webp' },
-  { label: 'Loaf Bread', url: 'https://www.thespruceeats.com/thmb/j4mujy24lcmnyW_a7VS1sVP4Mw4=/750x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/loaf-of-bread-182835505-58a7008c5f9b58a3c91c9a14.jpg' },
-  { label: 'Barley Bread', url: 'https://live.staticflickr.com/2835/8764387785_85b54dae35_z.jpg' },
-  { label: 'Croissant / Pastry', url: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Bomboloni / Donut', url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Sambusa / Snack', url: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Cake / Dessert', url: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Cookies / Biscuit', url: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=600&q=80' },
-];
-
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params?.id as string;
   const { user } = useAuth();
   const { branches } = useBranch();
-  const { t } = useLanguage();
+  const { t, getItemName } = useLanguage();
   const queryClient = useQueryClient();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormChanged, setIsFormChanged] = useState(false);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
   const [isAllBranches, setIsAllBranches] = useState<boolean>(true);
@@ -113,11 +102,6 @@ export default function EditProductPage() {
 
   useEffect(() => {
     if (product) {
-      if (!selectedImageUrl && product.imageUrl) {
-        setSelectedImageUrl(product.imageUrl);
-      } else if (!selectedImageUrl) {
-        setSelectedImageUrl(PRODUCT_PRESET_IMAGES[0].url);
-      }
       if (!selectedCategoryId && product.categoryId) {
         setSelectedCategoryId(product.categoryId);
       }
@@ -126,14 +110,17 @@ export default function EditProductPage() {
         setIsAllBranches(product.branchIds.length === 0);
       }
     }
-  }, [product, selectedImageUrl, selectedCategoryId]);
+  }, [product, selectedCategoryId]);
 
   const effectiveCategoryId = selectedCategoryId || product?.categoryId || '';
   const selectedCategory = categories.find((c) => c.id === effectiveCategoryId);
   const isResell = selectedCategory?.type === "RESELL";
 
-  const formatCategoryLabel = (cat: ProductCategory) =>
-    cat.parent ? `${cat.parent.name} / ${cat.name}` : cat.name;
+  const formatCategoryLabel = (cat: ProductCategory) => {
+    const parentLabel = cat.parent ? getItemName(cat.parent) : null;
+    const catLabel = getItemName(cat);
+    return parentLabel ? `${parentLabel} / ${catLabel}` : catLabel;
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -144,6 +131,7 @@ export default function EditProductPage() {
       const formData = new FormData(e.currentTarget);
       const data = {
         name: formData.get("name"),
+        nameLatin: formData.get("nameLatin") || undefined,
         categoryId: formData.get("categoryId"),
         financialCategoryId: formData.get("financialCategoryId") || undefined,
         flavor: formData.get("flavor") || undefined,
@@ -151,7 +139,7 @@ export default function EditProductPage() {
         basePrice: Number(formData.get("basePrice")),
         // Buying cost is available only for RESELL products, cleared to null for PRODUCED
         buyPrice: isResell && formData.get("buyPrice") ? Number(formData.get("buyPrice")) : null,
-        imageUrl: selectedImageUrl || undefined,
+        imageUrl: null,
         isActive: formData.get("isActive") === "true",
         branchIds: isAllBranches ? [] : selectedBranchIds,
       };
@@ -237,16 +225,28 @@ export default function EditProductPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
+              <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  {t("products.productNameReq")} <span className="text-rose-600">*</span>
+                  {t("products.productNameReq")} (በግዕዝ ፊደል) <span className="text-rose-600">*</span>
                 </label>
                 <Input
                   name="name"
                   defaultValue={product.name}
-                  placeholder={t("products.productNamePlaceholder")}
+                  placeholder="ምሳሌ፡ መደበኛ ዳቦ ባለ 15"
                   required
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
+                  የምርት ስም በእንግሊዝኛ ፊደላት (Latin Transliteration)
+                </label>
+                <Input
+                  name="nameLatin"
+                  defaultValue={product.nameLatin || ''}
+                  placeholder="e.g. Medebegna Dabo Bale 15"
+                  className="h-11 rounded-xl border-[#EDE4D5] text-sm font-mono"
                 />
               </div>
 
@@ -451,63 +451,6 @@ export default function EditProductPage() {
                 })}
               </div>
             )}
-          </div>
-
-          {/* Section 4: Product Visuals */}
-          <div className="bg-white rounded-2xl border border-[#EDE4D5] p-4 sm:p-6 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
-                <ImageIcon className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-extrabold text-[#2C1B10]">{t("products.sectionVisuals")}</h2>
-                <p className="text-xs text-[#8C7361]">{t("products.sectionVisualsDesc")}</p>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-[#2C1B10] block mb-2">
-                {t("products.chooseFromPresets")}
-              </label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
-                {PRODUCT_PRESET_IMAGES.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setSelectedImageUrl(preset.url);
-                      setIsFormChanged(true);
-                    }}
-                    className={`relative h-20 rounded-xl overflow-hidden border-2 transition-all group ${
-                      selectedImageUrl === preset.url
-                        ? 'border-[#E87A18] ring-2 ring-[#E87A18]/30 scale-[1.02]'
-                        : 'border-zinc-200 opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={preset.url} alt={preset.label} className="w-full h-full object-cover" />
-                    <span className="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[9px] truncate px-1 py-0.5 text-center font-bold">
-                      {preset.label.split('/')[0]}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  {t("products.customImageUrlLabel")}
-                </label>
-                <Input
-                  type="url"
-                  placeholder="https://..."
-                  value={selectedImageUrl}
-                  onChange={(e) => {
-                    setSelectedImageUrl(e.target.value);
-                    setIsFormChanged(true);
-                  }}
-                  className="h-11 rounded-xl border-[#EDE4D5] text-xs font-mono"
-                />
-              </div>
-            </div>
           </div>
 
           {/* Section 4: Availability & Status */}

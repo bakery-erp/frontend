@@ -11,8 +11,8 @@ export const dictionaries = {
 };
 
 export const languageOptions: Array<{ code: Language; label: string; flag: string; nativeName: string }> = [
-  { code: "en", label: "English", flag: "🇺🇸", nativeName: "English" },
-  { code: "am", label: "Amharic", flag: "🇪🇹", nativeName: "አማርኛ" },
+  { code: "am", label: "አማርኛ (ግዕዝ)", flag: "🇪🇹", nativeName: "አማርኛ" },
+  { code: "en", label: "Amharic (Latin letters)", flag: "🇪🇹", nativeName: "Amharic" },
   { code: "om", label: "Afaan Oromoo", flag: "🇪🇹", nativeName: "Afaan Oromoo" },
 ];
 

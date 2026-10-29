@@ -69,7 +69,7 @@ function ProductionFormContent() {
 
   const { user } = useAuth();
   const { branches, selectedBranchId, setSelectedBranchId } = useBranch();
-  const { t } = useLanguage();
+  const { t, getItemName } = useLanguage();
   const queryClient = useQueryClient();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
@@ -291,8 +291,8 @@ function ProductionFormContent() {
       // Text search
       if (productSearch.trim()) {
         const q = productSearch.toLowerCase();
-        const matchName = p.name.toLowerCase().includes(q);
-        const matchCat = p.category?.name.toLowerCase().includes(q);
+        const matchName = (p.name || '').toLowerCase().includes(q) || ((p as any).nameLatin || '').toLowerCase().includes(q);
+        const matchCat = (p.category?.name || '').toLowerCase().includes(q) || ((p.category as any)?.nameLatin || '').toLowerCase().includes(q);
         if (!matchName && !matchCat) return false;
       }
       return true;
@@ -959,9 +959,9 @@ function ProductionFormContent() {
                             {isSelected && <CheckCircle2 className="w-4 h-4" />}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{p.name}</h4>
+                            <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{getItemName(p)}</h4>
                             <span className="text-[11px] font-semibold text-[#8C7361] block">
-                              {p.category?.name || "Bakery"} • <strong className="text-[#4A2E1B]">{formatUnit(p.unitType)}</strong>
+                              {p.category ? getItemName(p.category) : "Bakery"} • <strong className="text-[#4A2E1B]">{formatUnit(p.unitType)}</strong>
                             </span>
                           </div>
                         </div>
@@ -1300,7 +1300,7 @@ function ProductionFormContent() {
                           key={item.product.id}
                           className="flex items-center justify-between p-2 rounded-lg bg-amber-50/70 border border-amber-200/60 font-bold"
                         >
-                          <span className="text-[#2C1B10] truncate mr-2">{item.product.name}</span>
+                          <span className="text-[#2C1B10] truncate mr-2">{getItemName(item.product)}</span>
                           <span className="text-[#E87A18] whitespace-nowrap">
                             {item.qty} {formatUnit(item.product.unitType)}
                           </span>

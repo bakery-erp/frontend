@@ -26,6 +26,9 @@ interface Branch {
 interface StockItem {
   id: string;
   name: string;
+  nameLatin?: string | null;
+  category?: string | null;
+  categoryLatin?: string | null;
   unitType: "PIECE" | "KG" | "LITER";
   currentQuantity: number;
   unitPrice?: number;
@@ -34,11 +37,19 @@ interface StockItem {
   branch?: Branch;
 }
 
+export const STOCK_CATEGORIES = [
+  { name: 'መሰረታዊ ጥሬ እቃዎች', nameLatin: 'Meseretawi T\'ire Ekawoch' },
+  { name: 'ክሬም፣ ግሌዝ እና ፍሌቨር', nameLatin: 'Cream, Glaze ena Flavor' },
+  { name: 'የሳምቡሳ ግብዓቶች እና የምግብ ዘይት', nameLatin: 'Ye Sambusa Gib\'atoch ena Ye Migib Zeyt' },
+  { name: 'ሳጥኖች፣ ሰሌዳዎች እና ፓኬጂንግ', nameLatin: 'Sat\'inoch, Seledawoch ena Packaging' },
+  { name: 'የጽዳት እቃዎች እና ነዳጅ', nameLatin: 'Ye Tsedat Ekawoch ena Nedaj' },
+];
+
 export default function StockPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
-  const { t } = useLanguage();
+  const { t, language, getItemName } = useLanguage();
   const isOwner = user?.role === "OWNER";
   const isGlobalAdmin = user?.role === "ADMIN" || isOwner;
   const isStockKeeper = user?.role === "STOCK_KEEPER";
@@ -63,6 +74,7 @@ export default function StockPage() {
   // Quick Filters
   const [filterToday, setFilterToday] = useState(false);
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
   // Manual stock addition modal state
@@ -220,9 +232,17 @@ export default function StockPage() {
     e.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
+    const catVal = (formData.get("category") as string) || "";
+    const matchedCat = STOCK_CATEGORIES.find(c => c.name === catVal || c.nameLatin === catVal);
+    const category = matchedCat ? matchedCat.name : (catVal || undefined);
+    const categoryLatin = matchedCat ? matchedCat.nameLatin : (formData.get("categoryLatin") as string || undefined);
+
     const data = {
       branchId: (formData.get("branchId") as string) || selectedBranchId || user?.branchId || undefined,
       name: formData.get("name"),
+      nameLatin: (formData.get("nameLatin") as string)?.trim() || undefined,
+      category,
+      categoryLatin,
       unitType: formData.get("unitType"),
       currentQuantity: Number(formData.get("currentQuantity")),
       unitPrice: formData.get("unitPrice") ? Number(formData.get("unitPrice")) : 0,
@@ -392,9 +412,19 @@ export default function StockPage() {
       const isLow = item.minStockLevel != null && Number(item.currentQuantity) <= Number(item.minStockLevel);
       if (!isLow) return false;
     }
+    if (selectedCategory !== "ALL") {
+      const matchGeez = item.category === selectedCategory;
+      const matchLatin = item.categoryLatin === selectedCategory;
+      if (!matchGeez && !matchLatin) return false;
+    }
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
-      if (!item.name.toLowerCase().includes(q) && !item.unitType.toLowerCase().includes(q)) return false;
+      const n = (item.name || '').toLowerCase();
+      const nl = (item.nameLatin || '').toLowerCase();
+      const c = (item.category || '').toLowerCase();
+      const cl = (item.categoryLatin || '').toLowerCase();
+      const u = (item.unitType || '').toLowerCase();
+      if (!n.includes(q) && !nl.includes(q) && !c.includes(q) && !cl.includes(q) && !u.includes(q)) return false;
     }
     return true;
   });
@@ -525,6 +555,52 @@ export default function StockPage() {
       </div>
 
 
+      {/* Stock Category Filter Pills */}
+      <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setSelectedCategory('ALL')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            selectedCategory === 'ALL'
+              ? 'bg-[#E87A18] text-white shadow-xs'
+              : 'bg-white border border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]'
+          }`}
+        >
+          <span>{language === 'en' ? 'All Stock' : 'ሁሉም እቃዎች'}</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+            selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-[#EDE4D5] text-[#4A2E1B]'
+          }`}>
+            {items.length}
+          </span>
+        </button>
+
+        {STOCK_CATEGORIES.map((cat) => {
+          const count = items.filter(
+            (i) => i.category === cat.name || i.categoryLatin === cat.name || i.category === cat.nameLatin || i.categoryLatin === cat.nameLatin
+          ).length;
+          const isSelected = selectedCategory === cat.name;
+          return (
+            <button
+              key={cat.name}
+              type="button"
+              onClick={() => setSelectedCategory(cat.name)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                isSelected
+                  ? 'bg-[#E87A18] text-white shadow-xs'
+                  : 'bg-white border border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]'
+              }`}
+            >
+              <span>{getItemName(cat)}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                isSelected ? 'bg-white/20 text-white' : 'bg-[#EDE4D5] text-[#4A2E1B]'
+              }`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Desktop Table View */}
       <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
         <Table>
@@ -556,14 +632,21 @@ export default function StockPage() {
                 <TableRow key={item.id}>
                   <TableCell className="font-bold text-[#2C1B10]">
                     <div className="flex items-center gap-2">
-                      <Link 
-                        href={`/stock/${item.id}`} 
-                        className="hover:text-[#E87A18] hover:underline font-bold transition-colors"
-                      >
-                        {item.name}
-                      </Link>
+                      <div>
+                        <Link 
+                          href={`/stock/${item.id}`} 
+                          className="hover:text-[#E87A18] hover:underline font-bold transition-colors block"
+                        >
+                          {getItemName(item)}
+                        </Link>
+                        {item.category && (
+                          <span className="text-[10px] font-semibold text-[#8C7361] block">
+                            {getItemName({ name: item.category, nameLatin: item.categoryLatin })}
+                          </span>
+                        )}
+                      </div>
                       {isLowStock && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200 shrink-0">
                           <AlertCircle className="w-3 h-3" /> {t('stock.lowStockWarningBadge')}
                         </span>
                       )}
@@ -685,7 +768,7 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <Link href={`/stock/${item.id}`} className="font-extrabold text-[#2C1B10] hover:text-[#E87A18] text-base block">
-                    {item.name}
+                    {getItemName(item)}
                   </Link>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="px-2 py-0.5 rounded-md bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-[11px] font-bold">
@@ -829,8 +912,49 @@ export default function StockPage() {
                 )}
 
                 <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('stock.colItemName')}</label>
-                  <Input name="name" required defaultValue={editingItem?.name || ""} placeholder="e.g. Wheat Flour" className="h-10 rounded-xl border-zinc-200" />
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {language === 'en' ? 'Stock Category' : 'የእቃ ምድብ (Category)'}
+                  </label>
+                  <select 
+                    name="category" 
+                    required 
+                    defaultValue={editingItem?.category || ""} 
+                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
+                  >
+                    <option value="" disabled>
+                      {language === 'en' ? '-- Select Category --' : '-- ምድብ ይምረጡ --'}
+                    </option>
+                    {STOCK_CATEGORIES.map(cat => (
+                      <option key={cat.name} value={cat.name}>
+                        {getItemName(cat)} ({cat.nameLatin})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {language === 'en' ? 'Item Name (Ge\'ez)' : 'የእቃ ስም በግዕዝ'}
+                  </label>
+                  <Input 
+                    name="name" 
+                    required 
+                    defaultValue={editingItem?.name || ""} 
+                    placeholder="e.g. ስንዴ ዱቄት" 
+                    className="h-10 rounded-xl border-zinc-200" 
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {language === 'en' ? 'Item Name (Latin Letters)' : 'የእቃ ስም በላቲን ፊደላት'}
+                  </label>
+                  <Input 
+                    name="nameLatin" 
+                    defaultValue={editingItem?.nameLatin || ""} 
+                    placeholder="e.g. Sinde Duket" 
+                    className="h-10 rounded-xl border-zinc-200" 
+                  />
                 </div>
                 
                 <div>
