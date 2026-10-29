@@ -30,9 +30,11 @@ import {
   AlertTriangle,
   Flag,
   Check,
+  Trash2,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface ProductItem {
   id: string;
@@ -123,6 +125,32 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
   const [flagReasonInput, setFlagReasonInput] = useState("");
   const [isFlagSubmitting, setIsFlagSubmitting] = useState(false);
 
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const formatUsageQty = (qty: number | string) => {
+    const n = Number(qty);
+    if (isNaN(n)) return "0";
+    return n % 1 === 0 ? n.toString() : parseFloat(n.toFixed(2)).toString();
+  };
+
+  const handleDeleteBatch = async () => {
+    if (!batchId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/production-batches/${batchId}`);
+      toast.success(t("production.batchDeletedSuccess") || "Production batch deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
+      queryClient.invalidateQueries({ queryKey: ["production-admin-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["production-worker-counts"] });
+      router.push("/production");
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to delete production batch");
+      setIsDeleting(false);
+    }
+  };
+
   const { data: batch, isLoading, isError, error } = useQuery<ProductionBatchDetail>({
     queryKey: ["production-batch-detail", batchId],
     placeholderData: (prev) => prev,
@@ -137,7 +165,6 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
   const isBatchSeenByMe = (b?: ProductionBatchDetail | null) => {
     if (!b) return true;
     if (user?.role === "OWNER") return !!b.ownerSeenAt;
-    if (user?.role === "ADMIN") return !!b.adminSeenAt;
     return true;
   };
 
@@ -358,6 +385,19 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               >
                 <Edit className="w-4 h-4" />
                 <span>{t("common.edit") || "Edit"}</span>
+              </Button>
+            )}
+
+            {isGlobalAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:border-rose-300 rounded-xl font-bold h-9 px-2.5 sm:px-3 shadow-2xs cursor-pointer flex items-center gap-1 shrink-0"
+                title={t("common.delete") || "Delete"}
+              >
+                <Trash2 className="w-4 h-4 text-rose-600" />
+                <span className="hidden sm:inline">{t("common.delete") || "Delete"}</span>
               </Button>
             )}
           </div>
@@ -711,7 +751,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                       <span className="text-[11px] text-rose-800/80 font-semibold">{mat.stockItem.unitType}</span>
                     </div>
                     <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black bg-rose-100 text-rose-800 border border-rose-300 shrink-0">
-                      -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
+                      -{formatUsageQty(mat.quantityUsed)} {mat.stockItem.unitType}
                     </span>
                   </div>
                 ))}
@@ -744,7 +784,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="inline-flex items-center px-3 py-1 rounded-xl text-sm font-black bg-rose-50 text-rose-700 border border-rose-200">
-                            -{Number(mat.quantityUsed).toFixed(2)} {mat.stockItem.unitType}
+                            -{formatUsageQty(mat.quantityUsed)} {mat.stockItem.unitType}
                           </span>
                         </TableCell>
                       </TableRow>
@@ -803,6 +843,18 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* DELETE BATCH CONFIRM MODAL */}
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDeleteBatch}
+          isLoading={isDeleting}
+          title={t("production.deleteBatchTitle") || "Delete Production Batch"}
+          description={t("production.deleteBatchDesc") || "Are you sure you want to delete this production batch? This action cannot be undone."}
+          confirmText={t("common.delete") || "Delete"}
+          variant="danger"
+        />
       </div>
     </DashboardLayout>
   );
