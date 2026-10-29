@@ -133,6 +133,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     (item) => pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`)) || (item.href === '/payroll/loans' && pathname.startsWith('/payroll/'))
   );
   const activeHref = [...matchingItems].sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  const currentBranch = branches.find((b) => b.id === selectedBranchId);
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -154,6 +155,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <X className="w-6 h-6" />
         </button>
       </div>
+
+      {/* Mobile Branch Selector for Owner in Drawer */}
+      {isOwner && (
+        <div className="px-5 pt-3.5 pb-2 border-b border-[#5A3A23]/40 lg:hidden">
+          <label className="text-[10px] font-black text-[#CBB29F] uppercase tracking-wider block mb-1">
+            📍 {t('common.branch')}:
+          </label>
+          <select
+            value={selectedBranchId || 'ALL'}
+            onChange={(e) => {
+              setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value);
+            }}
+            className="w-full bg-[#3D2314] border border-[#5A3A23] text-white text-xs rounded-xl px-2.5 py-2 font-bold focus:ring-[#E87A18] focus:border-[#E87A18] cursor-pointer"
+          >
+            <option value="ALL">🌐 {t('dashboard.allBranches')}</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id} className="bg-[#4A2E1B] text-white">
+                📍 {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Navigation List */}
       <nav className="flex-1 px-3.5 py-5 overflow-y-auto space-y-1 sidebar-scrollbar">
@@ -239,20 +263,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {isOwner && (
-                <div className="hidden md:flex items-center space-x-2 min-w-0">
+                <div className="flex items-center space-x-1.5 xs:space-x-2 min-w-0">
                   <span className="text-xs font-bold text-[#8C7361] uppercase tracking-wider hidden lg:inline">{t('common.branch')}:</span>
-                  <select
-                    value={selectedBranchId || 'ALL'}
-                    onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}
-                    className="bg-[#F4ECE1] border border-[#E0D5C3] text-[#2C1B10] text-xs md:text-sm rounded-xl focus:ring-[#E87A18] focus:border-[#E87A18] px-2.5 py-1.5 font-bold truncate max-w-[120px] sm:max-w-[170px] md:max-w-none"
-                  >
-                    <option value="ALL">🌐 {t('dashboard.allBranches')}</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        📍 {b.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative inline-flex items-center">
+                    {/* Visual Pill: Icon + First 4 letters on mobile (< md), Full name on desktop (md+) */}
+                    <div className="flex items-center gap-1 bg-[#F4ECE1] hover:bg-[#EDE0CD] border border-[#E0D5C3] text-[#2C1B10] px-2 py-1 xs:px-2.5 xs:py-1.5 rounded-xl font-bold text-xs pointer-events-none transition-colors shadow-2xs">
+                      <span className="text-xs shrink-0">{currentBranch ? '📍' : '🌐'}</span>
+                      <span className="md:hidden font-extrabold tracking-tight">
+                        {currentBranch ? currentBranch.name.slice(0, 4) : 'All'}
+                      </span>
+                      <span className="hidden md:inline font-bold truncate max-w-[170px]">
+                        {currentBranch ? currentBranch.name : t('dashboard.allBranches')}
+                      </span>
+                      <span className="text-[9px] text-[#8C7361] ml-0.5 shrink-0">▾</span>
+                    </div>
+
+                    {/* Invisible native select overlaid on top to capture clicks cleanly */}
+                    <select
+                      value={selectedBranchId || 'ALL'}
+                      onChange={(e) => setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      aria-label={t('common.branch')}
+                    >
+                      <option value="ALL">🌐 {t('dashboard.allBranches')}</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          📍 {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
             </div>
