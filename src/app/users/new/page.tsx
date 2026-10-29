@@ -12,7 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, Building2, Calendar, FileText, Upload, Save } from "lucide-react";
+import { ArrowLeft, UserPlus, Building2, Calendar, FileText, Upload, Save, Eye, EyeOff } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -31,6 +31,7 @@ export default function NewUserPage() {
   const [startDateVal, setStartDateVal] = useState<string>("");
   const [lastPaidDateVal, setLastPaidDateVal] = useState<string>("");
   const [lastPaidTouched, setLastPaidTouched] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const isFormDirty = isFormChanged || !!startDateVal || !!lastPaidDateVal;
   const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormDirty);
@@ -69,6 +70,26 @@ export default function NewUserPage() {
 
     try {
       const formData = new FormData(e.currentTarget);
+      const phoneStr = (formData.get("phone") as string)?.trim();
+      if (!/^(?:\+251|0)[97]\d{8}$/.test(phoneStr)) {
+        toast.error("Invalid Ethiopian phone number. Must be 10 digits starting with 09 or 07 (or +251).");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const passwordStr = formData.get("password") as string;
+      if (!passwordStr || passwordStr.length < 4) {
+        toast.error("Password must be at least 4 characters long.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const roleStr = formData.get("role") as string;
+      if (roleStr === "OWNER" && user?.role !== "OWNER") {
+        toast.error("Access denied: Only Owners can create Owner accounts.");
+        setIsSubmitting(false);
+        return;
+      }
 
       const startDateStr = formData.get("startDate") as string;
       const lastPaidDateStr = formData.get("lastPaidDate") as string;
@@ -186,13 +207,24 @@ export default function NewUserPage() {
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
                   {t('users.passwordLabel')} <span className="text-rose-600">*</span>
                 </label>
-                <Input
-                  name="password"
-                  type="text"
-                  placeholder={t('users.passwordPlaceholder')}
-                  required
-                  className="h-11 rounded-xl border-[#EDE4D5] text-sm"
-                />
+                <div className="relative">
+                  <Input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={t('users.passwordPlaceholder')}
+                    required
+                    className="h-11 rounded-xl border-[#EDE4D5] text-sm pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C7361] hover:text-[#2C1B10]"
+                    tabIndex={-1}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -206,7 +238,7 @@ export default function NewUserPage() {
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
                   <option value="" disabled>{t('users.selectRolePlaceholder')}</option>
-                  {ROLES.map((r) => (
+                  {(user?.role === "OWNER" ? ROLES : ROLES.filter((r) => r !== "OWNER")).map((r) => (
                     <option key={r} value={r}>
                       {getRoleLabel(r)}
                     </option>

@@ -10,8 +10,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getImageUrl, getFileUrl } from "@/lib/utils";
-import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle, FileText, Trash2 } from "lucide-react";
-import { ConfirmModal } from "@/components/ConfirmModal";
+import { formatEthDate } from "@/lib/ethiopianDate";
+import { Search, Plus, User as UserIcon, Building2, Edit2, Eye, Key, ShieldAlert, Copy, Check, Clock, CheckCircle2, XCircle, FileText, Trash2, EyeOff, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,7 +33,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -123,6 +122,8 @@ export default function UsersPage() {
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRole, setSelectedRole] = useState("ALL");
+  const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [activeTab, setActiveTab] = useState<"users" | "requests">("users");
 
   const { data: pageData, isLoading } = useQuery({
@@ -153,6 +154,20 @@ export default function UsersPage() {
   const roles = pageData?.roles || [];
   const resetRequests = pageData?.resetRequests || [];
 
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "OWNER": return t('users.roleOwner') || "Owner";
+      case "ADMIN": return t('users.roleAdmin') || "Admin";
+      case "BAKER": return t('users.roleBaker') || "Baker";
+      case "CAKE_WORKER": return t('users.roleCakeWorker') || "Cake Worker";
+      case "CASHIER": return t('users.roleCashier') || "Cashier";
+      case "SAMBUSA_WORKER": return t('users.roleSambusaWorker') || "Sambusa Worker";
+      case "STOCK_KEEPER": return t('users.roleStockKeeper') || "Stock Keeper";
+      case "EMPLOYEE": return t('users.roleEmployee') || "Employee";
+      default: return role.replace("_", " ");
+    }
+  };
+
   // Reset Password Dialog State
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [selectedUserForReset, setSelectedUserForReset] = useState<User | PasswordResetRequest["user"] | null>(null);
@@ -172,8 +187,10 @@ export default function UsersPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
 
-  // Delete User Modal State (Owner only)
+  // Delete User Modal State (Owner only with Password Protection)
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteUser = async () => {
@@ -183,15 +200,22 @@ export default function UsersPage() {
       setUserToDelete(null);
       return;
     }
+    if (!deletePassword.trim()) {
+      toast.error(t('users.enterPasswordToDeleteUser') || "Please enter your password to confirm deletion");
+      return;
+    }
     try {
       setIsDeleting(true);
-      const res = await api.delete(`/users/${userToDelete.id}`);
+      const res = await api.delete(`/users/${userToDelete.id}`, {
+        data: { password: deletePassword },
+      });
       if (res.data?.deactivated) {
         toast.info(res.data.message || "User deactivated (historical transaction records preserved)");
       } else {
         toast.success("User deleted successfully");
       }
       setUserToDelete(null);
+      setDeletePassword("");
       queryClient.invalidateQueries({ queryKey: ["users-page"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
     } catch (err: any) {
@@ -220,7 +244,7 @@ export default function UsersPage() {
         customPassword: customNewPassword ? customNewPassword : undefined,
       });
 
-      toast.success("Password reset successfully!");
+      toast.success(t('users.toastUserUpdated') || "Password reset successfully!");
       setIsResetModalOpen(false);
       setGeneratedResult({
         tempPassword: data.tempPassword,
@@ -249,14 +273,36 @@ export default function UsersPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
-    toast.success("Password copied to clipboard");
+    toast.success(t('users.copiedToClipboard') || "Password copied to clipboard");
     setTimeout(() => setCopied(false), 3000);
   };
 
-  const filteredUsers = users.filter((u) =>
-    u.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.phone.includes(searchTerm)
-  );
+  const filteredUsers = users.filter((u) => {
+    const term = searchTerm.toLowerCase().trim();
+    const matchesSearch =
+      !term ||
+      u.fullName.toLowerCase().includes(term) ||
+      u.phone.includes(term) ||
+      u.role.toLowerCase().includes(term) ||
+      (u.branch?.name && u.branch.name.toLowerCase().includes(term));
+    const matchesRole = selectedRole === "ALL" || u.role === selectedRole;
+    const matchesStatus =
+      selectedStatus === "ALL" ||
+      (selectedStatus === "ACTIVE" && u.isActive) ||
+      (selectedStatus === "DISABLED" && !u.isActive);
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  const filteredResetRequests = resetRequests.filter((r) => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return true;
+    return (
+      (r.user?.fullName && r.user.fullName.toLowerCase().includes(term)) ||
+      (r.phone && r.phone.includes(term)) ||
+      (r.user?.phone && r.user.phone.includes(term)) ||
+      (r.user?.branch?.name && r.user.branch.name.toLowerCase().includes(term))
+    );
+  });
 
   const openCreate = () => {
     router.push("/users/new");
@@ -272,13 +318,17 @@ export default function UsersPage() {
   };
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+    if (userId === user?.id) {
+      toast.error(t('users.cannotDeactivateSelf') || "You cannot deactivate your own account");
+      return;
+    }
     try {
       await api.patch(`/users/${userId}`, { isActive: !currentStatus });
-      toast.success("Status updated");
+      toast.success(t('common.statusUpdated') || "Status updated");
       queryClient.invalidateQueries({ queryKey: ["users-page"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
-    } catch (error) {
-      toast.error("Failed to update status");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to update status");
     }
   };
 
@@ -349,15 +399,46 @@ export default function UsersPage() {
           </div>
         )}
 
-        <div className="p-3.5 border-b border-[#EDE4D5] bg-[#FAF6F0]/30 flex items-center justify-between">
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-            <Input
-              placeholder={t('common.search')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-white border-[#EDE4D5] rounded-xl text-xs h-9 w-full"
-            />
+        <div className="p-3.5 border-b border-[#EDE4D5] bg-[#FAF6F0]/30 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <Input
+                placeholder={t('common.search')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 bg-white border-[#EDE4D5] rounded-xl text-xs h-9 w-full"
+              />
+            </div>
+
+            {activeTab === "users" && (
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  aria-label={t('users.filterByRole') || "Filter by Role"}
+                  className="h-9 px-3 rounded-xl border border-[#EDE4D5] bg-white text-xs font-medium text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
+                >
+                  <option value="ALL">{t('users.allRoles') || "All Roles"}</option>
+                  {roles.map((r) => (
+                    <option key={r} value={r}>
+                      {getRoleLabel(r)}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  aria-label={t('users.filterByStatus') || "Filter by Status"}
+                  className="h-9 px-3 rounded-xl border border-[#EDE4D5] bg-white text-xs font-medium text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
+                >
+                  <option value="ALL">{t('users.allStatuses') || "All Statuses"}</option>
+                  <option value="ACTIVE">{t('users.statusActive') || "Active"}</option>
+                  <option value="DISABLED">{t('users.statusDisabled') || "Disabled"}</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
@@ -381,79 +462,116 @@ export default function UsersPage() {
                 </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="text-center py-8 text-[#8C7361] text-xs font-medium">
-                  No users found matching your search.
+                  {t('users.noUsersFound') || "No users found matching your search."}
                 </div>
               ) : (
-                filteredUsers.map((u) => (
-                  <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-3">
-                        <UserAvatar url={u.avatarUrl} name={u.fullName} className="w-10 h-10" />
-                        <div>
-                          <p className="font-extrabold text-sm text-[#2C1B10]">{u.fullName}</p>
-                          <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
-                        {u.role.replace("_", " ")}
-                      </Badge>
-                    </div>
+                filteredUsers.map((u) => {
+                  const canReset = user?.role === "OWNER" || (user?.role === "ADMIN" && u.role !== "OWNER");
+                  const canEdit = user?.role === "OWNER" || (user?.role === "ADMIN" && u.role !== "OWNER");
+                  const canDelete = user?.role === "OWNER" && u.id !== user?.id;
 
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#FAF6F0]">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shadow-2xs min-w-0">
-                        <Building2 className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-                        <span className="truncate max-w-[140px] xs:max-w-[190px]">
-                          {u.branch ? u.branch.name : (
-                            <span className="text-[#8C7361] font-normal italic">
-                              {t('users.globalAllBranches') || 'Global / All Branches'}
+                  return (
+                    <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <UserAvatar url={u.avatarUrl} name={u.fullName} className="w-10 h-10" />
+                          <div>
+                            <p className="font-extrabold text-sm text-[#2C1B10]">{u.fullName}</p>
+                            <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {(user?.role === "OWNER" || user?.role === "ADMIN") && u.salary != null && (
+                            <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                              {Number(u.salary).toLocaleString()} ETB
                             </span>
                           )}
-                        </span>
+                          <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
+                            {getRoleLabel(u.role)}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Switch
-                          checked={u.isActive}
-                          onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
-                          disabled={user?.role !== "OWNER" && user?.role !== "ADMIN"}
-                        />
-                        <span className={`text-xs font-extrabold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
-                          {u.isActive ? (t('branches.activeStatus') || 'Active') : (t('branches.inactiveStatus') || 'Disabled')}
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#FAF6F0] flex-wrap">
-                      <Button variant="outline" size="sm" className="h-8 text-xs font-bold border-[#EDE4D5] text-[#4A2E1B] rounded-xl flex items-center gap-1" onClick={() => openView(u)}>
-                        <Eye className="w-3.5 h-3.5" /> View
-                      </Button>
-                      {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs font-bold border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl flex items-center gap-1"
-                            onClick={() => openResetPassword(u)}
-                          >
-                            <Key className="w-3.5 h-3.5" /> Reset Pass
-                          </Button>
-                          <Button variant="outline" size="sm" className="h-8 text-xs font-bold border-[#EDE4D5] text-[#4A2E1B] rounded-xl flex items-center gap-1" onClick={() => openEdit(u)}>
-                            <Edit2 className="w-3.5 h-3.5" /> Edit
-                          </Button>
-                        </>
-                      )}
-                      {user?.role === "OWNER" && u.id !== user?.id && (
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#FAF6F0]">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shadow-2xs min-w-0">
+                          <Building2 className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
+                          <span className="truncate max-w-[140px] xs:max-w-[190px]">
+                            {u.branch ? u.branch.name : (
+                              <span className="text-[#8C7361] font-normal italic">
+                                {t('users.globalAllBranches') || 'Global / All Branches'}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Switch
+                            checked={u.isActive}
+                            onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
+                            disabled={(user?.role !== "OWNER" && user?.role !== "ADMIN") || u.id === user?.id}
+                            title={u.id === user?.id ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account") : undefined}
+                          />
+                          <span className={`text-xs font-extrabold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                            {u.isActive ? (t('users.statusActive') || 'Active') : (t('users.statusDisabled') || 'Disabled')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Compact icon row to prevent 3-line wrap on mobile */}
+                      <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-[#FAF6F0]">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 text-xs font-bold border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl flex items-center gap-1"
-                          onClick={() => setUserToDelete(u)}
+                          className="h-8 w-8 p-0 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl"
+                          onClick={() => openView(u)}
+                          title={t('users.btnView') || "View"}
+                          aria-label={t('users.btnView') || "View"}
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                          <Eye className="w-4 h-4" />
                         </Button>
-                      )}
+                        {canReset && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0 border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl"
+                            onClick={() => openResetPassword(u)}
+                            title={t('users.btnResetPass') || "Reset Password"}
+                            aria-label={t('users.btnResetPass') || "Reset Password"}
+                          >
+                            <Key className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {canEdit && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl"
+                            onClick={() => openEdit(u)}
+                            title={t('users.btnEditEmployee') || "Edit"}
+                            aria-label={t('users.btnEditEmployee') || "Edit"}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0 border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl"
+                            onClick={() => {
+                              setUserToDelete(u);
+                              setDeletePassword("");
+                              setShowDeletePassword(false);
+                            }}
+                            title={t('common.delete') || "Delete"}
+                            aria-label={t('common.delete') || "Delete"}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -465,6 +583,9 @@ export default function UsersPage() {
                     <TableHead>{t('users.colFullName')}</TableHead>
                     <TableHead>{t('users.colRole')}</TableHead>
                     <TableHead>{t('users.colBranch')}</TableHead>
+                    {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                      <TableHead>{t('users.monthlyBaseSalaryLabel') || "Base Salary"}</TableHead>
+                    )}
                     <TableHead>{t('common.status')}</TableHead>
                     <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
                   </TableRow>
@@ -484,93 +605,124 @@ export default function UsersPage() {
                         </TableCell>
                         <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        )}
                         <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
                         <TableCell className="text-right pr-6"><Skeleton className="h-8 w-24 ml-auto rounded-xl" /></TableCell>
                       </TableRow>
                     ))
                   ) : filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
-                        No users found matching your search.
+                      <TableCell colSpan={(user?.role === "OWNER" || user?.role === "ADMIN") ? 6 : 5} className="text-center py-8 text-[#8C7361]">
+                        {t('users.noUsersFound') || "No users found matching your search."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredUsers.map((u) => (
-                      <TableRow key={u.id}>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <UserAvatar url={u.avatarUrl} name={u.fullName} className="w-9 h-9" />
-                            <div>
-                              <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
-                              <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
+                    filteredUsers.map((u) => {
+                      const canReset = user?.role === "OWNER" || (user?.role === "ADMIN" && u.role !== "OWNER");
+                      const canEdit = user?.role === "OWNER" || (user?.role === "ADMIN" && u.role !== "OWNER");
+                      const canDelete = user?.role === "OWNER" && u.id !== user?.id;
+
+                      return (
+                        <TableRow key={u.id}>
+                          <TableCell>
+                            <div className="flex items-center space-x-3">
+                              <UserAvatar url={u.avatarUrl} name={u.fullName} className="w-9 h-9" />
+                              <div>
+                                <p className="font-bold text-[#2C1B10]">{u.fullName}</p>
+                                <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
-                            {u.role.replace("_", " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {u.branch ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shadow-2xs">
-                              <Building2 className="w-3.5 h-3.5 text-[#E87A18]" />
-                              {u.branch.name}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-500 font-medium text-xs italic">
-                              {t('users.globalAllBranches') || 'Global / All Branches'}
-                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
+                              {getRoleLabel(u.role)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {u.branch ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shadow-2xs">
+                                <Building2 className="w-3.5 h-3.5 text-[#E87A18]" />
+                                {u.branch.name}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-500 font-medium text-xs italic">
+                                {t('users.globalAllBranches') || 'Global / All Branches'}
+                              </span>
+                            )}
+                          </TableCell>
+                          {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                            <TableCell className="font-mono text-xs font-semibold text-[#2C1B10]">
+                              {u.salary != null ? `${Number(u.salary).toLocaleString()} ETB` : "—"}
+                            </TableCell>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={u.isActive}
-                              onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
-                              disabled={user?.role !== "OWNER" && user?.role !== "ADMIN"}
-                            />
-                            <span className={`text-xs font-bold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
-                              {u.isActive ? 'Active' : 'Disabled'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right pr-6">
-                          <div className="flex justify-end gap-1.5">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openView(u)} title="View User">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-                              <>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={u.isActive}
+                                onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
+                                disabled={(user?.role !== "OWNER" && user?.role !== "ADMIN") || u.id === user?.id}
+                                title={u.id === user?.id ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account") : undefined}
+                              />
+                              <span className={`text-xs font-bold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                                {u.isActive ? (t('users.statusActive') || 'Active') : (t('users.statusDisabled') || 'Disabled')}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right pr-6">
+                            <div className="flex justify-end gap-1.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]"
+                                onClick={() => openView(u)}
+                                title={t('users.btnView') || "View User"}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              {canReset && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  title="Reset Password"
+                                  title={t('users.btnResetPass') || "Reset Password"}
                                   className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                   onClick={() => openResetPassword(u)}
                                 >
                                   <Key className="w-4 h-4" />
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => openEdit(u)} title="Edit User">
+                              )}
+                              {canEdit && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]"
+                                  onClick={() => openEdit(u)}
+                                  title={t('users.btnEditEmployee') || "Edit User"}
+                                >
                                   <Edit2 className="w-4 h-4" />
                                 </Button>
-                              </>
-                            )}
-                            {user?.role === "OWNER" && u.id !== user?.id && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title={t('common.delete') || "Delete User"}
-                                className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                                onClick={() => setUserToDelete(u)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                              )}
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title={t('common.delete') || "Delete User"}
+                                  className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                                  onClick={() => {
+                                    setUserToDelete(u);
+                                    setDeletePassword("");
+                                    setShowDeletePassword(false);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -592,12 +744,12 @@ export default function UsersPage() {
                     </div>
                   ))}
                 </div>
-              ) : resetRequests.length === 0 ? (
+              ) : filteredResetRequests.length === 0 ? (
                 <div className="text-center py-8 text-[#8C7361] text-xs font-medium">
-                  No password reset requests found.
+                  {t('users.noResetRequestsFound') || "No password reset requests found."}
                 </div>
               ) : (
-                resetRequests.map((r) => (
+                filteredResetRequests.map((r) => (
                   <div key={r.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-2.5">
@@ -606,23 +758,23 @@ export default function UsersPage() {
                         </div>
                         <div>
                           <p className="font-extrabold text-sm text-[#2C1B10]">{r.user?.fullName || "Employee"}</p>
-                          <p className="text-xs text-[#8C7361]">{r.user?.branch?.name || "Global / Unassigned"}</p>
+                          <p className="text-xs text-[#8C7361]">{r.user?.branch?.name || (t('users.globalAllBranches') || "Global / Unassigned")}</p>
                         </div>
                       </div>
                       <div>
                         {r.status === "PENDING" && (
                           <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-bold text-[10px]">
-                            ⏳ Pending Action
+                            ⏳ {t('users.statusPending') || "Pending Action"}
                           </Badge>
                         )}
                         {r.status === "RESOLVED" && (
                           <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold text-[10px]">
-                            ✓ Completed
+                            ✓ {t('users.statusCompleted') || "Completed"}
                           </Badge>
                         )}
                         {r.status === "REJECTED" && (
                           <Badge className="bg-rose-100 text-rose-800 border-rose-200 font-bold text-[10px]">
-                            ✕ Rejected
+                            ✕ {t('users.statusRejected') || "Rejected"}
                           </Badge>
                         )}
                       </div>
@@ -630,7 +782,7 @@ export default function UsersPage() {
 
                     <div className="flex items-center justify-between text-xs text-[#8C7361] pt-1 border-t border-[#FAF6F0]">
                       <span className="font-mono font-semibold text-[#2C1B10]">{r.phone}</span>
-                      <span>{format(new Date(r.requestedAt), "MMM d, h:mm a")}</span>
+                      <span>{formatEthDate(r.requestedAt, true)}</span>
                     </div>
 
                     {r.status === "PENDING" && (
@@ -641,7 +793,7 @@ export default function UsersPage() {
                           className="flex-1"
                         >
                           <Key className="w-3.5 h-3.5 mr-1" />
-                          Generate Password
+                          {t('users.btnGeneratePassword') || "Generate Password"}
                         </Button>
                         <Button
                           size="sm"
@@ -649,7 +801,7 @@ export default function UsersPage() {
                           onClick={() => handleRejectRequest(r.id)}
                           className="text-xs font-bold h-9 px-3 rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50"
                         >
-                          Reject
+                          {t('users.btnReject') || "Reject"}
                         </Button>
                       </div>
                     )}
@@ -663,11 +815,11 @@ export default function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Phone Number</TableHead>
-                    <TableHead>Requested Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right pr-6">Actions</TableHead>
+                    <TableHead>{t('users.colEmployee') || "Employee"}</TableHead>
+                    <TableHead>{t('users.phoneNumberLabel') || "Phone Number"}</TableHead>
+                    <TableHead>{t('users.colRequestedDate') || "Requested Date"}</TableHead>
+                    <TableHead>{t('common.status')}</TableHead>
+                    <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -681,14 +833,14 @@ export default function UsersPage() {
                         <TableCell className="text-right pr-6"><Skeleton className="h-8 w-24 ml-auto rounded-xl" /></TableCell>
                       </TableRow>
                     ))
-                  ) : resetRequests.length === 0 ? (
+                  ) : filteredResetRequests.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-[#8C7361]">
-                        No password reset requests found.
+                        {t('users.noResetRequestsFound') || "No password reset requests found."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    resetRequests.map((r) => (
+                    filteredResetRequests.map((r) => (
                       <TableRow key={r.id}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
@@ -697,28 +849,28 @@ export default function UsersPage() {
                             </div>
                             <div>
                               <p className="font-bold text-[#2C1B10]">{r.user?.fullName || "Employee"}</p>
-                              <p className="text-xs text-[#8C7361]">{r.user?.branch?.name || "Global / Unassigned"}</p>
+                              <p className="text-xs text-[#8C7361]">{r.user?.branch?.name || (t('users.globalAllBranches') || "Global / Unassigned")}</p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="font-mono text-xs font-semibold text-[#2C1B10]">{r.phone}</TableCell>
                         <TableCell className="text-xs font-medium text-[#8C7361]">
-                          {format(new Date(r.requestedAt), "PPpp")}
+                          {formatEthDate(r.requestedAt, true)}
                         </TableCell>
                         <TableCell>
                           {r.status === "PENDING" && (
                             <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-bold text-xs">
-                              ⏳ Pending Action
+                              ⏳ {t('users.statusPending') || "Pending Action"}
                             </Badge>
                           )}
                           {r.status === "RESOLVED" && (
                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold text-xs">
-                              ✓ Reset Completed
+                              ✓ {t('users.statusCompleted') || "Completed"}
                             </Badge>
                           )}
                           {r.status === "REJECTED" && (
                             <Badge className="bg-rose-100 text-rose-800 border-rose-200 font-bold text-xs">
-                              ✕ Rejected
+                              ✕ {t('users.statusRejected') || "Rejected"}
                             </Badge>
                           )}
                         </TableCell>
@@ -730,7 +882,7 @@ export default function UsersPage() {
                                 onClick={() => openResetPassword(r.user, r.id)}
                               >
                                 <Key className="w-3.5 h-3.5 mr-1" />
-                                Generate Password
+                                {t('users.btnGeneratePassword') || "Generate Password"}
                               </Button>
                               <Button
                                 size="sm"
@@ -738,7 +890,7 @@ export default function UsersPage() {
                                 onClick={() => handleRejectRequest(r.id)}
                                 className="text-xs font-bold h-8 rounded-lg text-rose-600 border-rose-200 hover:bg-rose-50"
                               >
-                                Reject
+                                {t('users.btnReject') || "Reject"}
                               </Button>
                             </div>
                           )}
@@ -753,12 +905,11 @@ export default function UsersPage() {
         )}
       </div>
 
-
       {/* VIEW DETAILS DIALOG */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Employee Detail Card</DialogTitle>
+            <DialogTitle>{t('users.detailCardTitle') || "Employee Detail Card"}</DialogTitle>
           </DialogHeader>
           {viewingUser && (
             <div className="space-y-4 py-4">
@@ -772,9 +923,9 @@ export default function UsersPage() {
                 <div>
                   <h3 className="text-xl font-bold tracking-tight text-zinc-900">{viewingUser.fullName}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">{viewingUser.role.replace("_", " ")}</Badge>
+                    <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">{getRoleLabel(viewingUser.role)}</Badge>
                     <Badge className={viewingUser.isActive ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}>
-                      {viewingUser.isActive ? "Active Account" : "Suspended"}
+                      {viewingUser.isActive ? (t('users.activeAccount') || "Active Account") : (t('users.suspendedAccount') || "Suspended")}
                     </Badge>
                   </div>
                 </div>
@@ -782,54 +933,56 @@ export default function UsersPage() {
 
               <div className="grid grid-cols-2 gap-y-6 text-sm">
                 <div>
-                  <p className="text-zinc-500 font-medium mb-1">Phone Contact</p>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.colPhoneContact') || "Phone Contact"}</p>
                   <p className="font-semibold text-zinc-900">{viewingUser.phone}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-500 font-medium mb-1">Assigned Base</p>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.colAssignedBase') || "Assigned Base"}</p>
                   <p className="font-semibold text-zinc-900 flex items-center">
                     <Building2 className="w-3 h-3 mr-1" />
-                    {viewingUser.branch?.name || "Global / Unassigned"}
+                    {viewingUser.branch?.name || (t('users.globalAllBranches') || "Global / Unassigned")}
                   </p>
                 </div>
                 
                 <div>
-                  <p className="text-zinc-500 font-medium mb-1">Shift</p>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.colShift') || "Shift"}</p>
                   <p className="font-semibold text-zinc-900">
                     {viewingUser.shift === "DAY"
-                      ? "Day Shift (DAY)"
+                      ? `${t('users.dayShiftOption') || "Day Shift"} (DAY)`
                       : viewingUser.shift === "NIGHT"
-                      ? "Night Shift (NIGHT)"
+                      ? `${t('users.nightShiftOption') || "Night Shift"} (NIGHT)`
                       : viewingUser.shift || "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-zinc-500 font-medium mb-1">Base Salary</p>
-                  <p className="font-semibold text-zinc-900">{viewingUser.salary ? `${viewingUser.salary} ETB` : "N/A"}</p>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.monthlyBaseSalaryLabel') || "Base Salary"}</p>
+                  <p className="font-semibold text-zinc-900">{viewingUser.salary ? `${Number(viewingUser.salary).toLocaleString()} ETB` : "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-zinc-500 font-medium mb-1">{t('users.dailyExpenseLabel') || "Daily Expense"}</p>
-                  <p className="font-semibold text-zinc-900">{viewingUser.dailyExpense ? `${viewingUser.dailyExpense} ETB` : "N/A"}</p>
+                  <p className="font-semibold text-zinc-900">{viewingUser.dailyExpense ? `${Number(viewingUser.dailyExpense).toLocaleString()} ETB` : "N/A"}</p>
                 </div>
 
                 <div>
-                  <p className="text-zinc-500 font-medium mb-1">Joined Date</p>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.colJoinedDate') || "Joined Date"}</p>
                   <p className="font-semibold text-zinc-900">
-                    {viewingUser.startDate ? format(new Date(viewingUser.startDate), "PPP") : "N/A"}
+                    {viewingUser.startDate ? formatEthDate(viewingUser.startDate, false) : "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-zinc-500 font-medium mb-1">Last Pay Date</p>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.colLastPayDate') || "Last Pay Date"}</p>
                   <p className="font-semibold text-zinc-900">
-                    {viewingUser.lastPaidDate ? format(new Date(viewingUser.lastPaidDate), "PPP") : "N/A"}
+                    {viewingUser.lastPaidDate ? formatEthDate(viewingUser.lastPaidDate, false) : "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-zinc-500 font-medium mb-1">Security</p>
-                  <p className="font-semibold text-zinc-900 text-xs mt-0.5">Password hashed & hidden by system. Admins can rotate it in Edit menu.</p>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.colSecurity') || "Security"}</p>
+                  <p className="font-semibold text-zinc-900 text-xs mt-0.5">
+                    {t('users.securityNote') || "Password hashed & hidden by system. Admins can rotate it in Edit menu."}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-zinc-500 font-medium mb-1">Employment Document</p>
+                  <p className="text-zinc-500 font-medium mb-1">{t('users.colEmploymentDoc') || "Employment Document"}</p>
                   {viewingUser.filesUrl ? (
                     <a
                       href={getFileUrl(viewingUser.filesUrl) || "#"}
@@ -838,10 +991,10 @@ export default function UsersPage() {
                       className="text-blue-600 hover:underline font-semibold bg-blue-50 px-2.5 py-1 rounded inline-flex items-center gap-1.5 border border-blue-200"
                     >
                       <FileText className="w-3.5 h-3.5 text-blue-600" />
-                      View Identification Document (PDF)
+                      {t('users.viewIdDoc') || "View Identification Document"}
                     </a>
                   ) : (
-                    <span className="text-zinc-400">None attached</span>
+                    <span className="text-zinc-400">{t('users.noneAttached') || "None attached"}</span>
                   )}
                 </div>
               </div>
@@ -853,9 +1006,9 @@ export default function UsersPage() {
               onClick={() => setIsViewDialogOpen(false)}
               className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] font-semibold rounded-xl text-xs sm:text-sm order-2 sm:order-1"
             >
-              Close
+              {t('common.close') || "Close"}
             </Button>
-            {(user?.role === "OWNER" || user?.role === "ADMIN") && viewingUser && (
+            {(user?.role === "OWNER" || (user?.role === "ADMIN" && viewingUser?.role !== "OWNER")) && viewingUser && (
               <Button
                 onClick={() => {
                   setIsViewDialogOpen(false);
@@ -863,7 +1016,7 @@ export default function UsersPage() {
                 }}
                 className="w-full sm:w-auto h-11 bg-[#4A2E1B] text-white hover:bg-[#382214] font-bold rounded-xl text-xs sm:text-sm order-1 sm:order-2 shadow-sm"
               >
-                <Edit2 className="w-4 h-4 mr-2" /> Edit Employee
+                <Edit2 className="w-4 h-4 mr-2" /> {t('users.btnEditEmployee') || "Edit Employee"}
               </Button>
             )}
           </DialogFooter>
@@ -876,10 +1029,10 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Key className="w-5 h-5 text-amber-600" />
-              Reset Employee Password
+              {t('users.resetModalTitle') || "Reset Employee Password"}
             </DialogTitle>
             <DialogDescription>
-              Generate a new access password for employee account.
+              {t('users.resetModalSubtitle') || "Generate a new access password for employee account."}
             </DialogDescription>
           </DialogHeader>
 
@@ -887,21 +1040,23 @@ export default function UsersPage() {
             <div className="space-y-4 py-2">
               <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-zinc-500 font-medium">Employee Name:</span>
+                  <span className="text-zinc-500 font-medium">{t('users.colFullName') || "Employee Name"}:</span>
                   <span className="font-bold text-zinc-900">{selectedUserForReset.fullName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-500 font-medium">Phone Number:</span>
+                  <span className="text-zinc-500 font-medium">{t('users.phoneNumberLabel') || "Phone Number"}:</span>
                   <span className="font-mono text-zinc-900">{selectedUserForReset.phone}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-500 font-medium">Role / Branch:</span>
-                  <span className="text-zinc-900">{selectedUserForReset.role} • {selectedUserForReset.branch?.name || "Global"}</span>
+                  <span className="text-zinc-500 font-medium">{t('users.colRole') || "Role"} / {t('users.colBranch') || "Branch"}:</span>
+                  <span className="text-zinc-900">{getRoleLabel(selectedUserForReset.role)} • {selectedUserForReset.branch?.name || (t('users.globalAllBranches') || "Global")}</span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-700">Custom New Password (Optional)</label>
+                <label className="text-xs font-semibold text-zinc-700">
+                  {t('users.customNewPasswordOptional') || "Custom New Password (Optional)"}
+                </label>
                 <Input
                   type="text"
                   placeholder="Leave empty to auto-generate secure code (e.g. Bakery#A4K8)"
@@ -910,7 +1065,7 @@ export default function UsersPage() {
                   className="h-10 text-xs"
                 />
                 <p className="text-[11px] text-zinc-500">
-                  If left empty, a readable 8-character password will automatically be created.
+                  {t('users.customNewPasswordHint') || "If left empty, a readable 8-character password will automatically be created."}
                 </p>
               </div>
             </div>
@@ -924,7 +1079,7 @@ export default function UsersPage() {
               loadingText="Generating..."
               className="w-full sm:w-auto order-1 sm:order-2"
             >
-              Generate & Set Password
+              {t('users.btnGenerateAndSet') || "Generate & Set Password"}
             </Button>
             <Button
               type="button"
@@ -932,7 +1087,7 @@ export default function UsersPage() {
               onClick={() => setIsResetModalOpen(false)}
               className="w-full sm:w-auto h-10 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] font-semibold rounded-xl text-xs sm:text-sm order-2 sm:order-1"
             >
-              Cancel
+              {t('common.cancel') || "Cancel"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -944,10 +1099,10 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-700">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              New Password Generated
+              {t('users.copyModalTitle') || "New Password Generated"}
             </DialogTitle>
             <DialogDescription>
-              Provide this temporary password to the employee immediately.
+              {t('users.copyModalSubtitle') || "Provide this temporary password to the employee immediately."}
             </DialogDescription>
           </DialogHeader>
 
@@ -958,7 +1113,9 @@ export default function UsersPage() {
               </div>
 
               <div className="p-4 bg-zinc-900 text-amber-400 rounded-xl border border-zinc-800 text-center space-y-2">
-                <div className="text-[10px] uppercase font-bold tracking-widest text-zinc-400">Temporary Password</div>
+                <div className="text-[10px] uppercase font-bold tracking-widest text-zinc-400">
+                  {t('users.tempPasswordLabel') || "Temporary Password"}
+                </div>
                 <div className="text-2xl font-mono font-bold tracking-wider select-all">{generatedResult.tempPassword}</div>
               </div>
 
@@ -970,12 +1127,12 @@ export default function UsersPage() {
                 {copied ? (
                   <>
                     <Check className="w-4 h-4 text-emerald-600" />
-                    Copied to Clipboard!
+                    {t('users.copiedToClipboard') || "Copied to Clipboard!"}
                   </>
                 ) : (
                   <>
                     <Copy className="w-4 h-4 text-zinc-600" />
-                    Copy Temporary Password
+                    {t('users.btnCopyTempPassword') || "Copy Temporary Password"}
                   </>
                 )}
               </Button>
@@ -987,23 +1144,99 @@ export default function UsersPage() {
               onClick={() => setGeneratedResult(null)}
               className="w-full bg-black text-white hover:bg-zinc-800"
             >
-              Done
+              {t('common.done') || "Done"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <ConfirmModal
-        isOpen={!!userToDelete}
-        title={t('users.deleteUserTitle') || "Delete User"}
-        description={`Are you sure you want to delete ${userToDelete?.fullName}? This action will permanently remove the user, or deactivate them if existing business transaction records are linked.`}
-        confirmText={t('common.delete') || "Delete"}
-        cancelText={t('common.cancel') || "Cancel"}
-        variant="danger"
-        isLoading={isDeleting}
-        onConfirm={handleDeleteUser}
-        onCancel={() => setUserToDelete(null)}
-      />
+      {/* PASSWORD-PROTECTED DELETE USER DIALOG */}
+      <Dialog open={!!userToDelete} onOpenChange={(open) => {
+        if (!open) {
+          setUserToDelete(null);
+          setDeletePassword("");
+          setShowDeletePassword(false);
+        }
+      }}>
+        <DialogContent className="max-w-md bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-xl">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 text-left">
+                <DialogTitle className="text-base sm:text-lg font-bold text-[#2C1B10]">
+                  {t('users.deleteUserTitle') || "Delete User"}
+                </DialogTitle>
+                <p className="text-xs sm:text-sm text-[#8C7361] leading-relaxed">
+                  {t('users.deleteUserConfirmWarning') ||
+                    `Are you sure you want to delete ${userToDelete?.fullName}? This action cannot be undone.`}
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-1.5 pt-2">
+            <label htmlFor="deleteUserPasswordInputDirect" className="text-xs font-bold text-[#2C1B10]">
+              {t('users.enterPasswordToDeleteUser') || "Enter your password to confirm deletion"} <span className="text-rose-600">*</span>
+            </label>
+            <div className="relative">
+              <Input
+                id="deleteUserPasswordInputDirect"
+                type={showDeletePassword ? "text" : "password"}
+                placeholder="Enter your account password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className="rounded-xl border-[#EDE4D5] pr-10 text-xs sm:text-sm"
+                autoComplete="current-password"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && deletePassword.trim() && !isDeleting) {
+                    e.preventDefault();
+                    handleDeleteUser();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowDeletePassword(!showDeletePassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C7361] hover:text-[#2C1B10]"
+                title={showDeletePassword ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {showDeletePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={isDeleting}
+              onClick={() => {
+                setUserToDelete(null);
+                setDeletePassword("");
+                setShowDeletePassword(false);
+              }}
+              className="w-full sm:w-auto"
+            >
+              {t('common.cancel') || "Cancel"}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              loading={isDeleting}
+              disabled={isDeleting || !deletePassword.trim()}
+              onClick={handleDeleteUser}
+              className="w-full sm:w-auto"
+            >
+              {t('common.delete') || "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

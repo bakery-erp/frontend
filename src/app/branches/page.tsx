@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { Plus, Search, MapPin, MoreVertical, Edit2, Building2, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Search, MapPin, MoreVertical, Edit2, Building2, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatEthDate } from "@/lib/ethiopianDate";
 
 interface Branch {
   id: string;
@@ -61,16 +62,10 @@ export default function BranchesPage() {
   const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   const isOwner = user?.role === "OWNER";
-
-  useEffect(() => {
-    if (!user) return;
-    if (user.role !== "OWNER") {
-      router.push("/production/history");
-      toast.error("Unauthorized access to Branch Management.");
-    }
-  }, [user, router]);
 
   const { data: branches = [], isLoading: loading } = useQuery<Branch[]>({
     queryKey: ["branches-list"],
@@ -119,8 +114,11 @@ export default function BranchesPage() {
       queryClient.invalidateQueries({ queryKey: ["branches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       handleCloseDialog();
-    } catch (error) {
-      toast.error(editingBranch ? t('branches.toastFailedToUpdate') : t('branches.toastFailedToCreate'));
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error ||
+        (editingBranch ? t('branches.toastFailedToUpdate') : t('branches.toastFailedToCreate'))
+      );
     } finally {
       setSubmitting(false);
     }
@@ -161,19 +159,29 @@ export default function BranchesPage() {
 
   const handlePromptDelete = (branch: Branch) => {
     if (!isOwner) return;
+    const isMain = (branch.name || "").toLowerCase().includes("main");
+    if (isMain || branches.length <= 1) return;
     setBranchToDelete(branch);
+    setDeletePassword("");
+    setShowDeletePassword(false);
     setIsDeleteDialogOpen(true);
   };
 
   const handleDeleteBranch = async () => {
     if (!branchToDelete) return;
+    if (!deletePassword.trim()) {
+      toast.error(t('branches.passwordRequired') || "Password is required to delete branch.");
+      return;
+    }
     try {
       setIsDeleting(true);
-      await api.delete(`/branches/${branchToDelete.id}`);
+      await api.delete(`/branches/${branchToDelete.id}`, {
+        data: { password: deletePassword },
+      });
       if (selectedBranchId === branchToDelete.id) {
         setSelectedBranchId(null);
       }
-      toast.success(t('branches.toastBranchDeleted') || "Branch and associated data deleted permanently");
+      toast.success(t('branches.toastBranchDeleted') || "Branch deleted successfully.");
       await refreshBranches();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["branches-list"] }),
@@ -182,6 +190,7 @@ export default function BranchesPage() {
       ]);
       setIsDeleteDialogOpen(false);
       setBranchToDelete(null);
+      setDeletePassword("");
     } catch (error: any) {
       toast.error(error.response?.data?.error || t('branches.toastFailedToDelete') || "Failed to delete branch");
     } finally {
@@ -190,7 +199,8 @@ export default function BranchesPage() {
   };
 
   const filteredBranches = branches.filter((b) =>
-    b.name.toLowerCase().includes(searchTerm.toLowerCase())
+    b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.address && b.address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -310,76 +320,95 @@ export default function BranchesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredBranches.map((branch) => (
-                  <TableRow key={branch.id} className="border-b border-[#F4ECE1] hover:bg-[#FAF6F0]/40">
-                    <TableCell className="font-bold text-[#2C1B10]">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-[#8C7361]" />
-                        <span>{branch.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-[#8C7361]">
-                      {branch.address ? (
-                        <span className="flex items-center gap-1.5 text-xs">
-                          <MapPin className="w-3.5 h-3.5 text-[#8C7361]" />
-                          {branch.address}
-                        </span>
-                      ) : (
-                        <span className="text-zinc-400 italic text-xs">{t('branches.noAddress')}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={branch.isActive ? "default" : "secondary"}
-                        className={branch.isActive
-                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 font-bold text-xs"
-                          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-100 border border-zinc-200 font-bold text-xs"
-                        }
-                      >
-                        {branch.isActive ? `✓ ${t('branches.activeStatus')}` : t('branches.inactiveStatus')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs font-medium text-[#8C7361]">
-                      {new Date(branch.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      {isOwner ? (
-                        <div className="flex justify-end items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-semibold text-[#8C7361]" htmlFor={`switch-${branch.id}`}>
-                              {toggleLoading === branch.id ? t('common.updating') : branch.isActive ? t('branches.disableBranch') : t('branches.enableBranch')}
-                            </label>
-                            <Switch
-                              id={`switch-${branch.id}`}
-                              checked={branch.isActive}
-                              disabled={toggleLoading === branch.id}
-                              onCheckedChange={() => handleToggleStatus(branch.id, branch.isActive)}
-                            />
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenDialog(branch)}
-                            className="h-8 w-8 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0] rounded-lg"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handlePromptDelete(branch)}
-                            className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
-                            title={t('branches.deleteBranch') || "Delete Branch"}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                filteredBranches.map((branch) => {
+                  const isMainBranch = (branch.name || "").toLowerCase().includes("main");
+                  const isSoleBranch = branches.length <= 1;
+                  const isProtected = isMainBranch || isSoleBranch;
+
+                  return (
+                    <TableRow key={branch.id} className="border-b border-[#F4ECE1] hover:bg-[#FAF6F0]/40">
+                      <TableCell className="font-bold text-[#2C1B10]">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-[#8C7361]" />
+                          <span>{branch.name}</span>
                         </div>
-                      ) : (
-                        <span className="text-xs text-zinc-400 font-medium">{t('branches.readOnly')}</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                      <TableCell className="text-[#8C7361]">
+                        {branch.address ? (
+                          <span className="flex items-center gap-1.5 text-xs">
+                            <MapPin className="w-3.5 h-3.5 text-[#8C7361]" />
+                            {branch.address}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400 italic text-xs">{t('branches.noAddress')}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={branch.isActive ? "default" : "secondary"}
+                          className={branch.isActive
+                            ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 font-bold text-xs"
+                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-100 border border-zinc-200 font-bold text-xs"
+                          }
+                        >
+                          {branch.isActive ? `✓ ${t('branches.activeStatus')}` : t('branches.inactiveStatus')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs font-medium text-[#8C7361]">
+                        {formatEthDate(branch.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        {isOwner ? (
+                          <div className="flex justify-end items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs font-semibold text-[#8C7361]" htmlFor={`switch-${branch.id}`}>
+                                {toggleLoading === branch.id ? t('common.updating') : branch.isActive ? t('branches.disableBranch') : t('branches.enableBranch')}
+                              </label>
+                              <Switch
+                                id={`switch-${branch.id}`}
+                                checked={branch.isActive}
+                                disabled={toggleLoading === branch.id}
+                                onCheckedChange={() => handleToggleStatus(branch.id, branch.isActive)}
+                              />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenDialog(branch)}
+                              className="h-8 w-8 text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0] rounded-lg"
+                              title={t('common.edit') || "Edit"}
+                              aria-label={t('common.edit') || "Edit"}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            {isProtected ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] text-zinc-400 border-zinc-200 cursor-not-allowed select-none"
+                                title={isMainBranch ? t('branches.mainBranch') || "Main Branch" : t('branches.protected') || "Protected"}
+                              >
+                                {isMainBranch ? t('branches.mainBranch') || "Main Branch" : t('branches.protected') || "Protected"}
+                              </Badge>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handlePromptDelete(branch)}
+                                className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
+                                title={t('branches.deleteBranch') || "Delete Branch"}
+                                aria-label={t('branches.deleteBranch') || "Delete Branch"}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-zinc-400 font-medium">{t('branches.readOnly')}</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -404,78 +433,97 @@ export default function BranchesPage() {
               {t('branches.noBranchesFound')}
             </div>
           ) : (
-            filteredBranches.map((branch) => (
-              <div key={branch.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3">
-                {/* Header: Name + Badge */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-center shrink-0">
-                      <Building2 className="w-4 h-4 text-[#E87A18]" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-extrabold text-sm text-[#2C1B10] truncate">{branch.name}</h3>
-                      <p className="text-[11px] text-[#8C7361]">
-                        {new Date(branch.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge
-                    variant={branch.isActive ? "default" : "secondary"}
-                    className={branch.isActive
-                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] shrink-0"
-                      : "bg-zinc-100 text-zinc-600 border border-zinc-200 font-bold text-[11px] shrink-0"
-                    }
-                  >
-                    {branch.isActive ? `✓ ${t('branches.activeStatus')}` : t('branches.inactiveStatus')}
-                  </Badge>
-                </div>
+            filteredBranches.map((branch) => {
+              const isMainBranch = (branch.name || "").toLowerCase().includes("main");
+              const isSoleBranch = branches.length <= 1;
+              const isProtected = isMainBranch || isSoleBranch;
 
-                {/* Address Row */}
-                <div className="bg-[#FAF6F0]/60 rounded-xl px-3 py-2 text-xs flex items-center gap-2 text-[#4A2E1B]">
-                  <MapPin className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
-                  <span className="truncate">
-                    {branch.address ? branch.address : <span className="text-zinc-400 italic">{t('branches.noAddress')}</span>}
-                  </span>
-                </div>
-
-                {/* Actions Row */}
-                {isOwner && (
-                  <div className="flex items-center justify-between pt-2 border-t border-[#F4ECE1]">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id={`switch-mob-${branch.id}`}
-                        checked={branch.isActive}
-                        disabled={toggleLoading === branch.id}
-                        onCheckedChange={() => handleToggleStatus(branch.id, branch.isActive)}
-                      />
-                      <label className="text-xs font-semibold text-[#8C7361]" htmlFor={`switch-mob-${branch.id}`}>
-                        {toggleLoading === branch.id ? t('common.updating') : branch.isActive ? t('branches.disableBranch') : t('branches.enableBranch')}
-                      </label>
+              return (
+                <div key={branch.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3">
+                  {/* Header: Name + Badge */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-center shrink-0">
+                        <Building2 className="w-4 h-4 text-[#E87A18]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-extrabold text-sm text-[#2C1B10] truncate">{branch.name}</h3>
+                        <p className="text-[11px] text-[#8C7361]">
+                          {formatEthDate(branch.createdAt)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenDialog(branch)}
-                        className="h-8 px-3 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] flex items-center gap-1.5 text-xs font-bold"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-[#E87A18]" />
-                        {t('common.edit')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePromptDelete(branch)}
-                        className="h-8 px-2.5 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center justify-center text-xs font-bold"
-                        title={t('branches.deleteBranch') || "Delete"}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
+                    <Badge
+                      variant={branch.isActive ? "default" : "secondary"}
+                      className={branch.isActive
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] shrink-0"
+                        : "bg-zinc-100 text-zinc-600 border border-zinc-200 font-bold text-[11px] shrink-0"
+                      }
+                    >
+                      {branch.isActive ? `✓ ${t('branches.activeStatus')}` : t('branches.inactiveStatus')}
+                    </Badge>
                   </div>
-                )}
-              </div>
-            ))
+
+                  {/* Address Row */}
+                  <div className="bg-[#FAF6F0]/60 rounded-xl px-3 py-2 text-xs flex items-center gap-2 text-[#4A2E1B]">
+                    <MapPin className="w-3.5 h-3.5 text-[#8C7361] shrink-0" />
+                    <span className="truncate">
+                      {branch.address ? branch.address : <span className="text-zinc-400 italic">{t('branches.noAddress')}</span>}
+                    </span>
+                  </div>
+
+                  {/* Actions Row */}
+                  {isOwner && (
+                    <div className="flex items-center justify-between pt-2 border-t border-[#F4ECE1]">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id={`switch-mob-${branch.id}`}
+                          checked={branch.isActive}
+                          disabled={toggleLoading === branch.id}
+                          onCheckedChange={() => handleToggleStatus(branch.id, branch.isActive)}
+                        />
+                        <label className="text-xs font-semibold text-[#8C7361]" htmlFor={`switch-mob-${branch.id}`}>
+                          {toggleLoading === branch.id ? t('common.updating') : branch.isActive ? t('branches.disableBranch') : t('branches.enableBranch')}
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDialog(branch)}
+                          className="h-8 px-3 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] flex items-center gap-1.5 text-xs font-bold"
+                          title={t('common.edit') || "Edit"}
+                          aria-label={t('common.edit') || "Edit"}
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-[#E87A18]" />
+                          {t('common.edit')}
+                        </Button>
+                        {isProtected ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] text-zinc-400 border-zinc-200 cursor-not-allowed select-none px-2 py-1"
+                            title={isMainBranch ? t('branches.mainBranch') || "Main Branch" : t('branches.protected') || "Protected"}
+                          >
+                            {isMainBranch ? t('branches.mainBranch') || "Main Branch" : t('branches.protected') || "Protected"}
+                          </Badge>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePromptDelete(branch)}
+                            className="h-8 px-2.5 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center justify-center text-xs font-bold"
+                            title={t('branches.deleteBranch') || "Delete"}
+                            aria-label={t('branches.deleteBranch') || "Delete"}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
 
@@ -501,6 +549,40 @@ export default function BranchesPage() {
                 </div>
               </div>
             </DialogHeader>
+
+            {/* Password input confirmation */}
+            <div className="space-y-1.5 pt-2">
+              <label htmlFor="deletePasswordInput" className="text-xs font-bold text-[#2C1B10]">
+                {t('branches.enterPasswordToConfirm') || "Enter your password to confirm deletion"} <span className="text-rose-600">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  id="deletePasswordInput"
+                  type={showDeletePassword ? "text" : "password"}
+                  placeholder={t('branches.passwordPlaceholder') || "Enter your account password"}
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="rounded-xl border-[#EDE4D5] pr-10 text-xs sm:text-sm"
+                  autoComplete="current-password"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && deletePassword.trim() && !isDeleting) {
+                      e.preventDefault();
+                      handleDeleteBranch();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDeletePassword(!showDeletePassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C7361] hover:text-[#2C1B10]"
+                  title={showDeletePassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showDeletePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
             <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3">
               <Button
                 type="button"
@@ -517,6 +599,7 @@ export default function BranchesPage() {
                 variant="destructive"
                 size="lg"
                 loading={isDeleting}
+                disabled={isDeleting || !deletePassword.trim()}
                 onClick={handleDeleteBranch}
                 className="w-full sm:w-auto"
               >

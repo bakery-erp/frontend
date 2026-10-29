@@ -13,11 +13,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getFileUrl, getImageUrl } from "@/lib/utils";
-import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save, Trash2, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+const ETHIOPIAN_PHONE_REGEX = /^(?:\+251|0)[97]\d{8}$/;
 
 const ROLES = ["OWNER", "ADMIN", "BAKER", "CAKE_WORKER", "CASHIER", "SAMBUSA_WORKER", "STOCK_KEEPER", "EMPLOYEE"] as const;
 const SHIFTS = ["DAY", "NIGHT"] as const;
@@ -51,6 +60,9 @@ export default function EditUserPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isFormChanged, setIsFormChanged] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [startDateVal, setStartDateVal] = useState<string>("");
@@ -123,6 +135,27 @@ export default function EditUserPage() {
     try {
       const formData = new FormData(e.currentTarget);
 
+      const phone = formData.get("phone") as string;
+      if (phone && !ETHIOPIAN_PHONE_REGEX.test(phone.trim())) {
+        toast.error(t('users.invalidPhoneFormat') || "Invalid Ethiopian phone format (e.g. 0912345678 or +251912345678)");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const password = formData.get("password") as string;
+      if (password && password.length < 4) {
+        toast.error(t('users.passwordMinLength') || "Password must be at least 4 characters long");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const role = formData.get("role") as string;
+      if (role === 'OWNER' && user?.role !== 'OWNER') {
+        toast.error("Privilege restriction: Only Owners can assign the Owner role");
+        setIsSubmitting(false);
+        return;
+      }
+
       const startDateStr = formData.get("startDate") as string;
       const lastPaidDateStr = formData.get("lastPaidDate") as string;
       if (startDateStr && lastPaidDateStr) {
@@ -184,9 +217,15 @@ export default function EditUserPage() {
       setIsDeleteModalOpen(false);
       return;
     }
+    if (!deletePassword.trim()) {
+      toast.error("Please enter your account password to confirm deletion");
+      return;
+    }
     try {
       setIsDeleting(true);
-      const res = await api.delete(`/users/${userData.id}`);
+      const res = await api.delete(`/users/${userData.id}`, {
+        data: { password: deletePassword },
+      });
       if (res.data?.deactivated) {
         toast.info(res.data.message || "User deactivated (historical transaction records preserved)");
       } else {
@@ -200,6 +239,7 @@ export default function EditUserPage() {
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
+      setDeletePassword("");
     }
   };
 
@@ -283,12 +323,23 @@ export default function EditUserPage() {
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
                   {t('users.passwordLabel')} <span className="text-xs text-zinc-400 font-normal">({t('users.passwordLeaveBlank')})</span>
                 </label>
-                <Input
-                  name="password"
-                  type="text"
-                  placeholder={`•••••••• (${t('users.passwordLeaveBlank')})`}
-                  className="h-11 rounded-xl border-[#EDE4D5] text-sm"
-                />
+                <div className="relative">
+                  <Input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={`•••••••• (${t('users.passwordLeaveBlank')})`}
+                    className="h-11 rounded-xl border-[#EDE4D5] text-sm pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C7361] hover:text-[#2C1B10]"
+                    title={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -301,7 +352,7 @@ export default function EditUserPage() {
                   defaultValue={userData.role}
                   className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
                 >
-                  {ROLES.map((r) => (
+                  {ROLES.filter((r) => r !== 'OWNER' || user?.role === 'OWNER').map((r) => (
                     <option key={r} value={r}>
                       {getRoleLabel(r)}
                     </option>
@@ -565,17 +616,88 @@ export default function EditUserPage() {
         onCancel={() => setShowPrompt(false)}
       />
 
-      <ConfirmModal
-        isOpen={isDeleteModalOpen}
-        title={t('users.deleteUserTitle') || "Delete User"}
-        description={`Are you sure you want to delete ${userData.fullName}? This action will permanently remove the user, or deactivate them if existing business transaction records are linked.`}
-        confirmText={t('common.delete') || "Delete"}
-        cancelText={t('common.cancel') || "Cancel"}
-        variant="danger"
-        isLoading={isDeleting}
-        onConfirm={handleDelete}
-        onCancel={() => setIsDeleteModalOpen(false)}
-      />
+      <Dialog open={isDeleteModalOpen} onOpenChange={(open) => {
+        setIsDeleteModalOpen(open);
+        if (!open) {
+          setDeletePassword("");
+          setShowDeletePassword(false);
+        }
+      }}>
+        <DialogContent className="max-w-md bg-white border border-[#EDE4D5] rounded-2xl p-6 shadow-xl">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 text-left">
+                <DialogTitle className="text-base sm:text-lg font-bold text-[#2C1B10]">
+                  {t('users.deleteUserTitle') || "Delete User"}
+                </DialogTitle>
+                <p className="text-xs sm:text-sm text-[#8C7361] leading-relaxed">
+                  {t('users.deleteUserConfirmWarning') ||
+                    `Are you sure you want to delete ${userData.fullName}? This action cannot be undone.`}
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-1.5 pt-2">
+            <label htmlFor="deleteUserPasswordInput" className="text-xs font-bold text-[#2C1B10]">
+              {t('users.enterPasswordToDeleteUser') || "Enter your password to confirm deletion"} <span className="text-rose-600">*</span>
+            </label>
+            <div className="relative">
+              <Input
+                id="deleteUserPasswordInput"
+                type={showDeletePassword ? "text" : "password"}
+                placeholder="Enter your account password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className="rounded-xl border-[#EDE4D5] pr-10 text-xs sm:text-sm"
+                autoComplete="current-password"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && deletePassword.trim() && !isDeleting) {
+                    e.preventDefault();
+                    handleDelete();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowDeletePassword(!showDeletePassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C7361] hover:text-[#2C1B10]"
+                title={showDeletePassword ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {showDeletePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={isDeleting}
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              loading={isDeleting}
+              disabled={isDeleting || !deletePassword.trim()}
+              onClick={handleDelete}
+              className="w-full sm:w-auto"
+            >
+              {t('common.delete') || "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

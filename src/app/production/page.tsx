@@ -17,6 +17,7 @@ import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isProductAllowedForRole, getStationMeta } from "@/lib/roleProductMapping";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface Branch { id: string; name: string; }
 interface Product {
@@ -107,15 +108,32 @@ export default function ProductionPage() {
     return () => clearTimeout(timer);
   }, [filterTab]);
 
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionBatchId, setActionBatchId] = useState<string | null>(null);
+  // Delete Batch State
+  const [deletingBatchId, setDeletingBatchId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Form State
-  const [date, setDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
-  const [shift, setShift] = useState<"DAY" | "NIGHT">("DAY");
-  const [items, setItems] = useState<{ productId: string; quantityProduced: string }[]>([]);
-  const [materials, setMaterials] = useState<{ stockItemId: string; quantityUsed: string }[]>([]);
+  const formatUsageQty = (qty: number | string) => {
+    const n = Number(qty);
+    if (isNaN(n)) return "0";
+    return n % 1 === 0 ? n.toString() : parseFloat(n.toFixed(2)).toString();
+  };
+
+  const handleDeleteBatch = async () => {
+    if (!deletingBatchId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/production-batches/${deletingBatchId}`);
+      toast.success(t('production.batchDeletedSuccess') || "Production batch deleted successfully");
+      setDeletingBatchId(null);
+      queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
+      queryClient.invalidateQueries({ queryKey: ["production-admin-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["production-worker-counts"] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to delete production batch");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Query Params for Backend Pagination
   const queryParams = useMemo(() => {
@@ -126,8 +144,8 @@ export default function ProductionPage() {
 
     if (isGlobalAdmin) {
       if (filterTab === "TODAY") params.append("date", todayYmd);
-      else if (user?.role === "OWNER" && filterTab === "UNSEEN") params.append("seenFilter", "UNSEEN");
-      else if (user?.role === "OWNER" && filterTab === "FLAGGED") params.append("seenFilter", "FLAGGED");
+      else if (user?.role === "OWNER" && filterTab === "UNSEEN") params.append("seen", "UNSEEN");
+      else if (user?.role === "OWNER" && filterTab === "FLAGGED") params.append("seen", "FLAGGED");
       if (shiftFilter !== "ALL") params.append("shift", shiftFilter);
       if (roleFilter !== "ALL") params.append("role", roleFilter);
     } else {
@@ -226,8 +244,8 @@ export default function ProductionPage() {
         const [resAll, resToday, resUnseen, resFlagged] = await Promise.all([
           api.get(`/production-batches?limit=1${branchParam}`),
           api.get(`/production-batches?date=${todayYmd}&limit=1${branchParam}`),
-          api.get(`/production-batches?seenFilter=UNSEEN&limit=1${branchParam}`),
-          api.get(`/production-batches?seenFilter=FLAGGED&limit=1${branchParam}`),
+          api.get(`/production-batches?seen=UNSEEN&limit=1${branchParam}`),
+          api.get(`/production-batches?seen=FLAGGED&limit=1${branchParam}`),
         ]);
         return {
           all: resAll.data?.total ?? 0,
@@ -250,74 +268,7 @@ export default function ProductionPage() {
     },
   });
 
-  // 2. Lightweight modal data (products and stock items) with minimal=true
-  const { data: modalData } = useQuery({
-    queryKey: ["production-modal-data", selectedBranchId, user?.role],
-    queryFn: async () => {
-      const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
-      const minimalParam = branchQuery ? `${branchQuery}&minimal=true` : "?minimal=true";
-
-      const [resProd, resStock] = await Promise.all([
-        api.get(`/products${minimalParam}`),
-        api.get(`/stock-items${branchQuery}`),
-      ]);
-
-      const filteredProds = isGlobalAdmin
-        ? (resProd.data || [])
-        : (resProd.data || []).filter((p: Product) => isProductAllowedForRole(p, user?.role));
-
-      return {
-        products: filteredProds as Product[],
-        stockItems: (resStock.data || []) as StockItem[],
-      };
-    },
-    staleTime: 60 * 1000,
-  });
-
   const batches = accumulatedBatches;
-  const activeSession = pageData?.activeSession || null;
-  const products = modalData?.products || [];
-  const stockItems = modalData?.stockItems || [];
-
-
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (items.length === 0) {
-      toast.error("You must add at least one produced product");
-      return;
-    }
-
-    setIsSubmitting(true);
-    const systemDate = format(new Date(), "yyyy-MM-dd");
-    const data = {
-      branchId: selectedBranchId || undefined,
-      date: isGlobalAdmin ? date : systemDate,
-      shift,
-      items: items.map(i => ({ productId: i.productId, quantityProduced: Number(i.quantityProduced) })),
-      materialUsages: materials.map(m => ({ stockItemId: m.stockItemId, quantityUsed: Number(m.quantityUsed) })),
-    };
-
-    try {
-      await api.post("/production-batches", data);
-      toast.success("Production batch created successfully");
-      setIsAddOpen(false);
-      setItems([]);
-      setMaterials([]);
-      queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
-      queryClient.invalidateQueries({ queryKey: ["production-modal-data"] });
-      queryClient.invalidateQueries({ queryKey: ["production-history"] });
-      queryClient.invalidateQueries({ queryKey: ["stock-items"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error creating batch");
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   // Seen & Flag States & Actions
   const [flaggingBatch, setFlaggingBatch] = useState<ProductionBatch | null>(null);
@@ -327,7 +278,6 @@ export default function ProductionPage() {
 
   const isBatchSeenByMe = useCallback((b: ProductionBatch) => {
     if (user?.role === "OWNER") return !!b.ownerSeenAt;
-    if (user?.role === "ADMIN") return !!b.adminSeenAt;
     return true;
   }, [user?.role]);
 
@@ -639,12 +589,30 @@ export default function ProductionPage() {
             ))}
           </div>
         ) : filteredBatches.length === 0 ? (
-          <div className="text-center py-10 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs">
-            {filterTab === "UNSEEN"
-              ? t('production.allBatchesReviewed') || "All batches have been reviewed by you! 🎉"
-              : filterTab === "FLAGGED"
-              ? t('production.noFlaggedBatches') || "No batches are flagged for questions."
-              : t('production.noBatches')}
+          <div className="text-center py-10 px-4 bg-white rounded-2xl border border-[#EDE4D5] text-[#8C7361] font-medium text-xs space-y-3">
+            <p className="text-sm">
+              {filterTab === "UNSEEN"
+                ? t('production.allBatchesReviewed') || "All batches have been reviewed! 🎉"
+                : filterTab === "FLAGGED"
+                ? t('production.noFlaggedBatches') || "No batches are flagged for questions."
+                : t('production.noBatches')}
+            </p>
+            {isGlobalAdmin && (filterTab !== "ALL" || shiftFilter !== "ALL" || roleFilter !== "ALL") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFilterTab("ALL");
+                  setShiftFilter("ALL");
+                  setRoleFilter("ALL");
+                  setPage(1);
+                }}
+                className="rounded-xl border-[#EDE4D5] bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#F3ECE1] font-bold text-xs mx-auto flex items-center gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>{t("common.resetFilters") || "Reset Filters"}</span>
+              </Button>
+            )}
           </div>
         ) : (
           filteredBatches.map((batch) => {
@@ -786,7 +754,7 @@ export default function ProductionPage() {
                   <div className="space-y-1.5">
                     <span className="inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800">
                       <span className="truncate">{batch.materialUsages[0].stockItem.name}:</span>
-                      <span className="shrink-0">-{Number(batch.materialUsages[0].quantityUsed).toFixed(2)} {batch.materialUsages[0].stockItem.unitType}</span>
+                      <span className="shrink-0">-{formatUsageQty(batch.materialUsages[0].quantityUsed)} {batch.materialUsages[0].stockItem.unitType}</span>
                     </span>
                     {batch.materialUsages.length > 1 && (
                       <div>
@@ -812,7 +780,7 @@ export default function ProductionPage() {
 
 
               {/* Card Footer: Logged by & Direct Action Buttons */}
-              <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F4ECE1]">
+              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2.5 pt-2.5 border-t border-[#F4ECE1]">
                 {isGlobalAdmin ? (
                   <span className="text-[11px] text-[#8C7361] font-semibold truncate">
                     {t('production.colLoggedBy')}: <strong className="text-[#2C1B10]">{batch.user.fullName}</strong>
@@ -821,42 +789,35 @@ export default function ProductionPage() {
                   <span />
                 )}
 
-                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-1.5 shrink-0 justify-end flex-wrap xs:flex-nowrap" onClick={(e) => e.stopPropagation()}>
                   {user?.role === "OWNER" && !isBatchSeenByMe(batch) && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={markingSeenId === batch.id}
-                        onClick={(e) => handleMarkSeen(batch.id, e)}
-                        className="border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs"
-                        title={t('production.markAsSeen')}
-                      >
-                        <Check className="w-3.5 h-3.5 text-sky-600" />
-                        <span>{t('production.markAsSeen')}</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => handleToggleFlag(batch, e)}
-                        className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-8 w-8 p-0 rounded-xl flex items-center justify-center shadow-2xs"
-                        title={t('production.flagBatch')}
-                      >
-                        <span className="text-xs">🚩</span>
-                      </Button>
-                    </>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={markingSeenId === batch.id}
+                      onClick={(e) => handleMarkSeen(batch.id, e)}
+                      className="border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 font-bold text-xs h-8 px-2 rounded-xl flex items-center gap-1 shadow-2xs"
+                      title={t('production.markAsSeen')}
+                    >
+                      <Check className="w-3.5 h-3.5 text-sky-600" />
+                      <span className="hidden sm:inline">{t('production.markAsSeen')}</span>
+                    </Button>
                   )}
 
-                  {user?.role === "OWNER" && batch.isFlagged && (
+                  {user?.role === "OWNER" && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={(e) => handleToggleFlag(batch, e)}
-                      className="border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 font-bold text-xs h-8 px-2 rounded-xl flex items-center gap-1 shadow-2xs"
-                      title={t('production.clearFlag')}
+                      className={`font-bold text-xs h-8 px-2 rounded-xl shadow-2xs flex items-center gap-1 ${
+                        batch.isFlagged
+                          ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
+                          : "border-zinc-200 text-[#8C7361] hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
+                      }`}
+                      title={batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}
                     >
                       <span className="text-xs">🚩</span>
-                      <span>{t('production.clearFlag')}</span>
+                      <span className="hidden sm:inline">{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
                     </Button>
                   )}
 
@@ -882,6 +843,18 @@ export default function ProductionPage() {
                     >
                       <Edit className="w-3.5 h-3.5 text-[#8C7361]" />
                       <span>{t('common.edit') || "Edit"}</span>
+                    </Button>
+                  )}
+
+                  {isGlobalAdmin && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDeletingBatchId(batch.id)}
+                      className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs h-8 w-8 p-0 rounded-xl flex items-center justify-center shadow-2xs cursor-pointer"
+                      title={t('common.delete') || "Delete"}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   )}
                 </div>
@@ -943,12 +916,32 @@ export default function ProductionPage() {
               ))
             ) : filteredBatches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isGlobalAdmin ? 5 : 4} className="text-center py-8 text-[#8C7361] font-medium">
-                  {filterTab === "UNSEEN"
-                    ? t('production.allBatchesReviewed') || "All batches have been reviewed by you! 🎉"
-                    : filterTab === "FLAGGED"
-                    ? t('production.noFlaggedBatches') || "No batches are flagged for questions."
-                    : t('production.noBatches')}
+                <TableCell colSpan={isGlobalAdmin ? 5 : 4} className="text-center py-10 text-[#8C7361] font-medium">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <p className="text-sm">
+                      {filterTab === "UNSEEN"
+                        ? t('production.allBatchesReviewed') || "All batches have been reviewed! 🎉"
+                        : filterTab === "FLAGGED"
+                        ? t('production.noFlaggedBatches') || "No batches are flagged for questions."
+                        : t('production.noBatches')}
+                    </p>
+                    {isGlobalAdmin && (filterTab !== "ALL" || shiftFilter !== "ALL" || roleFilter !== "ALL") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFilterTab("ALL");
+                          setShiftFilter("ALL");
+                          setRoleFilter("ALL");
+                          setPage(1);
+                        }}
+                        className="rounded-xl border-[#EDE4D5] bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#F3ECE1] font-bold text-xs flex items-center gap-1.5"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>{t("common.resetFilters") || "Reset Filters"}</span>
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : filteredBatches.map(batch => {
@@ -1057,7 +1050,7 @@ export default function ProductionPage() {
                   ) : (
                     <div className="space-y-1.5">
                       <div className="text-sm font-medium text-[#2C1B10]">
-                        {batch.materialUsages[0].stockItem.name}: <span className="font-bold text-rose-700">-{Number(batch.materialUsages[0].quantityUsed).toFixed(2)} {batch.materialUsages[0].stockItem.unitType}</span>
+                        {batch.materialUsages[0].stockItem.name}: <span className="font-bold text-rose-700">-{formatUsageQty(batch.materialUsages[0].quantityUsed)} {batch.materialUsages[0].stockItem.unitType}</span>
                       </div>
                       {batch.materialUsages.length > 1 && (
                         <div>
@@ -1148,6 +1141,21 @@ export default function ProductionPage() {
                         <span>{t('common.edit') || "Edit"}</span>
                       </Button>
                     )}
+
+                    {isGlobalAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingBatchId(batch.id);
+                        }}
+                        className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs h-8 w-8 p-0 rounded-xl flex items-center justify-center shadow-2xs shrink-0 cursor-pointer"
+                        title={t('common.delete') || "Delete"}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -1209,159 +1217,6 @@ export default function ProductionPage() {
         </div>
       )}
 
-      {/* CREATE BATCH DIALOG */}
-      {isAddOpen && (
-        <Dialog open={true} onOpenChange={(open) => { if (!open) setIsAddOpen(false); }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">
-                Log Production & Material Usage
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="mt-2">
-              {!isGlobalAdmin && (
-                <div className="mb-4 p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Your report will be sent to Admin/Owner for approval.</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    Production Date {isGlobalAdmin ? "" : "(System Logged)"}
-                  </label>
-                  <Input
-                    type="date"
-                    required
-                    disabled={!isGlobalAdmin}
-                    value={isGlobalAdmin ? date : format(new Date(), "yyyy-MM-dd")}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="rounded-xl border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-600 disabled:cursor-not-allowed"
-                  />
-                  {!isGlobalAdmin && (
-                    <span className="text-[10px] text-zinc-500 mt-0.5 block font-medium">
-                      🔒 Logged automatically on current date
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">Shift</label>
-                  <select
-                    value={shift} onChange={(e) => setShift(e.target.value as any)}
-                    className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
-                  >
-                    <option value="DAY">Day Shift</option>
-                    <option value="NIGHT">Night Shift</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* PRODUCTS PRODUCED */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-bold text-[#2C1B10] uppercase">Products Baked <span className="text-red-500">*</span></label>
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs rounded-lg border-zinc-300" onClick={() => setItems([...items, { productId: "", quantityProduced: "" }])}>
-                    <Plus className="w-3 h-3 mr-1" /> Add Product
-                  </Button>
-                </div>
-                {items.length === 0 && <div className="text-xs text-zinc-500 italic p-3 border border-dashed rounded-xl text-center bg-zinc-50">No products added yet. Click 'Add Product'.</div>}
-                <div className="space-y-2">
-                  {items.map((item, index) => (
-                    <div key={index} className="flex gap-2">
-                      <select
-                        required
-                        value={item.productId}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].productId = e.target.value;
-                          setItems(newItems);
-                        }}
-                        className="flex-1 border border-zinc-200 rounded-xl h-9 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
-                      >
-                        <option value="" disabled>Select Product</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                      <Input
-                        type="number" required placeholder="Qty" min="1"
-                        value={item.quantityProduced}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].quantityProduced = e.target.value;
-                          setItems(newItems);
-                        }}
-                        className="w-24 h-9 rounded-xl border-zinc-200"
-                      />
-                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 rounded-xl" onClick={() => {
-                        const newItems = [...items];
-                        newItems.splice(index, 1);
-                        setItems(newItems);
-                      }}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* RAW MATERIALS USED */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-bold text-[#2C1B10] uppercase">Raw Materials Consumed</label>
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs rounded-lg border-zinc-300" onClick={() => setMaterials([...materials, { stockItemId: "", quantityUsed: "" }])}>
-                    <Plus className="w-3 h-3 mr-1" /> Add Material
-                  </Button>
-                </div>
-                {materials.length === 0 && <div className="text-xs text-zinc-500 italic p-3 border border-dashed rounded-xl text-center bg-zinc-50">Log ingredients used so stock levels can be updated upon approval.</div>}
-                <div className="space-y-2">
-                  {materials.map((mat, index) => (
-                    <div key={index} className="flex gap-2">
-                      <select
-                        required
-                        value={mat.stockItemId}
-                        onChange={(e) => {
-                          const newMats = [...materials];
-                          newMats[index].stockItemId = e.target.value;
-                          setMaterials(newMats);
-                        }}
-                        className="flex-1 border border-zinc-200 rounded-xl h-9 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
-                      >
-                        <option value="" disabled>Select Material</option>
-                        {stockItems.map(s => <option key={s.id} value={s.id}>{s.name} ({s.unitType})</option>)}
-                      </select>
-                      <Input
-                        type="number" step="0.001" required placeholder="Qty" min="0.001"
-                        value={mat.quantityUsed}
-                        onChange={(e) => {
-                          const newMats = [...materials];
-                          newMats[index].quantityUsed = e.target.value;
-                          setMaterials(newMats);
-                        }}
-                        className="w-32 h-9 rounded-xl border-zinc-200"
-                      />
-                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 rounded-xl" onClick={() => {
-                        const newMats = [...materials];
-                        newMats.splice(index, 1);
-                        setMaterials(newMats);
-                      }}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-                <Button type="submit" loading={isSubmitting} loadingText="Submitting...">
-                  {isGlobalAdmin ? "Submit & Approve" : "Submit for Approval"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
-
       {/* FLAG CLARIFICATION DIALOG */}
       <Dialog open={!!flaggingBatch} onOpenChange={(open) => !open && setFlaggingBatch(null)}>
         <DialogContent className="max-w-md bg-white rounded-3xl p-6 border border-[#EDE4D5]">
@@ -1409,6 +1264,18 @@ export default function ProductionPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* DELETE BATCH CONFIRM MODAL */}
+      <ConfirmModal
+        isOpen={!!deletingBatchId}
+        onClose={() => setDeletingBatchId(null)}
+        onConfirm={handleDeleteBatch}
+        isLoading={isDeleting}
+        title={t("production.deleteBatchTitle") || "Delete Production Batch"}
+        description={t("production.deleteBatchDesc") || "Are you sure you want to delete this production batch? This action cannot be undone."}
+        confirmText={t("common.delete") || "Delete"}
+        variant="danger"
+      />
 
     </DashboardLayout>
   );
