@@ -77,6 +77,11 @@ export const am: TranslationDictionary = {
     today: "ዛሬ",
     yesterday: "ትናንት",
     back: "ተመለስ",
+    units: {
+      piece: "ቁራጭ",
+      kg: "ኪ.ግ",
+      liter: "ሊትር",
+    },
   },
   nav: {
     portal: "ፖርታል",

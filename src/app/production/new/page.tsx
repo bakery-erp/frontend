@@ -61,11 +61,6 @@ interface StockItem {
   currentQuantity: number;
 }
 
-interface ActiveSession {
-  id: string;
-  status: "OPEN" | "PAUSED" | "CLOSE_PENDING" | "CLOSED";
-}
-
 function ProductionFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,11 +68,12 @@ function ProductionFormContent() {
   const isEditMode = Boolean(editBatchId);
 
   const { user } = useAuth();
-  const { selectedBranchId } = useBranch();
+  const { branches, selectedBranchId, setSelectedBranchId } = useBranch();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const isGlobalAdmin = user?.role === "ADMIN" || user?.role === "OWNER";
 
+  const [formBranchId, setFormBranchId] = useState<string>(selectedBranchId || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showModalBreakdown, setShowModalBreakdown] = useState(false);
@@ -103,6 +99,14 @@ function ProductionFormContent() {
   const [selectedProducts, setSelectedProducts] = useState<Record<string, string>>({});
   const [selectedMaterials, setSelectedMaterials] = useState<Record<string, string>>({});
 
+  // Initial loaded state for edit mode to prevent false positive dirty discard modals
+  const initialBatchStateRef = useRef<{
+    date: string;
+    shift: string;
+    products: Record<string, string>;
+    materials: Record<string, string>;
+  } | null>(null);
+
   // Auto-scroll active parent category tab to center
   useEffect(() => {
     const el = parentCatTabRefs.current[selectedParentCatId];
@@ -119,7 +123,23 @@ function ProductionFormContent() {
     }
   }, [selectedSubCatId]);
 
+  // Synchronize branch id from context
+  useEffect(() => {
+    if (selectedBranchId && !formBranchId) {
+      setFormBranchId(selectedBranchId);
+    }
+  }, [selectedBranchId, formBranchId]);
+
   const stationMeta = useMemo(() => getStationMeta(user?.role), [user?.role]);
+
+  const formatUnit = (unit?: string | null): string => {
+    if (!unit) return "";
+    const u = unit.toUpperCase();
+    if (u === "PIECE" || u === "PCS") return t("common.units.piece") || "Piece";
+    if (u === "KG" || u === "KILOGRAM") return t("common.units.kg") || "Kg";
+    if (u === "LITER" || u === "LITRE" || u === "L") return t("common.units.liter") || "Liter";
+    return unit;
+  };
 
   const stationBadgeLabel = useMemo(() => {
     switch (user?.role) {
@@ -134,21 +154,31 @@ function ProductionFormContent() {
     }
   }, [user?.role, t]);
 
+  const activeBranchId = formBranchId || selectedBranchId;
+
   const { data: pageData, isLoading } = useQuery({
-    queryKey: ['production-new-form', selectedBranchId, editBatchId, user?.role],
+    queryKey: ['production-new-form', activeBranchId, editBatchId, user?.role],
     placeholderData: (prev) => prev,
     staleTime: 60 * 1000,
     queryFn: async () => {
-      const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
-      const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
+      const branchQuery = activeBranchId ? `?branchId=${activeBranchId}` : "";
       const minimalParam = branchQuery ? `${branchQuery}&minimal=true` : "?minimal=true";
 
-      const [resCat, resProd, resStock, resSess, resBatch] = await Promise.all([
+      let batchData = null;
+      let batchError: string | null = null;
+      if (editBatchId) {
+        try {
+          const resBatch = await api.get(`/production-batches/${editBatchId}`);
+          batchData = resBatch.data;
+        } catch (err: any) {
+          batchError = err.response?.data?.error || "Production batch not found or cannot be edited.";
+        }
+      }
+
+      const [resCat, resProd, resStock] = await Promise.all([
         api.get("/product-categories"),
         api.get(`/products${minimalParam}`),
         api.get(`/stock-items${branchQuery}`),
-        api.get("/daily-sessions/active", sessionParams).catch(() => ({ data: null })),
-        editBatchId ? api.get(`/production-batches/${editBatchId}`).catch(() => ({ data: null })) : Promise.resolve({ data: null }),
       ]);
 
       const allCats: ProductCategory[] = resCat.data || [];
@@ -165,8 +195,8 @@ function ProductionFormContent() {
         categories: filteredCats,
         products: filteredProds,
         stockItems: (resStock.data || []) as StockItem[],
-        activeSession: resSess.data as ActiveSession | null,
-        batch: resBatch?.data || null,
+        batch: batchData,
+        batchError,
       };
     },
   });
@@ -174,7 +204,14 @@ function ProductionFormContent() {
   const categories = pageData?.categories || [];
   const products = pageData?.products || [];
   const stockItems = pageData?.stockItems || [];
-  const activeSession = pageData?.activeSession || null;
+
+  // Redirect and alert if batch could not be fetched in edit mode
+  useEffect(() => {
+    if (editBatchId && pageData?.batchError) {
+      toast.error(pageData.batchError);
+      router.push("/production");
+    }
+  }, [editBatchId, pageData?.batchError, router]);
 
   useEffect(() => {
     if (pageData?.batch && editBatchId) {
@@ -188,32 +225,45 @@ function ProductionFormContent() {
         return;
       }
 
+      const bDate = batch.date ? new Date(batch.date).toISOString().slice(0, 10) : date;
+      const bShift = batch.shift || "DAY";
       if (batch.date) {
-        setDate(new Date(batch.date).toISOString().slice(0, 10));
+        setDate(bDate);
       }
       if (batch.shift) {
-        setShift(batch.shift);
+        setShift(bShift);
       }
+      if (batch.branchId && !formBranchId) {
+        setFormBranchId(batch.branchId);
+      }
+
+      const pMap: Record<string, string> = {};
       if (Array.isArray(batch.items)) {
-        const pMap: Record<string, string> = {};
         batch.items.forEach((item: any) => {
           const pId = item.productId || item.product?.id;
           if (pId) pMap[pId] = String(item.quantityProduced);
         });
         setSelectedProducts(pMap);
       }
+
+      const mMap: Record<string, string> = {};
       if (Array.isArray(batch.materialUsages)) {
-        const mMap: Record<string, string> = {};
         batch.materialUsages.forEach((mat: any) => {
           const sId = mat.stockItemId || mat.stockItem?.id;
           if (sId) mMap[sId] = String(mat.quantityUsed);
         });
         setSelectedMaterials(mMap);
       }
+
+      // Record pristine initial state for accurate dirty-checking
+      initialBatchStateRef.current = {
+        date: bDate,
+        shift: bShift,
+        products: { ...pMap },
+        materials: { ...mMap },
+      };
     }
   }, [pageData?.batch, editBatchId, isGlobalAdmin, router]);
-
-  const isSessionOpen = activeSession?.status === "OPEN";
 
   // Filter Categories: Parent vs Sub-categories
   const parentCategories = useMemo(() => {
@@ -269,30 +319,23 @@ function ProductionFormContent() {
     });
   };
 
-  // Helper to format quantity inputs so typing replaces default '0'
-  const formatQtyInput = (rawVal: string, prevVal: string): string => {
+  // Helper to format quantity inputs cleanly without stripping legitimate numbers like 10, 20, 50
+  const formatQtyInput = (rawVal: string): string => {
     if (rawVal === "") return "";
-
-    // If previous was "0" and user typed to the left of 0 (e.g., typed "2" -> "20")
-    if (prevVal === "0" && rawVal.length === 2 && rawVal.endsWith("0")) {
-      return rawVal.slice(0, 1);
-    }
-
+    // Disallow negative values
+    if (rawVal.startsWith("-")) return "";
     // If user typed "00", keep as single "0"
     if (rawVal === "00") return "0";
-
-    // If input starts with "0" followed by a non-zero digit (e.g., "02" -> "2", "05" -> "5", but keep "0." / "0.5")
-    if (/^0[1-9]/.test(rawVal)) {
-      return rawVal.replace(/^0+/, "");
+    // If input starts with "0" followed by digits (e.g., "02" -> "2", "050" -> "50", but keep "0." / "0.5")
+    if (/^0\d+/.test(rawVal) && !rawVal.startsWith("0.")) {
+      return rawVal.replace(/^0+/, "") || "0";
     }
-
     return rawVal;
   };
 
   const updateProductQty = (productId: string, qty: string) => {
     setSelectedProducts((prev) => {
-      const prevVal = prev[productId] || "";
-      const formatted = formatQtyInput(qty, prevVal);
+      const formatted = formatQtyInput(qty);
       return {
         ...prev,
         [productId]: formatted,
@@ -315,8 +358,7 @@ function ProductionFormContent() {
 
   const updateMaterialQty = (stockItemId: string, qty: string) => {
     setSelectedMaterials((prev) => {
-      const prevVal = prev[stockItemId] || "";
-      const formatted = formatQtyInput(qty, prevVal);
+      const formatted = formatQtyInput(qty);
       return {
         ...prev,
         [stockItemId]: formatted,
@@ -356,6 +398,11 @@ function ProductionFormContent() {
   // Submit Request Handler (Opens Confirmation Modal)
   const handleRequestSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    if (!isEditMode && user?.role === "OWNER" && !activeBranchId) {
+      toast.error(t("production.selectBranchRequired") || "Please select a branch before saving the production batch.");
+      return;
+    }
 
     // On mobile (< 768px), if the user is in Step 1, pressing Go/Enter should proceed to Step 2 (Ingredients)
     // and NEVER jump directly to the confirmation modal without selecting raw materials
@@ -410,15 +457,22 @@ function ProductionFormContent() {
         await api.patch(`/production-batches/${editBatchId}`, payload);
         toast.success(t("production.toastBatchUpdatedSuccess"));
       } else {
+        const branchToUse = activeBranchId || user?.branchId;
+        if (!branchToUse) {
+          toast.error(t("production.selectBranchRequired") || "Please select a branch before saving the production batch.");
+          setIsSubmitting(false);
+          return;
+        }
+
         const payload = {
-          branchId: selectedBranchId || undefined,
+          branchId: branchToUse,
           date: isGlobalAdmin ? date : systemDate,
           shift,
           items: productEntries,
           materialUsages: materialEntries,
         };
 
-        const res = await api.post("/production-batches", payload);
+        await api.post("/production-batches", payload);
         toast.success(t("production.toastBatchCreatedSuccess") || "Production batch created successfully");
       }
 
@@ -429,7 +483,6 @@ function ProductionFormContent() {
         queryClient.invalidateQueries({ queryKey: ['production-worker-counts'] }),
         queryClient.invalidateQueries({ queryKey: ['production-batch-detail'] }),
         queryClient.invalidateQueries({ queryKey: ['production-history'] }),
-        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] }),
         queryClient.invalidateQueries({ queryKey: ['stock'] }),
         queryClient.invalidateQueries({ queryKey: ['stock-items'] }),
         queryClient.invalidateQueries({ queryKey: ['stock-movements'] }),
@@ -449,7 +502,39 @@ function ProductionFormContent() {
 
   const totalProductsSelectedCount = Object.keys(selectedProducts).length;
   const totalMaterialsSelectedCount = Object.keys(selectedMaterials).length;
-  const isDirty = (totalProductsSelectedCount > 0 || totalMaterialsSelectedCount > 0) && !isSubmitting;
+
+  const isDirty = useMemo(() => {
+    if (isSubmitting) return false;
+    if (isEditMode) {
+      const init = initialBatchStateRef.current;
+      if (!init) return false;
+      if (date !== init.date) return true;
+      if (shift !== init.shift) return true;
+      const currPKeys = Object.keys(selectedProducts);
+      const initPKeys = Object.keys(init.products || {});
+      if (currPKeys.length !== initPKeys.length) return true;
+      for (const k of currPKeys) {
+        if (selectedProducts[k] !== init.products?.[k]) return true;
+      }
+      const currMKeys = Object.keys(selectedMaterials);
+      const initMKeys = Object.keys(init.materials || {});
+      if (currMKeys.length !== initMKeys.length) return true;
+      for (const k of currMKeys) {
+        if (selectedMaterials[k] !== init.materials?.[k]) return true;
+      }
+      return false;
+    }
+    return totalProductsSelectedCount > 0 || totalMaterialsSelectedCount > 0;
+  }, [
+    isSubmitting,
+    isEditMode,
+    date,
+    shift,
+    selectedProducts,
+    selectedMaterials,
+    totalProductsSelectedCount,
+    totalMaterialsSelectedCount,
+  ]);
   const { showDiscardModal, guardedAction, confirmDiscard, cancelDiscard } = useUnsavedChanges({
     isDirty,
     fallbackUrl: "/production",
@@ -555,19 +640,69 @@ function ProductionFormContent() {
             </div>
           </div>
 
+          {/* Owner Branch Selection Banner on Mobile if branch unselected */}
+          {user?.role === "OWNER" && !isEditMode && (
+            <div className="md:hidden bg-white p-3.5 rounded-2xl border border-amber-300 shadow-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-[#2C1B10]">
+                  {t("branches.title") || "Production Branch"}
+                </label>
+                <span className="text-[10px] text-red-600 font-extrabold uppercase">* Required</span>
+              </div>
+              <select
+                value={formBranchId || selectedBranchId || ""}
+                onChange={(e) => {
+                  setFormBranchId(e.target.value);
+                  if (!selectedBranchId) {
+                    setSelectedBranchId(e.target.value);
+                  }
+                }}
+                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
+              >
+                <option value="" disabled>-- {t("production.selectBranchPrompt") || "Select Branch"} --</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Mobile Compact Shift & Date Bar (< md) */}
           <div className="md:hidden bg-white p-3 rounded-2xl border border-[#EDE4D5] shadow-xs flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 relative">
               <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 font-bold text-xs">
                 📅
               </div>
-              <div className="min-w-0">
-                <div className="text-xs font-black text-[#2C1B10] truncate">
-                  {formatEthDate(date)}
-                </div>
-                <span className="text-[10px] text-[#8C7361] font-semibold">
-                  {isGlobalAdmin ? "Admin" : t("production.todayBatches")}
-                </span>
+              <div className="min-w-0 relative">
+                {isGlobalAdmin ? (
+                  <div className="relative cursor-pointer">
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                      aria-label="Change batch date"
+                    />
+                    <div className="text-xs font-black text-[#2C1B10] truncate flex items-center gap-1 underline decoration-amber-500 underline-offset-2">
+                      <span>{formatEthDate(date)}</span>
+                      <Edit3 className="w-2.5 h-2.5 text-amber-600 inline shrink-0" />
+                    </div>
+                    <span className="text-[10px] text-amber-700 font-bold block">
+                      Admin (Tap to edit)
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-xs font-black text-[#2C1B10] truncate">
+                      {formatEthDate(date)}
+                    </div>
+                    <span className="text-[10px] text-[#8C7361] font-semibold">
+                      {t("production.todayBatches")}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -595,7 +730,32 @@ function ProductionFormContent() {
           </div>
 
           {/* Shift & Date Header Configuration (Desktop md+) */}
-          <div className="hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
+          <div className={`hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid-cols-1 ${user?.role === "OWNER" && !isEditMode ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-3 xs:gap-4`}>
+            {user?.role === "OWNER" && !isEditMode && (
+              <div>
+                <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
+                  {t("branches.title") || "Branch"} <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formBranchId || selectedBranchId || ""}
+                  onChange={(e) => {
+                    setFormBranchId(e.target.value);
+                    if (!selectedBranchId) {
+                      setSelectedBranchId(e.target.value);
+                    }
+                  }}
+                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
+                  required
+                >
+                  <option value="" disabled>-- {t("production.selectBranchPrompt") || "Select Branch"} --</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
                 {t("common.date")} {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
@@ -610,7 +770,7 @@ function ProductionFormContent() {
               />
               {!isGlobalAdmin && (
                 <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">
-                  🔒 {t("production.systemDateLabel", { date: new Date().toLocaleDateString() })}
+                  🔒 {t("production.systemDateLabel", { date: formatEthDate(new Date()) })}
                 </p>
               )}
             </div>
@@ -801,7 +961,7 @@ function ProductionFormContent() {
                           <div className="min-w-0 flex-1">
                             <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{p.name}</h4>
                             <span className="text-[11px] font-semibold text-[#8C7361] block">
-                              {p.category?.name || "Bakery"} • <strong className="text-[#4A2E1B]">{p.unitType}</strong>
+                              {p.category?.name || "Bakery"} • <strong className="text-[#4A2E1B]">{formatUnit(p.unitType)}</strong>
                             </span>
                           </div>
                         </div>
@@ -822,6 +982,7 @@ function ProductionFormContent() {
                             <Input
                               type="number"
                               inputMode="numeric"
+                              data-product-qty="true"
                               min="0"
                               placeholder="0"
                               value={qtyVal}
@@ -830,11 +991,13 @@ function ProductionFormContent() {
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.preventDefault();
-                                  (e.target as HTMLElement).blur();
-                                  const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
-                                  if (typeof window !== "undefined" && window.innerWidth < 768 && hasProductWithQty) {
-                                    setMobileStep(2);
-                                    window.scrollTo({ top: 0, behavior: "smooth" });
+                                  const qtyInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[data-product-qty="true"]'));
+                                  const idx = qtyInputs.indexOf(e.currentTarget);
+                                  if (idx >= 0 && idx < qtyInputs.length - 1) {
+                                    qtyInputs[idx + 1].focus();
+                                    qtyInputs[idx + 1].select();
+                                  } else {
+                                    e.currentTarget.blur();
                                   }
                                 }
                               }}
@@ -843,7 +1006,7 @@ function ProductionFormContent() {
                               }}
                               className="w-24 h-9 bg-white border-[#EDE4D5] font-bold text-sm text-[#2C1B10] text-right rounded-xl focus:border-[#E87A18]"
                             />
-                            <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{p.unitType}</span>
+                            <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{formatUnit(p.unitType)}</span>
                           </div>
                         </div>
                       )}
@@ -914,7 +1077,7 @@ function ProductionFormContent() {
                         <div className="min-w-0 flex-1">
                           <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{mat.name}</h4>
                           <span className="text-[11px] font-semibold text-[#8C7361] block">
-                            {t("production.unit")}: <strong className="text-indigo-950">{mat.unitType}</strong>
+                            {t("production.unit")}: <strong className="text-indigo-950">{formatUnit(mat.unitType)}</strong>
                           </span>
                         </div>
                       </div>
@@ -952,7 +1115,7 @@ function ProductionFormContent() {
                             }}
                             className="w-24 h-9 bg-white border-indigo-200 font-bold text-sm text-indigo-950 text-right rounded-xl focus:border-indigo-600"
                           />
-                          <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{mat.unitType}</span>
+                          <span className="text-xs font-bold text-[#8C7361] min-w-[3rem]">{formatUnit(mat.unitType)}</span>
                         </div>
                       </div>
                     )}
@@ -1139,7 +1302,7 @@ function ProductionFormContent() {
                         >
                           <span className="text-[#2C1B10] truncate mr-2">{item.product.name}</span>
                           <span className="text-[#E87A18] whitespace-nowrap">
-                            {item.qty} {item.product.unitType}
+                            {item.qty} {formatUnit(item.product.unitType)}
                           </span>
                         </div>
                       ))}
@@ -1164,7 +1327,7 @@ function ProductionFormContent() {
                           >
                             <span className="truncate mr-2">{mat.stockItem.name}</span>
                             <span className="whitespace-nowrap">
-                              {mat.qty} {mat.stockItem.unitType}
+                              {mat.qty} {formatUnit(mat.stockItem.unitType)}
                             </span>
                           </div>
                         ))}
