@@ -77,6 +77,11 @@ export const om: TranslationDictionary = {
     today: "Har'a",
     yesterday: "Kaleessa",
     back: "Duubatti",
+    units: {
+      piece: "Qorqooda",
+      kg: "Kg",
+      liter: "Liitira",
+    },
   },
   nav: {
     portal: "POORTAALII",

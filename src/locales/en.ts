@@ -75,6 +75,11 @@ export const en = {
     today: "Today",
     yesterday: "Yesterday",
     back: "Back",
+    units: {
+      piece: "Piece",
+      kg: "Kg",
+      liter: "Liter",
+    },
   },
   nav: {
     portal: "PORTAL",
