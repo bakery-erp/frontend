@@ -15,7 +15,7 @@ import { isRouteAllowed, getRoleHomeRoute } from '@/lib/routeGuard';
 import {
   LogOut, LayoutDashboard, Users, MapPin, Package,
   Banknote, Layers, Boxes, ArrowRightLeft, ChefHat, BarChart3, Truck,
-  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck, CreditCard, HandCoins
+  CalendarDays, DollarSign, Building2, Utensils, Search, Menu, X, History, UserCheck, CreditCard, HandCoins, Settings
 } from 'lucide-react';
 
 export const DashboardLayoutContext = React.createContext<{ isNested: boolean }>({ isNested: false });
@@ -125,6 +125,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ] : []),
     ...(isOwner ? [
       { icon: BarChart3, label: t('nav.reports'), href: '/reports' }
+    ] : []),
+    ...(isOwner ? [
+      { icon: Settings, label: t('nav.settings'), href: '/settings' }
     ] : []),
   ];
 

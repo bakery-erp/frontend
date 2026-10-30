@@ -9,6 +9,7 @@ import { useBranch } from '@/context/BranchContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
+import { formatEthDate } from '@/lib/ethiopianDate';
 import {
   Truck,
   Plus,
@@ -720,7 +721,7 @@ export default function SuppliersPage() {
                   return (
                     <TableRow key={d.id} className="hover:bg-[#FAF6F0]/40">
                       <TableCell className="text-xs font-semibold text-[#8C7361]">
-                        {new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {formatEthDate(d.createdAt)}
                       </TableCell>
                       <TableCell className="font-extrabold text-[#2C1B10]">
                         <Link href={`/suppliers/${d.supplierId}`} className="hover:text-[#E87A18] hover:underline flex items-center gap-1">
@@ -843,7 +844,7 @@ export default function SuppliersPage() {
                       <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
                         <Clock className="w-3.5 h-3.5 text-[#E87A18]" />
                         <span className="font-bold text-[#4A2E1B]">
-                          {new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {formatEthDate(d.createdAt)}
                         </span>
                       </div>
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-2xs ${

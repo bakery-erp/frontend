@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -601,12 +602,10 @@ export default function PayrollLoansPage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date')}</label>
-                  <Input
+                  <AppDatePicker
                     name="date"
-                    type="date"
                     defaultValue={((editingLoan as any).date || editingLoan.createdAt || "").split("T")[0]}
                     required
-                    className="h-10 rounded-xl border-zinc-200"
                   />
                 </div>
                 <div>

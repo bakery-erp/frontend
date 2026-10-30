@@ -16,11 +16,78 @@ const ETH_MONTHS = [
   "Pagume"
 ];
 
+const GREG_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec"
+];
+
+const GREG_FULL_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+];
+
 /**
- * Converts a JS Date, timestamp string, or ISO string to Ethiopian Calendar format.
- * Example: "Nehase 25, 2018" or "Nehase 25, 2018 14:30"
+ * Returns the active calendar preference stored in localStorage.
+ * Defaults to "ETHIOPIAN".
  */
-export function formatEthDate(dateInput: Date | string | number | null | undefined, includeTime = false): string {
+export function getActiveCalendarPreference(): "ETHIOPIAN" | "GREGORIAN" {
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("bakery_calendar_preference");
+      if (saved === "GREGORIAN") return "GREGORIAN";
+    } catch {
+      // Ignore localStorage exceptions
+    }
+  }
+  return "ETHIOPIAN";
+}
+
+/**
+ * Pure Gregorian date formatter
+ */
+export function formatGregDate(dateInput: Date | string | number | null | undefined, includeTime = false): string {
+  if (!dateInput) return "N/A";
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return "N/A";
+
+    const monthName = GREG_MONTHS[d.getMonth()];
+    const dateStr = `${monthName} ${d.getDate()}, ${d.getFullYear()}`;
+
+    if (!includeTime) return dateStr;
+
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${dateStr} · ${hours}:${minutes}`;
+  } catch {
+    return String(dateInput);
+  }
+}
+
+/**
+ * Pure Ethiopian Calendar formatter
+ */
+export function formatPureEthDate(dateInput: Date | string | number | null | undefined, includeTime = false): string {
   if (!dateInput) return "N/A";
   try {
     const d = new Date(dateInput);
@@ -35,16 +102,37 @@ export function formatEthDate(dateInput: Date | string | number | null | undefin
     const hours = String(d.getHours()).padStart(2, "0");
     const minutes = String(d.getMinutes()).padStart(2, "0");
     return `${dateStr} · ${hours}:${minutes}`;
-  } catch (e) {
+  } catch {
     return String(dateInput);
   }
 }
 
 /**
- * Returns Ethiopian month name by month index (1-13)
+ * Main application date formatter.
+ * Automatically checks the system calendar preference ("ETHIOPIAN" vs "GREGORIAN")
+ * and formats accordingly.
+ * Note: Named formatEthDate for drop-in compatibility with existing codebase pages.
+ */
+export function formatEthDate(dateInput: Date | string | number | null | undefined, includeTime = false): string {
+  if (getActiveCalendarPreference() === "GREGORIAN") {
+    return formatGregDate(dateInput, includeTime);
+  }
+  return formatPureEthDate(dateInput, includeTime);
+}
+
+/**
+ * Alias for formatEthDate
+ */
+export const formatAppDate = formatEthDate;
+
+/**
+ * Returns month name based on active calendar
  */
 export function getEthMonthName(monthIndex: number): string {
+  if (getActiveCalendarPreference() === "GREGORIAN") {
+    return GREG_FULL_MONTHS[monthIndex - 1] || `Month ${monthIndex}`;
+  }
   return ETH_MONTHS[monthIndex - 1] || `Month ${monthIndex}`;
 }
 
-export { ETH_MONTHS, EthDateTime };
+export { ETH_MONTHS, GREG_MONTHS, GREG_FULL_MONTHS, EthDateTime };

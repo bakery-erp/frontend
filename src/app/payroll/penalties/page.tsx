@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { useLanguage } from "@/context/LanguageContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -487,7 +488,7 @@ export default function PayrollPenaltiesPage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date')}</label>
-                <Input name="date" type="date" required defaultValue={new Date().toISOString().split("T")[0]} className="h-10 rounded-xl border-zinc-200" />
+                <AppDatePicker name="date" required defaultValue={new Date().toISOString().split("T")[0]} />
               </div>
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
                 <input
@@ -563,7 +564,7 @@ export default function PayrollPenaltiesPage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date')}</label>
-                  <Input name="date" type="date" defaultValue={editingPenalty.date.split("T")[0]} required className="h-10 rounded-xl border-zinc-200" />
+                  <AppDatePicker name="date" defaultValue={editingPenalty.date.split("T")[0]} required />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.status')}</label>

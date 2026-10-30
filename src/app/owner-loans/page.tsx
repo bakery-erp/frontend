@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -1019,11 +1020,10 @@ export default function OwnerLoansPage() {
                   <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
                     {t("ownerLoans.fieldDate")} *
                   </label>
-                  <Input
-                    type="date"
+                  <AppDatePicker
                     required
                     value={logDate}
-                    onChange={(e) => setLogDate(e.target.value)}
+                    onChange={(val) => setLogDate(val)}
                     className="h-11 rounded-xl border-[#EDE4D5] text-xs sm:text-sm font-semibold"
                   />
                 </div>
@@ -1172,11 +1172,10 @@ export default function OwnerLoansPage() {
                     <label className="text-xs font-bold text-[#4A2E1B] block mb-1 uppercase tracking-wider">
                       {t("ownerLoans.fieldPayDate")} *
                     </label>
-                    <Input
-                      type="date"
+                    <AppDatePicker
                       required
                       value={payDate}
-                      onChange={(e) => setPayDate(e.target.value)}
+                      onChange={(val) => setPayDate(val)}
                       className="h-11 rounded-xl border-[#EDE4D5] text-xs sm:text-sm font-semibold"
                     />
                   </div>

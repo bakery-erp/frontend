@@ -14,6 +14,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useBranch } from "@/context/BranchContext";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { format } from "date-fns";
+import { formatEthDate } from "@/lib/ethiopianDate";
 import { 
   ArrowLeft, 
   AlertCircle, 
@@ -922,7 +923,7 @@ export default function StockItemDetailPage() {
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-semibold text-xs text-[#8C7361] whitespace-nowrap">
-                        {format(new Date(m.createdAt), "MMM d, yyyy · h:mm a")}
+                        {formatEthDate(m.createdAt, true)}
                       </TableCell>
                       <TableCell>
                         {getMovementBadge(m.type, m.reason)}
@@ -1033,7 +1034,7 @@ export default function StockItemDetailPage() {
                         )}
                       </div>
                       <span className="text-[10px] font-semibold text-[#8C7361] block">
-                        {format(new Date(m.createdAt), "MMM d, yyyy · h:mm a")}
+                        {formatEthDate(m.createdAt, true)}
                       </span>
                     </div>
                     <div className="text-right shrink-0">
@@ -1338,7 +1339,7 @@ export default function StockItemDetailPage() {
                             +{Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                           </div>
                           <div className="text-[10px] text-[#8C7361]">
-                            By {p.user?.fullName || "Staff"} · {format(new Date(p.createdAt), "MMM d, yyyy · h:mm a")}
+                            By {p.user?.fullName || "Staff"} · {formatEthDate(p.createdAt, true)}
                           </div>
                           {p.note && <div className="text-[10px] text-zinc-600 italic mt-0.5">{p.note}</div>}
                         </div>

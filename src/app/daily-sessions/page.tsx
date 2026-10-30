@@ -19,6 +19,7 @@ import { TableSkeleton, CardGridSkeleton } from '@/components/ui/skeletons';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { PaginationControls } from '@/components/ui/PaginationControls';
+import { formatEthDate } from '@/lib/ethiopianDate';
 
 interface DailySession {
   id: string;
@@ -381,7 +382,7 @@ export default function DailySessionsPage() {
                   <h3 className="font-extrabold text-base text-[#2C1B10]">
                     {todaySession.label && !todaySession.label.startsWith('Session -')
                       ? todaySession.label
-                      : `Daily Closing — ${new Date(todaySession.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`}
+                      : `Daily Closing — ${formatEthDate(todaySession.date)}`}
                   </h3>
                   {todaySession.status === 'OPEN' && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
@@ -400,7 +401,7 @@ export default function DailySessionsPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-[#8C7361] mt-1 flex-wrap font-medium">
-                  <span>📅 {new Date(todaySession.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                  <span>📅 {formatEthDate(todaySession.date)}</span>
                   <span>•</span>
                   <span>🏢 {branches.find((b) => b.id === todaySession.branchId)?.name || 'Main Branch'}</span>
                   <span>•</span>
@@ -624,7 +625,7 @@ export default function DailySessionsPage() {
         ) : (
           historySessions.map((sess) => {
             const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
-            const formattedDate = new Date(sess.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            const formattedDate = formatEthDate(sess.date);
             return (
               <div
                 key={sess.id}
@@ -770,7 +771,7 @@ export default function DailySessionsPage() {
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{isTodayOnly ? "No past session recorded for today." : "No past sessions found in history. Active session is running above."}</TableCell></TableRow>
             ) : historySessions.map((sess) => {
               const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
-              const formattedDate = new Date(sess.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+              const formattedDate = formatEthDate(sess.date);
               return (
                 <TableRow key={sess.id}>
                   <TableCell className="font-bold text-[#2C1B10]">

@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatEthDate } from '@/lib/ethiopianDate';
+import { AppDatePicker } from '@/components/AppDatePicker';
 import {
   Coins,
   DollarSign,
@@ -287,25 +288,23 @@ export default function FinancialReportsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
-            <Input
-              type="date"
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs w-full sm:w-auto">
+            <AppDatePicker
               value={from}
-              onChange={(e) => {
-                setFrom(e.target.value);
+              onChange={(val) => {
+                setFrom(val);
                 setActivePreset('custom');
               }}
-              className="flex-1 sm:w-32 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-mono"
+              className="w-full sm:w-auto h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5]"
             />
-            <span className="text-[#8C7361] font-bold shrink-0">{t('reports.to')}</span>
-            <Input
-              type="date"
+            <span className="text-[#8C7361] font-bold self-center shrink-0">{t('reports.to')}</span>
+            <AppDatePicker
               value={to}
-              onChange={(e) => {
-                setTo(e.target.value);
+              onChange={(val) => {
+                setTo(val);
                 setActivePreset('custom');
               }}
-              className="flex-1 sm:w-32 h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-mono"
+              className="w-full sm:w-auto h-9 text-xs bg-[#FAF6F0] border-[#EDE4D5]"
             />
             <Button
               size="sm"

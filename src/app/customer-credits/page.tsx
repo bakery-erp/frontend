@@ -18,6 +18,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton } from "@/components/ui/skeletons";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import {
   Plus,
   CreditCard,
@@ -811,7 +813,7 @@ export default function CustomerCreditsPage() {
                               className="hover:bg-[#FAF8F5]/80 transition-colors cursor-pointer"
                             >
                               <TableCell className="font-bold text-[#2C1B10] text-xs whitespace-nowrap">
-                                {c.date ? format(new Date(c.date), "MMM d, yyyy") : format(new Date(c.createdAt), "MMM d, yyyy")}
+                                {formatEthDate(c.date || c.createdAt)}
                               </TableCell>
 
                               {/* Customer & Contact Column */}
@@ -894,7 +896,7 @@ export default function CustomerCreditsPage() {
                                 {c.payments && c.payments.length > 0 ? (
                                   <div className="space-y-1">
                                     <div className="text-[11px] bg-[#FAF6F0] px-2 py-0.5 rounded border border-[#EDE4D5] flex items-center justify-between font-mono">
-                                      <span className="text-[#8C7361]">{format(new Date(c.payments[c.payments.length - 1].date || c.payments[c.payments.length - 1].createdAt), "MMM d")}</span>
+                                      <span className="text-[#8C7361]">{formatEthDate(c.payments[c.payments.length - 1].date || c.payments[c.payments.length - 1].createdAt)}</span>
                                       <span className="font-bold text-emerald-700">-{Number(c.payments[c.payments.length - 1].amount ?? c.payments[c.payments.length - 1].amountPaid ?? 0).toFixed(0)} ETB</span>
                                     </div>
                                     {c.payments.length > 1 && (
@@ -1029,9 +1031,7 @@ export default function CustomerCreditsPage() {
                       const totalAmt = Number(c.amount ?? c.totalAmount ?? 0);
                       const remAmt = Number(c.remainingBalance || 0);
                       const isPaid = c.status === "PAID" || remAmt <= 0.01;
-                      const formattedDate = c.date
-                        ? format(new Date(c.date), "MMM d, yyyy")
-                        : format(new Date(c.createdAt), "MMM d, yyyy");
+                      const formattedDate = formatEthDate(c.date || c.createdAt);
 
                       return (
                         <div
@@ -1537,11 +1537,10 @@ export default function CustomerCreditsPage() {
                 <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
                   {t("credits.paymentDateLabel")} <span className="text-rose-500">*</span>
                 </label>
-                <Input
-                  type="date"
+                <AppDatePicker
                   required
                   value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
+                  onChange={(val) => setPaymentDate(val)}
                   className="rounded-xl text-xs font-bold"
                 />
               </div>
@@ -1775,11 +1774,10 @@ export default function CustomerCreditsPage() {
                 <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
                   {t("common.date")} <span className="text-rose-500">*</span>
                 </label>
-                <Input
-                  type="date"
+                <AppDatePicker
                   required
                   value={editCreditDate}
-                  onChange={(e) => setEditCreditDate(e.target.value)}
+                  onChange={(val) => setEditCreditDate(val)}
                   className="rounded-xl text-xs font-bold"
                 />
               </div>
@@ -1789,10 +1787,9 @@ export default function CustomerCreditsPage() {
               <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
                 {t("credits.dueDateLabel") || "Due Date"}
               </label>
-              <Input
-                type="date"
+              <AppDatePicker
                 value={editCreditDueDate}
-                onChange={(e) => setEditCreditDueDate(e.target.value)}
+                onChange={(val) => setEditCreditDueDate(val)}
                 className="rounded-xl text-xs font-bold"
               />
             </div>

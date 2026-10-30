@@ -41,7 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { EthDateTime } from "ethiopian-calendar-date-converter";
-import { formatEthDate } from "@/lib/ethiopianDate";
+import { formatEthDate, getEthMonthName } from "@/lib/ethiopianDate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -516,7 +516,7 @@ export default function PayrollPage() {
                         isPaid;
                       return (
                         <option key={m} value={m} disabled={isDisabled}>
-                          {ETH_MONTHS[m - 1]} {isPaid ? "✓ (Paid)" : ""}
+                          {getEthMonthName(m)} {isPaid ? "✓ (Paid)" : ""}
                         </option>
                       );
                     })}
@@ -595,7 +595,7 @@ export default function PayrollPage() {
                     <div className="p-6 space-y-6">
                       {isTermPaid && (
                         <div className="bg-amber-100 border border-amber-300 rounded-xl p-3.5 px-4 text-amber-900 font-bold text-xs flex items-center justify-between shadow-xs">
-                          <span>⚠️ Payroll for this employee for {ETH_MONTHS[selectedMonth - 1]} {selectedYear} has ALREADY been processed.</span>
+                          <span>⚠️ Payroll for this employee for {getEthMonthName(selectedMonth)} {selectedYear} has ALREADY been processed.</span>
                           <Badge className="bg-amber-700 text-white font-extrabold text-[10px]">PAID</Badge>
                         </div>
                       )}
@@ -830,7 +830,7 @@ export default function PayrollPage() {
                         disabled={isProcessing || isTermPaid}
                       >
                         {isTermPaid
-                          ? `Already Paid for ${ETH_MONTHS[selectedMonth - 1]} ${selectedYear}`
+                          ? `Already Paid for ${getEthMonthName(selectedMonth)} ${selectedYear}`
                           : isProcessing
                           ? "Processing & Deducting..."
                           : "Confirm & Save Payroll Run"}
@@ -882,7 +882,7 @@ export default function PayrollPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="font-extrabold text-base text-[#2C1B10]">
-                        {ETH_MONTHS[r.month - 1]} {r.year}
+                        {getEthMonthName(r.month)} {r.year}
                       </span>
                       <p className="text-xs text-[#8C7361] mt-0.5">
                         {r.user?.fullName}{" "}
@@ -982,7 +982,7 @@ export default function PayrollPage() {
                   history.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-extrabold text-[#2C1B10]">
-                        {ETH_MONTHS[r.month - 1]} {r.year}
+                        {getEthMonthName(r.month)} {r.year}
                       </TableCell>
                       <TableCell>
                         <span className="font-bold text-[#2C1B10]">{r.user?.fullName}</span>{" "}
@@ -1683,7 +1683,7 @@ export default function PayrollPage() {
               <div className="grid gap-4 py-4">
                 <div className="p-3 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl text-xs space-y-1">
                   <p className="font-bold text-[#2C1B10]">
-                    {editingPayroll.user?.fullName} — {ETH_MONTHS[editingPayroll.month - 1]} {editingPayroll.year}
+                    {editingPayroll.user?.fullName} — {getEthMonthName(editingPayroll.month)} {editingPayroll.year}
                   </p>
                 </div>
 

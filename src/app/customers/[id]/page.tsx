@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
+import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetailSkeleton, KpiCardsSkeleton } from "@/components/ui/skeletons";
@@ -646,10 +648,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       return (
                         <TableRow key={cr.id} className="border-b border-[#EDE4D5]/60 hover:bg-[#FAF6F0]/50 transition-colors">
                           <TableCell className="font-mono text-xs font-bold text-[#2C1B10]">
-                            {cr.date ? format(new Date(cr.date), "yyyy-MM-dd") : "-"}
+                            {cr.date ? formatEthDate(cr.date) : "-"}
                           </TableCell>
                           <TableCell className="font-mono text-xs text-[#8C7361]">
-                            {cr.dueDate ? format(new Date(cr.dueDate), "yyyy-MM-dd") : "-"}
+                            {cr.dueDate ? formatEthDate(cr.dueDate) : "-"}
                           </TableCell>
                           <TableCell className="max-w-[260px]">
                             {parsed.items.length > 0 ? (
@@ -756,11 +758,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                         <div>
                           <div className="flex items-center gap-1.5 text-xs font-bold text-[#2C1B10]">
                             <Calendar className="w-3.5 h-3.5 text-[#E87A18]" />
-                            {cr.date ? format(new Date(cr.date), "MMM d, yyyy") : "-"}
+                            {cr.date ? formatEthDate(cr.date) : "-"}
                           </div>
                           {cr.dueDate && (
                             <span className="text-[10px] text-[#8C7361] block mt-0.5">
-                              Due: {format(new Date(cr.dueDate), "MMM d, yyyy")}
+                              Due: {formatEthDate(cr.dueDate)}
                             </span>
                           )}
                         </div>
@@ -889,10 +891,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       return (
                         <TableRow key={p.id} className="border-b border-[#EDE4D5]/60 hover:bg-[#FAF6F0]/50 transition-colors">
                           <TableCell className="font-mono text-xs font-bold text-[#2C1B10]">
-                            {p.date ? format(new Date(p.date), "yyyy-MM-dd") : format(new Date(p.createdAt), "yyyy-MM-dd")}
+                            {formatEthDate(p.date || p.createdAt)}
                           </TableCell>
                           <TableCell className="text-xs">
-                            <span className="font-semibold text-[#4A2E1B]">Credit of {format(new Date(p.creditDate), "MMM d, yyyy")}</span>
+                            <span className="font-semibold text-[#4A2E1B]">Credit of {formatEthDate(p.creditDate)}</span>
                             <span className="text-[10px] text-[#8C7361] block font-mono">Total: {Number(p.creditTotal).toFixed(2)} ETB</span>
                           </TableCell>
                           <TableCell className="text-right font-mono font-bold text-xs text-emerald-700">
@@ -934,7 +936,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       <div className="flex items-start justify-between gap-2 border-b border-[#F4ECE1] pb-2">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-[#2C1B10]">
                           <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                          {p.date ? format(new Date(p.date), "MMM d, yyyy") : format(new Date(p.createdAt), "MMM d, yyyy")}
+                          {formatEthDate(p.date || p.createdAt)}
                         </div>
                         <span className="font-mono font-black text-sm text-emerald-700">
                           +{payVal.toFixed(2)} ETB
@@ -943,7 +945,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-[#8C7361]">
-                          Credit on {format(new Date(p.creditDate), "MMM d, yyyy")}
+                          Credit on {formatEthDate(p.creditDate)}
                         </span>
                         <Button
                           size="sm"
@@ -988,7 +990,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#8C7361] font-medium">Credit Date:</span>
-                    <span className="font-bold text-[#2C1B10]">{format(new Date(payingCredit.date), "MMM d, yyyy")}</span>
+                    <span className="font-bold text-[#2C1B10]">{formatEthDate(payingCredit.date)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#8C7361] font-medium">Total Credit Value:</span>
@@ -1031,11 +1033,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   <label className="text-xs font-bold text-[#2C1B10] uppercase block mb-1">
                     {t("common.date") || "Payment Date"} <span className="text-rose-500">*</span>
                   </label>
-                  <Input
-                    type="date"
+                  <AppDatePicker
                     required
                     value={paymentDate}
-                    onChange={(e) => setPaymentDate(e.target.value)}
+                    onChange={(val) => setPaymentDate(val)}
                     className="rounded-xl text-xs font-bold"
                   />
                 </div>
@@ -1181,11 +1182,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
                       {t("common.date") || "Issue Date"} <span className="text-rose-500">*</span>
                     </label>
-                    <Input
-                      type="date"
+                    <AppDatePicker
                       required
                       value={editCreditDate}
-                      onChange={(e) => setEditCreditDate(e.target.value)}
+                      onChange={(val) => setEditCreditDate(val)}
                       className="rounded-xl text-xs font-bold"
                     />
                   </div>
@@ -1195,10 +1195,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
                     {t("credits.dueDateLabel") || "Due Date"}
                   </label>
-                  <Input
-                    type="date"
+                  <AppDatePicker
                     value={editCreditDueDate}
-                    onChange={(e) => setEditCreditDueDate(e.target.value)}
+                    onChange={(val) => setEditCreditDueDate(val)}
                     className="rounded-xl text-xs font-bold"
                   />
                 </div>

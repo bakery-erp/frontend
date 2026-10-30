@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { 
   PackageCheck, 
   DollarSign, 
@@ -361,26 +362,22 @@ export default function DailyProductHistoryPage() {
               {/* Date Range & Search */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
                 {/* Date Range Inputs */}
-                <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
-                  <input
-                    type="date"
+                <div className="flex flex-col sm:flex-row gap-1.5 w-full sm:w-auto">
+                  <AppDatePicker
                     value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
+                    onChange={(val) => {
+                      setStartDate(val);
                       setCurrentPage(1);
                     }}
-                    className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
-                    aria-label="Start Date"
+                    className="bg-[#FAF6F0] border-[#EDE4D5] h-9 text-xs font-semibold w-full sm:w-36"
                   />
-                  <input
-                    type="date"
+                  <AppDatePicker
                     value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
+                    onChange={(val) => {
+                      setEndDate(val);
                       setCurrentPage(1);
                     }}
-                    className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-9 px-2 text-xs font-semibold text-[#2C1B10] focus:outline-none w-full sm:w-36"
-                    aria-label="End Date"
+                    className="bg-[#FAF6F0] border-[#EDE4D5] h-9 text-xs font-semibold w-full sm:w-36"
                   />
                 </div>
 
