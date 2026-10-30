@@ -29,6 +29,7 @@ import {
   Search,
   Layers,
   ShoppingBag,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,8 +78,8 @@ function NewDeliveryContent() {
     }
   }, [user, router]);
 
-  // 3-step wizard state
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  // 4-step wizard state
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Step 1: Supplier selection
   const [supplierId, setSupplierId] = useState(preselectedSupplierId);
@@ -337,7 +338,7 @@ function NewDeliveryContent() {
                 New Supplier Delivery Receipt
               </h1>
               <p className="text-xs text-[#8C7361] font-medium">
-                Step {currentStep} of 3: {currentStep === 1 ? 'Choose Supplier' : currentStep === 2 ? 'Select Delivered Products & Rates' : 'Review & Payment Verification'}
+                Step {currentStep} of 4: {currentStep === 1 ? 'Choose Supplier' : currentStep === 2 ? 'Select Delivered Products & Rates' : currentStep === 3 ? 'Review Delivered Products' : 'Payment Settlement'}
               </p>
             </div>
           </div>
@@ -351,79 +352,78 @@ function NewDeliveryContent() {
           </Button>
         </div>
 
-        {/* 3-Step Wizard Navigation Stepper */}
-        <div className="grid grid-cols-3 gap-2 mb-6">
-          <button
-            type="button"
-            onClick={() => setCurrentStep(1)}
-            className={`p-3 rounded-2xl border text-left transition-all ${
-              currentStep === 1
-                ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-sm'
-                : canProceedFromStep1
-                ? 'bg-white text-[#4A2E1B] border-emerald-300 hover:bg-[#FAF6F0]'
-                : 'bg-white/60 text-[#8C7361] border-[#EDE4D5]'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                currentStep === 1 ? 'bg-[#E87A18] text-white' : canProceedFromStep1 ? 'bg-emerald-100 text-emerald-800' : 'bg-[#EDE4D5] text-[#8C7361]'
-              }`}>
-                {canProceedFromStep1 && currentStep !== 1 ? '✓' : '1'}
+        {/* Production-Style 4-Step Navigation Header */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-3xl border border-[#EDE4D5] shadow-xs space-y-3 mb-6">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-7 h-7 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+                {currentStep}
               </span>
-              <span className="text-xs font-extrabold truncate">1. Supplier</span>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-extrabold text-[#8C7361] tracking-wider block">
+                  Step {currentStep} of 4
+                </span>
+                <h2 className="text-xs sm:text-sm font-black text-[#2C1B10] truncate">
+                  {currentStep === 1 && "Step 1: Choose Supplier"}
+                  {currentStep === 2 && "Step 2: Select Delivered Products & Rates"}
+                  {currentStep === 3 && "Step 3: Review Delivered Products"}
+                  {currentStep === 4 && "Step 4: Payment Settlement"}
+                </h2>
+              </div>
             </div>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (canProceedFromStep1) setCurrentStep(2);
-              else toast.error('Please select a supplier first');
-            }}
-            className={`p-3 rounded-2xl border text-left transition-all ${
-              currentStep === 2
-                ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-sm'
-                : canProceedFromStep2
-                ? 'bg-white text-[#4A2E1B] border-emerald-300 hover:bg-[#FAF6F0]'
-                : 'bg-white/60 text-[#8C7361] border-[#EDE4D5]'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                currentStep === 2 ? 'bg-[#E87A18] text-white' : canProceedFromStep2 ? 'bg-emerald-100 text-emerald-800' : 'bg-[#EDE4D5] text-[#8C7361]'
-              }`}>
-                {canProceedFromStep2 && currentStep !== 2 ? '✓' : '2'}
-              </span>
-              <span className="text-xs font-extrabold truncate">2. Products</span>
+            {/* Step Status Chip / Back Navigation */}
+            <div className="flex items-center gap-2 shrink-0">
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3 | 4) : 1));
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#E87A18] hover:text-[#4A2E1B] transition-colors cursor-pointer px-2 py-1 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5]"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  <span className="hidden xs:inline">Back</span>
+                </button>
+              )}
+              {currentStep === 1 && selectedSupplier && (
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 truncate max-w-[140px]">
+                  {selectedSupplier.name}
+                </span>
+              )}
+              {currentStep === 2 && (
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200">
+                  {selectedItemsList.length} Selected ({totalItemsCount} Units)
+                </span>
+              )}
+              {currentStep === 3 && (
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 font-mono">
+                  {totalCost.toFixed(2)} ETB
+                </span>
+              )}
+              {currentStep === 4 && (
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-900 border-emerald-200 font-mono">
+                  Paid: {numPaidNow.toFixed(2)} ETB
+                </span>
+              )}
             </div>
-          </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (!canProceedFromStep1) {
-                toast.error('Please select a supplier first');
-              } else if (!canProceedFromStep2) {
-                toast.error('Please enter products, quantities, and buy prices');
-              } else {
-                setCurrentStep(3);
-              }
-            }}
-            className={`p-3 rounded-2xl border text-left transition-all ${
-              currentStep === 3
-                ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-sm'
-                : 'bg-white/60 text-[#8C7361] border-[#EDE4D5]'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                currentStep === 3 ? 'bg-[#E87A18] text-white' : 'bg-[#EDE4D5] text-[#8C7361]'
-              }`}>
-                3
-              </span>
-              <span className="text-xs font-extrabold truncate">3. Verification</span>
-            </div>
-          </button>
+          {/* Visual Step Progress Bar (25% -> 50% -> 75% -> 100%) */}
+          <div className="w-full bg-[#FAF6F0] h-1.5 rounded-full overflow-hidden border border-[#EDE4D5]">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                currentStep === 1
+                  ? "w-1/4 bg-[#E87A18]"
+                  : currentStep === 2
+                  ? "w-2/4 bg-[#E87A18]"
+                  : currentStep === 3
+                  ? "w-3/4 bg-[#E87A18]"
+                  : "w-full bg-emerald-600"
+              }`}
+            />
+          </div>
         </div>
 
         {/* STEP 1: CHOOSE SUPPLIER */}
@@ -739,7 +739,7 @@ function NewDeliveryContent() {
                   }}
                   className="h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  <span>Next: Summary & Payment ({selectedItemsList.length})</span>
+                  <span>Next: Review Products ({selectedItemsList.length})</span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </Button>
               </div>
@@ -747,11 +747,11 @@ function NewDeliveryContent() {
           </div>
         )}
 
-        {/* STEP 3: VERIFICATION, PAYMENT MODE & SUBMISSION */}
+        {/* STEP 3: REVIEW DELIVERED PRODUCTS */}
         {currentStep === 3 && (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
             {/* Supplier Card */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 shadow-xs flex items-center justify-between gap-3">
+            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-amber-100/70 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0">
                   <Truck className="w-6 h-6" />
@@ -770,58 +770,71 @@ function NewDeliveryContent() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentStep(1)}
-                className="h-8 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl"
+                className="h-8 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl self-end sm:self-center cursor-pointer"
               >
                 Change Supplier
               </Button>
             </div>
 
             {/* Products Table Summary */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-[#F4ECE1] pb-3">
-                <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-[#E87A18]" />
-                  <span>Delivered Products ({selectedItemsList.length})</span>
-                </h3>
+            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-[#F4ECE1] pb-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-[#E87A18]">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm sm:text-base text-[#2C1B10]">
+                      Delivered Products
+                    </h3>
+                    <p className="text-[11px] text-[#8C7361] font-semibold">
+                      {selectedItemsList.length} distinct item{selectedItemsList.length === 1 ? '' : 's'} ({totalItemsCount} total units)
+                    </p>
+                  </div>
+                </div>
+
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentStep(2)}
-                  className="h-8 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl"
+                  className="h-8 px-3 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl text-[#4A2E1B] flex items-center gap-1.5 cursor-pointer"
                 >
-                  Edit Products
+                  <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
+                  <span>Edit Products</span>
                 </Button>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-2xl border border-[#F4ECE1]">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#F4ECE1] text-[#8C7361]">
-                      <th className="py-2 font-bold uppercase text-[10px]">Product</th>
-                      <th className="py-2 text-center font-bold uppercase text-[10px]">Qty Received</th>
-                      <th className="py-2 text-right font-bold uppercase text-[10px]">Buy Rate</th>
-                      <th className="py-2 text-right font-bold uppercase text-[10px]">Sell Rate</th>
-                      <th className="py-2 text-right font-bold uppercase text-[10px]">Subtotal Cost</th>
+                    <tr className="bg-[#FAF6F0]/70 text-[#8C7361] border-b border-[#F4ECE1]">
+                      <th className="py-2.5 px-3 font-extrabold uppercase text-[10px]">Product</th>
+                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">Qty Received</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Buy Rate</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Sell Rate</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Subtotal Cost</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F4ECE1]">
                     {selectedItemsList.map((it) => (
-                      <tr key={it.productId} className="font-medium text-[#2C1B10]">
-                        <td className="py-2.5">
-                          <span className="font-bold block">{getItemName(it.product)}</span>
-                          <span className="text-[10px] text-[#8C7361]">{it.product?.category?.name || 'Resell'}</span>
+                      <tr key={it.productId} className="hover:bg-[#FAF6F0]/40 transition-colors">
+                        <td className="py-3 px-3">
+                          <span className="font-black text-sm text-[#2C1B10] block">{getItemName(it.product)}</span>
+                          <span className="text-[10px] text-[#8C7361] font-medium">{it.product?.category?.name || 'Resell'}</span>
                         </td>
-                        <td className="py-2.5 text-center font-mono font-bold">
-                          {it.quantity} {it.product?.unitType}
+                        <td className="py-3 px-3 text-center">
+                          <span className="inline-block px-2.5 py-1 rounded-lg bg-[#FAF6F0] text-[#2C1B10] font-mono font-black text-xs border border-[#EDE4D5]">
+                            {it.quantity} {it.product?.unitType}
+                          </span>
                         </td>
-                        <td className="py-2.5 text-right font-mono text-[#8C7361]">
+                        <td className="py-3 px-3 text-right font-mono text-xs text-[#8C7361] font-bold">
                           {it.buyPrice.toFixed(2)} ETB
                         </td>
-                        <td className="py-2.5 text-right font-mono text-[#8C7361]">
+                        <td className="py-3 px-3 text-right font-mono text-xs text-[#8C7361] font-bold">
                           {it.sellPrice.toFixed(2)} ETB
                         </td>
-                        <td className="py-2.5 text-right font-mono font-black text-[#E87A18]">
+                        <td className="py-3 px-3 text-right font-mono font-black text-sm text-[#E87A18]">
                           {it.totalCost.toFixed(2)} ETB
                         </td>
                       </tr>
@@ -831,7 +844,7 @@ function NewDeliveryContent() {
               </div>
 
               {/* Total Cost Display */}
-              <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between bg-[#FAF6F0]/80 p-3.5 rounded-2xl">
+              <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] p-4 rounded-2xl">
                 <div>
                   <span className="text-xs uppercase font-extrabold text-[#4A2E1B] block">Total Delivery Value</span>
                   <span className="text-[11px] text-[#8C7361]">{totalItemsCount} total units added to shop inventory</span>
@@ -841,6 +854,60 @@ function NewDeliveryContent() {
                     {totalCost.toFixed(2)} ETB
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Step 3 Bottom Navigation */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => {
+                  setCurrentStep(2);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full sm:w-auto h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-1"
+              >
+                <ArrowLeft className="w-4 h-4 shrink-0" />
+                <span>Back to Products</span>
+              </Button>
+
+              <Button
+                type="button"
+                size="lg"
+                disabled={selectedItemsList.length === 0 || totalCost <= 0}
+                onClick={() => {
+                  setCurrentStep(4);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full sm:w-auto h-12 px-8 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 order-1 sm:order-2 shrink-0"
+              >
+                <span>Proceed to Payment Settlement</span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: PAYMENT SETTLEMENT CONFIGURATION & SUBMISSION */}
+        {currentStep === 4 && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Quick Delivery Summary Banner */}
+            <div className="bg-gradient-to-r from-amber-500/10 via-[#FAF6F0] to-[#FAF6F0] border border-amber-300/80 rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] uppercase font-black text-[#8C7361] tracking-wider block">
+                  Delivery for {selectedSupplier?.name}
+                </span>
+                <p className="text-xs text-[#4A2E1B] font-bold">
+                  {selectedItemsList.length} product{selectedItemsList.length === 1 ? '' : 's'} ({totalItemsCount} units)
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
+                <span className="text-[10px] text-[#8C7361] font-bold uppercase block">Total Payable</span>
+                <span className="text-xl sm:text-2xl font-black text-[#E87A18] font-mono">
+                  {totalCost.toFixed(2)} ETB
+                </span>
               </div>
             </div>
 
@@ -871,9 +938,9 @@ function NewDeliveryContent() {
                     <button
                       type="button"
                       onClick={() => setPaymentSource('DAILY_CASH')}
-                      className={`rounded-xl text-xs font-bold transition-all border ${
+                      className={`rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                         paymentSource === 'DAILY_CASH'
-                          ? 'bg-[#4A2E1B] text-white border-[#4A2E1B]'
+                          ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs'
                           : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
                       }`}
                     >
@@ -882,9 +949,9 @@ function NewDeliveryContent() {
                     <button
                       type="button"
                       onClick={() => setPaymentSource('OWNER')}
-                      className={`rounded-xl text-xs font-bold transition-all border ${
+                      className={`rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                         paymentSource === 'OWNER'
-                          ? 'bg-[#4A2E1B] text-white border-[#4A2E1B]'
+                          ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs'
                           : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
                       }`}
                     >
@@ -901,7 +968,7 @@ function NewDeliveryContent() {
                     <button
                       type="button"
                       onClick={() => setPaymentMode('FULL')}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
                         paymentMode === 'FULL'
                           ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
                           : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
@@ -912,7 +979,7 @@ function NewDeliveryContent() {
                     <button
                       type="button"
                       onClick={() => setPaymentMode('HALF')}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
                         paymentMode === 'HALF'
                           ? 'bg-blue-700 text-white border-blue-700 shadow-xs'
                           : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
@@ -923,7 +990,7 @@ function NewDeliveryContent() {
                     <button
                       type="button"
                       onClick={() => setPaymentMode('ZERO')}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
                         paymentMode === 'ZERO'
                           ? 'bg-rose-700 text-white border-rose-700 shadow-xs'
                           : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
@@ -934,7 +1001,7 @@ function NewDeliveryContent() {
                     <button
                       type="button"
                       onClick={() => setPaymentMode('CUSTOM')}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
                         paymentMode === 'CUSTOM'
                           ? 'bg-purple-700 text-white border-purple-700 shadow-xs'
                           : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
@@ -957,22 +1024,22 @@ function NewDeliveryContent() {
                       max={totalCost}
                       value={amountPaidNow}
                       onChange={(e) => setAmountPaidNow(e.target.value)}
-                      className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5] font-mono"
+                      className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5] font-mono text-base font-bold"
                     />
                   </div>
                 )}
 
                 {/* Settlement Summary Pill */}
-                <div className="sm:col-span-2 p-3.5 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-xs">
+                <div className="sm:col-span-2 p-4 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-[#8C7361] block">Paid Now</span>
-                    <strong className="text-emerald-700 font-extrabold font-mono text-sm">
+                    <span className="text-[#8C7361] font-bold block uppercase text-[10px]">Paid Now</span>
+                    <strong className="text-emerald-700 font-extrabold font-mono text-base sm:text-lg">
                       {numPaidNow.toFixed(2)} ETB
                     </strong>
                   </div>
                   <div className="text-right">
-                    <span className="text-[#8C7361] block">Supplier Credit Balance</span>
-                    <strong className={`font-mono text-sm ${remainingBalance > 0 ? 'text-rose-700 font-black' : 'text-zinc-500 font-semibold'}`}>
+                    <span className="text-[#8C7361] font-bold block uppercase text-[10px]">Supplier Credit Balance</span>
+                    <strong className={`font-mono text-base sm:text-lg ${remainingBalance > 0 ? 'text-rose-700 font-black' : 'text-zinc-500 font-semibold'}`}>
                       {remainingBalance.toFixed(2)} ETB
                     </strong>
                   </div>
@@ -980,10 +1047,10 @@ function NewDeliveryContent() {
 
                 <div className="sm:col-span-2">
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                    Delivery Notes / Invoice Number
+                    Delivery Notes / Invoice Number (Optional)
                   </label>
                   <Input
-                    placeholder="e.g. Invoice #9910, Morning bread/milk delivery"
+                    placeholder="e.g. Invoice #9910, Morning delivery"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
@@ -992,32 +1059,35 @@ function NewDeliveryContent() {
               </div>
             </div>
 
-            {/* Step 3 Bottom Actions */}
-            <div className="flex items-center justify-between gap-3 pt-2">
+            {/* Redesigned Step 4 Bottom Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
               <Button
                 type="button"
                 variant="outline"
                 size="lg"
                 disabled={isSubmitting}
                 onClick={() => {
-                  setCurrentStep(2);
+                  setCurrentStep(3);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="h-12 px-5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs flex items-center gap-1.5"
+                className="w-full sm:w-auto h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-1"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Products</span>
+                <ArrowLeft className="w-4 h-4 shrink-0" />
+                <span>Back to Review</span>
               </Button>
 
               <Button
                 type="submit"
                 size="lg"
                 disabled={isSubmitting || totalCost <= 0}
-                loading={isSubmitting}
-                className="flex-1 sm:flex-initial h-12 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto h-12 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 order-1 sm:order-2 shrink-0"
               >
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Confirm & Record Delivery Receipt</span>
+                <span>
+                  {isSubmitting
+                    ? "Recording Delivery..."
+                    : `Confirm & Record Delivery Receipt (${totalCost.toFixed(2)} ETB)`}
+                </span>
               </Button>
             </div>
           </form>

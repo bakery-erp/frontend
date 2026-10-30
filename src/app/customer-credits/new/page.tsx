@@ -104,7 +104,7 @@ function NewCustomerCreditFormContent() {
 
   // Step 3: Summary & Notes State
   const [creditDate, setCreditDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
-  const [dueDate, setDueDate] = useState<string>("");
+  const [sellingPriceInput, setSellingPriceInput] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
@@ -202,8 +202,8 @@ function NewCustomerCreditFormContent() {
             if (cData.date) {
               setCreditDate(format(new Date(cData.date), "yyyy-MM-dd"));
             }
-            if (cData.dueDate) {
-              setDueDate(format(new Date(cData.dueDate), "yyyy-MM-dd"));
+            if (cData.amount != null) {
+              setSellingPriceInput(String(Number(cData.amount)));
             }
             setNotes(extractCleanNotes(cData.description));
 
@@ -334,6 +334,15 @@ function NewCustomerCreditFormContent() {
     return selectedItemsList.reduce((acc, curr) => acc + curr.totalPrice, 0);
   }, [selectedItemsList]);
 
+  // Customizable selling price / agreed total amount (supporting bulk discounts)
+  const effectiveCreditAmount = useMemo(() => {
+    if (sellingPriceInput.trim() !== "") {
+      const parsed = parseFloat(sellingPriceInput);
+      if (!isNaN(parsed) && parsed >= 0) return parsed;
+    }
+    return totalCalculatedBirr;
+  }, [sellingPriceInput, totalCalculatedBirr]);
+
   const totalSelectedUnits = useMemo(() => {
     return selectedItemsList.reduce((acc, curr) => acc + curr.quantity, 0);
   }, [selectedItemsList]);
@@ -344,6 +353,7 @@ function NewCustomerCreditFormContent() {
   const isFormDirty =
     (customerMode === "NEW" && (newCustomerName.trim() !== "" || newCustomerPhone.trim() !== "")) ||
     selectedItemsList.length > 0 ||
+    sellingPriceInput.trim() !== "" ||
     notes.trim() !== "";
 
   const handleCancelClick = () => {
@@ -383,7 +393,7 @@ function NewCustomerCreditFormContent() {
       return;
     }
 
-    if (totalCalculatedBirr <= 0) {
+    if (effectiveCreditAmount <= 0) {
       toast.error("Total credit amount must be greater than zero.");
       return;
     }
@@ -400,9 +410,8 @@ function NewCustomerCreditFormContent() {
       if (isEditMode) {
         await api.patch(`/customers/credits/${editCreditId}`, {
           customerId: customerMode === "EXISTING" ? selectedCustomerId : undefined,
-          amount: totalCalculatedBirr,
+          amount: effectiveCreditAmount,
           date: creditDate,
-          dueDate: dueDate || undefined,
           description: notes.trim() || undefined,
           items: itemsPayload,
         });
@@ -420,9 +429,8 @@ function NewCustomerCreditFormContent() {
                   notes: notes.trim() || undefined,
                 }
               : undefined,
-          amount: totalCalculatedBirr,
+          amount: effectiveCreditAmount,
           date: creditDate,
-          dueDate: dueDate || undefined,
           description: notes.trim() || undefined,
           items: itemsPayload,
         });
@@ -477,79 +485,70 @@ function NewCustomerCreditFormContent() {
           </Button>
         </div>
 
-        {/* 3-Step Wizard Navigation Stepper */}
-        <div className="grid grid-cols-3 gap-2 mb-6">
-          <button
-            type="button"
-            onClick={() => setCurrentStep(1)}
-            className={`p-3 rounded-2xl border text-left transition-all ${
-              currentStep === 1
-                ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-sm"
-                : canProceedFromStep1
-                ? "bg-white text-[#4A2E1B] border-emerald-300 hover:bg-[#FAF6F0]"
-                : "bg-white/60 text-[#8C7361] border-[#EDE4D5]"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                currentStep === 1 ? "bg-[#E87A18] text-white" : canProceedFromStep1 ? "bg-emerald-100 text-emerald-800" : "bg-[#EDE4D5] text-[#8C7361]"
-              }`}>
-                {canProceedFromStep1 && currentStep !== 1 ? "✓" : "1"}
+        {/* Production-Style Step Navigation Header */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-3xl border border-[#EDE4D5] shadow-xs space-y-3 mb-6">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-7 h-7 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+                {currentStep}
               </span>
-              <span className="text-xs font-extrabold truncate">1. Customer</span>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-extrabold text-[#8C7361] tracking-wider block">
+                  Step {currentStep} of 3
+                </span>
+                <h2 className="text-xs sm:text-sm font-black text-[#2C1B10] truncate">
+                  {currentStep === 1 && "Step 1: Choose Customer"}
+                  {currentStep === 2 && "Step 2: Select In-Shop Products"}
+                  {currentStep === 3 && "Step 3: Review & Summary"}
+                </h2>
+              </div>
             </div>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (canProceedFromStep1) setCurrentStep(2);
-              else toast.error("Please complete customer selection first");
-            }}
-            className={`p-3 rounded-2xl border text-left transition-all ${
-              currentStep === 2
-                ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-sm"
-                : canProceedFromStep2
-                ? "bg-white text-[#4A2E1B] border-emerald-300 hover:bg-[#FAF6F0]"
-                : "bg-white/60 text-[#8C7361] border-[#EDE4D5]"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                currentStep === 2 ? "bg-[#E87A18] text-white" : canProceedFromStep2 ? "bg-emerald-100 text-emerald-800" : "bg-[#EDE4D5] text-[#8C7361]"
-              }`}>
-                {canProceedFromStep2 && currentStep !== 2 ? "✓" : "2"}
-              </span>
-              <span className="text-xs font-extrabold truncate">2. Products</span>
+            {/* Step Status Chip / Back Navigation */}
+            <div className="flex items-center gap-2 shrink-0">
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentStep((prev) => (prev === 3 ? 2 : 1));
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#E87A18] hover:text-[#4A2E1B] transition-colors cursor-pointer px-2 py-1 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5]"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  <span className="hidden xs:inline">Back</span>
+                </button>
+              )}
+              {currentStep === 1 && selectedCustomer && (
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 truncate max-w-[140px]">
+                  {selectedCustomer.fullName}
+                </span>
+              )}
+              {currentStep === 2 && (
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200">
+                  {selectedItemsList.length} Selected ({totalSelectedUnits} Units)
+                </span>
+              )}
+              {currentStep === 3 && (
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-900 border-emerald-200 font-mono">
+                  {effectiveCreditAmount.toFixed(2)} ETB
+                </span>
+              )}
             </div>
-          </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (!canProceedFromStep1) {
-                toast.error("Please complete customer selection first");
-              } else if (!canProceedFromStep2) {
-                toast.error("Please select products and valid quantities");
-              } else {
-                setCurrentStep(3);
-              }
-            }}
-            className={`p-3 rounded-2xl border text-left transition-all ${
-              currentStep === 3
-                ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-sm"
-                : "bg-white/60 text-[#8C7361] border-[#EDE4D5]"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                currentStep === 3 ? "bg-[#E87A18] text-white" : "bg-[#EDE4D5] text-[#8C7361]"
-              }`}>
-                3
-              </span>
-              <span className="text-xs font-extrabold truncate">3. Summary</span>
-            </div>
-          </button>
+          {/* Visual Step Progress Bar */}
+          <div className="w-full bg-[#FAF6F0] h-1.5 rounded-full overflow-hidden border border-[#EDE4D5]">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                currentStep === 1
+                  ? "w-1/3 bg-[#E87A18]"
+                  : currentStep === 2
+                  ? "w-2/3 bg-[#E87A18]"
+                  : "w-full bg-emerald-600"
+              }`}
+            />
+          </div>
         </div>
 
         {/* STEP 1: CHOOSE CUSTOMER */}
@@ -971,48 +970,62 @@ function NewCustomerCreditFormContent() {
               </Button>
             </div>
 
-            {/* Products Table Summary Card */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-[#F4ECE1] pb-3">
-                <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-[#E87A18]" />
-                  <span>Selected Products ({selectedItemsList.length})</span>
-                </h3>
+            {/* Redesigned Selected Products Summary Card */}
+            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-[#F4ECE1] pb-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-[#E87A18]">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm sm:text-base text-[#2C1B10]">
+                      Selected Products
+                    </h3>
+                    <p className="text-[11px] text-[#8C7361] font-semibold">
+                      {selectedItemsList.length} distinct item{selectedItemsList.length === 1 ? "" : "s"} ({totalSelectedUnits} total units)
+                    </p>
+                  </div>
+                </div>
+
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentStep(2)}
-                  className="h-8 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl"
+                  className="h-8 px-3 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl text-[#4A2E1B] flex items-center gap-1.5 cursor-pointer"
                 >
-                  Edit Products
+                  <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
+                  <span>Edit Products</span>
                 </Button>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Items Table with modern styled rows */}
+              <div className="overflow-x-auto rounded-2xl border border-[#F4ECE1]">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#F4ECE1] text-[#8C7361]">
-                      <th className="py-2 font-bold uppercase text-[10px]">Product</th>
-                      <th className="py-2 text-center font-bold uppercase text-[10px]">Quantity</th>
-                      <th className="py-2 text-right font-bold uppercase text-[10px]">Rate</th>
-                      <th className="py-2 text-right font-bold uppercase text-[10px]">Subtotal</th>
+                    <tr className="bg-[#FAF6F0]/70 text-[#8C7361] border-b border-[#F4ECE1]">
+                      <th className="py-2.5 px-3 font-extrabold uppercase text-[10px]">Product</th>
+                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">Quantity</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Catalog Rate</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F4ECE1]">
                     {selectedItemsList.map((it) => (
-                      <tr key={it.productId} className="font-medium text-[#2C1B10]">
-                        <td className="py-2.5">
-                          <span className="font-bold block">{getItemName(it.product)}</span>
-                          <span className="text-[10px] text-[#8C7361]">{it.product?.categoryName || "Bakery"}</span>
+                      <tr key={it.productId} className="hover:bg-[#FAF6F0]/40 transition-colors">
+                        <td className="py-3 px-3">
+                          <span className="font-black text-sm text-[#2C1B10] block">{getItemName(it.product)}</span>
+                          <span className="text-[10px] text-[#8C7361] font-medium">{it.product?.categoryName || "Bakery"}</span>
                         </td>
-                        <td className="py-2.5 text-center font-mono font-bold">
-                          {it.quantity} {it.product?.unitType}
+                        <td className="py-3 px-3 text-center">
+                          <span className="inline-block px-2.5 py-1 rounded-lg bg-[#FAF6F0] text-[#2C1B10] font-mono font-black text-xs border border-[#EDE4D5]">
+                            {it.quantity} {it.product?.unitType}
+                          </span>
                         </td>
-                        <td className="py-2.5 text-right font-mono text-[#8C7361]">
+                        <td className="py-3 px-3 text-right font-mono text-xs text-[#8C7361] font-bold">
                           {it.unitPrice.toFixed(2)} ETB
                         </td>
-                        <td className="py-2.5 text-right font-mono font-black text-[#E87A18]">
+                        <td className="py-3 px-3 text-right font-mono font-black text-sm text-[#E87A18]">
                           {it.totalPrice.toFixed(2)} ETB
                         </td>
                       </tr>
@@ -1021,25 +1034,82 @@ function NewCustomerCreditFormContent() {
                 </table>
               </div>
 
-              {/* Total Calculation Row */}
-              <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between bg-[#FAF6F0]/80 p-3.5 rounded-2xl">
-                <div>
-                  <span className="text-xs uppercase font-extrabold text-[#4A2E1B] block">Total Credit Value</span>
-                  <span className="text-[11px] text-[#8C7361]">{totalSelectedUnits} total items deducted from shop inventory</span>
+              {/* Total Calculation & Customizable Selling Price (Bulk Discount) */}
+              <div className="bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] border border-[#EDE4D5] p-4 sm:p-5 rounded-2xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EDE4D5]">
+                  <div>
+                    <span className="text-[10px] uppercase font-black text-[#8C7361] tracking-wider block">Standard Catalog Value</span>
+                    <span className="text-sm font-bold text-[#4A2E1B]">{totalSelectedUnits} total items from shop inventory</span>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <span className="text-lg font-black text-[#8C7361] font-mono line-through mr-2">
+                      {sellingPriceInput && parseFloat(sellingPriceInput) !== totalCalculatedBirr ? `${totalCalculatedBirr.toFixed(2)} ETB` : ""}
+                    </span>
+                    <span className="text-xl sm:text-2xl font-black text-[#2C1B10] font-mono">
+                      {totalCalculatedBirr.toFixed(2)} ETB
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xl sm:text-2xl font-black text-[#E87A18] font-mono">
-                    {totalCalculatedBirr.toFixed(2)} ETB
-                  </span>
+
+                {/* Selling Price Input for Custom / Bulk Discount */}
+                <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#EDE4D5] shadow-xs space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <label className="text-xs font-black text-[#2C1B10] uppercase flex items-center gap-1.5">
+                      <span>Selling Price / Total Credit Amount (ETB) *</span>
+                      <span className="text-emerald-700 text-[10px] font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Discount Allowed
+                      </span>
+                    </label>
+                    {sellingPriceInput.trim() !== "" && parseFloat(sellingPriceInput) !== totalCalculatedBirr && (
+                      <button
+                        type="button"
+                        onClick={() => setSellingPriceInput("")}
+                        className="text-[11px] font-extrabold text-[#E87A18] hover:underline self-start sm:self-auto cursor-pointer"
+                      >
+                        Reset to standard ({totalCalculatedBirr.toFixed(2)} ETB)
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[#8C7361] font-medium">
+                    Cashiers can adjust this input if customer gets a wholesale or bulk discount.
+                  </p>
+
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={totalCalculatedBirr.toFixed(2)}
+                      value={sellingPriceInput}
+                      onChange={(e) => setSellingPriceInput(e.target.value)}
+                      className="h-12 text-lg sm:text-xl font-black font-mono rounded-xl bg-[#FAF6F0]/60 border-2 border-[#E87A18]/40 focus:border-[#E87A18] text-[#2C1B10] pr-16"
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-[#8C7361]">
+                      ETB
+                    </span>
+                  </div>
+
+                  {/* Bulk discount savings banner */}
+                  {effectiveCreditAmount < totalCalculatedBirr && (
+                    <div className="flex items-center justify-between text-xs font-extrabold text-emerald-800 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
+                      <span className="flex items-center gap-1.5">
+                        <span>🏷️</span>
+                        <span>Bulk Discount Applied</span>
+                      </span>
+                      <span className="font-mono">
+                        -{(totalCalculatedBirr - effectiveCreditAmount).toFixed(2)} ETB ({Math.round(((totalCalculatedBirr - effectiveCreditAmount) / (totalCalculatedBirr || 1)) * 100)}% off)
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Date, Due Date & Notes Configuration */}
+            {/* Transaction Date & Notes Configuration (Due Date removed per instructions) */}
             <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 shadow-xs space-y-4">
               <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#E87A18]" />
-                <span>Transaction Dates & Notes</span>
+                <span>Transaction Date & Notes</span>
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1056,21 +1126,10 @@ function NewCustomerCreditFormContent() {
 
                 <div>
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                    Due Date (Optional Repayment Deadline)
-                  </label>
-                  <AppDatePicker
-                    value={dueDate}
-                    onChange={(val) => setDueDate(val)}
-                    className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                    Additional Notes / Reference
+                    Additional Notes / Reference (Optional)
                   </label>
                   <Input
-                    placeholder="e.g. Special order pickup, promised to settle on Friday"
+                    placeholder="e.g. Special order pickup, negotiated bulk discount"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
@@ -1079,8 +1138,8 @@ function NewCustomerCreditFormContent() {
               </div>
             </div>
 
-            {/* Step 3 Bottom Action Buttons */}
-            <div className="flex items-center justify-between gap-3 pt-2">
+            {/* Redesigned Step 3 Bottom Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
               <Button
                 type="button"
                 variant="outline"
@@ -1090,21 +1149,26 @@ function NewCustomerCreditFormContent() {
                   setCurrentStep(2);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="h-12 px-5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs flex items-center gap-1.5"
+                className="w-full sm:w-auto h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-1"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-4 h-4 shrink-0" />
                 <span>Back to Products</span>
               </Button>
 
               <Button
                 type="submit"
                 size="lg"
-                disabled={isSubmitting || totalCalculatedBirr <= 0}
-                loading={isSubmitting}
-                className="flex-1 sm:flex-initial h-12 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                disabled={isSubmitting || effectiveCreditAmount <= 0}
+                className="w-full sm:w-auto h-12 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 order-1 sm:order-2 shrink-0"
               >
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{isEditMode ? "Save & Update Credit" : "Confirm & Record Credit Sale"}</span>
+                <span>
+                  {isSubmitting
+                    ? "Recording Credit..."
+                    : isEditMode
+                    ? `Save & Update Credit (${effectiveCreditAmount.toFixed(2)} ETB)`
+                    : `Confirm & Record Credit (${effectiveCreditAmount.toFixed(2)} ETB)`}
+                </span>
               </Button>
             </div>
           </form>

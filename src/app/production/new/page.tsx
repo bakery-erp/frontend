@@ -649,8 +649,8 @@ function ProductionFormContent() {
             </div>
           </div>
 
-          {/* Owner Branch Selection Banner on Mobile if branch unselected */}
-          {user?.role === "OWNER" && !isEditMode && (
+          {/* Owner Branch Selection Banner on Mobile if branch unselected (Only on Step 1) */}
+          {user?.role === "OWNER" && !isEditMode && mobileStep === 1 && (
             <div className="md:hidden bg-white p-3.5 rounded-2xl border border-amber-300 shadow-xs space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black text-[#2C1B10]">
@@ -678,56 +678,81 @@ function ProductionFormContent() {
             </div>
           )}
 
-          {/* Mobile Compact Shift & Date Bar (< md) */}
-          <div className="md:hidden bg-white p-3 rounded-2xl border border-[#EDE4D5] shadow-xs flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 font-bold text-xs">
-                📅
-              </div>
-              <div className="min-w-0">
+          {/* Mobile Shift & Date Bar (< md) - Only on Step 1 */}
+          {mobileStep === 1 && (
+            <div className="md:hidden bg-white p-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-3">
+              {/* Date Section */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold text-[#2C1B10] flex items-center gap-1.5">
+                    <span className="text-amber-600">📅</span>
+                    <span>{t("common.date") || "Production Date"}</span>
+                  </label>
+                  {!isGlobalAdmin && (
+                    <span className="text-[10px] text-[#8C7361] font-semibold">
+                      🔒 {t("production.todayBatches")}
+                    </span>
+                  )}
+                </div>
                 {isGlobalAdmin ? (
                   <AppDatePicker
                     value={date}
                     onChange={(val) => setDate(val)}
-                    className="h-8 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-lg p-1 max-w-[130px]"
+                    className="w-full h-10 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl px-2 font-bold"
                   />
                 ) : (
-                  <>
-                    <div className="text-xs font-black text-[#2C1B10] truncate">
+                  <div className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-2.5 flex items-center justify-between">
+                    <div className="text-xs font-black text-[#2C1B10]">
                       {formatEthDate(date)}
                     </div>
                     <span className="text-[10px] text-[#8C7361] font-semibold">
                       {t("production.todayBatches")}
                     </span>
-                  </>
+                  </div>
                 )}
               </div>
-            </div>
 
-            {/* Shift toggle pill on mobile */}
-            <div className={`flex items-center bg-[#FAF6F0] p-1 rounded-xl border shrink-0 transition-all ${
-              !shift ? 'border-amber-400 ring-2 ring-amber-300' : 'border-[#EDE4D5]'
-            }`}>
-              <button
-                type="button"
-                onClick={() => setShift("DAY")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                  shift === "DAY" ? "bg-amber-500 text-zinc-950 shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
-                }`}
-              >
-                ☀️ {t("production.dayShift")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShift("NIGHT")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                  shift === "NIGHT" ? "bg-indigo-600 text-white shadow-2xs" : "text-[#8C7361] hover:text-[#2C1B10]"
-                }`}
-              >
-                🌙 {t("production.nightShift")}
-              </button>
+              {/* Day / Night Shift Selector Section */}
+              <div className="space-y-1.5 pt-2 border-t border-[#F4ECE1]">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold text-[#2C1B10]">
+                    {t("production.colShift") || "Shift"} <span className="text-red-500">*</span>
+                  </label>
+                  {!shift && (
+                    <span className="text-[10px] text-amber-700 font-extrabold animate-pulse">
+                      * Please select shift
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShift("DAY")}
+                    className={`h-11 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                      shift === "DAY"
+                        ? "bg-amber-500 text-zinc-950 border-amber-600 ring-2 ring-amber-300 shadow-sm"
+                        : "bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#EDE4D5]"
+                    }`}
+                  >
+                    <span>☀️</span>
+                    <span>{t("production.dayShiftFull") || "Day Shift"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShift("NIGHT")}
+                    className={`h-11 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                      shift === "NIGHT"
+                        ? "bg-indigo-600 text-white border-indigo-700 ring-2 ring-indigo-300 shadow-sm"
+                        : "bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#EDE4D5]"
+                    }`}
+                  >
+                    <span>🌙</span>
+                    <span>{t("production.nightShiftFull") || "Night Shift"}</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Shift & Date Header Configuration (Desktop md+) */}
           <div className={`hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid-cols-1 ${user?.role === "OWNER" && !isEditMode ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-3 xs:gap-4`}>
