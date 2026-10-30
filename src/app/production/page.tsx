@@ -292,7 +292,13 @@ export default function ProductionPage() {
   const [markingSeenId, setMarkingSeenId] = useState<string | null>(null);
 
   const isBatchSeenByMe = useCallback((b: ProductionBatch) => {
-    if (user?.role === "OWNER") return !!b.ownerSeenAt;
+    if (user?.role === "OWNER") {
+      if (!b.ownerSeenAt) return false;
+      if (b.editedAt && new Date(b.editedAt).getTime() > new Date(b.ownerSeenAt).getTime()) {
+        return false;
+      }
+      return true;
+    }
     return true;
   }, [user?.role]);
 
@@ -701,14 +707,6 @@ export default function ProductionPage() {
                         {expandedFlagNotes[batch.id] ? "▲" : "..."}
                       </span>
                     </button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => handleToggleFlag(batch, e)}
-                      className="border-rose-300 text-rose-700 bg-white hover:bg-rose-100 font-bold text-[10px] h-6 px-2 rounded-lg shrink-0"
-                    >
-                      {t('production.clearFlag')}
-                    </Button>
                   </div>
                   {expandedFlagNotes[batch.id] && (
                     <div className="mt-2 pt-2 border-t border-rose-200/80 text-[11px] text-rose-800 space-y-1">
@@ -811,23 +809,6 @@ export default function ProductionPage() {
                     >
                       <Check className="w-3.5 h-3.5 text-sky-600" />
                       <span className="hidden sm:inline">{t('production.markAsSeen')}</span>
-                    </Button>
-                  )}
-
-                  {user?.role === "OWNER" && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => handleToggleFlag(batch, e)}
-                      className={`font-bold text-xs h-8 px-2 rounded-xl shadow-2xs flex items-center gap-1 ${
-                        batch.isFlagged
-                          ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
-                          : "border-zinc-200 text-[#8C7361] hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
-                      }`}
-                      title={batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}
-                    >
-                      <span className="text-xs">🚩</span>
-                      <span className="hidden sm:inline">{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
                     </Button>
                   )}
 
@@ -1106,23 +1087,6 @@ export default function ProductionPage() {
                       >
                         <Check className="w-3.5 h-3.5 text-sky-600" />
                         <span>{t('production.markAsSeen')}</span>
-                      </Button>
-                    )}
-
-                    {user?.role === "OWNER" && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => handleToggleFlag(batch, e)}
-                        className={`font-bold text-xs h-8 px-2 rounded-xl shadow-2xs flex items-center gap-1 cursor-pointer ${
-                          batch.isFlagged
-                            ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
-                            : "border-zinc-200 text-[#8C7361] hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
-                        }`}
-                        title={batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}
-                      >
-                        <span className="text-xs">🚩</span>
-                        <span>{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
                       </Button>
                     )}
 
