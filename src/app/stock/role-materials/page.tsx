@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface StockItemRoleData {
   id: string;
@@ -95,6 +96,7 @@ export default function RoleMaterialsPage() {
   // Selected Stock Item IDs for the currently active role
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [hasChanges, setHasChanges] = useState<boolean>(false);
+  const [pendingRoleSwitch, setPendingRoleSwitch] = useState<string | null>(null);
 
   // Fetch all stock items for current branch
   const { data: stockItems = [], isLoading, isRefetching } = useQuery<StockItemRoleData[]>({
@@ -306,10 +308,8 @@ export default function RoleMaterialsPage() {
                 key={r.role}
                 type="button"
                 onClick={() => {
-                  if (hasChanges) {
-                    if (confirm("You have unsaved changes for this role. Discard changes and switch?")) {
-                      setActiveRole(r.role);
-                    }
+                  if (hasChanges && activeRole !== r.role) {
+                    setPendingRoleSwitch(r.role);
                   } else {
                     setActiveRole(r.role);
                   }
@@ -519,6 +519,22 @@ export default function RoleMaterialsPage() {
             </Button>
           </div>
         )}
+        {/* Unsaved Changes Confirmation Popup Modal */}
+        <ConfirmModal
+          isOpen={!!pendingRoleSwitch}
+          onClose={() => setPendingRoleSwitch(null)}
+          onConfirm={() => {
+            if (pendingRoleSwitch) {
+              setActiveRole(pendingRoleSwitch);
+              setPendingRoleSwitch(null);
+            }
+          }}
+          title={t("common.unsavedChanges") || "Discard Unsaved Changes?"}
+          description={`You have unsaved stock material changes for ${currentRoleMeta.label}. If you switch now, your unsaved changes will be discarded.`}
+          confirmText={t("common.discard") || "Discard & Switch"}
+          cancelText={t("common.keepEditing") || "Keep Editing"}
+          variant="warning"
+        />
       </div>
     </DashboardLayout>
   );
