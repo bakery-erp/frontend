@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
+import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
@@ -493,9 +495,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                 <Calendar className="w-4 h-4 text-[#E87A18] shrink-0" />
                 <span>
                   {t("credits.issuedDateLabel")}{" "}
-                  {credit.date
-                    ? format(new Date(credit.date), "MMMM d, yyyy")
-                    : format(new Date(credit.createdAt), "MMMM d, yyyy")}
+                  {formatEthDate(credit.date || credit.createdAt)}
                 </span>
               </div>
               {parsed.notes && (
@@ -614,7 +614,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                     <div key={p.id} className="bg-[#FAF6F0] p-3 rounded-xl border border-[#EDE4D5] space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-[#2C1B10]">
-                          {format(new Date(p.date || p.createdAt), "MMM d, yyyy")}
+                          {formatEthDate(p.date || p.createdAt)}
                         </span>
                         <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">
                           <CheckCircle2 className="w-3 h-3" /> {t("credits.badgeReceived")}
@@ -657,7 +657,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                       {paymentLedger.map((p) => (
                         <TableRow key={p.id}>
                           <TableCell className="font-bold text-[#2C1B10] text-xs">
-                            {format(new Date(p.date || p.createdAt), "MMM d, yyyy")}
+                            {formatEthDate(p.date || p.createdAt)}
                           </TableCell>
                           <TableCell className="text-right font-mono font-extrabold text-emerald-700">
                             -{p.paidAmt.toFixed(2)} ETB
@@ -726,12 +726,11 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">{t("credits.paymentDateLabel")}</label>
-                <Input
-                  type="date"
+                <AppDatePicker
                   required
                   value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  className="rounded-xl border-[#EDE4D5] h-10"
+                  onChange={(val) => setPaymentDate(val)}
+                  className="rounded-xl border-[#EDE4D5]"
                 />
               </div>
 
@@ -801,11 +800,10 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                 <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
                   {t("common.date")} <span className="text-rose-500">*</span>
                 </label>
-                <Input
-                  type="date"
+                <AppDatePicker
                   required
                   value={editCreditDate}
-                  onChange={(e) => setEditCreditDate(e.target.value)}
+                  onChange={(val) => setEditCreditDate(val)}
                   className="rounded-xl text-xs font-bold"
                 />
               </div>
@@ -815,10 +813,9 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
                 {t("credits.dueDateLabel") || "Due Date"}
               </label>
-              <Input
-                type="date"
+              <AppDatePicker
                 value={editCreditDueDate}
-                onChange={(e) => setEditCreditDueDate(e.target.value)}
+                onChange={(val) => setEditCreditDueDate(val)}
                 className="rounded-xl text-xs font-bold"
               />
             </div>

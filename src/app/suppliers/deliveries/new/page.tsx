@@ -9,6 +9,7 @@ import { useBranch } from '@/context/BranchContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
+import { AppDatePicker } from '@/components/AppDatePicker';
 import {
   ArrowLeft,
   Truck,
@@ -341,14 +342,12 @@ function NewDeliveryContent() {
                 <label className="text-xs font-bold text-[#4A2E1B] block mb-1.5">
                   {t('suppliers.colDeliveryDate')}
                 </label>
-                <div className="relative">
-                  <Input
-                    type="date"
+                <div>
+                  <AppDatePicker
                     value={deliveryDate}
-                    onChange={(e) => setDeliveryDate(e.target.value)}
-                    className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs font-semibold pl-9 rounded-xl focus:bg-white"
+                    onChange={(val) => setDeliveryDate(val)}
+                    className="bg-[#FAF6F0] border-[#EDE4D5]"
                   />
-                  <Calendar className="w-4 h-4 text-[#8C7361] absolute left-3 top-3 pointer-events-none" />
                 </div>
               </div>
 

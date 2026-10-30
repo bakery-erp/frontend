@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import {
   ArrowLeft,
   Plus,
@@ -555,11 +556,10 @@ function NewCustomerCreditFormContent() {
                     <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">
                       {t("credits.creditIssueDateLabel")} <span className="text-rose-500">*</span>
                     </label>
-                    <Input
-                      type="date"
+                    <AppDatePicker
                       required
                       value={creditDate}
-                      onChange={(e) => setCreditDate(e.target.value)}
+                      onChange={(val) => setCreditDate(val)}
                       className="rounded-xl border-zinc-200 text-xs font-bold"
                     />
                   </div>
@@ -635,11 +635,10 @@ function NewCustomerCreditFormContent() {
                     <label className="text-xs font-bold text-[#2C1B10] mb-1.5 block uppercase">
                       {t("credits.creditIssueDateLabel")} <span className="text-rose-500">*</span>
                     </label>
-                    <Input
-                      type="date"
+                    <AppDatePicker
                       required
                       value={creditDate}
-                      onChange={(e) => setCreditDate(e.target.value)}
+                      onChange={(val) => setCreditDate(val)}
                       className="rounded-xl border-zinc-200 text-xs font-bold"
                     />
                   </div>

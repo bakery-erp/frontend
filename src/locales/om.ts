@@ -104,6 +104,7 @@ export const om: TranslationDictionary = {
     ownerLoans: "Liqiiwwan Dhuunfaa",
     payroll: "Mindaa Hojjettootaa",
     reports: "Gabaasa Faayinaansii",
+    settings: "Qindaa'ina Abbaa Qabeenyaa",
     myProfile: "Piroofaayilii Kiyya",
     logout: "Ba'i",
   },

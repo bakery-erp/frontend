@@ -26,6 +26,7 @@ import {
   ChefHat,
 } from "lucide-react";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -758,15 +759,14 @@ function ProductionFormContent() {
             )}
             <div>
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                {t("common.date")} {isGlobalAdmin ? "(Ethiopian)" : "(System Logged)"}
+                {t("common.date")}
               </label>
-              <Input
-                type="date"
+              <AppDatePicker
                 required
                 disabled={!isGlobalAdmin}
                 value={isGlobalAdmin ? date : (isEditMode ? date : new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10))}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl font-medium disabled:opacity-75 disabled:cursor-not-allowed text-[#4A2E1B] h-10 xs:h-11"
+                onChange={(val) => setDate(val)}
+                className="bg-[#FAF6F0] border-[#EDE4D5]"
               />
               {!isGlobalAdmin && (
                 <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">

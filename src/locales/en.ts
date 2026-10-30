@@ -102,6 +102,7 @@ export const en = {
     ownerLoans: "Personal Loans",
     payroll: "Payroll",
     reports: "Financial Reports",
+    settings: "Owner Settings",
     myProfile: "My Profile",
     logout: "Logout",
   },

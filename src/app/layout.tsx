@@ -8,6 +8,7 @@ import InstallPwaPrompt from "@/components/InstallPwaPrompt";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { DateSettingsProvider } from "@/context/DateSettingsContext";
 import AppShell from "@/components/AppShell";
 
 export const viewport: Viewport = {
@@ -44,15 +45,17 @@ export default function RootLayout({
         <ErrorBoundary>
           <QueryProvider>
             <LanguageProvider>
-              <AuthProvider>
-                <BranchProvider>
-                  <AppShell>
-                    {children}
-                  </AppShell>
-                  <Toaster />
-                  <InstallPwaPrompt />
-                </BranchProvider>
-              </AuthProvider>
+              <DateSettingsProvider>
+                <AuthProvider>
+                  <BranchProvider>
+                    <AppShell>
+                      {children}
+                    </AppShell>
+                    <Toaster />
+                    <InstallPwaPrompt />
+                  </BranchProvider>
+                </AuthProvider>
+              </DateSettingsProvider>
             </LanguageProvider>
           </QueryProvider>
         </ErrorBoundary>

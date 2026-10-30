@@ -9,6 +9,7 @@ import { useBranch } from '@/context/BranchContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/axios';
 import { toast } from 'sonner';
+import { formatEthDate } from '@/lib/ethiopianDate';
 import {
   ArrowLeft,
   Truck,
@@ -637,7 +638,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                       <TableRow key={d.id} className="hover:bg-[#FAF6F0]/40">
                         {/* Date */}
                         <TableCell className="text-xs font-semibold text-[#8C7361]">
-                          {new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {formatEthDate(d.createdAt)}
                         </TableCell>
 
                         {/* Product */}
@@ -790,7 +791,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                       <div className="flex items-center gap-1.5 text-xs text-[#8C7361]">
                         <Clock className="w-3.5 h-3.5 text-[#E87A18]" />
                         <span className="font-bold text-[#4A2E1B]">
-                          {new Date(d.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {formatEthDate(d.createdAt)}
                         </span>
                       </div>
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-2xs ${
@@ -1202,7 +1203,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                         {Number(p.amount).toFixed(2)} {t('common.currency')}
                       </span>
                       <span className="text-[11px] text-[#8C7361] mt-0.5 block">
-                        {new Date(p.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {formatEthDate(p.createdAt, true)}
                       </span>
                       {p.notes && <span className="text-[11px] text-[#4A2E1B] block mt-0.5 italic">{p.notes}</span>}
                     </div>

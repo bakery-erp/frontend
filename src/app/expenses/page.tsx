@@ -19,6 +19,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton } from "@/components/ui/skeletons";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 
 interface Expense {
   id: string;
@@ -673,11 +675,10 @@ export default function ExpensesPage() {
                 {/* Date Input */}
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] block mb-1">{t('expenses.fieldDate')}</label>
-                  <Input
-                    type="date"
+                  <AppDatePicker
                     value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                    className="bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                    onChange={(val) => setFormDate(val)}
+                    className="bg-[#FAF6F0] border-[#EDE4D5] text-xs font-semibold text-[#2C1B10]"
                   />
                 </div>
 
@@ -1079,7 +1080,7 @@ export default function ExpensesPage() {
                     {displayExpenses.map((expense) => (
                       <TableRow key={expense.id}>
                         <TableCell className="text-xs font-semibold text-[#8C7361]">
-                          {expense.date ? new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
+                          {formatEthDate(expense.date)}
                         </TableCell>
                         <TableCell>
                           <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
@@ -1127,9 +1128,7 @@ export default function ExpensesPage() {
               <div className="block md:hidden p-3 space-y-3">
                 {displayExpenses.map((expense) => {
                   const isOwner = expense.type === "OWNER";
-                  const dateFormatted = expense.date
-                    ? new Date(expense.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-                    : "—";
+                  const dateFormatted = formatEthDate(expense.date);
 
                   return (
                     <div
@@ -1407,7 +1406,7 @@ export default function ExpensesPage() {
 
               <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
                 <span className="font-bold text-[#8C7361]">{t('expenses.fieldDate')}</span>
-                <span className="font-mono font-semibold text-[#2C1B10]">{formDate}</span>
+                <span className="font-mono font-semibold text-[#2C1B10]">{formatEthDate(formDate)}</span>
               </div>
 
               {formDescription && (

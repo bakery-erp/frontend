@@ -15,6 +15,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TableSkeleton } from '@/components/ui/skeletons';
+import { formatEthDate } from '@/lib/ethiopianDate';
 
 interface DashboardTotals {
   yesterdayLeftoverCash?: number;
@@ -1052,7 +1053,7 @@ export default function Dashboard() {
                   <div key={tx.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-mono font-bold text-[#8C7361]">
-                        {tx.date ? new Date(tx.date).toLocaleDateString() : '—'}
+                        {formatEthDate(tx.date)}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
@@ -1099,7 +1100,7 @@ export default function Dashboard() {
                     {filteredTransactions.map((tx) => (
                       <TableRow key={tx.id} className="hover:bg-[#FAF6F0]/60">
                         <TableCell className="text-xs font-mono font-semibold text-[#8C7361]">
-                          {tx.date ? new Date(tx.date).toLocaleDateString() : '—'}
+                          {formatEthDate(tx.date)}
                         </TableCell>
                         <TableCell className="font-bold text-[#2C1B10]">
                           {tx.title}

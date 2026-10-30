@@ -104,6 +104,7 @@ export const am: TranslationDictionary = {
     ownerLoans: "የግል ብድሮች",
     payroll: "የሠራተኞች ደመወዝ",
     reports: "የሂሳብ ሪፖርቶች",
+    settings: "የባለቤት ቅንብሮች",
     myProfile: "የግል መገለጫዬ",
     logout: "ውጣ",
   },
