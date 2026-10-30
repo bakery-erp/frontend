@@ -200,6 +200,16 @@ export default function UsersPage() {
       setUserToDelete(null);
       return;
     }
+    if (userToDelete.id === user?.id) {
+      toast.error("You cannot delete your own account");
+      setUserToDelete(null);
+      return;
+    }
+    if (userToDelete.role === "OWNER") {
+      toast.error("Owner accounts cannot be deleted");
+      setUserToDelete(null);
+      return;
+    }
     if (!deletePassword.trim()) {
       toast.error(t('users.enterPasswordToDeleteUser') || "Please enter your password to confirm deletion");
       return;
@@ -320,6 +330,11 @@ export default function UsersPage() {
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     if (userId === user?.id) {
       toast.error(t('users.cannotDeactivateSelf') || "You cannot deactivate your own account");
+      return;
+    }
+    const targetUser = users.find((u) => u.id === userId);
+    if (targetUser?.role === "OWNER") {
+      toast.error("Owner accounts cannot be deactivated");
       return;
     }
     try {
@@ -468,7 +483,7 @@ export default function UsersPage() {
                 filteredUsers.map((u) => {
                   const canReset = user?.role === "OWNER" || (user?.role === "ADMIN" && u.role !== "OWNER");
                   const canEdit = user?.role === "OWNER" || (user?.role === "ADMIN" && u.role !== "OWNER");
-                  const canDelete = user?.role === "OWNER" && u.id !== user?.id;
+                  const canDelete = user?.role === "OWNER" && u.id !== user?.id && u.role !== "OWNER";
 
                   return (
                     <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3">
@@ -487,8 +502,14 @@ export default function UsersPage() {
                           <Switch
                             checked={u.isActive}
                             onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
-                            disabled={(user?.role !== "OWNER" && user?.role !== "ADMIN") || u.id === user?.id}
-                            title={u.id === user?.id ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account") : undefined}
+                            disabled={(user?.role !== "OWNER" && user?.role !== "ADMIN") || u.role === "OWNER" || u.id === user?.id}
+                            title={
+                              u.id === user?.id
+                                ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account")
+                                : u.role === "OWNER"
+                                ? "Owner accounts cannot be deactivated"
+                                : undefined
+                            }
                           />
                           <span className={`text-[11px] font-extrabold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
                             {u.isActive ? (t('users.statusActive') || 'Active') : (t('users.statusDisabled') || 'Off')}
@@ -628,7 +649,7 @@ export default function UsersPage() {
                     filteredUsers.map((u) => {
                       const canReset = user?.role === "OWNER" || (user?.role === "ADMIN" && u.role !== "OWNER");
                       const canEdit = user?.role === "OWNER" || (user?.role === "ADMIN" && u.role !== "OWNER");
-                      const canDelete = user?.role === "OWNER" && u.id !== user?.id;
+                      const canDelete = user?.role === "OWNER" && u.id !== user?.id && u.role !== "OWNER";
 
                       return (
                         <TableRow key={u.id}>
@@ -668,8 +689,14 @@ export default function UsersPage() {
                               <Switch
                                 checked={u.isActive}
                                 onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
-                                disabled={(user?.role !== "OWNER" && user?.role !== "ADMIN") || u.id === user?.id}
-                                title={u.id === user?.id ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account") : undefined}
+                                disabled={(user?.role !== "OWNER" && user?.role !== "ADMIN") || u.role === "OWNER" || u.id === user?.id}
+                                title={
+                                  u.id === user?.id
+                                    ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account")
+                                    : u.role === "OWNER"
+                                    ? "Owner accounts cannot be deactivated"
+                                    : undefined
+                                }
                               />
                               <span className={`text-xs font-bold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
                                 {u.isActive ? (t('users.statusActive') || 'Active') : (t('users.statusDisabled') || 'Disabled')}
