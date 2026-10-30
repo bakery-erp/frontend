@@ -21,6 +21,7 @@ interface Product {
     name: string;
     unitType: string;
     flavor?: string;
+    currentHouseStock?: number;
 }
 
 interface ActiveSession {
@@ -65,11 +66,10 @@ export default function ProductConversionsPage() {
         queryFn: async () => {
             const branchQuery = selectedBranchId ? `?branchId=${selectedBranchId}` : "";
             const sessionParams = selectedBranchId ? { params: { branchId: selectedBranchId } } : {};
-            const minimalParam = branchQuery ? `${branchQuery}&minimal=true` : "?minimal=true";
 
             const [resConversions, resProducts, resSess] = await Promise.all([
                 api.get(`/product-conversions${branchQuery}`),
-                api.get(`/products${minimalParam}`),
+                api.get(`/products${branchQuery}`),
                 api.get('/daily-sessions/active', sessionParams).catch(() => ({ data: null })),
             ]);
 
@@ -131,9 +131,13 @@ export default function ProductConversionsPage() {
         }
 
         const selectedProduct = products.find((p: any) => p.id === fromProductId);
-        const availStock = (selectedProduct as any)?.currentStock ?? (selectedProduct as any)?.quantityRemaining;
-        if (availStock !== undefined && Number(fromQuantity) > Number(availStock)) {
-            toast.error(`Source quantity (${fromQuantity}) cannot exceed current available shop stock (${availStock}).`);
+        const availStock = (selectedProduct as any)?.currentHouseStock ?? (sessionStockSummary[fromProductId]?.maxAvailable ?? 0);
+        if (availStock <= 0) {
+            toast.error(`Cannot convert: No units of "${selectedProduct?.name || 'product'}" currently available in the shop.`);
+            return;
+        }
+        if (Number(fromQuantity) > Number(availStock)) {
+            toast.error(`Source quantity (${fromQuantity}) cannot exceed current available shop stock (${availStock} ${selectedProduct?.unitType || 'Pcs'}).`);
             return;
         }
 
@@ -170,6 +174,20 @@ export default function ProductConversionsPage() {
         }
         if (fromProductId === toProductId) {
             toast.error("Source and target products must be different");
+            return;
+        }
+
+        const selectedProduct = products.find((p: any) => p.id === fromProductId);
+        let availStock = (selectedProduct as any)?.currentHouseStock ?? (sessionStockSummary[fromProductId]?.maxAvailable ?? 0);
+        if (editingConversion && editingConversion.fromProductId === fromProductId) {
+            availStock += Number(editingConversion.fromQuantity || 0);
+        }
+        if (availStock <= 0) {
+            toast.error(`Cannot convert: No units of "${selectedProduct?.name || 'product'}" currently available in the shop.`);
+            return;
+        }
+        if (Number(fromQuantity) > Number(availStock)) {
+            toast.error(`Source quantity (${fromQuantity}) cannot exceed available shop stock (${availStock} ${selectedProduct?.unitType || 'Pcs'}).`);
             return;
         }
 
@@ -254,9 +272,11 @@ export default function ProductConversionsPage() {
         ? todayConversions
         : yesterdayConversions;
 
+    const selectedProd = products.find((p) => p.id === fromProductId);
     const selectedStock = fromProductId ? sessionStockSummary[fromProductId] : undefined;
-    const maxAvailableForConversion = selectedStock ? selectedStock.maxAvailable : 0;
-    const isExceedingStock = Boolean(fromProductId && selectedStock && Number(fromQuantity) > maxAvailableForConversion);
+    const maxAvailableForConversion = selectedProd?.currentHouseStock ?? (selectedStock ? selectedStock.maxAvailable : 0);
+    const isExceedingStock = Boolean(fromProductId && Number(fromQuantity) > maxAvailableForConversion);
+    const isOutOfStock = Boolean(fromProductId && maxAvailableForConversion <= 0);
 
     const emptyMessage = (isLoading || !pageData)
         ? t('conversions.loading')
@@ -535,18 +555,20 @@ export default function ProductConversionsPage() {
                                     <label className="text-[10px] font-black uppercase text-[#8C7361] tracking-wider block">
                                         {t('conversions.sourceProduct')} (Deduct)
                                     </label>
-                                    {fromProductId && selectedStock && (
+                                    {fromProductId && selectedProd && (
                                         <div className="flex items-center gap-1.5 text-[10px] font-bold">
                                             <span className="text-[#8C7361]">
-                                                Stock: <strong className="text-amber-900 font-extrabold">{maxAvailableForConversion} {selectedStock.unitType}</strong>
+                                                Stock: <strong className={maxAvailableForConversion > 0 ? "text-amber-900 font-extrabold" : "text-rose-600 font-extrabold"}>{maxAvailableForConversion} {selectedProd.unitType}</strong>
                                             </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFromQuantity(String(maxAvailableForConversion))}
-                                                className="px-1.5 py-0.5 bg-[#E87A18] hover:bg-[#D26911] text-white font-black text-[9px] rounded-md active:scale-95 transition-all"
-                                            >
-                                                Max
-                                            </button>
+                                            {maxAvailableForConversion > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFromQuantity(String(maxAvailableForConversion))}
+                                                    className="px-1.5 py-0.5 bg-[#E87A18] hover:bg-[#D26911] text-white font-black text-[9px] rounded-md active:scale-95 transition-all"
+                                                >
+                                                    Max
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -572,7 +594,7 @@ export default function ProductConversionsPage() {
                                             type="number"
                                             required
                                             min="1"
-                                            max={selectedStock ? maxAvailableForConversion : undefined}
+                                            max={maxAvailableForConversion > 0 ? maxAvailableForConversion : undefined}
                                             value={fromQuantity}
                                             onFocus={(e) => e.target.select()}
                                             onChange={(e) => setFromQuantity(e.target.value)}
@@ -582,12 +604,17 @@ export default function ProductConversionsPage() {
                                     </div>
                                 </div>
 
-                                {isExceedingStock && (
+                                {isOutOfStock ? (
+                                    <div className="p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
+                                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                        <span>No pieces currently in shop for this product. Cannot convert.</span>
+                                    </div>
+                                ) : isExceedingStock ? (
                                     <div className="p-1.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
                                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                        <span>Exceeds shop stock ({maxAvailableForConversion} {selectedStock?.unitType}).</span>
+                                        <span>Exceeds shop stock ({maxAvailableForConversion} {selectedProd?.unitType || 'Pcs'}).</span>
                                     </div>
-                                )}
+                                ) : null}
                             </div>
 
                             {/* Transition Indicator */}
@@ -646,10 +673,10 @@ export default function ProductConversionsPage() {
                                 <Button
                                     type="submit"
                                     loading={isSubmitting}
-                                    disabled={isExceedingStock}
+                                    disabled={isExceedingStock || isOutOfStock}
                                     className="rounded-xl h-9 text-xs font-bold flex-1 sm:flex-initial bg-[#E87A18] hover:bg-[#D26911] text-white"
                                 >
-                                    {isExceedingStock ? "Exceeds Stock" : t('common.save')}
+                                    {isOutOfStock ? "No Stock In Shop" : isExceedingStock ? "Exceeds Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -675,18 +702,20 @@ export default function ProductConversionsPage() {
                                     <label className="text-[10px] font-black uppercase text-[#8C7361] tracking-wider block">
                                         {t('conversions.sourceProduct')} (Deduct)
                                     </label>
-                                    {fromProductId && selectedStock && (
+                                    {fromProductId && selectedProd && (
                                         <div className="flex items-center gap-1.5 text-[10px] font-bold">
                                             <span className="text-[#8C7361]">
-                                                Stock: <strong className="text-amber-900 font-extrabold">{maxAvailableForConversion} {selectedStock.unitType}</strong>
+                                                Stock: <strong className={maxAvailableForConversion > 0 ? "text-amber-900 font-extrabold" : "text-rose-600 font-extrabold"}>{maxAvailableForConversion} {selectedProd.unitType}</strong>
                                             </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFromQuantity(String(maxAvailableForConversion))}
-                                                className="px-1.5 py-0.5 bg-[#E87A18] hover:bg-[#D26911] text-white font-black text-[9px] rounded-md active:scale-95 transition-all"
-                                            >
-                                                Max
-                                            </button>
+                                            {maxAvailableForConversion > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFromQuantity(String(maxAvailableForConversion))}
+                                                    className="px-1.5 py-0.5 bg-[#E87A18] hover:bg-[#D26911] text-white font-black text-[9px] rounded-md active:scale-95 transition-all"
+                                                >
+                                                    Max
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -712,7 +741,7 @@ export default function ProductConversionsPage() {
                                             type="number"
                                             required
                                             min="1"
-                                            max={selectedStock ? maxAvailableForConversion : undefined}
+                                            max={maxAvailableForConversion > 0 ? maxAvailableForConversion : undefined}
                                             value={fromQuantity}
                                             onFocus={(e) => e.target.select()}
                                             onChange={(e) => setFromQuantity(e.target.value)}
@@ -722,12 +751,17 @@ export default function ProductConversionsPage() {
                                     </div>
                                 </div>
 
-                                {isExceedingStock && (
+                                {isOutOfStock ? (
+                                    <div className="p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
+                                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                        <span>No pieces currently in shop for this product. Cannot convert.</span>
+                                    </div>
+                                ) : isExceedingStock ? (
                                     <div className="p-1.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
                                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                        <span>Exceeds shop stock ({maxAvailableForConversion} {selectedStock?.unitType}).</span>
+                                        <span>Exceeds shop stock ({maxAvailableForConversion} {selectedProd?.unitType || 'Pcs'}).</span>
                                     </div>
-                                )}
+                                ) : null}
                             </div>
 
                             {/* Transition Indicator */}
@@ -786,10 +820,10 @@ export default function ProductConversionsPage() {
                                 <Button
                                     type="submit"
                                     loading={isSubmitting}
-                                    disabled={isExceedingStock}
+                                    disabled={isExceedingStock || isOutOfStock}
                                     className="rounded-xl h-9 text-xs font-bold flex-1 sm:flex-initial bg-[#E87A18] hover:bg-[#D26911] text-white"
                                 >
-                                    {isExceedingStock ? "Exceeds Stock" : t('common.save')}
+                                    {isOutOfStock ? "No Stock In Shop" : isExceedingStock ? "Exceeds Stock" : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>
