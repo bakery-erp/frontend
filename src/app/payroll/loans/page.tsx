@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PayrollNav } from "../PayrollNav";
+import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
 import { AppDatePicker } from "@/components/AppDatePicker";
 import { useLanguage } from "@/context/LanguageContext";
@@ -109,11 +110,13 @@ export default function PayrollLoansPage() {
     setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
     const isSigned = fd.get("isSigned") === "on";
+    const date = fd.get("date");
     try {
       await api.post("/loans", {
         type: "STAFF_LOAN",
         userId: fd.get("userId"),
         totalAmount: fd.get("amount"),
+        date: date ? String(date) : undefined,
         isSigned,
       });
       toast.success(isSigned ? (t('payroll.markedSignedSuccess') || "Loan recorded as signed") : "Loan recorded successfully.");
@@ -323,7 +326,7 @@ export default function PayrollLoansPage() {
                 <div className="min-w-0 flex-1">
                   <h3 className="font-extrabold text-[#2C1B10] text-sm sm:text-base truncate">{l.user?.fullName}</h3>
                   <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                    <span className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(l.createdAt)}</span>
+                    <span className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(l.date || l.createdAt)}</span>
                   </div>
                 </div>
                 {getApprovalBadge(l.status)}
@@ -424,7 +427,7 @@ export default function PayrollLoansPage() {
               filteredLoans.map((l) => (
                 <TableRow key={l.id} className="hover:bg-[#FAF6F0]/50 transition-colors">
                   <TableCell className="text-xs font-semibold text-[#8C7361]">
-                    {formatEthDate(l.createdAt)}
+                    {formatEthDate(l.date || l.createdAt)}
                   </TableCell>
                   <TableCell className="font-bold text-[#2C1B10]">
                     {l.user?.fullName}
@@ -518,6 +521,14 @@ export default function PayrollLoansPage() {
                   placeholder="e.g. 1500"
                   onFocus={(e) => e.target.select()}
                   className="h-10 rounded-xl border-zinc-200 font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date') || 'Date'}</label>
+                <AppDatePicker
+                  name="date"
+                  defaultValue={format(new Date(), "yyyy-MM-dd")}
+                  required
                 />
               </div>
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
