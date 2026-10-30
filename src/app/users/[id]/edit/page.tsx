@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getFileUrl, getImageUrl } from "@/lib/utils";
-import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save, Trash2, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { ArrowLeft, UserCheck, Building2, Calendar, FileText, Upload, Save, Trash2, Eye, EyeOff, AlertTriangle, Lock } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DetailSkeleton } from "@/components/ui/skeletons";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
@@ -63,6 +63,7 @@ export default function EditUserPage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [isFormChanged, setIsFormChanged] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [startDateVal, setStartDateVal] = useState<string>("");
@@ -134,6 +135,15 @@ export default function EditUserPage() {
 
     try {
       const formData = new FormData(e.currentTarget);
+
+      if (userData.role === 'OWNER') {
+        const currentPassword = formData.get("currentPassword") as string;
+        if (!currentPassword || !currentPassword.trim()) {
+          toast.error("Current password is required to save changes to an Owner account");
+          setIsSubmitting(false);
+          return;
+        }
+      }
 
       const phone = formData.get("phone") as string;
       if (phone && !ETHIOPIAN_PHONE_REGEX.test(phone.trim())) {
@@ -319,9 +329,46 @@ export default function EditUserPage() {
                 />
               </div>
 
+              {/* Owner Current Password Requirement */}
+              {userData.role === 'OWNER' && (
+                <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 uppercase">
+                    <Lock className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Owner Security Verification</span>
+                  </div>
+                  <p className="text-[11px] text-[#8C7361]">
+                    To protect owner privileges, your current password is required to save any changes to this account.
+                  </p>
+                  <div>
+                    <label className="text-xs font-bold text-[#2C1B10] block mb-1">
+                      Current Password <span className="text-rose-600">*</span>
+                    </label>
+                    <div className="relative">
+                      <Input
+                        name="currentPassword"
+                        type={showCurrentPassword ? "text" : "password"}
+                        placeholder="Enter your current password"
+                        required
+                        className="h-10 rounded-xl border-[#EDE4D5] bg-white text-sm pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C7361] hover:text-[#2C1B10]"
+                        title={showCurrentPassword ? "Hide password" : "Show password"}
+                        tabIndex={-1}
+                      >
+                        {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  {t('users.passwordLabel')} <span className="text-xs text-zinc-400 font-normal">({t('users.passwordLeaveBlank')})</span>
+                  {userData.role === 'OWNER' ? 'New Password (Optional)' : t('users.passwordLabel')}{" "}
+                  <span className="text-xs text-zinc-400 font-normal">({t('users.passwordLeaveBlank')})</span>
                 </label>
                 <div className="relative">
                   <Input
@@ -345,19 +392,33 @@ export default function EditUserPage() {
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
                   {t('users.systemRoleLabel')} <span className="text-rose-600">*</span>
+                  {userData.role === 'OWNER' && (
+                    <span className="text-[10px] text-amber-700 ml-1.5 font-bold">(Locked)</span>
+                  )}
                 </label>
-                <select
-                  name="role"
-                  required
-                  defaultValue={userData.role}
-                  className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
-                >
-                  {ROLES.filter((r) => r !== 'OWNER' || user?.role === 'OWNER').map((r) => (
-                    <option key={r} value={r}>
-                      {getRoleLabel(r)}
-                    </option>
-                  ))}
-                </select>
+                {userData.role === 'OWNER' ? (
+                  <>
+                    <input type="hidden" name="role" value="OWNER" />
+                    <Input
+                      disabled
+                      value={getRoleLabel("OWNER")}
+                      className="h-11 rounded-xl border-[#EDE4D5] bg-[#FAF6F0] text-sm font-bold text-[#4A2E1B]"
+                    />
+                  </>
+                ) : (
+                  <select
+                    name="role"
+                    required
+                    defaultValue={userData.role}
+                    className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
+                  >
+                    {ROLES.filter((r) => r !== 'OWNER' || user?.role === 'OWNER').map((r) => (
+                      <option key={r} value={r}>
+                        {getRoleLabel(r)}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
           </div>
@@ -580,7 +641,7 @@ export default function EditUserPage() {
               <Save className="w-4 h-4" />
               {t('users.btnUpdatePersonnel')}
             </Button>
-            {user?.role === "OWNER" && userData.id !== user?.id && (
+            {user?.role === "OWNER" && userData.id !== user?.id && userData.role !== "OWNER" && (
               <Button
                 type="button"
                 variant="outline"
