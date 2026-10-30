@@ -321,23 +321,25 @@ function NewDeliveryContent() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto pb-24 md:pb-12">
+      <div className="w-full max-w-5xl mx-auto space-y-4 xs:space-y-6 pb-28 md:pb-12 min-w-0 overflow-x-hidden">
         {/* Header Bar */}
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 bg-white px-4 py-3 xs:px-5 xs:py-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <Button
               variant="outline"
               size="icon"
               onClick={() => router.push(supplierId ? `/suppliers/${supplierId}` : '/suppliers')}
-              className="w-10 h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0"
+              className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 w-9 shadow-2xs cursor-pointer shrink-0"
+              title="Cancel"
             >
-              <ArrowLeft className="w-4 h-4 text-[#4A2E1B]" />
+              <ArrowLeft className="w-4 h-4 text-[#E87A18]" />
             </Button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-[#2C1B10] tracking-tight">
-                New Supplier Delivery Receipt
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-black text-[#2C1B10] tracking-tight truncate flex items-center gap-2">
+                <Truck className="w-4 h-4 text-[#E87A18] shrink-0" />
+                <span>New Supplier Delivery Receipt</span>
               </h1>
-              <p className="text-xs text-[#8C7361] font-medium">
+              <p className="text-[11px] text-[#8C7361] font-semibold truncate hidden xs:block">
                 Step {currentStep} of 4: {currentStep === 1 ? 'Choose Supplier' : currentStep === 2 ? 'Select Delivered Products & Rates' : currentStep === 3 ? 'Review Delivered Products' : 'Payment Settlement'}
               </p>
             </div>
@@ -346,23 +348,20 @@ function NewDeliveryContent() {
           <Button
             variant="ghost"
             onClick={() => router.push(supplierId ? `/suppliers/${supplierId}` : '/suppliers')}
-            className="text-xs font-bold text-[#8C7361] hover:text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl h-9 px-3"
+            className="text-xs font-bold text-[#8C7361] hover:text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl h-9 px-3 shrink-0"
           >
             Cancel
           </Button>
         </div>
 
         {/* Production-Style 4-Step Navigation Header */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-3xl border border-[#EDE4D5] shadow-xs space-y-3 mb-6">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-7 h-7 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <span className="w-6 h-6 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-[11px] font-black shrink-0 shadow-xs">
                 {currentStep}
               </span>
               <div className="min-w-0">
-                <span className="text-[10px] uppercase font-extrabold text-[#8C7361] tracking-wider block">
-                  Step {currentStep} of 4
-                </span>
                 <h2 className="text-xs sm:text-sm font-black text-[#2C1B10] truncate">
                   {currentStep === 1 && "Step 1: Choose Supplier"}
                   {currentStep === 2 && "Step 2: Select Delivered Products & Rates"}
@@ -384,17 +383,17 @@ function NewDeliveryContent() {
                   className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#E87A18] hover:text-[#4A2E1B] transition-colors cursor-pointer px-2 py-1 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5]"
                 >
                   <ArrowLeft className="w-3 h-3" />
-                  <span className="hidden xs:inline">Back</span>
+                  <span>Back</span>
                 </button>
               )}
               {currentStep === 1 && selectedSupplier && (
-                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 truncate max-w-[140px]">
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 truncate max-w-[130px]">
                   {selectedSupplier.name}
                 </span>
               )}
               {currentStep === 2 && (
                 <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200">
-                  {selectedItemsList.length} Selected ({totalItemsCount} Units)
+                  {selectedItemsList.length} Items ({totalItemsCount} Units)
                 </span>
               )}
               {currentStep === 3 && (
@@ -428,7 +427,7 @@ function NewDeliveryContent() {
 
         {/* STEP 1: CHOOSE SUPPLIER */}
         {currentStep === 1 && (
-          <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-3">
               <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                 <Truck className="w-4 h-4 text-[#E87A18]" />
@@ -447,7 +446,7 @@ function NewDeliveryContent() {
               />
             </div>
 
-            {/* Supplier Cards Grid */}
+            {/* Supplier Cards Grid - Natural Flow without internal scroll */}
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-6">
                 <Skeleton className="h-24 rounded-2xl" />
@@ -458,14 +457,14 @@ function NewDeliveryContent() {
                 <p className="font-bold text-sm">No suppliers found matching &quot;{supplierSearch}&quot;</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[460px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 {filteredSuppliers.map((sup) => {
                   const isSelected = supplierId === sup.id;
                   return (
                     <div
                       key={sup.id}
                       onClick={() => setSupplierId(sup.id)}
-                      className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex items-start justify-between gap-3 ${
+                      className={`p-3.5 sm:p-4 rounded-2xl border text-left cursor-pointer transition-all flex items-start justify-between gap-3 ${
                         isSelected
                           ? 'bg-amber-50/70 border-[#E87A18] ring-2 ring-[#E87A18]/30 shadow-xs'
                           : 'bg-white hover:bg-[#FAF6F0]/50 border-[#EDE4D5]'
@@ -498,8 +497,8 @@ function NewDeliveryContent() {
               </div>
             )}
 
-            {/* Bottom Proceed Button for Step 1 */}
-            <div className="flex justify-end pt-3 border-t border-[#F4ECE1]">
+            {/* Step 1 Bottom Button for Desktop */}
+            <div className="hidden md:flex justify-end pt-3 border-t border-[#F4ECE1]">
               <Button
                 type="button"
                 size="lg"
@@ -510,9 +509,28 @@ function NewDeliveryContent() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }
                 }}
-                className="w-full sm:w-auto h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                className="h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
               >
                 <span>Next: Select Products</span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </Button>
+            </div>
+
+            {/* Mobile Sticky Bottom Bar for Step 1 */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <Button
+                type="button"
+                size="lg"
+                disabled={!canProceedFromStep1}
+                onClick={() => {
+                  if (canProceedFromStep1) {
+                    setCurrentStep(2);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className="w-full h-12 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <span>{canProceedFromStep1 ? "Next: Select Products" : "Select a supplier to continue"}</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
             </div>
@@ -522,7 +540,7 @@ function NewDeliveryContent() {
         {/* STEP 2: SELECT DELIVERED PRODUCTS, QUANTITIES & PRICES */}
         {currentStep === 2 && (
           <div className="space-y-4">
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
               {/* Toolbar */}
               <div className="space-y-3 border-b border-[#F4ECE1] pb-4">
                 <div className="flex items-center justify-between gap-2">
@@ -534,41 +552,49 @@ function NewDeliveryContent() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  <button
-                    type="button"
-                    onClick={() => setCategoryFilter('ALL')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      categoryFilter === 'ALL'
-                        ? 'bg-[#4A2E1B] text-white shadow-2xs'
-                        : 'bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]'
-                    }`}
+                {/* Horizontal Category Carousel with smooth scroll and mobile edge gradients */}
+                <div className="relative w-full overflow-hidden">
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+                  <div
+                    className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_1.5rem] pb-1"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
-                    All Resell Products ({products.length})
-                  </button>
-                  {productCategories.map((cat) => {
-                    const count = products.filter((p) => p.category?.name === cat).length;
-                    const isSelected = categoryFilter === cat;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setCategoryFilter(cat)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-                          isSelected
-                            ? 'bg-[#4A2E1B] text-white shadow-2xs'
-                            : 'bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]'
-                        }`}
-                      >
-                        <span>{cat}</span>
-                        <span className={`text-[10px] px-1 rounded-full font-mono ${
-                          isSelected ? 'bg-white/20 text-white' : 'bg-white text-[#8C7361]'
-                        }`}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFilter('ALL')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        categoryFilter === 'ALL'
+                          ? 'bg-[#4A2E1B] text-white shadow-2xs'
+                          : 'bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]'
+                      }`}
+                    >
+                      All Resell Products ({products.length})
+                    </button>
+                    {productCategories.map((cat) => {
+                      const count = products.filter((p) => p.category?.name === cat).length;
+                      const isSelected = categoryFilter === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setCategoryFilter(cat)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#4A2E1B] text-white shadow-2xs'
+                              : 'bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]'
+                          }`}
+                        >
+                          <span>{cat}</span>
+                          <span className={`text-[10px] px-1 rounded-full font-mono ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-white text-[#8C7361]'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="relative">
@@ -582,8 +608,8 @@ function NewDeliveryContent() {
                 </div>
               </div>
 
-              {/* Products Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 max-h-[520px] overflow-y-auto pr-1">
+              {/* Products Cards Grid - Natural Flow without internal scroll */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3.5">
                 {filteredProducts.map((prod) => {
                   const entry = productMap[prod.id] || {
                     quantity: '',
@@ -622,7 +648,7 @@ function NewDeliveryContent() {
                         )}
                       </div>
 
-                      {/* Quantity & Price Inputs */}
+                      {/* Quantity & Price Inputs with Touch-friendly Stepper */}
                       <div className="mt-3 pt-2.5 border-t border-[#F4ECE1] space-y-2">
                         <div>
                           <label className="text-[10px] font-bold text-[#8C7361] uppercase block mb-1">
@@ -635,19 +661,21 @@ function NewDeliveryContent() {
                               variant="outline"
                               onClick={() => decrementQty(prod.id)}
                               disabled={qty <= 0}
-                              className="h-8 w-8 p-0 rounded-lg border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                              className="h-9 w-9 p-0 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0 touch-manipulation cursor-pointer"
                             >
                               <Minus className="w-3.5 h-3.5" />
                             </Button>
 
                             <Input
                               type="number"
+                              inputMode="decimal"
                               min="0"
                               step="any"
                               placeholder="0"
                               value={entry.quantity}
                               onChange={(e) => updateProductEntry(prod.id, 'quantity', e.target.value)}
-                              className="h-8 text-center text-xs font-black rounded-lg border-[#EDE4D5] bg-white font-mono"
+                              onFocus={(e) => e.target.select()}
+                              className="h-9 text-center text-sm font-black rounded-xl border-[#EDE4D5] bg-white font-mono flex-1"
                             />
 
                             <Button
@@ -655,7 +683,7 @@ function NewDeliveryContent() {
                               size="sm"
                               variant="outline"
                               onClick={() => incrementQty(prod.id)}
-                              className="h-8 w-8 p-0 rounded-lg border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                              className="h-9 w-9 p-0 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0 touch-manipulation cursor-pointer"
                             >
                               <Plus className="w-3.5 h-3.5" />
                             </Button>
@@ -669,12 +697,13 @@ function NewDeliveryContent() {
                             </label>
                             <Input
                               type="number"
+                              inputMode="decimal"
                               min="0"
                               step="any"
                               placeholder="0.00"
                               value={entry.buyPrice}
                               onChange={(e) => updateProductEntry(prod.id, 'buyPrice', e.target.value)}
-                              className="h-8 text-xs font-mono rounded-lg border-[#EDE4D5] bg-white"
+                              className="h-9 text-xs font-mono rounded-xl border-[#EDE4D5] bg-white"
                             />
                           </div>
                           <div>
@@ -683,12 +712,13 @@ function NewDeliveryContent() {
                             </label>
                             <Input
                               type="number"
+                              inputMode="decimal"
                               min="0"
                               step="any"
                               placeholder="0.00"
                               value={entry.sellPrice}
                               onChange={(e) => updateProductEntry(prod.id, 'sellPrice', e.target.value)}
-                              className="h-8 text-xs font-mono rounded-lg border-[#EDE4D5] bg-white"
+                              className="h-9 text-xs font-mono rounded-xl border-[#EDE4D5] bg-white"
                             />
                           </div>
                         </div>
@@ -705,8 +735,8 @@ function NewDeliveryContent() {
               </div>
             </div>
 
-            {/* Step 2 Bottom Navigation */}
-            <div className="flex items-center justify-between gap-3 pt-2">
+            {/* Step 2 Bottom Navigation (Desktop md+) */}
+            <div className="hidden md:flex items-center justify-between gap-3 pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -715,14 +745,14 @@ function NewDeliveryContent() {
                   setCurrentStep(1);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="h-12 px-5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs flex items-center gap-1.5"
+                className="h-12 px-5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to Supplier</span>
               </Button>
 
               <div className="flex items-center gap-3">
-                <div className="hidden sm:block text-right">
+                <div className="text-right">
                   <span className="text-[10px] text-[#8C7361] font-bold uppercase block">Total Cost</span>
                   <span className="text-base font-black text-[#E87A18] font-mono">{totalCost.toFixed(2)} ETB</span>
                 </div>
@@ -744,6 +774,44 @@ function NewDeliveryContent() {
                 </Button>
               </div>
             </div>
+
+            {/* Mobile Sticky Bottom Action Bar (< md) */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="flex items-center gap-2 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    setCurrentStep(1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={!canProceedFromStep2}
+                  onClick={() => {
+                    if (canProceedFromStep2) {
+                      setCurrentStep(3);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                  className="flex-1 h-12 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  <span className="truncate">
+                    {canProceedFromStep2
+                      ? `Next: Review (${selectedItemsList.length} • ${totalCost.toFixed(0)} ETB)`
+                      : "Select products above"}
+                  </span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -751,15 +819,15 @@ function NewDeliveryContent() {
         {currentStep === 3 && (
           <div className="space-y-4">
             {/* Supplier Card */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-100/70 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0">
-                  <Truck className="w-6 h-6" />
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-amber-100/70 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-[10px] uppercase font-bold text-[#8C7361] tracking-wider block">Supplier</span>
-                  <h3 className="font-black text-base text-[#2C1B10]">{selectedSupplier?.name}</h3>
-                  <p className="text-xs font-mono text-[#8C7361]">
+                  <h3 className="font-black text-sm sm:text-base text-[#2C1B10] truncate">{selectedSupplier?.name}</h3>
+                  <p className="text-xs font-mono text-[#8C7361] truncate">
                     {selectedSupplier?.phone || 'No phone'} • Type: <strong className="uppercase">{selectedSupplier?.type}</strong>
                   </p>
                 </div>
@@ -777,7 +845,7 @@ function NewDeliveryContent() {
             </div>
 
             {/* Products Table Summary */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-[#F4ECE1] pb-3.5">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-[#E87A18]">
@@ -805,7 +873,37 @@ function NewDeliveryContent() {
                 </Button>
               </div>
 
-              <div className="overflow-x-auto rounded-2xl border border-[#F4ECE1]">
+              {/* Mobile Card List View (< sm) */}
+              <div className="sm:hidden space-y-2.5">
+                {selectedItemsList.map((it) => (
+                  <div
+                    key={it.productId}
+                    className="p-3 rounded-xl bg-[#FAF6F0]/70 border border-[#EDE4D5] flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <span className="font-black text-sm text-[#2C1B10] block truncate">
+                        {getItemName(it.product)}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#8C7361]">
+                        <span>Buy: {it.buyPrice.toFixed(2)} ETB</span>
+                        <span>•</span>
+                        <span>Sell: {it.sellPrice.toFixed(2)} ETB</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="inline-block px-2 py-0.5 rounded-lg bg-white text-[#2C1B10] font-mono font-black text-xs border border-[#EDE4D5] mb-0.5">
+                        {it.quantity} {it.product?.unitType}
+                      </span>
+                      <div className="font-mono font-black text-xs text-[#E87A18]">
+                        {it.totalCost.toFixed(2)} ETB
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Items Table (sm+) */}
+              <div className="hidden sm:block overflow-x-auto rounded-2xl border border-[#F4ECE1]">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="bg-[#FAF6F0]/70 text-[#8C7361] border-b border-[#F4ECE1]">
@@ -844,7 +942,7 @@ function NewDeliveryContent() {
               </div>
 
               {/* Total Cost Display */}
-              <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] p-4 rounded-2xl">
+              <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] p-3.5 sm:p-4 rounded-2xl">
                 <div>
                   <span className="text-xs uppercase font-extrabold text-[#4A2E1B] block">Total Delivery Value</span>
                   <span className="text-[11px] text-[#8C7361]">{totalItemsCount} total units added to shop inventory</span>
@@ -857,8 +955,8 @@ function NewDeliveryContent() {
               </div>
             </div>
 
-            {/* Step 3 Bottom Navigation */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+            {/* Step 3 Bottom Navigation (Desktop md+) */}
+            <div className="hidden md:flex items-center justify-between gap-3 pt-3">
               <Button
                 type="button"
                 variant="outline"
@@ -867,7 +965,7 @@ function NewDeliveryContent() {
                   setCurrentStep(2);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="w-full sm:w-auto h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-1"
+                className="h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 shrink-0" />
                 <span>Back to Products</span>
@@ -881,11 +979,43 @@ function NewDeliveryContent() {
                   setCurrentStep(4);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="w-full sm:w-auto h-12 px-8 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 order-1 sm:order-2 shrink-0"
+                className="h-12 px-8 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 shrink-0"
               >
                 <span>Proceed to Payment Settlement</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
+            </div>
+
+            {/* Mobile Sticky Bottom Action Bar (< md) */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="flex items-center gap-2 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    setCurrentStep(2);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={selectedItemsList.length === 0 || totalCost <= 0}
+                  onClick={() => {
+                    setCurrentStep(4);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex-1 h-12 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  <span className="truncate">Proceed to Payment</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -894,7 +1024,7 @@ function NewDeliveryContent() {
         {currentStep === 4 && (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Quick Delivery Summary Banner */}
-            <div className="bg-gradient-to-r from-amber-500/10 via-[#FAF6F0] to-[#FAF6F0] border border-amber-300/80 rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="bg-gradient-to-r from-amber-500/10 via-[#FAF6F0] to-[#FAF6F0] border border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] uppercase font-black text-[#8C7361] tracking-wider block">
                   Delivery for {selectedSupplier?.name}
@@ -912,13 +1042,13 @@ function NewDeliveryContent() {
             </div>
 
             {/* Payment Details & Settlement Mode */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 shadow-xs space-y-4">
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
               <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-[#E87A18]" />
                 <span>Payment Settlement Configuration</span>
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
                     Delivery Date *
@@ -1030,7 +1160,7 @@ function NewDeliveryContent() {
                 )}
 
                 {/* Settlement Summary Pill */}
-                <div className="sm:col-span-2 p-4 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-xs">
+                <div className="sm:col-span-2 p-3.5 sm:p-4 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-xs">
                   <div>
                     <span className="text-[#8C7361] font-bold block uppercase text-[10px]">Paid Now</span>
                     <strong className="text-emerald-700 font-extrabold font-mono text-base sm:text-lg">
@@ -1059,8 +1189,8 @@ function NewDeliveryContent() {
               </div>
             </div>
 
-            {/* Redesigned Step 4 Bottom Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+            {/* Step 4 Bottom Action Buttons (Desktop md+) */}
+            <div className="hidden md:flex items-center justify-between gap-3 pt-3">
               <Button
                 type="button"
                 variant="outline"
@@ -1070,7 +1200,7 @@ function NewDeliveryContent() {
                   setCurrentStep(3);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="w-full sm:w-auto h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-1"
+                className="h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 shrink-0" />
                 <span>Back to Review</span>
@@ -1080,7 +1210,7 @@ function NewDeliveryContent() {
                 type="submit"
                 size="lg"
                 disabled={isSubmitting || totalCost <= 0}
-                className="w-full sm:w-auto h-12 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 order-1 sm:order-2 shrink-0"
+                className="h-12 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 shrink-0"
               >
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>
@@ -1089,6 +1219,40 @@ function NewDeliveryContent() {
                     : `Confirm & Record Delivery Receipt (${totalCost.toFixed(2)} ETB)`}
                 </span>
               </Button>
+            </div>
+
+            {/* Mobile Sticky Bottom Action Bar (< md) */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="flex items-center gap-2 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setCurrentStep(3);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </Button>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={isSubmitting || totalCost <= 0}
+                  className="flex-1 h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span className="truncate">
+                    {isSubmitting
+                      ? "Recording..."
+                      : `Confirm Delivery (${totalCost.toFixed(0)} ETB)`}
+                  </span>
+                </Button>
+              </div>
             </div>
           </form>
         )}

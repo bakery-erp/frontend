@@ -454,23 +454,25 @@ function NewCustomerCreditFormContent() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto pb-24 md:pb-12">
+      <div className="w-full max-w-5xl mx-auto space-y-4 xs:space-y-6 pb-28 md:pb-12 min-w-0 overflow-x-hidden">
         {/* Header Bar */}
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 bg-white px-4 py-3 xs:px-5 xs:py-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <Button
               variant="outline"
               size="icon"
               onClick={handleCancelClick}
-              className="w-10 h-10 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0"
+              className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 w-9 shadow-2xs cursor-pointer shrink-0"
+              title="Cancel"
             >
-              <ArrowLeft className="w-4 h-4 text-[#4A2E1B]" />
+              <ArrowLeft className="w-4 h-4 text-[#E87A18]" />
             </Button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-[#2C1B10] tracking-tight">
-                {isEditMode ? "Edit Customer Credit" : "New Customer Credit Sale"}
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-black text-[#2C1B10] tracking-tight truncate flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-[#E87A18] shrink-0" />
+                <span>{isEditMode ? "Edit Customer Credit" : "New Customer Credit Sale"}</span>
               </h1>
-              <p className="text-xs text-[#8C7361] font-medium">
+              <p className="text-[11px] text-[#8C7361] font-semibold truncate hidden xs:block">
                 Step {currentStep} of 3: {currentStep === 1 ? "Choose Customer" : currentStep === 2 ? "Select In-Shop Products" : "Review & Verification"}
               </p>
             </div>
@@ -479,23 +481,20 @@ function NewCustomerCreditFormContent() {
           <Button
             variant="ghost"
             onClick={handleCancelClick}
-            className="text-xs font-bold text-[#8C7361] hover:text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl h-9 px-3"
+            className="text-xs font-bold text-[#8C7361] hover:text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl h-9 px-3 shrink-0"
           >
             Cancel
           </Button>
         </div>
 
         {/* Production-Style Step Navigation Header */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-3xl border border-[#EDE4D5] shadow-xs space-y-3 mb-6">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-7 h-7 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <span className="w-6 h-6 rounded-full bg-[#E87A18] text-white flex items-center justify-center text-[11px] font-black shrink-0 shadow-xs">
                 {currentStep}
               </span>
               <div className="min-w-0">
-                <span className="text-[10px] uppercase font-extrabold text-[#8C7361] tracking-wider block">
-                  Step {currentStep} of 3
-                </span>
                 <h2 className="text-xs sm:text-sm font-black text-[#2C1B10] truncate">
                   {currentStep === 1 && "Step 1: Choose Customer"}
                   {currentStep === 2 && "Step 2: Select In-Shop Products"}
@@ -516,17 +515,17 @@ function NewCustomerCreditFormContent() {
                   className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#E87A18] hover:text-[#4A2E1B] transition-colors cursor-pointer px-2 py-1 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5]"
                 >
                   <ArrowLeft className="w-3 h-3" />
-                  <span className="hidden xs:inline">Back</span>
+                  <span>Back</span>
                 </button>
               )}
               {currentStep === 1 && selectedCustomer && (
-                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 truncate max-w-[140px]">
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200 truncate max-w-[130px]">
                   {selectedCustomer.fullName}
                 </span>
               )}
               {currentStep === 2 && (
                 <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200">
-                  {selectedItemsList.length} Selected ({totalSelectedUnits} Units)
+                  {selectedItemsList.length} Items ({totalSelectedUnits} Units)
                 </span>
               )}
               {currentStep === 3 && (
@@ -559,31 +558,31 @@ function NewCustomerCreditFormContent() {
               <button
                 type="button"
                 onClick={() => setCustomerMode("EXISTING")}
-                className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer ${
                   customerMode === "EXISTING"
                     ? "bg-[#4A2E1B] text-white shadow-sm"
                     : "text-[#8C7361] hover:text-[#2C1B10]"
                 }`}
               >
-                <UserCheck className="w-4 h-4" />
-                <span>Existing Customer ({customers.length})</span>
+                <UserCheck className="w-4 h-4 shrink-0" />
+                <span className="truncate">Existing Customer ({customers.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCustomerMode("NEW")}
-                className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer ${
                   customerMode === "NEW"
                     ? "bg-[#4A2E1B] text-white shadow-sm"
                     : "text-[#8C7361] hover:text-[#2C1B10]"
                 }`}
               >
-                <UserPlus className="w-4 h-4" />
-                <span>Register New Customer</span>
+                <UserPlus className="w-4 h-4 shrink-0" />
+                <span className="truncate">Register New Customer</span>
               </button>
             </div>
 
             {customerMode === "EXISTING" ? (
-              <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+              <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
                 {/* Search Bar */}
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7361]" />
@@ -595,7 +594,7 @@ function NewCustomerCreditFormContent() {
                   />
                 </div>
 
-                {/* Customer Cards Grid */}
+                {/* Customer Cards Grid - Natural Flow without internal scroll */}
                 {isLoading ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-6">
                     <Skeleton className="h-24 rounded-2xl" />
@@ -617,14 +616,14 @@ function NewCustomerCreditFormContent() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[460px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                     {filteredCustomers.map((cust) => {
                       const isSelected = selectedCustomerId === cust.id;
                       return (
                         <div
                           key={cust.id}
                           onClick={() => setSelectedCustomerId(cust.id)}
-                          className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
+                          className={`p-3.5 sm:p-4 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
                             isSelected
                               ? "bg-amber-50/70 border-[#E87A18] ring-2 ring-[#E87A18]/30 shadow-xs"
                               : "bg-white hover:bg-[#FAF6F0]/50 border-[#EDE4D5]"
@@ -664,13 +663,13 @@ function NewCustomerCreditFormContent() {
                 )}
               </div>
             ) : (
-              <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
                 <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                   <UserPlus className="w-4 h-4 text-[#E87A18]" />
                   <span>Customer Information</span>
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
                       Full Name <span className="text-red-500">*</span>
@@ -712,8 +711,8 @@ function NewCustomerCreditFormContent() {
               </div>
             )}
 
-            {/* Bottom Proceed Button for Step 1 */}
-            <div className="flex justify-end pt-2">
+            {/* Step 1 Bottom Button for Desktop */}
+            <div className="hidden md:flex justify-end pt-2">
               <Button
                 type="button"
                 size="lg"
@@ -724,9 +723,28 @@ function NewCustomerCreditFormContent() {
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }
                 }}
-                className="w-full sm:w-auto h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                className="h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
               >
                 <span>Next: Select Products</span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </Button>
+            </div>
+
+            {/* Mobile Sticky Bottom Bar for Step 1 */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <Button
+                type="button"
+                size="lg"
+                disabled={!canProceedFromStep1}
+                onClick={() => {
+                  if (canProceedFromStep1) {
+                    setCurrentStep(2);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+                className="w-full h-12 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <span>{canProceedFromStep1 ? "Next: Select Products" : "Select a customer to continue"}</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
             </div>
@@ -736,7 +754,7 @@ function NewCustomerCreditFormContent() {
         {/* STEP 2: CATEGORIZED PRODUCT SELECTION */}
         {currentStep === 2 && (
           <div className="space-y-4">
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
               {/* Category Pills & Search Toolbar */}
               <div className="space-y-3 border-b border-[#F4ECE1] pb-4">
                 <div className="flex items-center justify-between gap-2">
@@ -748,41 +766,49 @@ function NewCustomerCreditFormContent() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  <button
-                    type="button"
-                    onClick={() => setProductCategoryFilter("ALL")}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      productCategoryFilter === "ALL"
-                        ? "bg-[#4A2E1B] text-white shadow-2xs"
-                        : "bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]"
-                    }`}
+                {/* Horizontal Category Carousel with smooth scroll and mobile edge gradients */}
+                <div className="relative w-full overflow-hidden">
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+                  <div
+                    className="flex items-center gap-1.5 xs:gap-2 overflow-x-auto no-scrollbar scroll-smooth [scroll-padding:0_1.5rem] pb-1"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
-                    All Products ({products.length})
-                  </button>
-                  {productCategories.map((cat) => {
-                    const count = products.filter((p) => p.categoryName === cat).length;
-                    const isSelected = productCategoryFilter === cat;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setProductCategoryFilter(cat)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-                          isSelected
-                            ? "bg-[#4A2E1B] text-white shadow-2xs"
-                            : "bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]"
-                        }`}
-                      >
-                        <span>{cat}</span>
-                        <span className={`text-[10px] px-1 rounded-full font-mono ${
-                          isSelected ? "bg-white/20 text-white" : "bg-white text-[#8C7361]"
-                        }`}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
+                    <button
+                      type="button"
+                      onClick={() => setProductCategoryFilter("ALL")}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        productCategoryFilter === "ALL"
+                          ? "bg-[#4A2E1B] text-white shadow-2xs"
+                          : "bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]"
+                      }`}
+                    >
+                      All Products ({products.length})
+                    </button>
+                    {productCategories.map((cat) => {
+                      const count = products.filter((p) => p.categoryName === cat).length;
+                      const isSelected = productCategoryFilter === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setProductCategoryFilter(cat)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                            isSelected
+                              ? "bg-[#4A2E1B] text-white shadow-2xs"
+                              : "bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]"
+                          }`}
+                        >
+                          <span>{cat}</span>
+                          <span className={`text-[10px] px-1 rounded-full font-mono ${
+                            isSelected ? "bg-white/20 text-white" : "bg-white text-[#8C7361]"
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Product Search */}
@@ -797,8 +823,8 @@ function NewCustomerCreditFormContent() {
                 </div>
               </div>
 
-              {/* Product Selection Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 max-h-[500px] overflow-y-auto pr-1">
+              {/* Product Selection Cards Grid - Natural Flow without internal scroll */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3.5">
                 {filteredProducts.map((prod) => {
                   const qtyStr = selectedProductQuantities[prod.id] || "";
                   const qty = parseInt(qtyStr, 10) || 0;
@@ -841,7 +867,7 @@ function NewCustomerCreditFormContent() {
                         </div>
                       </div>
 
-                      {/* Quantity Selector Controls */}
+                      {/* Quantity Selector Controls with Touch-friendly Buttons */}
                       <div className="mt-3 pt-2.5 border-t border-[#F4ECE1]">
                         <div className="flex items-center gap-1.5">
                           <Button
@@ -850,19 +876,21 @@ function NewCustomerCreditFormContent() {
                             variant="outline"
                             onClick={() => decrementQty(prod.id)}
                             disabled={qty <= 0}
-                            className="h-8 w-8 p-0 rounded-lg border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                            className="h-9 w-9 p-0 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0 touch-manipulation cursor-pointer"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </Button>
 
                           <Input
                             type="number"
+                            inputMode="numeric"
                             min="0"
                             max={prod.availableStock}
                             placeholder="0"
                             value={qtyStr}
                             onChange={(e) => setProductQty(prod.id, e.target.value)}
-                            className={`h-8 text-center text-xs font-black rounded-lg border font-mono ${
+                            onFocus={(e) => e.target.select()}
+                            className={`h-9 text-center text-sm font-black rounded-xl border font-mono flex-1 ${
                               isOverStock ? "border-rose-400 bg-rose-50 text-rose-900" : "border-[#EDE4D5] bg-white"
                             }`}
                           />
@@ -873,7 +901,7 @@ function NewCustomerCreditFormContent() {
                             variant="outline"
                             onClick={() => incrementQty(prod.id)}
                             disabled={prod.availableStock <= 0 || qty >= prod.availableStock}
-                            className="h-8 w-8 p-0 rounded-lg border-[#EDE4D5] hover:bg-[#FAF6F0]"
+                            className="h-9 w-9 p-0 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0 touch-manipulation cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </Button>
@@ -896,8 +924,8 @@ function NewCustomerCreditFormContent() {
               </div>
             </div>
 
-            {/* Step 2 Bottom Sticky Navigation */}
-            <div className="flex items-center justify-between gap-3 pt-2">
+            {/* Step 2 Bottom Navigation (Desktop md+) */}
+            <div className="hidden md:flex items-center justify-between gap-3 pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -906,14 +934,14 @@ function NewCustomerCreditFormContent() {
                   setCurrentStep(1);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="h-12 px-5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs flex items-center gap-1.5"
+                className="h-12 px-5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to Customer</span>
               </Button>
 
               <div className="flex items-center gap-3">
-                <div className="hidden sm:block text-right">
+                <div className="text-right">
                   <span className="text-[10px] text-[#8C7361] font-bold uppercase block">Total Credit</span>
                   <span className="text-base font-black text-[#E87A18] font-mono">{totalCalculatedBirr.toFixed(2)} ETB</span>
                 </div>
@@ -935,6 +963,44 @@ function NewCustomerCreditFormContent() {
                 </Button>
               </div>
             </div>
+
+            {/* Mobile Sticky Bottom Action Bar (< md) */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="flex items-center gap-2 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    setCurrentStep(1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={!canProceedFromStep2}
+                  onClick={() => {
+                    if (canProceedFromStep2) {
+                      setCurrentStep(3);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  className="flex-1 h-12 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  <span className="truncate">
+                    {canProceedFromStep2
+                      ? `Next: Review (${selectedItemsList.length} • ${totalCalculatedBirr.toFixed(0)} ETB)`
+                      : "Select products above"}
+                  </span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -942,17 +1008,17 @@ function NewCustomerCreditFormContent() {
         {currentStep === 3 && (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Customer Summary Card */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-100/70 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0">
-                  <UserCheck className="w-6 h-6" />
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-amber-100/70 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0">
+                  <UserCheck className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-[10px] uppercase font-bold text-[#8C7361] tracking-wider block">Customer</span>
-                  <h3 className="font-black text-base text-[#2C1B10]">
+                  <h3 className="font-black text-sm sm:text-base text-[#2C1B10] truncate">
                     {customerMode === "EXISTING" ? selectedCustomer?.fullName : newCustomerName}
                   </h3>
-                  <p className="text-xs font-mono text-[#8C7361]">
+                  <p className="text-xs font-mono text-[#8C7361] truncate">
                     {customerMode === "EXISTING" ? selectedCustomer?.phone : newCustomerPhone}
                     {(customerMode === "EXISTING" ? selectedCustomer?.address : newCustomerAddress) && ` • ${(customerMode === "EXISTING" ? selectedCustomer?.address : newCustomerAddress)}`}
                   </p>
@@ -964,14 +1030,14 @@ function NewCustomerCreditFormContent() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentStep(1)}
-                className="h-8 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl self-end sm:self-center"
+                className="h-8 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl self-end sm:self-center cursor-pointer"
               >
                 Change Customer
               </Button>
             </div>
 
             {/* Redesigned Selected Products Summary Card */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-[#F4ECE1] pb-3.5">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-[#E87A18]">
@@ -999,8 +1065,37 @@ function NewCustomerCreditFormContent() {
                 </Button>
               </div>
 
-              {/* Items Table with modern styled rows */}
-              <div className="overflow-x-auto rounded-2xl border border-[#F4ECE1]">
+              {/* Mobile Card List View (< sm) */}
+              <div className="sm:hidden space-y-2.5">
+                {selectedItemsList.map((it) => (
+                  <div
+                    key={it.productId}
+                    className="p-3 rounded-xl bg-[#FAF6F0]/70 border border-[#EDE4D5] flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <span className="font-black text-sm text-[#2C1B10] block truncate">
+                        {getItemName(it.product)}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#8C7361]">
+                        <span>{it.product?.categoryName || "Bakery"}</span>
+                        <span>•</span>
+                        <span className="font-mono">{it.unitPrice.toFixed(2)} ETB</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="inline-block px-2 py-0.5 rounded-lg bg-white text-[#2C1B10] font-mono font-black text-xs border border-[#EDE4D5] mb-0.5">
+                        {it.quantity} {it.product?.unitType}
+                      </span>
+                      <div className="font-mono font-black text-xs text-[#E87A18]">
+                        {it.totalPrice.toFixed(2)} ETB
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Items Table (sm+) */}
+              <div className="hidden sm:block overflow-x-auto rounded-2xl border border-[#F4ECE1]">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="bg-[#FAF6F0]/70 text-[#8C7361] border-b border-[#F4ECE1]">
@@ -1035,14 +1130,14 @@ function NewCustomerCreditFormContent() {
               </div>
 
               {/* Total Calculation & Customizable Selling Price (Bulk Discount) */}
-              <div className="bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] border border-[#EDE4D5] p-4 sm:p-5 rounded-2xl space-y-4">
+              <div className="bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] border border-[#EDE4D5] p-3.5 sm:p-5 rounded-2xl space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EDE4D5]">
                   <div>
                     <span className="text-[10px] uppercase font-black text-[#8C7361] tracking-wider block">Standard Catalog Value</span>
-                    <span className="text-sm font-bold text-[#4A2E1B]">{totalSelectedUnits} total items from shop inventory</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#4A2E1B]">{totalSelectedUnits} total items from shop inventory</span>
                   </div>
                   <div className="text-left sm:text-right">
-                    <span className="text-lg font-black text-[#8C7361] font-mono line-through mr-2">
+                    <span className="text-base sm:text-lg font-black text-[#8C7361] font-mono line-through mr-2">
                       {sellingPriceInput && parseFloat(sellingPriceInput) !== totalCalculatedBirr ? `${totalCalculatedBirr.toFixed(2)} ETB` : ""}
                     </span>
                     <span className="text-xl sm:text-2xl font-black text-[#2C1B10] font-mono">
@@ -1054,7 +1149,7 @@ function NewCustomerCreditFormContent() {
                 {/* Selling Price Input for Custom / Bulk Discount */}
                 <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#EDE4D5] shadow-xs space-y-2">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <label className="text-xs font-black text-[#2C1B10] uppercase flex items-center gap-1.5">
+                    <label className="text-xs font-black text-[#2C1B10] uppercase flex items-center gap-1.5 flex-wrap">
                       <span>Selling Price / Total Credit Amount (ETB) *</span>
                       <span className="text-emerald-700 text-[10px] font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                         Discount Allowed
@@ -1105,14 +1200,14 @@ function NewCustomerCreditFormContent() {
               </div>
             </div>
 
-            {/* Transaction Date & Notes Configuration (Due Date removed per instructions) */}
-            <div className="bg-white border border-[#EDE4D5] rounded-3xl p-5 shadow-xs space-y-4">
+            {/* Transaction Date & Notes Configuration */}
+            <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
               <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#E87A18]" />
                 <span>Transaction Date & Notes</span>
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
                     Credit Date *
@@ -1138,8 +1233,8 @@ function NewCustomerCreditFormContent() {
               </div>
             </div>
 
-            {/* Redesigned Step 3 Bottom Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+            {/* Step 3 Bottom Action Buttons (Desktop md+) */}
+            <div className="hidden md:flex items-center justify-between gap-3 pt-3">
               <Button
                 type="button"
                 variant="outline"
@@ -1149,7 +1244,7 @@ function NewCustomerCreditFormContent() {
                   setCurrentStep(2);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="w-full sm:w-auto h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-1"
+                className="h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 shrink-0" />
                 <span>Back to Products</span>
@@ -1159,7 +1254,7 @@ function NewCustomerCreditFormContent() {
                 type="submit"
                 size="lg"
                 disabled={isSubmitting || effectiveCreditAmount <= 0}
-                className="w-full sm:w-auto h-12 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 order-1 sm:order-2 shrink-0"
+                className="h-12 px-8 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 shrink-0"
               >
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>
@@ -1170,6 +1265,42 @@ function NewCustomerCreditFormContent() {
                     : `Confirm & Record Credit (${effectiveCreditAmount.toFixed(2)} ETB)`}
                 </span>
               </Button>
+            </div>
+
+            {/* Mobile Sticky Bottom Action Bar (< md) */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE4D5] p-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="flex items-center gap-2 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setCurrentStep(2);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </Button>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={isSubmitting || effectiveCreditAmount <= 0}
+                  className="flex-1 h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span className="truncate">
+                    {isSubmitting
+                      ? "Recording..."
+                      : isEditMode
+                      ? `Update (${effectiveCreditAmount.toFixed(0)} ETB)`
+                      : `Confirm (${effectiveCreditAmount.toFixed(0)} ETB)`}
+                  </span>
+                </Button>
+              </div>
             </div>
           </form>
         )}
