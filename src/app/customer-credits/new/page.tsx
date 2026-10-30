@@ -104,7 +104,7 @@ function NewCustomerCreditFormContent() {
 
   // Step 3: Summary & Notes State
   const [creditDate, setCreditDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
-  const [sellingPriceInput, setSellingPriceInput] = useState<string>("");
+  const [customProductPrices, setCustomProductPrices] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState("");
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
@@ -202,9 +202,6 @@ function NewCustomerCreditFormContent() {
             if (cData.date) {
               setCreditDate(format(new Date(cData.date), "yyyy-MM-dd"));
             }
-            if (cData.amount != null) {
-              setSellingPriceInput(String(Number(cData.amount)));
-            }
             setNotes(extractCleanNotes(cData.description));
 
             const creditItemsMatch = (cData.description || "").match(/\[CreditItems:\s*(\[.*?\])\s*\]/);
@@ -213,10 +210,15 @@ function NewCustomerCreditFormContent() {
                 const parsed = JSON.parse(creditItemsMatch[1]);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                   const qMap: Record<string, string> = {};
+                  const pMap: Record<string, string> = {};
                   parsed.forEach((it: any) => {
                     qMap[it.productId] = String(it.quantity);
+                    if (it.unitPrice != null) {
+                      pMap[it.productId] = String(it.unitPrice);
+                    }
                   });
                   setSelectedProductQuantities(qMap);
+                  setCustomProductPrices(pMap);
                 }
               } catch {}
             }
@@ -312,36 +314,70 @@ function NewCustomerCreditFormContent() {
     }
   };
 
-  // Selected items breakdown list
+  const updateProductPrice = (productId: string, val: string) => {
+    setCustomProductPrices((prev) => {
+      const next = { ...prev };
+      if (val === "" || val === null || val === undefined) {
+        delete next[productId];
+      } else {
+        next[productId] = val;
+      }
+      return next;
+    });
+  };
+
+  // Selected items breakdown list with per-product custom selling prices (bulk discounts)
   const selectedItemsList = useMemo(() => {
     return Object.entries(selectedProductQuantities)
       .map(([id, qtyStr]) => {
         const prod = products.find((p) => p.id === id);
         const qty = parseInt(qtyStr, 10) || 0;
+        const catalogPrice = prod ? prod.basePrice : 0;
+        const customPriceStr = customProductPrices[id];
+        let unitPrice = catalogPrice;
+        if (customPriceStr !== undefined && customPriceStr.trim() !== "") {
+          const parsed = parseFloat(customPriceStr);
+          if (!isNaN(parsed) && parsed >= 0) {
+            unitPrice = parsed;
+          }
+        }
+        const totalPrice = qty * unitPrice;
+        const standardTotalPrice = qty * catalogPrice;
+        const isDiscounted = unitPrice < catalogPrice;
+        const discountPerUnit = catalogPrice - unitPrice;
+
         return {
           productId: id,
           product: prod,
           quantity: qty,
-          unitPrice: prod ? prod.basePrice : 0,
-          totalPrice: prod ? qty * prod.basePrice : 0,
+          catalogPrice,
+          unitPrice,
+          totalPrice,
+          standardTotalPrice,
+          isDiscounted,
+          discountPerUnit,
           overStock: prod ? qty > prod.availableStock : false,
         };
       })
       .filter((it) => it.quantity > 0 && it.product);
-  }, [selectedProductQuantities, products]);
+  }, [selectedProductQuantities, customProductPrices, products]);
 
+  // Standard catalog value (undiscounted)
+  const totalStandardCatalogBirr = useMemo(() => {
+    return selectedItemsList.reduce((acc, curr) => acc + curr.standardTotalPrice, 0);
+  }, [selectedItemsList]);
+
+  // Actual total credit amount derived from each product's negotiated selling price
   const totalCalculatedBirr = useMemo(() => {
     return selectedItemsList.reduce((acc, curr) => acc + curr.totalPrice, 0);
   }, [selectedItemsList]);
 
-  // Customizable selling price / agreed total amount (supporting bulk discounts)
-  const effectiveCreditAmount = useMemo(() => {
-    if (sellingPriceInput.trim() !== "") {
-      const parsed = parseFloat(sellingPriceInput);
-      if (!isNaN(parsed) && parsed >= 0) return parsed;
-    }
-    return totalCalculatedBirr;
-  }, [sellingPriceInput, totalCalculatedBirr]);
+  // Overall savings from bulk/negotiated discounts
+  const totalDiscountSavings = useMemo(() => {
+    return Math.max(0, totalStandardCatalogBirr - totalCalculatedBirr);
+  }, [totalStandardCatalogBirr, totalCalculatedBirr]);
+
+  const effectiveCreditAmount = totalCalculatedBirr;
 
   const totalSelectedUnits = useMemo(() => {
     return selectedItemsList.reduce((acc, curr) => acc + curr.quantity, 0);
@@ -353,7 +389,7 @@ function NewCustomerCreditFormContent() {
   const isFormDirty =
     (customerMode === "NEW" && (newCustomerName.trim() !== "" || newCustomerPhone.trim() !== "")) ||
     selectedItemsList.length > 0 ||
-    sellingPriceInput.trim() !== "" ||
+    Object.keys(customProductPrices).length > 0 ||
     notes.trim() !== "";
 
   const handleCancelClick = () => {
@@ -830,7 +866,10 @@ function NewCustomerCreditFormContent() {
                   const qty = parseInt(qtyStr, 10) || 0;
                   const isSelected = qty > 0;
                   const isOverStock = qty > prod.availableStock;
-                  const subTotal = qty * prod.basePrice;
+                  const itemEntry = selectedItemsList.find((it) => it.productId === prod.id);
+                  const effectiveUnitPrice = itemEntry ? itemEntry.unitPrice : prod.basePrice;
+                  const subTotal = qty * effectiveUnitPrice;
+                  const isDiscounted = effectiveUnitPrice < prod.basePrice;
 
                   return (
                     <div
@@ -869,54 +908,109 @@ function NewCustomerCreditFormContent() {
 
                       {/* Quantity Selector Controls with Touch-friendly Buttons */}
                       <div className="mt-3 pt-2.5 border-t border-[#F4ECE1]">
-                        <div className="flex items-center gap-1.5">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => decrementQty(prod.id)}
-                            disabled={qty <= 0}
-                            className="h-9 w-9 p-0 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0 touch-manipulation cursor-pointer"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </Button>
+                        <div>
+                          <label className="text-[10px] font-bold text-[#8C7361] uppercase block mb-1">
+                            Quantity
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => decrementQty(prod.id)}
+                              disabled={qty <= 0}
+                              className="h-9 w-9 p-0 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0 touch-manipulation cursor-pointer"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </Button>
 
-                          <Input
-                            type="number"
-                            inputMode="numeric"
-                            min="0"
-                            max={prod.availableStock}
-                            placeholder="0"
-                            value={qtyStr}
-                            onChange={(e) => setProductQty(prod.id, e.target.value)}
-                            onFocus={(e) => e.target.select()}
-                            className={`h-9 text-center text-sm font-black rounded-xl border font-mono flex-1 ${
-                              isOverStock ? "border-rose-400 bg-rose-50 text-rose-900" : "border-[#EDE4D5] bg-white"
-                            }`}
-                          />
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min="0"
+                              max={prod.availableStock}
+                              placeholder="0"
+                              value={qtyStr}
+                              onChange={(e) => setProductQty(prod.id, e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              className={`h-9 text-center text-sm font-black rounded-xl border font-mono flex-1 ${
+                                isOverStock ? "border-rose-400 bg-rose-50 text-rose-900" : "border-[#EDE4D5] bg-white"
+                              }`}
+                            />
 
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => incrementQty(prod.id)}
-                            disabled={prod.availableStock <= 0 || qty >= prod.availableStock}
-                            className="h-9 w-9 p-0 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0 touch-manipulation cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => incrementQty(prod.id)}
+                              disabled={prod.availableStock <= 0 || qty >= prod.availableStock}
+                              className="h-9 w-9 p-0 rounded-xl border-[#EDE4D5] hover:bg-[#FAF6F0] shrink-0 touch-manipulation cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </div>
 
-                        {/* Subtotal / Warning indicator */}
-                        {isOverStock ? (
+                        {/* Customizable Selling Price input for bulk discounts */}
+                        {isSelected && (
+                          <div className="mt-2.5 pt-2 border-t border-[#F4ECE1] space-y-1.5">
+                            <div className="flex items-center justify-between gap-1">
+                              <label className="text-[10px] font-bold text-[#8C7361] uppercase">
+                                Selling Price (ETB / {prod.unitType})
+                              </label>
+                              {customProductPrices[prod.id] !== undefined &&
+                                parseFloat(customProductPrices[prod.id]) !== prod.basePrice && (
+                                  <button
+                                    type="button"
+                                    onClick={() => updateProductPrice(prod.id, "")}
+                                    className="text-[10px] font-extrabold text-[#E87A18] hover:underline cursor-pointer"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                            </div>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                inputMode="decimal"
+                                step="any"
+                                min="0"
+                                placeholder={prod.basePrice.toFixed(2)}
+                                value={
+                                  customProductPrices[prod.id] !== undefined
+                                    ? customProductPrices[prod.id]
+                                    : String(prod.basePrice)
+                                }
+                                onChange={(e) => updateProductPrice(prod.id, e.target.value)}
+                                className="h-9 text-xs font-mono font-black rounded-xl border-[#EDE4D5] bg-white pr-10"
+                              />
+                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#8C7361]">
+                                ETB
+                              </span>
+                            </div>
+
+                            {/* Subtotal / Discount Indicator */}
+                            <div className="flex items-center justify-between text-[11px] pt-0.5">
+                              {isDiscounted ? (
+                                <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  Bulk Discount
+                                </span>
+                              ) : <span />}
+                              <span className="font-mono text-xs font-bold text-[#2C1B10]">
+                                Subtotal:{" "}
+                                <strong className="text-[#E87A18] font-black">
+                                  {subTotal.toFixed(2)} ETB
+                                </strong>
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {isOverStock && (
                           <p className="text-[10px] text-rose-700 font-extrabold mt-1 text-center">
                             Exceeds shop stock ({prod.availableStock} max)
                           </p>
-                        ) : isSelected ? (
-                          <p className="text-[11px] text-[#2C1B10] font-bold mt-1 text-right font-mono">
-                            Subtotal: <strong className="text-[#E87A18] font-black">{subTotal.toFixed(2)} ETB</strong>
-                          </p>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   );
@@ -1070,24 +1164,60 @@ function NewCustomerCreditFormContent() {
                 {selectedItemsList.map((it) => (
                   <div
                     key={it.productId}
-                    className="p-3 rounded-xl bg-[#FAF6F0]/70 border border-[#EDE4D5] flex items-center justify-between gap-3"
+                    className="p-3.5 rounded-2xl bg-[#FAF6F0]/70 border border-[#EDE4D5] space-y-2.5"
                   >
-                    <div className="min-w-0 flex-1">
-                      <span className="font-black text-sm text-[#2C1B10] block truncate">
-                        {getItemName(it.product)}
-                      </span>
-                      <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#8C7361]">
-                        <span>{it.product?.categoryName || "Bakery"}</span>
-                        <span>•</span>
-                        <span className="font-mono">{it.unitPrice.toFixed(2)} ETB</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-black text-sm text-[#2C1B10] block truncate">
+                          {getItemName(it.product)}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#8C7361]">
+                          <span>{it.product?.categoryName || "Bakery"}</span>
+                          <span>•</span>
+                          <span>Catalog: {it.catalogPrice.toFixed(2)} ETB</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="inline-block px-2 py-0.5 rounded-lg bg-white text-[#2C1B10] font-mono font-black text-xs border border-[#EDE4D5] mb-0.5">
+                      <span className="inline-block px-2.5 py-1 rounded-xl bg-white text-[#2C1B10] font-mono font-black text-xs border border-[#EDE4D5] shrink-0">
                         {it.quantity} {it.product?.unitType}
                       </span>
-                      <div className="font-mono font-black text-xs text-[#E87A18]">
-                        {it.totalPrice.toFixed(2)} ETB
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 pt-2 border-t border-[#EDE4D5]">
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold text-[#8C7361] uppercase block mb-1">
+                          Selling Price (ETB)
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            step="any"
+                            min="0"
+                            placeholder={it.catalogPrice.toFixed(2)}
+                            value={
+                              customProductPrices[it.productId] !== undefined
+                                ? customProductPrices[it.productId]
+                                : String(it.catalogPrice)
+                            }
+                            onChange={(e) => updateProductPrice(it.productId, e.target.value)}
+                            className="h-8 text-xs font-mono font-bold rounded-xl border-[#EDE4D5] bg-white pr-9 w-28"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#8C7361]">
+                            ETB
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Subtotal</span>
+                        <span className="font-mono font-black text-sm text-[#E87A18]">
+                          {it.totalPrice.toFixed(2)} ETB
+                        </span>
+                        {it.isDiscounted && (
+                          <span className="text-[10px] font-extrabold text-emerald-700 block">
+                            -{(it.discountPerUnit * it.quantity).toFixed(2)} ETB off
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1102,6 +1232,7 @@ function NewCustomerCreditFormContent() {
                       <th className="py-2.5 px-3 font-extrabold uppercase text-[10px]">Product</th>
                       <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">Quantity</th>
                       <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Catalog Rate</th>
+                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">Selling Price (ETB)</th>
                       <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Subtotal</th>
                     </tr>
                   </thead>
@@ -1118,10 +1249,38 @@ function NewCustomerCreditFormContent() {
                           </span>
                         </td>
                         <td className="py-3 px-3 text-right font-mono text-xs text-[#8C7361] font-bold">
-                          {it.unitPrice.toFixed(2)} ETB
+                          {it.catalogPrice.toFixed(2)} ETB
                         </td>
-                        <td className="py-3 px-3 text-right font-mono font-black text-sm text-[#E87A18]">
-                          {it.totalPrice.toFixed(2)} ETB
+                        <td className="py-3 px-3 text-center">
+                          <div className="inline-flex items-center relative">
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              step="any"
+                              min="0"
+                              placeholder={it.catalogPrice.toFixed(2)}
+                              value={
+                                customProductPrices[it.productId] !== undefined
+                                  ? customProductPrices[it.productId]
+                                  : String(it.catalogPrice)
+                              }
+                              onChange={(e) => updateProductPrice(it.productId, e.target.value)}
+                              className="h-8 w-28 text-xs font-mono font-bold rounded-lg border-[#EDE4D5] bg-white text-right pr-8"
+                            />
+                            <span className="absolute right-2 text-[10px] font-bold text-[#8C7361] pointer-events-none">
+                              ETB
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <span className="font-mono font-black text-sm text-[#E87A18] block">
+                            {it.totalPrice.toFixed(2)} ETB
+                          </span>
+                          {it.isDiscounted && (
+                            <span className="text-[10px] font-extrabold text-emerald-700 block">
+                              -{(it.discountPerUnit * it.quantity).toFixed(2)} ETB ({Math.round((it.discountPerUnit / it.catalogPrice) * 100)}% off)
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1129,74 +1288,41 @@ function NewCustomerCreditFormContent() {
                 </table>
               </div>
 
-              {/* Total Calculation & Customizable Selling Price (Bulk Discount) */}
-              <div className="bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] border border-[#EDE4D5] p-3.5 sm:p-5 rounded-2xl space-y-4">
+              {/* Total Calculation & Bulk Discount Savings Summary */}
+              <div className="bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] border border-[#EDE4D5] p-3.5 sm:p-5 rounded-2xl space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EDE4D5]">
                   <div>
                     <span className="text-[10px] uppercase font-black text-[#8C7361] tracking-wider block">Standard Catalog Value</span>
                     <span className="text-xs sm:text-sm font-bold text-[#4A2E1B]">{totalSelectedUnits} total items from shop inventory</span>
                   </div>
                   <div className="text-left sm:text-right">
-                    <span className="text-base sm:text-lg font-black text-[#8C7361] font-mono line-through mr-2">
-                      {sellingPriceInput && parseFloat(sellingPriceInput) !== totalCalculatedBirr ? `${totalCalculatedBirr.toFixed(2)} ETB` : ""}
-                    </span>
+                    {totalDiscountSavings > 0 && (
+                      <span className="text-base sm:text-lg font-black text-[#8C7361] font-mono line-through mr-2">
+                        {totalStandardCatalogBirr.toFixed(2)} ETB
+                      </span>
+                    )}
                     <span className="text-xl sm:text-2xl font-black text-[#2C1B10] font-mono">
                       {totalCalculatedBirr.toFixed(2)} ETB
                     </span>
                   </div>
                 </div>
 
-                {/* Selling Price Input for Custom / Bulk Discount */}
-                <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#EDE4D5] shadow-xs space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <label className="text-xs font-black text-[#2C1B10] uppercase flex items-center gap-1.5 flex-wrap">
-                      <span>Selling Price / Total Credit Amount (ETB) *</span>
-                      <span className="text-emerald-700 text-[10px] font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        Discount Allowed
-                      </span>
-                    </label>
-                    {sellingPriceInput.trim() !== "" && parseFloat(sellingPriceInput) !== totalCalculatedBirr && (
-                      <button
-                        type="button"
-                        onClick={() => setSellingPriceInput("")}
-                        className="text-[11px] font-extrabold text-[#E87A18] hover:underline self-start sm:self-auto cursor-pointer"
-                      >
-                        Reset to standard ({totalCalculatedBirr.toFixed(2)} ETB)
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-[#8C7361] font-medium">
-                    Cashiers can adjust this input if customer gets a wholesale or bulk discount.
-                  </p>
-
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder={totalCalculatedBirr.toFixed(2)}
-                      value={sellingPriceInput}
-                      onChange={(e) => setSellingPriceInput(e.target.value)}
-                      className="h-12 text-lg sm:text-xl font-black font-mono rounded-xl bg-[#FAF6F0]/60 border-2 border-[#E87A18]/40 focus:border-[#E87A18] text-[#2C1B10] pr-16"
-                    />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-[#8C7361]">
-                      ETB
+                {/* Bulk discount savings banner */}
+                {totalDiscountSavings > 0 ? (
+                  <div className="flex items-center justify-between text-xs font-extrabold text-emerald-800 bg-emerald-50 px-3.5 py-2.5 rounded-xl border border-emerald-200">
+                    <span className="flex items-center gap-1.5">
+                      <span>🏷️</span>
+                      <span>Bulk / Negotiated Discount Applied</span>
+                    </span>
+                    <span className="font-mono">
+                      -{totalDiscountSavings.toFixed(2)} ETB ({Math.round((totalDiscountSavings / (totalStandardCatalogBirr || 1)) * 100)}% off catalog)
                     </span>
                   </div>
-
-                  {/* Bulk discount savings banner */}
-                  {effectiveCreditAmount < totalCalculatedBirr && (
-                    <div className="flex items-center justify-between text-xs font-extrabold text-emerald-800 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
-                      <span className="flex items-center gap-1.5">
-                        <span>🏷️</span>
-                        <span>Bulk Discount Applied</span>
-                      </span>
-                      <span className="font-mono">
-                        -{(totalCalculatedBirr - effectiveCreditAmount).toFixed(2)} ETB ({Math.round(((totalCalculatedBirr - effectiveCreditAmount) / (totalCalculatedBirr || 1)) * 100)}% off)
-                      </span>
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <p className="text-[11px] text-[#8C7361] font-medium">
+                    Standard catalog rates applied. To apply bulk discounts, adjust the selling price for any product above.
+                  </p>
+                )}
               </div>
             </div>
 
