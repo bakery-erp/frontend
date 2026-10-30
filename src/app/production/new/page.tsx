@@ -35,6 +35,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import {
   isCategoryAllowedForRole,
   isProductAllowedForRole,
+  isStockItemAllowedForRole,
   getStationMeta,
 } from "@/lib/roleProductMapping";
 
@@ -60,6 +61,7 @@ interface StockItem {
   name: string;
   unitType: string;
   currentQuantity: number;
+  allowedRoles?: string[];
 }
 
 function ProductionFormContent() {
@@ -176,10 +178,14 @@ function ProductionFormContent() {
         }
       }
 
+      const stockParam = branchQuery
+        ? `${branchQuery}&forProduction=true`
+        : "?forProduction=true";
+
       const [resCat, resProd, resStock] = await Promise.all([
         api.get("/product-categories"),
         api.get(`/products${minimalParam}`),
-        api.get(`/stock-items${branchQuery}`),
+        api.get(`/stock-items${stockParam}`),
       ]);
 
       const allCats: ProductCategory[] = resCat.data || [];
@@ -192,10 +198,15 @@ function ProductionFormContent() {
         ? allProds
         : allProds.filter((p: Product) => isProductAllowedForRole(p, user?.role));
 
+      const allStock: StockItem[] = resStock.data || [];
+      const filteredStock = user?.role === "OWNER"
+        ? allStock
+        : allStock.filter((s) => isStockItemAllowedForRole(s, user?.role));
+
       return {
         categories: filteredCats,
         products: filteredProds,
-        stockItems: (resStock.data || []) as StockItem[],
+        stockItems: filteredStock,
         batch: batchData,
         batchError,
       };

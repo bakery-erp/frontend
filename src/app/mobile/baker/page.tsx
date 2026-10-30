@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
-import { isProductAllowedForRole, getStationMeta } from '@/lib/roleProductMapping';
+import { isProductAllowedForRole, isStockItemAllowedForRole, getStationMeta } from '@/lib/roleProductMapping';
 import { getRoleHomeRoute } from '@/lib/routeGuard';
 
 interface Product {
@@ -46,6 +46,7 @@ interface StockItem {
   name: string;
   unitType: string;
   currentQuantity: number;
+  allowedRoles?: string[];
 }
 
 interface ActiveSession {
@@ -120,7 +121,7 @@ export default function MobileBakerStation() {
       const branchParam = user?.branchId ? { branchId: user.branchId } : {};
       const [prodRes, stockRes, sessRes] = await Promise.all([
         api.get('/products', { params: { isActive: true, minimal: true, ...(user?.branchId ? { branchId: user.branchId } : {}) } }),
-        api.get('/stock-items', { params: branchParam }),
+        api.get('/stock-items', { params: { ...branchParam, forProduction: true } }),
         api.get('/daily-sessions/active', { params: branchParam }).catch(() => ({ data: null })),
       ]);
 
@@ -130,7 +131,12 @@ export default function MobileBakerStation() {
         (p: Product) => isProductAllowedForRole(p, targetRole)
       );
       setProducts(scopedProducts);
-      setStockItems(stockRes.data || []);
+
+      const allStock = stockRes.data || [];
+      const scopedStock = user?.role === 'OWNER'
+        ? allStock
+        : allStock.filter((s: StockItem) => isStockItemAllowedForRole(s, targetRole));
+      setStockItems(scopedStock);
       setActiveSession(sessRes.data);
 
       if (scopedProducts.length > 0) {

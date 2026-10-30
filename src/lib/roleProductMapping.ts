@@ -34,8 +34,12 @@ export interface ProductLike {
 export interface StockItemLike {
   id?: string;
   name: string;
+  nameLatin?: string | null;
+  category?: string | null;
+  categoryLatin?: string | null;
   unitType?: string;
   currentQuantity?: number | string;
+  allowedRoles?: string[];
 }
 
 /**
@@ -43,6 +47,18 @@ export interface StockItemLike {
  */
 export function isGlobalAdminRole(role?: string): boolean {
   return role === 'ADMIN' || role === 'OWNER';
+}
+
+/**
+ * Validates whether a raw stock material is allowed to be viewed/consumed by a worker's role.
+ * - OWNER has access to all materials.
+ * - If allowedRoles is empty or undefined, only OWNER can access it.
+ * - Otherwise, the worker's role must be explicitly in allowedRoles.
+ */
+export function isStockItemAllowedForRole(item: StockItemLike, role?: string): boolean {
+  if (role === 'OWNER') return true;
+  if (!item.allowedRoles || item.allowedRoles.length === 0) return false;
+  return !!role && item.allowedRoles.includes(role);
 }
 
 /**
