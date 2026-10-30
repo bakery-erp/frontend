@@ -1,6 +1,7 @@
 "use client";
 
 import { EthDatePicker } from "@/components/EthDatePicker";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -90,6 +91,7 @@ interface Loan {
   remainingBalance: number;
   type: string;
   status: string;
+  date?: string;
   createdAt: string;
   user?: User;
 }
@@ -291,11 +293,13 @@ export default function PayrollPage() {
     setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
     const isSigned = fd.get("isSigned") === "on";
+    const date = fd.get("date");
     try {
       await api.post("/loans", {
         type: "STAFF_LOAN",
         userId: fd.get("userId"),
         totalAmount: fd.get("amount"),
+        date: date ? String(date) : undefined,
         isSigned,
       });
       toast.success(isSigned ? (t('payroll.markedSignedSuccess') || "Loan recorded as signed") : "Loan recorded successfully");
@@ -317,11 +321,13 @@ export default function PayrollPage() {
     if (!editingLoan) return;
     setIsSubmitting(true);
     const fd = new FormData(e.currentTarget);
+    const date = fd.get("date");
     try {
       await api.patch(`/loans/${editingLoan.id}`, {
         totalAmount: fd.get("totalAmount"),
         remainingBalance: fd.get("remainingBalance"),
         status: fd.get("status"),
+        date: date ? String(date) : undefined,
       });
       toast.success("Loan updated successfully");
       setIsEditLoanOpen(false);
@@ -1085,7 +1091,7 @@ export default function PayrollPage() {
                         {l.user?.fullName}
                       </span>
                       <p className="text-xs text-[#8C7361] mt-0.5">
-                        Issued: {format(new Date(l.createdAt), "MMM dd, yyyy")}
+                        Issued: {formatEthDate(l.date || l.createdAt)}
                       </p>
                     </div>
                     <Badge
@@ -1167,7 +1173,7 @@ export default function PayrollPage() {
                   loans.map((l) => (
                     <TableRow key={l.id}>
                       <TableCell className="text-xs font-semibold text-[#8C7361]">
-                        {format(new Date(l.createdAt), "MMM dd, yyyy")}
+                        {formatEthDate(l.date || l.createdAt)}
                       </TableCell>
                       <TableCell className="font-bold text-[#2C1B10]">
                         {l.user?.fullName}
@@ -1415,6 +1421,14 @@ export default function PayrollPage() {
                   required
                 />
               </div>
+              <div>
+                <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Date</label>
+                <AppDatePicker
+                  name="date"
+                  defaultValue={format(new Date(), "yyyy-MM-dd")}
+                  required
+                />
+              </div>
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/60">
                 <input
                   type="checkbox"
@@ -1487,6 +1501,14 @@ export default function PayrollPage() {
                     defaultValue={editingLoan.remainingBalance}
                     className="h-11 rounded-xl"
                     onFocus={(e) => e.target.select()}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[#2C1B10] mb-1 block">Date</label>
+                  <AppDatePicker
+                    name="date"
+                    defaultValue={((editingLoan as any).date || editingLoan.createdAt || "").split("T")[0]}
                     required
                   />
                 </div>
