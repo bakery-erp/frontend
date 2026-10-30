@@ -76,13 +76,14 @@ export function isRouteAllowed(role: string | undefined | null, pathname: string
 
   // 1. ADMIN
   if (role === 'ADMIN') {
-    // Admin is restricted from executive dashboard, branch setup, categories, product catalog, owner loans, reports, and full monthly payroll
+    // Admin is restricted from executive dashboard, branch setup, categories, product catalog, owner loans, reports, full monthly payroll, and role-materials mapping
     if (path === '/') return false;
     if (path === '/branches' || path.startsWith('/branches/')) return false;
     if (path === '/product-categories' || path.startsWith('/product-categories/')) return false;
     if (path === '/products' || path.startsWith('/products/')) return false;
     if (path === '/owner-loans' || path.startsWith('/owner-loans/')) return false;
     if (path === '/reports' || path.startsWith('/reports/')) return false;
+    if (path === '/stock/role-materials') return false;
     if (path === '/payroll' || (path.startsWith('/payroll/') && !path.startsWith('/payroll/loans') && !path.startsWith('/payroll/penalties'))) {
       return false;
     }

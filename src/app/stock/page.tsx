@@ -445,7 +445,13 @@ export default function StockPage() {
         </div>
         {user?.role === "OWNER" && (
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <Button onClick={() => setIsAddOpen(true)} size="default" className="flex-1 sm:flex-initial">
+            <Link href="/stock/role-materials" className="flex-1 sm:flex-initial">
+              <Button variant="outline" size="default" className="w-full flex items-center justify-center gap-1.5 border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold text-xs sm:text-sm h-10 rounded-xl">
+                <SlidersHorizontal className="w-4 h-4 text-[#8C7361]" />
+                <span>Role Stock Access</span>
+              </Button>
+            </Link>
+            <Button onClick={() => setIsAddOpen(true)} size="default" className="flex-1 sm:flex-initial h-10 rounded-xl">
               <Plus className="w-4 h-4 shrink-0" />
               <span>{t('stock.newItem')}</span>
             </Button>
