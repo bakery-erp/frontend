@@ -165,7 +165,13 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
 
   const isBatchSeenByMe = (b?: ProductionBatchDetail | null) => {
     if (!b) return true;
-    if (user?.role === "OWNER") return !!b.ownerSeenAt;
+    if (user?.role === "OWNER") {
+      if (!b.ownerSeenAt) return false;
+      if (b.editedAt && new Date(b.editedAt).getTime() > new Date(b.ownerSeenAt).getTime()) {
+        return false;
+      }
+      return true;
+    }
     return true;
   };
 
@@ -357,8 +363,8 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
               </Button>
             )}
 
-            {/* Flag / Resolve action: visible if unseen or if flagged */}
-            {user?.role === "OWNER" && (!isBatchSeenByMe(batch) || batch.isFlagged) && (
+            {/* Flag / Resolve action: ALWAYS visible on detail page for Owner */}
+            {user?.role === "OWNER" && (
               <Button
                 variant="outline"
                 size="sm"
@@ -370,15 +376,15 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                     setIsFlagModalOpen(true);
                   }
                 }}
-                className={`rounded-xl font-bold h-9 px-2.5 sm:px-3 shadow-2xs cursor-pointer flex items-center gap-1 ${
+                className={`rounded-xl font-bold h-9 px-2.5 sm:px-3 shadow-2xs cursor-pointer flex items-center gap-1.5 ${
                   batch.isFlagged
                     ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
-                    : "border-zinc-200 text-[#8C7361] hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
+                    : "border-zinc-200 bg-white text-[#8C7361] hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
                 }`}
-                title={batch.isFlagged ? t('production.clearFlag') : t('production.flagBatch')}
+                title={batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}
               >
                 <span>🚩</span>
-                <span className="hidden sm:inline">{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
+                <span>{batch.isFlagged ? (t('production.clearFlag') || 'Resolve') : (t('production.flagBatch') || 'Flag')}</span>
               </Button>
             )}
 
@@ -474,99 +480,131 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
 
             {Array.isArray(batch.editHistory) && batch.editHistory.length > 0 ? (
               <div className="space-y-3">
-                {batch.editHistory.slice().reverse().map((rev, revIdx) => (
-                  <div
-                    key={revIdx}
-                    className="bg-white/95 rounded-2xl p-4 border border-amber-200/80 shadow-2xs space-y-3"
-                  >
-                    <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                        <span className="font-extrabold text-[#2C1B10]">{rev.editorName}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900">
-                          {rev.editorRole}
+                {batch.editHistory.slice().reverse().map((rev, revIdx) => {
+                  const editorName = rev.editorName || (rev as any).editedBy?.fullName || "Employee";
+                  const editorRole = rev.editorRole || (rev as any).editedBy?.role || "BAKER";
+                  const itemChanges: any[] = rev.itemChanges || (rev as any).productChanges || [];
+                  const materialChanges: any[] = rev.materialChanges || [];
+
+                  return (
+                    <div
+                      key={revIdx}
+                      className="bg-white/95 rounded-2xl p-4 border border-amber-200/80 shadow-2xs space-y-3"
+                    >
+                      <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                          <span className="font-extrabold text-[#2C1B10]">{editorName}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900">
+                            {editorRole}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-medium text-[#8C7361] flex items-center gap-1">
+                          <span>{formatEthDate(rev.editedAt)}</span>
+                          {rev.editedAt && (
+                            <span className="text-[#8C7361]/70">
+                              • {format(new Date(rev.editedAt), "hh:mm a")}
+                            </span>
+                          )}
                         </span>
                       </div>
-                      <span className="text-[11px] font-medium text-[#8C7361]">
-                        {formatEthDate(rev.editedAt)}
-                      </span>
+
+                      {/* Changed Items */}
+                      {itemChanges && itemChanges.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
+                            {t("production.productsModified") || "Products Modified"}:
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {itemChanges.map((ic: any, iIdx: number) => {
+                              const name = ic.name || ic.productName || "Product";
+                              const unit = ic.unit || ic.unitType || "unit";
+                              const oldQty = ic.oldQty ?? 0;
+                              const newQty = ic.newQty ?? 0;
+                              const diff = ic.diff ?? (newQty - oldQty);
+                              return (
+                                <div
+                                  key={iIdx}
+                                  className="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-semibold"
+                                >
+                                  <span className="text-[#2C1B10] truncate">{name}</span>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="text-[#8C7361] line-through text-[11px]">
+                                      {oldQty}
+                                    </span>
+                                    <span className="text-[#8C7361]">➔</span>
+                                    <span className="font-bold text-[#2C1B10]">
+                                      {newQty} {unit}
+                                    </span>
+                                    <span
+                                      className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
+                                        diff > 0
+                                          ? "bg-emerald-100 text-emerald-800"
+                                          : "bg-rose-100 text-rose-800"
+                                      }`}
+                                    >
+                                      {diff > 0 ? `+${diff}` : diff}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Changed Materials */}
+                      {materialChanges && materialChanges.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
+                            {t("production.materialsModified") || "Raw Materials Modified"}:
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {materialChanges.map((mc: any, mIdx: number) => {
+                              const name = mc.name || mc.materialName || "Raw Material";
+                              const unit = mc.unit || mc.unitType || "unit";
+                              const oldQty = mc.oldQty ?? 0;
+                              const newQty = mc.newQty ?? 0;
+                              const diff = mc.diff ?? (newQty - oldQty);
+                              return (
+                                <div
+                                  key={mIdx}
+                                  className="flex items-center justify-between gap-2 p-2 rounded-xl bg-rose-50/60 border border-rose-100 text-xs font-semibold"
+                                >
+                                  <span className="text-rose-950 truncate">{name}</span>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="text-rose-600/70 line-through text-[11px]">
+                                      {oldQty}
+                                    </span>
+                                    <span className="text-rose-500">➔</span>
+                                    <span className="font-bold text-rose-950">
+                                      {newQty} {unit}
+                                    </span>
+                                    <span
+                                      className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
+                                        diff > 0
+                                          ? "bg-rose-100 text-rose-800"
+                                          : "bg-emerald-100 text-emerald-800"
+                                      }`}
+                                    >
+                                      {diff > 0 ? `+${diff}` : diff}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {(!itemChanges || itemChanges.length === 0) && (!materialChanges || materialChanges.length === 0) && (
+                        <p className="text-xs text-[#8C7361] italic pt-1">
+                          Batch details / shift / notes updated
+                        </p>
+                      )}
                     </div>
-
-                    {/* Changed Items */}
-                    {rev.itemChanges && rev.itemChanges.length > 0 && (
-                      <div className="space-y-1.5 pt-1">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
-                          {t("production.productsModified") || "Products Modified"}:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {rev.itemChanges.map((ic, iIdx) => (
-                            <div
-                              key={iIdx}
-                              className="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-semibold"
-                            >
-                              <span className="text-[#2C1B10] truncate">{ic.name}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-[#8C7361] line-through text-[11px]">
-                                  {ic.oldQty}
-                                </span>
-                                <span className="text-[#8C7361]">➔</span>
-                                <span className="font-bold text-[#2C1B10]">
-                                  {ic.newQty} {ic.unit}
-                                </span>
-                                <span
-                                  className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                                    ic.diff > 0
-                                      ? "bg-emerald-100 text-emerald-800"
-                                      : "bg-rose-100 text-rose-800"
-                                  }`}
-                                >
-                                  {ic.diff > 0 ? `+${ic.diff}` : ic.diff}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Changed Materials */}
-                    {rev.materialChanges && rev.materialChanges.length > 0 && (
-                      <div className="space-y-1.5 pt-1">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7361] block">
-                          {t("production.materialsModified") || "Raw Materials Modified"}:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {rev.materialChanges.map((mc, mIdx) => (
-                            <div
-                              key={mIdx}
-                              className="flex items-center justify-between gap-2 p-2 rounded-xl bg-rose-50/60 border border-rose-100 text-xs font-semibold"
-                            >
-                              <span className="text-rose-950 truncate">{mc.name}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-rose-600/70 line-through text-[11px]">
-                                  {mc.oldQty}
-                                </span>
-                                <span className="text-rose-500">➔</span>
-                                <span className="font-bold text-rose-950">
-                                  {mc.newQty} {mc.unit}
-                                </span>
-                                <span
-                                  className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                                    mc.diff > 0
-                                      ? "bg-rose-100 text-rose-800"
-                                      : "bg-emerald-100 text-emerald-800"
-                                  }`}
-                                >
-                                  {mc.diff > 0 ? `+${mc.diff}` : mc.diff}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : null}
           </div>
