@@ -190,10 +190,17 @@ export default function FinancialReportsPage() {
   // CALCULATIONS ACCORDING TO USER REQUIREMENTS
   // ─────────────────────────────────────────────────────────────
   const totals = report?.totals || {};
+  const customerLoans: any[] = Array.isArray(report?.customerLoans) ? report.customerLoans : [];
 
   // 1. Daily Money Revenue
   const dailyCashRevenue = Number(totals.dailyTotalRevenue ?? 0);
   const customerCreditTaken = Number(totals.customerCreditSalesTotal ?? report?.customerCreditSalesTotal ?? 0);
+  const customerCreditRemaining = Number(
+    totals.customerCreditRemainingBalanceTotal ??
+      report?.customerCreditRemainingBalanceTotal ??
+      customerLoans.reduce((sum: number, l: any) => sum + Number(l.remainingBalance ?? 0), 0)
+  );
+  const customerCreditPaid = Math.max(0, customerCreditTaken - customerCreditRemaining);
   const revenueTotalWithCredit = dailyCashRevenue + customerCreditTaken;
 
   // 2. Company Daily Expense (Taken from daily money register)
@@ -246,13 +253,12 @@ export default function FinancialReportsPage() {
   // Total Net Wealth:
   // - Without Credits: Clean Money + Stock Valuation + Product Valuation (Excludes uncollected credits & unpaid supplier debts)
   const totalNetWealthWithoutCredit = cleanMoneyInHand + stockValuation + productValuation;
-  // - With Credits: Clean Money + Customer Credit + Stock Valuation + Product Valuation - Unpaid Stock Debts
-  const totalNetWealthWithCredit = cleanMoneyInHand + customerCreditTaken + stockValuation + productValuation - unpaidPayablesTotal;
+  // - With Credits: Clean Money + Customer Credit (Unpaid Left Amount) + Stock Valuation + Product Valuation - Unpaid Stock Debts
+  const totalNetWealthWithCredit = cleanMoneyInHand + customerCreditRemaining + stockValuation + productValuation - unpaidPayablesTotal;
   const activeTotalNetWealth = netMode === 'WITHOUT_CREDIT' ? totalNetWealthWithoutCredit : totalNetWealthWithCredit;
 
   // Data collections for modal dialogs
   const dailyBreakdown: any[] = Array.isArray(report?.dailyBreakdown) ? report.dailyBreakdown : [];
-  const customerLoans: any[] = Array.isArray(report?.customerLoans) ? report.customerLoans : [];
   const companyExpenses: any[] = Array.isArray(report?.companyExpenses) ? report.companyExpenses : [];
   const ownerExpensesList: any[] = Array.isArray(report?.ownerExpenses) ? report.ownerExpenses : [];
   const unpaidDeliveriesList: any[] = Array.isArray(report?.unpaidSupplierDeliveries) ? report.unpaidSupplierDeliveries : [];
@@ -431,10 +437,10 @@ export default function FinancialReportsPage() {
                 </div>
                 <div className={`backdrop-blur-xs rounded-xl p-2.5 border transition-opacity ${netMode === 'WITH_CREDIT' ? 'bg-white/10 border-white/10' : 'bg-white/5 border-white/5 opacity-50'}`}>
                   <div className="text-[10px] uppercase font-bold text-sky-300">
-                    {t('reports.customerCredits')} {netMode === 'WITHOUT_CREDIT' && `(${t('reports.withoutCredits')})`}
+                    {t('reports.customerCredits')} ({t('reports.balanceDueCol')})
                   </div>
                   <div className="font-mono font-bold text-white text-sm mt-0.5">
-                    {netMode === 'WITH_CREDIT' ? `+${money(customerCreditTaken)}` : money(customerCreditTaken)}
+                    {netMode === 'WITH_CREDIT' ? `+${money(customerCreditRemaining)}` : money(customerCreditRemaining)}
                   </div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2.5 border border-white/10">
@@ -657,16 +663,20 @@ export default function FinancialReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-sky-900 font-mono tracking-tight">
-              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(customerCreditTaken)}
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(customerCreditRemaining)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
-                <span>{t('reports.uncollectedDebtReceivable')}:</span>
-                <span className="font-bold text-sky-900 font-mono">{money(customerCreditTaken)}</span>
+                <span>{t('reports.balanceDueCol')}:</span>
+                <span className="font-bold text-rose-700 font-mono">{money(customerCreditRemaining)}</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>{t('reports.activeProducts')}:</span>
-                <span className="font-bold text-sky-800">{customerLoans.length} loans</span>
+                <span>{t('reports.creditedAmountCol')}</span>
+                <span className="font-bold text-[#2C1B10] font-mono">{money(customerCreditTaken)}</span>
+              </div>
+              <div className="flex justify-between text-[#8C7361]">
+                <span>{t('reports.creditRepaidLabel')}</span>
+                <span className="font-bold text-emerald-700 font-mono">{money(customerCreditPaid)}</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-sky-700 flex items-center gap-1 group-hover:underline">
@@ -1565,19 +1575,17 @@ export default function FinancialReportsPage() {
                 </DialogHeader>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                  <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
+                    <div className="text-xs text-rose-900 font-bold uppercase">{t('reports.balanceDueLabel')} (Unpaid Left)</div>
+                    <div className="text-xl font-black text-rose-700 font-mono mt-1">{money(customerCreditRemaining)}</div>
+                  </div>
                   <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200">
-                    <div className="text-xs text-sky-900 font-bold uppercase">{t('reports.totalCustomerCreditsModal')}</div>
+                    <div className="text-xs text-sky-900 font-bold uppercase">{t('reports.totalCustomerCreditsModal')} (Total Taken)</div>
                     <div className="text-xl font-black text-sky-950 font-mono mt-1">{money(customerCreditTaken)}</div>
                   </div>
-                  <div className="bg-white p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.balanceDueLabel')}</div>
-                    <div className="text-xl font-extrabold text-rose-700 font-mono mt-1">
-                      {money(customerLoans.reduce((sum, l) => sum + Number(l.remainingBalance ?? l.totalAmount ?? 0), 0))}
-                    </div>
-                  </div>
-                  <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.activeProducts')}</div>
-                    <div className="text-xl font-extrabold text-[#2C1B10] font-mono mt-1">{customerLoans.length} entries</div>
+                  <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200">
+                    <div className="text-xs text-emerald-900 font-bold uppercase">{t('reports.creditRepaidLabel')} (Paid Amount)</div>
+                    <div className="text-xl font-black text-emerald-800 font-mono mt-1">{money(customerCreditPaid)}</div>
                   </div>
                 </div>
 
@@ -1648,10 +1656,14 @@ export default function FinancialReportsPage() {
                                 {l.status}
                               </span>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-sky-100 font-mono">
+                            <div className="grid grid-cols-3 gap-1.5 text-xs bg-white p-2 rounded-lg border border-sky-100 font-mono">
                               <div>
                                 <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.creditedLabel')}</span>
-                                <span className="font-bold text-sky-900">{money(l.totalAmount)}</span>
+                                <span className="font-bold text-[#2C1B10]">{money(l.totalAmount)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.creditRepaidLabel')}</span>
+                                <span className="font-bold text-emerald-700">{money(Math.max(0, Number(l.totalAmount) - Number(l.remainingBalance)))}</span>
                               </div>
                               <div>
                                 <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.balanceDueLabel')}</span>
@@ -1672,6 +1684,7 @@ export default function FinancialReportsPage() {
                         <TableHead>{t('common.date')}</TableHead>
                         <TableHead>{t('reports.customerNameCol')}</TableHead>
                         <TableHead className="text-right">{t('reports.creditedAmountCol')}</TableHead>
+                        <TableHead className="text-right">{t('reports.creditRepaidLabel')}</TableHead>
                         <TableHead className="text-right">{t('reports.balanceDueCol')}</TableHead>
                         <TableHead className="text-center pr-4">{t('reports.statusCol')}</TableHead>
                       </TableRow>
@@ -1679,7 +1692,7 @@ export default function FinancialReportsPage() {
                     <TableBody>
                       {customerLoans.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-6 text-xs text-[#8C7361]">
+                          <TableCell colSpan={6} className="text-center py-6 text-xs text-[#8C7361]">
                             No customer credit records found in this range.
                           </TableCell>
                         </TableRow>
@@ -1697,6 +1710,7 @@ export default function FinancialReportsPage() {
                           })
                           .map((l: any, idx: number) => {
                             const cust = cleanCustomerInfo(l.entityId);
+                            const paid = Math.max(0, Number(l.totalAmount) - Number(l.remainingBalance));
                             return (
                               <TableRow key={l.id || idx}>
                                 <TableCell className="text-xs text-[#8C7361]">
@@ -1710,10 +1724,13 @@ export default function FinancialReportsPage() {
                                     </span>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right font-mono text-xs font-bold text-sky-900">
+                                <TableCell className="text-right font-mono text-xs font-bold text-[#2C1B10]">
                                   {money(l.totalAmount)}
                                 </TableCell>
-                                <TableCell className="text-right font-mono text-xs text-rose-700">
+                                <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">
+                                  {money(paid)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
                                   {money(l.remainingBalance)}
                                 </TableCell>
                                 <TableCell className="text-center pr-4">
@@ -2376,7 +2393,7 @@ export default function FinancialReportsPage() {
                     <div className={`text-right font-mono font-black text-lg ${
                       netMode === 'WITH_CREDIT' ? 'text-sky-800' : 'text-zinc-500 line-through'
                     }`}>
-                      {netMode === 'WITH_CREDIT' ? `+${money(customerCreditTaken)}` : money(customerCreditTaken)}
+                      {netMode === 'WITH_CREDIT' ? `+${money(customerCreditRemaining)}` : money(customerCreditRemaining)}
                     </div>
                   </div>
 
