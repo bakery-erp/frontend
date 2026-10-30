@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface StockItemRoleData {
   id: string;
@@ -44,7 +45,8 @@ interface StockItemRoleData {
 const PRODUCTION_ROLES = [
   {
     role: "BAKER",
-    label: "Baker (Bread Station)",
+    label: "Baker (Bread)",
+    shortLabel: "Baker",
     amharicLabel: "ዳቦ ጋጋሪ",
     icon: "🥖",
     desc: "Daily bread, buns, rolls, and flour dough batches",
@@ -53,7 +55,8 @@ const PRODUCTION_ROLES = [
   },
   {
     role: "SAMBUSA_WORKER",
-    label: "Sambusa & Snack Worker",
+    label: "Sambusa & Snacks",
+    shortLabel: "Sambusa",
     amharicLabel: "ሳምቡሳ ሠራተኛ",
     icon: "🥟",
     desc: "Sambusa, wraps, pizza, and quick snack stations",
@@ -62,21 +65,13 @@ const PRODUCTION_ROLES = [
   },
   {
     role: "CAKE_WORKER",
-    label: "Cake & Pastry Worker",
+    label: "Cake & Pastry",
+    shortLabel: "Cake",
     amharicLabel: "ኬክ ሠራተኛ",
     icon: "🎂",
     desc: "Birthday cakes, cream pastries, decorations, and sweets",
     color: "from-pink-500/10 to-pink-600/5 border-pink-200 text-pink-900",
     badgeColor: "bg-pink-100 text-pink-900 border-pink-300",
-  },
-  {
-    role: "EMPLOYEE",
-    label: "General Production Staff",
-    amharicLabel: "ጠቅላላ ሠራተኛ",
-    icon: "👥",
-    desc: "Secondary staff, assistants, and packaging helpers",
-    color: "from-zinc-500/10 to-zinc-600/5 border-zinc-200 text-zinc-900",
-    badgeColor: "bg-zinc-100 text-zinc-900 border-zinc-300",
   },
 ];
 
@@ -95,6 +90,7 @@ export default function RoleMaterialsPage() {
   // Selected Stock Item IDs for the currently active role
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [hasChanges, setHasChanges] = useState<boolean>(false);
+  const [pendingRoleSwitch, setPendingRoleSwitch] = useState<string | null>(null);
 
   // Fetch all stock items for current branch
   const { data: stockItems = [], isLoading, isRefetching } = useQuery<StockItemRoleData[]>({
@@ -296,8 +292,8 @@ export default function RoleMaterialsPage() {
           </div>
         </div>
 
-        {/* Role Selector Cards / Tabs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Role Selector Cards / Tabs - Compact 3-Column on Mobile */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {PRODUCTION_ROLES.map((r) => {
             const isActive = activeRole === r.role;
             const count = roleCounts[r.role] || 0;
@@ -306,39 +302,40 @@ export default function RoleMaterialsPage() {
                 key={r.role}
                 type="button"
                 onClick={() => {
-                  if (hasChanges) {
-                    if (confirm("You have unsaved changes for this role. Discard changes and switch?")) {
-                      setActiveRole(r.role);
-                    }
+                  if (hasChanges && activeRole !== r.role) {
+                    setPendingRoleSwitch(r.role);
                   } else {
                     setActiveRole(r.role);
                   }
                 }}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                className={`p-2.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
                   isActive
                     ? "bg-white border-[#E87A18] shadow-md ring-2 ring-[#E87A18]/20"
                     : "bg-white/80 border-[#EDE4D5] hover:bg-white hover:border-[#D8C7B5]"
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">{r.icon}</span>
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-xl sm:text-2xl">{r.icon}</span>
                   <span
-                    className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full border ${
+                    className={`text-[9px] sm:text-[11px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-full border shrink-0 ${
                       isActive
                         ? "bg-[#E87A18] text-white border-[#E87A18]"
                         : "bg-[#FAF6F0] text-[#8C7361] border-[#EDE4D5]"
                     }`}
                   >
-                    {count} items
+                    {count} <span className="hidden sm:inline">items</span>
                   </span>
                 </div>
-                <div className="font-extrabold text-sm text-[#2C1B10]">
-                  {r.label}
+                <div>
+                  <div className="font-extrabold text-xs sm:text-sm text-[#2C1B10] truncate">
+                    <span className="sm:hidden">{r.shortLabel}</span>
+                    <span className="hidden sm:inline">{r.label}</span>
+                  </div>
+                  <div className="text-[10px] sm:text-[11px] font-semibold text-[#8C7361] truncate">
+                    {r.amharicLabel}
+                  </div>
                 </div>
-                <div className="text-[11px] font-semibold text-[#8C7361] mb-1">
-                  {r.amharicLabel}
-                </div>
-                <p className="text-[11px] text-[#8C7361]/80 line-clamp-2">
+                <p className="text-[11px] text-[#8C7361]/80 line-clamp-2 hidden sm:block mt-1">
                   {r.desc}
                 </p>
               </button>
@@ -349,37 +346,37 @@ export default function RoleMaterialsPage() {
         {/* Main Mapping Workspace */}
         <div className="bg-white rounded-3xl border border-[#EDE4D5] shadow-xs p-4 sm:p-6 space-y-4">
           {/* Active Role Banner & Summary */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5]">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{currentRoleMeta.icon}</span>
-              <div>
-                <h3 className="font-black text-base text-[#2C1B10]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5]">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <span className="text-2xl sm:text-3xl shrink-0">{currentRoleMeta.icon}</span>
+              <div className="min-w-0">
+                <h3 className="font-black text-sm sm:text-base text-[#2C1B10] truncate">
                   {currentRoleMeta.label} ({currentRoleMeta.amharicLabel})
                 </h3>
-                <p className="text-xs text-[#8C7361]">
-                  Currently has access to <strong className="text-[#2C1B10]">{selectedIds.size}</strong> of {stockItems.length} warehouse materials.
+                <p className="text-[11px] sm:text-xs text-[#8C7361]">
+                  Has access to <strong className="text-[#2C1B10]">{selectedIds.size}</strong> of {stockItems.length} warehouse materials.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleSelectAllFiltered}
-                className="text-xs font-bold border-[#EDE4D5] hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-200 rounded-xl cursor-pointer"
+                className="text-[11px] sm:text-xs font-bold border-[#EDE4D5] hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-200 rounded-xl cursor-pointer h-8 px-2 sm:px-3 justify-center"
               >
-                <CheckSquare className="w-3.5 h-3.5 mr-1" />
-                Select Filtered ({filteredItems.length})
+                <CheckSquare className="w-3.5 h-3.5 mr-1 shrink-0" />
+                <span className="truncate">Select ({filteredItems.length})</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleDeselectAllFiltered}
-                className="text-xs font-bold border-[#EDE4D5] hover:bg-rose-50 hover:text-rose-800 hover:border-rose-200 rounded-xl cursor-pointer"
+                className="text-[11px] sm:text-xs font-bold border-[#EDE4D5] hover:bg-rose-50 hover:text-rose-800 hover:border-rose-200 rounded-xl cursor-pointer h-8 px-2 sm:px-3 justify-center"
               >
-                <Square className="w-3.5 h-3.5 mr-1" />
-                Clear Filtered
+                <Square className="w-3.5 h-3.5 mr-1 shrink-0" />
+                <span className="truncate">Clear</span>
               </Button>
             </div>
           </div>
@@ -519,6 +516,22 @@ export default function RoleMaterialsPage() {
             </Button>
           </div>
         )}
+        {/* Unsaved Changes Confirmation Popup Modal */}
+        <ConfirmModal
+          isOpen={!!pendingRoleSwitch}
+          onClose={() => setPendingRoleSwitch(null)}
+          onConfirm={() => {
+            if (pendingRoleSwitch) {
+              setActiveRole(pendingRoleSwitch);
+              setPendingRoleSwitch(null);
+            }
+          }}
+          title={t("common.unsavedChanges") || "Discard Unsaved Changes?"}
+          description={`You have unsaved stock material changes for ${currentRoleMeta.label}. If you switch now, your unsaved changes will be discarded.`}
+          confirmText={t("common.discard") || "Discard & Switch"}
+          cancelText={t("common.keepEditing") || "Keep Editing"}
+          variant="warning"
+        />
       </div>
     </DashboardLayout>
   );
