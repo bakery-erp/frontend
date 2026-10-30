@@ -23,6 +23,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton, KpiCardsSkeleton } from "@/components/ui/skeletons";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { AppDatePicker } from "@/components/AppDatePicker";
 
 interface StockItem {
   id: string;
@@ -695,20 +696,19 @@ export default function StockMovementsPage() {
           {/* Filter Toolbar: Date Filter + Today Quick Action + Search */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-[#EDE4D5] shadow-xs">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs">
+              <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1 text-xs shadow-2xs">
                 <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
                 <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider">{t('stockMovements.date')}:</span>
-                <input
-                  type="date"
+                <AppDatePicker
                   value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="text-xs font-semibold text-[#2C1B10] bg-transparent outline-none cursor-pointer"
+                  onChange={(val) => setDateFilter(val)}
+                  className="text-xs bg-transparent border-0 p-0 shadow-none h-8 w-auto min-w-[130px]"
                 />
                 {dateFilter && (
                   <button
                     type="button"
                     onClick={() => setDateFilter("")}
-                    className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white"
+                    className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white shrink-0 ml-1"
                     title="Clear date"
                   >
                     <X className="w-3 h-3" />

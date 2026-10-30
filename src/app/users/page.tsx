@@ -471,31 +471,46 @@ export default function UsersPage() {
                   const canDelete = user?.role === "OWNER" && u.id !== user?.id;
 
                   return (
-                    <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-3.5 shadow-2xs space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-3">
-                          <UserAvatar url={u.avatarUrl} name={u.fullName} className="w-10 h-10" />
-                          <div>
-                            <p className="font-extrabold text-sm text-[#2C1B10]">{u.fullName}</p>
-                            <p className="text-xs text-[#8C7361] font-mono">{u.phone}</p>
+                    <div key={u.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3">
+                      {/* Top Row: User Avatar, Name, Phone & Status Switch */}
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <UserAvatar url={u.avatarUrl} name={u.fullName} className="w-10 h-10 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-extrabold text-sm text-[#2C1B10] truncate" title={u.fullName}>{u.fullName}</p>
+                            <p className="text-xs text-[#8C7361] font-mono truncate">{u.phone}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          {(user?.role === "OWNER" || user?.role === "ADMIN") && u.salary != null && (
-                            <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-                              {Number(u.salary).toLocaleString()} ETB
-                            </span>
-                          )}
-                          <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
-                            {getRoleLabel(u.role)}
-                          </Badge>
+
+                        {/* Status Switch */}
+                        <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                          <Switch
+                            checked={u.isActive}
+                            onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
+                            disabled={(user?.role !== "OWNER" && user?.role !== "ADMIN") || u.id === user?.id}
+                            title={u.id === user?.id ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account") : undefined}
+                          />
+                          <span className={`text-[11px] font-extrabold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                            {u.isActive ? (t('users.statusActive') || 'Active') : (t('users.statusDisabled') || 'Off')}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#FAF6F0]">
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs shadow-2xs min-w-0">
-                          <Building2 className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-                          <span className="truncate max-w-[140px] xs:max-w-[190px]">
+                      {/* Second Row: Role Badge, Salary Badge & Branch */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#FAF6F0]">
+                        <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] py-0.5">
+                          {getRoleLabel(u.role)}
+                        </Badge>
+
+                        {(user?.role === "OWNER" || user?.role === "ADMIN") && u.salary != null && (
+                          <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                            {Number(u.salary).toLocaleString()} ETB
+                          </span>
+                        )}
+
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5] text-[#4A2E1B] font-bold text-[11px] min-w-0 max-w-full">
+                          <Building2 className="w-3 h-3 text-[#E87A18] shrink-0" />
+                          <span className="truncate">
                             {u.branch ? u.branch.name : (
                               <span className="text-[#8C7361] font-normal italic">
                                 {t('users.globalAllBranches') || 'Global / All Branches'}
@@ -503,30 +518,20 @@ export default function UsersPage() {
                             )}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Switch
-                            checked={u.isActive}
-                            onCheckedChange={() => handleToggleStatus(u.id, u.isActive)}
-                            disabled={(user?.role !== "OWNER" && user?.role !== "ADMIN") || u.id === user?.id}
-                            title={u.id === user?.id ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account") : undefined}
-                          />
-                          <span className={`text-xs font-extrabold ${u.isActive ? 'text-emerald-700' : 'text-zinc-400'}`}>
-                            {u.isActive ? (t('users.statusActive') || 'Active') : (t('users.statusDisabled') || 'Disabled')}
-                          </span>
-                        </div>
                       </div>
 
-                      {/* Compact icon row to prevent 3-line wrap on mobile */}
+                      {/* Compact icon row */}
                       <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-[#FAF6F0]">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 p-0 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl"
+                          className="h-8 px-2.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-bold text-xs flex items-center gap-1"
                           onClick={() => openView(u)}
                           title={t('users.btnView') || "View"}
                           aria-label={t('users.btnView') || "View"}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                          <span>View</span>
                         </Button>
                         {canReset && (
                           <Button
@@ -544,12 +549,13 @@ export default function UsersPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 w-8 p-0 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl"
+                            className="h-8 px-2.5 border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-bold text-xs flex items-center gap-1"
                             onClick={() => openEdit(u)}
                             title={t('users.btnEditEmployee') || "Edit"}
                             aria-label={t('users.btnEditEmployee') || "Edit"}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
                           </Button>
                         )}
                         {canDelete && (

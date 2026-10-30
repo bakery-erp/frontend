@@ -100,7 +100,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...(isOwner ? [
       { icon: Package, label: t('nav.products'), href: '/products' }
     ] : []),
-    ...((isOwner || isAdmin || role === 'CASHIER') ? [
+    ...((isOwner || isAdmin || role === 'CASHIER' || role === 'CAKE_WORKER') ? [
       { icon: ArrowRightLeft, label: t('nav.conversions'), href: '/product-conversions' }
     ] : []),
     ...((isOwner || isAdmin || role === 'STOCK_KEEPER') ? [
@@ -159,28 +159,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
       </div>
 
-      {/* Mobile Branch Selector for Owner in Drawer */}
-      {isOwner && (
-        <div className="px-5 pt-3.5 pb-2 border-b border-[#5A3A23]/40 lg:hidden">
-          <label className="text-[10px] font-black text-[#CBB29F] uppercase tracking-wider block mb-1">
-            📍 {t('common.branch')}:
-          </label>
-          <select
-            value={selectedBranchId || 'ALL'}
-            onChange={(e) => {
-              setSelectedBranchId(e.target.value === 'ALL' ? null : e.target.value);
-            }}
-            className="w-full bg-[#3D2314] border border-[#5A3A23] text-white text-xs rounded-xl px-2.5 py-2 font-bold focus:ring-[#E87A18] focus:border-[#E87A18] cursor-pointer"
-          >
-            <option value="ALL">🌐 {t('dashboard.allBranches')}</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id} className="bg-[#4A2E1B] text-white">
-                📍 {b.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* Navigation List */}
       <nav className="flex-1 px-3.5 py-5 overflow-y-auto space-y-1 sidebar-scrollbar">

@@ -36,7 +36,9 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/auth/login', { phone: phone.trim(), password });
       login(data);
+      // Keep isLoading true while navigating
     } catch (err: any) {
+      setIsLoading(false);
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         setError('Connection timed out. Unable to reach backend server.');
       } else if (err.code === 'ERR_NETWORK') {
@@ -44,8 +46,6 @@ export default function LoginPage() {
       } else {
         setError(err.response?.data?.error || err.message || 'Failed to login. Please try again.');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -161,6 +161,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               size="lg"
+              disabled={isLoading}
               loading={isLoading}
               loadingText={t('auth.signingInButton')}
               className="w-full text-base font-extrabold shadow-lg shadow-[#E87A18]/25 mt-2"

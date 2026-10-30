@@ -13,7 +13,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
-import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, ChevronDown, ChevronUp, X, Edit, MoreVertical, Flag, Check } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, XCircle, Clock, AlertTriangle, History, Eye, Package, Wheat, Search, ChevronRight, ChevronDown, ChevronUp, X, Edit, MoreVertical, Flag, Check, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isProductAllowedForRole, getStationMeta } from "@/lib/roleProductMapping";
@@ -80,6 +80,21 @@ export default function ProductionPage() {
   const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
   const [expandedMaterialsBatches, setExpandedMaterialsBatches] = useState<Record<string, boolean>>({});
   const [expandedFlagNotes, setExpandedFlagNotes] = useState<Record<string, boolean>>({});
+  const [navigatingBatchId, setNavigatingBatchId] = useState<string | null>(null);
+  const [isNavigatingNew, setIsNavigatingNew] = useState(false);
+
+  const navigateToBatch = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (navigatingBatchId) return;
+    setNavigatingBatchId(id);
+    router.push(`/production/${id}`);
+  };
+
+  const navigateToNew = () => {
+    if (isNavigatingNew) return;
+    setIsNavigatingNew(true);
+    router.push('/production/new');
+  };
 
   const toggleExpandFlagNote = (batchId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -359,8 +374,9 @@ export default function ProductionPage() {
             </Button>
           )}
           <Button
-            onClick={() => router.push('/production/new')}
-            disabled={isInitialLoading}
+            onClick={navigateToNew}
+            disabled={isInitialLoading || isNavigatingNew}
+            loading={isNavigatingNew}
             size="lg"
             className="flex-1 sm:flex-initial min-w-0 px-2.5 xs:px-4"
           >
@@ -725,10 +741,7 @@ export default function ProductionPage() {
                       <div>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/production/${batch.id}`);
-                          }}
+                          onClick={(e) => navigateToBatch(batch.id, e)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#FAF6F0] hover:bg-[#F3ECE1] border border-[#EDE4D5] text-xs font-bold text-[#4A2E1B] transition-all cursor-pointer group shadow-2xs"
                         >
                           <span className="text-[#E87A18] font-black">+{batch.items.length - 1}</span>
@@ -760,10 +773,7 @@ export default function ProductionPage() {
                       <div>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/production/${batch.id}`);
-                          }}
+                          onClick={(e) => navigateToBatch(batch.id, e)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-xs font-bold text-rose-800 transition-all cursor-pointer group shadow-2xs"
                         >
                           <span className="text-rose-600 font-black">+{batch.materialUsages.length - 1}</span>
@@ -825,12 +835,22 @@ export default function ProductionPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => router.push(`/production/${batch.id}`)}
+                    disabled={navigatingBatchId === batch.id}
+                    onClick={() => navigateToBatch(batch.id)}
                     className="border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs cursor-pointer"
                     title={t('common.view') || "View"}
                   >
-                    <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                    <span>{t('common.view') || "View"}</span>
+                    {navigatingBatchId === batch.id ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#E87A18]" />
+                        <span>Loading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                        <span>{t('common.view') || "View"}</span>
+                      </>
+                    )}
                   </Button>
 
                   {canEditBatch && (
@@ -952,7 +972,7 @@ export default function ProductionPage() {
               return (
               <TableRow
                 key={batch.id}
-                onClick={() => router.push(`/production/${batch.id}`)}
+                onClick={() => navigateToBatch(batch.id)}
                 className={`hover:bg-[#FAF8F5]/80 transition-colors cursor-pointer ${
                   user?.role === "OWNER" && !isBatchSeenByMe(batch)
                     ? "bg-sky-50/40"
@@ -1026,10 +1046,7 @@ export default function ProductionPage() {
                         <div>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/production/${batch.id}`);
-                            }}
+                            onClick={(e) => navigateToBatch(batch.id, e)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#4A2E1B] border border-[#EDE4D5] hover:border-[#4A2E1B]/30 transition-all cursor-pointer group shadow-2xs"
                             title="View all products in batch"
                           >
@@ -1056,10 +1073,7 @@ export default function ProductionPage() {
                         <div>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/production/${batch.id}`);
-                            }}
+                            onClick={(e) => navigateToBatch(batch.id, e)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 hover:border-rose-300 transition-all cursor-pointer group shadow-2xs"
                             title="View all raw materials in batch"
                           >
@@ -1115,15 +1129,22 @@ export default function ProductionPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/production/${batch.id}`);
-                      }}
+                      disabled={navigatingBatchId === batch.id}
+                      onClick={(e) => navigateToBatch(batch.id, e)}
                       className="border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
                       title={t('common.view') || "View"}
                     >
-                      <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                      <span>{t('common.view') || "View"}</span>
+                      {navigatingBatchId === batch.id ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#E87A18]" />
+                          <span>Loading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                          <span>{t('common.view') || "View"}</span>
+                        </>
+                      )}
                     </Button>
 
                     {canEditBatch && (

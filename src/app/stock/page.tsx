@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton } from "@/components/ui/skeletons";
 
 import ConfirmModal from "@/components/ConfirmModal";
+import { AppDatePicker } from "@/components/AppDatePicker";
 
 interface Branch {
   id: string;
@@ -77,11 +78,15 @@ export default function StockPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [useLatinScript, setUseLatinScript] = useState<boolean>(false);
+
   // Manual stock addition modal state
   const [addingItem, setAddingItem] = useState<StockItem | null>(null);
   const [addAmount, setAddAmount] = useState<string>("");
   const [addUnitPrice, setAddUnitPrice] = useState<string>("");
   const [addReason, setAddReason] = useState<string>("");
+  const [addDate, setAddDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [createDate, setCreateDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [isAutoConfirm, setIsAutoConfirm] = useState<boolean>(false);
 
   const openAddStockModal = (item: StockItem) => {
@@ -90,6 +95,7 @@ export default function StockPage() {
     setAddAmount("");
     setAddUnitPrice(item.unitPrice != null ? String(item.unitPrice) : "");
     setAddReason("");
+    setAddDate(new Date().toISOString().split('T')[0]);
     setIsAddLoan(false);
     setAddPaidAmount("");
     setAddSupplierName("");
@@ -247,6 +253,7 @@ export default function StockPage() {
       currentQuantity: Number(formData.get("currentQuantity")),
       unitPrice: formData.get("unitPrice") ? Number(formData.get("unitPrice")) : 0,
       minStockLevel: formData.get("minStockLevel") ? Number(formData.get("minStockLevel")) : undefined,
+      date: createDate || undefined,
       loanInfo: !isEdit && isCreateLoan ? {
         isLoan: true,
         paidAmount: createPaidAmount !== "" ? Number(createPaidAmount) : 0,
@@ -312,6 +319,7 @@ export default function StockPage() {
         unitPrice: parsedUnitPrice,
         reason: addReason.trim() || "Manual Stock Addition",
         autoConfirm: effectiveAutoConfirm,
+        date: addDate || undefined,
         loanInfo: isAddLoan ? {
           isLoan: true,
           paidAmount: addPaidAmount !== "" ? Number(addPaidAmount) : 0,
@@ -546,12 +554,38 @@ export default function StockPage() {
           </div>
         </div>
 
-        <Input
-          placeholder={t('common.search')}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full sm:w-64 rounded-xl border-[#EDE4D5] text-xs h-10 bg-[#FAF6F0]/40"
-        />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Script Transliteration Toggle */}
+          <div className="bg-[#FAF6F0] p-1 rounded-xl flex items-center border border-[#EDE4D5] shrink-0 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setUseLatinScript(false)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                !useLatinScript ? 'bg-[#4A2E1B] text-white shadow-2xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
+              }`}
+              title="Show Geez Amharic"
+            >
+              ግዕዝ
+            </button>
+            <button
+              type="button"
+              onClick={() => setUseLatinScript(true)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                useLatinScript ? 'bg-[#4A2E1B] text-white shadow-2xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
+              }`}
+              title="Show English Letters (Latin Transliteration)"
+            >
+              🔤 A-Z (Latin)
+            </button>
+          </div>
+
+          <Input
+            placeholder={t('common.search')}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full sm:w-56 rounded-xl border-[#EDE4D5] text-xs h-10 bg-[#FAF6F0]/40"
+          />
+        </div>
       </div>
 
 
@@ -601,18 +635,18 @@ export default function StockPage() {
         })}
       </div>
 
-      {/* Desktop Table View */}
-      <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('stock.colItemName')}</TableHead>
-              <TableHead>{t('products.colUnit')}</TableHead>
-              {isOwner && <TableHead>{t('stock.colUnitPrice')}</TableHead>}
-              <TableHead>{t('stock.colCurrentQty')}</TableHead>
-              {isOwner && <TableHead>{t('dashboard.productStockValue')}</TableHead>}
-              <TableHead>{t('stock.colMinLevel')}</TableHead>
-              <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
+      {/* Desktop Table View - Proportionally fitted with no horizontal scroll */}
+      <div className="hidden sm:block bg-white border border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
+        <Table className="w-full">
+          <TableHeader className="bg-[#FAF6F0]/70">
+            <TableRow className="border-[#EDE4D5]">
+              <TableHead className="py-3 px-3.5 text-xs font-bold text-[#4A2E1B]">{t('stock.colItemName')}</TableHead>
+              <TableHead className="py-3 px-2.5 text-xs font-bold text-[#4A2E1B]">{t('products.colUnit')}</TableHead>
+              {isOwner && <TableHead className="py-3 px-2.5 text-xs font-bold text-[#4A2E1B]">{t('stock.colUnitPrice')}</TableHead>}
+              <TableHead className="py-3 px-2.5 text-xs font-bold text-[#4A2E1B]">{t('stock.colCurrentQty')}</TableHead>
+              {isOwner && <TableHead className="py-3 px-2.5 text-xs font-bold text-[#4A2E1B]">{t('dashboard.productStockValue')}</TableHead>}
+              <TableHead className="py-3 px-2.5 text-xs font-bold text-[#4A2E1B]">{t('stock.colMinLevel')}</TableHead>
+              <TableHead className="py-3 px-3 text-right text-xs font-bold text-[#4A2E1B] pr-4">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -629,19 +663,29 @@ export default function StockPage() {
               const price = Number(item.unitPrice || 0);
               const totalVal = Number(item.currentQuantity) * price;
               return (
-                <TableRow key={item.id}>
-                  <TableCell className="font-bold text-[#2C1B10]">
+                <TableRow key={item.id} className="border-[#EDE4D5] hover:bg-[#FAF6F0]/40 transition-colors">
+                  <TableCell className="py-3 px-3.5 font-bold text-[#2C1B10]">
                     <div className="flex items-center gap-2">
-                      <div>
+                      <div className="min-w-0">
                         <Link 
                           href={`/stock/${item.id}`} 
-                          className="hover:text-[#E87A18] hover:underline font-bold transition-colors block"
+                          className="hover:text-[#E87A18] hover:underline font-extrabold text-sm transition-colors block truncate"
                         >
-                          {getItemName(item)}
+                          {useLatinScript ? (item.nameLatin || item.name) : item.name}
                         </Link>
+                        {item.nameLatin && !useLatinScript && (
+                          <span className="text-[11px] font-mono text-[#8C7361] block leading-tight truncate">
+                            {item.nameLatin}
+                          </span>
+                        )}
+                        {useLatinScript && item.nameLatin && (
+                          <span className="text-[11px] text-[#8C7361] block leading-tight truncate">
+                            {item.name}
+                          </span>
+                        )}
                         {item.category && (
-                          <span className="text-[10px] font-semibold text-[#8C7361] block">
-                            {getItemName({ name: item.category, nameLatin: item.categoryLatin })}
+                          <span className="text-[10px] font-semibold text-[#A48F7F] block mt-0.5 truncate">
+                            {useLatinScript ? (item.categoryLatin || item.category) : item.category}
                           </span>
                         )}
                       </div>
@@ -652,33 +696,40 @@ export default function StockPage() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell><span className="px-2.5 py-1 rounded-md bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-xs font-bold">{item.unitType}</span></TableCell>
+                  <TableCell className="py-3 px-2.5">
+                    <span className="px-2 py-0.5 rounded-md bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-xs font-bold">
+                      {item.unitType}
+                    </span>
+                  </TableCell>
                   {isOwner && (
-                    <TableCell className="font-bold text-xs text-[#2C1B10]">
+                    <TableCell className="py-3 px-2.5 font-bold text-xs text-[#2C1B10] font-mono">
                       {price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
                     </TableCell>
                   )}
-                  <TableCell>
-                    <span className={`font-extrabold text-base ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
+                  <TableCell className="py-3 px-2.5">
+                    <span className={`font-extrabold text-sm font-mono ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
                       {Number(item.currentQuantity).toFixed(2)}
                     </span>
                   </TableCell>
                   {isOwner && (
-                    <TableCell className="font-extrabold text-xs text-amber-900">
+                    <TableCell className="py-3 px-2.5 font-extrabold text-xs text-amber-900 font-mono">
                       {totalVal > 0 ? `${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
                     </TableCell>
                   )}
-                  <TableCell className="font-semibold text-[#8C7361]">{item.minStockLevel != null ? Number(item.minStockLevel).toFixed(2) : "—"}</TableCell>
-                  <TableCell className="text-right pr-6">
-                    <div className="flex items-center justify-end gap-1.5">
+                  <TableCell className="py-3 px-2.5 font-semibold text-[#8C7361] text-xs font-mono">
+                    {item.minStockLevel != null ? Number(item.minStockLevel).toFixed(2) : "—"}
+                  </TableCell>
+                  <TableCell className="py-3 px-3 text-right pr-4">
+                    <div className="flex items-center justify-end gap-1 flex-nowrap">
                       <Link href={`/stock/${item.id}`}>
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="h-8 px-2.5 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] hover:text-[#E87A18] flex items-center gap-1 font-bold"
+                          className="h-8 px-2 text-xs text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0] hover:text-[#E87A18] flex items-center gap-1 font-bold rounded-lg"
+                          title={t('stock.viewHistory')}
                         >
-                          <History className="w-3.5 h-3.5" />
-                          {t('stock.viewHistory')}
+                          <History className="w-3.5 h-3.5 shrink-0" />
+                          <span className="hidden xl:inline">{t('stock.viewHistory')}</span>
                         </Button>
                       </Link>
 
@@ -687,23 +738,11 @@ export default function StockPage() {
                           variant="outline" 
                           size="sm" 
                           onClick={() => openAddStockModal(item)}
-                          className="h-8 px-2.5 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex items-center gap-1 font-semibold"
+                          className="h-8 px-2 text-xs text-emerald-700 bg-emerald-50/70 border-emerald-300 hover:bg-emerald-100 flex items-center gap-1 font-bold rounded-lg"
+                          title={t('stock.addStock')}
                         >
-                          <PlusCircle className="w-3.5 h-3.5" />
-                          {t('stock.addStock')}
-                        </Button>
-                      )}
-
-                      {isOwner && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => openAdjustStockModal(item)}
-                          className="h-8 px-2.5 text-xs text-orange-700 border-orange-300 hover:bg-orange-50 flex items-center gap-1 font-semibold"
-                          title="Audit / Adjust Physical Stock Count"
-                        >
-                          <SlidersHorizontal className="w-3.5 h-3.5" />
-                          <span>Adjust</span>
+                          <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Add</span>
                         </Button>
                       )}
 
@@ -717,10 +756,24 @@ export default function StockPage() {
                             setReduceReceivedBy("");
                             setReduceReason("");
                           }}
-                          className="h-8 px-2.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 flex items-center gap-1 font-semibold"
+                          className="h-8 px-2 text-xs text-amber-700 bg-amber-50/70 border-amber-300 hover:bg-amber-100 flex items-center gap-1 font-bold rounded-lg"
+                          title={t('stock.reduceStock')}
                         >
-                          <MinusCircle className="w-3.5 h-3.5" />
-                          {t('stock.reduceStock')}
+                          <MinusCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Reduce</span>
+                        </Button>
+                      )}
+
+                      {isOwner && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => openAdjustStockModal(item)}
+                          className="h-8 px-2 text-xs text-orange-700 bg-orange-50/70 border-orange-300 hover:bg-orange-100 flex items-center gap-1 font-bold rounded-lg"
+                          title="Audit / Adjust Physical Stock Count"
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                          <span className="hidden xl:inline">Adjust</span>
                         </Button>
                       )}
 
@@ -730,7 +783,8 @@ export default function StockPage() {
                             variant="ghost" 
                             size="sm" 
                             onClick={() => setEditingItem(item)}
-                            className="h-8 px-2 text-zinc-600 hover:text-zinc-900"
+                            className="h-8 w-8 p-0 text-zinc-600 hover:text-zinc-900 rounded-lg"
+                            title="Edit"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </Button>
@@ -738,7 +792,8 @@ export default function StockPage() {
                             variant="ghost" 
                             size="sm" 
                             onClick={() => setItemToDelete(item)}
-                            className="h-8 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                            title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -768,8 +823,18 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <Link href={`/stock/${item.id}`} className="font-extrabold text-[#2C1B10] hover:text-[#E87A18] text-base block">
-                    {getItemName(item)}
+                    {useLatinScript ? (item.nameLatin || item.name) : item.name}
                   </Link>
+                  {item.nameLatin && !useLatinScript && (
+                    <span className="text-[11px] font-mono text-[#8C7361] block leading-tight">
+                      {item.nameLatin}
+                    </span>
+                  )}
+                  {useLatinScript && item.nameLatin && (
+                    <span className="text-[11px] text-[#8C7361] block leading-tight">
+                      {item.name}
+                    </span>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
                     <span className="px-2 py-0.5 rounded-md bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] text-[11px] font-bold">
                       {item.unitType}
@@ -1008,6 +1073,17 @@ export default function StockPage() {
                 </div>
 
                 {!editingItem && (
+                  <div>
+                    <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date') || 'Date'}</label>
+                    <AppDatePicker
+                      value={createDate}
+                      onChange={(val) => setCreateDate(val)}
+                      className="h-10 rounded-xl border-zinc-200"
+                    />
+                  </div>
+                )}
+
+                {!editingItem && (
                   <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 space-y-3 mt-1">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
@@ -1089,6 +1165,20 @@ export default function StockPage() {
               <div className="grid gap-3.5 py-3">
                 <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900">
                   Adding stock to <strong className="font-bold">{addingItem.name}</strong>. Currently available: <span className="font-bold text-emerald-700">{Number(addingItem.currentQuantity).toFixed(2)} {addingItem.unitType}</span>{isOwner && <> (Rate: <span className="font-bold text-emerald-800">{Number(addingItem.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency')}/{addingItem.unitType}</span>)</>}.
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
+                    {t('common.date') || 'Date'} *
+                  </label>
+                  <AppDatePicker
+                    value={addDate}
+                    onChange={(val) => setAddDate(val)}
+                    className="h-10 rounded-xl border-zinc-200"
+                  />
+                  <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
+                    Date of stock intake (select past date if intake occurred earlier).
+                  </p>
                 </div>
 
                 <div>
@@ -1229,6 +1319,7 @@ export default function StockPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
+                  loading={isSubmitting}
                   className="w-full sm:w-auto h-11 sm:h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl order-1 sm:order-2 shadow-sm"
                 >
                   {isSubmitting ? t('common.loading') : t('stock.recordDeliveryBtn')}

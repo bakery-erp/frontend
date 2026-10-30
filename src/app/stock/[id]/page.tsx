@@ -15,6 +15,7 @@ import { useBranch } from "@/context/BranchContext";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { format } from "date-fns";
 import { formatEthDate } from "@/lib/ethiopianDate";
+import { AppDatePicker } from "@/components/AppDatePicker";
 import { 
   ArrowLeft, 
   AlertCircle, 
@@ -599,8 +600,8 @@ export default function StockItemDetailPage() {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#2C1B10] tracking-tight truncate">
-                  {getItemName(stockItem)}
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#2C1B10] tracking-tight">
+                  {stockItem?.name} {stockItem?.nameLatin && <span className="text-sm sm:text-lg font-normal text-[#8C7361] font-mono">({stockItem.nameLatin})</span>}
                 </h1>
                 {stockItem.category && (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] shadow-2xs">
@@ -785,24 +786,23 @@ export default function StockItemDetailPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Filter by Date with Quick Today & Clear */}
-            <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
+            <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1 text-xs shadow-2xs">
               {isFetching && !isLoading ? (
                 <Loader2 className="w-3.5 h-3.5 text-[#E87A18] animate-spin shrink-0" />
               ) : (
                 <Calendar className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
               )}
               <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider hidden sm:inline">{t('stockMovements.date')}:</span>
-              <input
-                type="date"
+              <AppDatePicker
                 value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="text-xs font-semibold text-[#2C1B10] bg-transparent outline-none cursor-pointer"
+                onChange={(val) => setDateFilter(val)}
+                className="text-xs bg-transparent border-0 p-0 shadow-none h-8 w-auto min-w-[130px]"
               />
               {dateFilter && (
                 <button
                   type="button"
                   onClick={() => setDateFilter("")}
-                  className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white"
+                  className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white shrink-0 ml-1"
                   title="Clear date filter"
                 >
                   <X className="w-3.5 h-3.5" />

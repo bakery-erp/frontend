@@ -152,6 +152,8 @@ export function isRouteAllowed(role: string | undefined | null, pathname: string
     return (
       path === '/production' ||
       path.startsWith('/production/') ||
+      path === '/product-conversions' ||
+      path.startsWith('/product-conversions/') ||
       path === '/mobile/baker' ||
       path === '/mobile'
     );

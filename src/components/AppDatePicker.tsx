@@ -25,6 +25,7 @@ export interface AppDatePickerProps {
   required?: boolean;
   disabled?: boolean;
   id?: string;
+  placeholder?: string;
 }
 
 export function AppDatePicker({

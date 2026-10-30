@@ -83,7 +83,7 @@ function ProductionFormContent() {
   const [date, setDate] = useState<string>(
     new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)
   );
-  const [shift, setShift] = useState<"DAY" | "NIGHT">("DAY");
+  const [shift, setShift] = useState<"DAY" | "NIGHT" | "">("");
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
 
   // Selection & Filter State
@@ -405,6 +405,14 @@ function ProductionFormContent() {
       return;
     }
 
+    if (!shift) {
+      toast.error("Please choose a shift (Day or Night) before saving the production batch!");
+      setMobileStep(1);
+      const shiftElem = document.getElementById("shift-select") || document.getElementById("shift-selector-container");
+      shiftElem?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     // On mobile (< 768px), if the user is in Step 1, pressing Go/Enter should proceed to Step 2 (Ingredients)
     // and NEVER jump directly to the confirmation modal without selecting raw materials
     const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -672,28 +680,17 @@ function ProductionFormContent() {
 
           {/* Mobile Compact Shift & Date Bar (< md) */}
           <div className="md:hidden bg-white p-3 rounded-2xl border border-[#EDE4D5] shadow-xs flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0 relative">
+            <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0 font-bold text-xs">
                 📅
               </div>
-              <div className="min-w-0 relative">
+              <div className="min-w-0">
                 {isGlobalAdmin ? (
-                  <div className="relative cursor-pointer">
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-                      aria-label="Change batch date"
-                    />
-                    <div className="text-xs font-black text-[#2C1B10] truncate flex items-center gap-1 underline decoration-amber-500 underline-offset-2">
-                      <span>{formatEthDate(date)}</span>
-                      <Edit3 className="w-2.5 h-2.5 text-amber-600 inline shrink-0" />
-                    </div>
-                    <span className="text-[10px] text-amber-700 font-bold block">
-                      Admin (Tap to edit)
-                    </span>
-                  </div>
+                  <AppDatePicker
+                    value={date}
+                    onChange={(val) => setDate(val)}
+                    className="h-8 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-lg p-1 max-w-[130px]"
+                  />
                 ) : (
                   <>
                     <div className="text-xs font-black text-[#2C1B10] truncate">
@@ -708,7 +705,9 @@ function ProductionFormContent() {
             </div>
 
             {/* Shift toggle pill on mobile */}
-            <div className="flex items-center bg-[#FAF6F0] p-1 rounded-xl border border-[#EDE4D5] shrink-0">
+            <div className={`flex items-center bg-[#FAF6F0] p-1 rounded-xl border shrink-0 transition-all ${
+              !shift ? 'border-amber-400 ring-2 ring-amber-300' : 'border-[#EDE4D5]'
+            }`}>
               <button
                 type="button"
                 onClick={() => setShift("DAY")}
@@ -774,17 +773,22 @@ function ProductionFormContent() {
                 </p>
               )}
             </div>
-            <div>
+            <div id="shift-selector-container">
               <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                {t("production.colShift")}
+                {t("production.colShift")} <span className="text-red-500">*</span>
               </label>
               <select
+                id="shift-select"
                 value={shift}
                 onChange={(e) => setShift(e.target.value as any)}
-                className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
+                className={`w-full bg-[#FAF6F0] border rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] transition-all ${
+                  !shift ? 'border-amber-400 ring-2 ring-amber-200' : 'border-[#EDE4D5]'
+                }`}
+                required
               >
-                <option value="DAY">{t("production.dayShiftFull")}</option>
-                <option value="NIGHT">{t("production.nightShiftFull")}</option>
+                <option value="" disabled>-- {t("production.selectShiftPrompt") || "Choose Shift (Required)"} --</option>
+                <option value="DAY">☀️ {t("production.dayShiftFull")}</option>
+                <option value="NIGHT">🌙 {t("production.nightShiftFull")}</option>
               </select>
             </div>
           </div>
@@ -1171,6 +1175,11 @@ function ProductionFormContent() {
                 size="lg"
                 disabled={totalProductsSelectedCount === 0}
                 onClick={() => {
+                  if (!shift) {
+                    toast.error("Please choose a shift (Day or Night) before proceeding!");
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                  }
                   const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
                   if (!hasProductWithQty) {
                     toast.error(t("production.toastSpecifyAtLeastOne"));
@@ -1206,7 +1215,8 @@ function ProductionFormContent() {
                 <Button
                   type="button"
                   onClick={() => handleRequestSubmit()}
-                  disabled={totalProductsSelectedCount === 0}
+                  disabled={totalProductsSelectedCount === 0 || isSubmitting}
+                  loading={isSubmitting}
                   className="flex-1 h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4 shrink-0" />

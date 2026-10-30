@@ -661,7 +661,7 @@ export default function CustomerCreditsPage() {
 
               {/* Date Filter & Quick Today */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
+                <div className="flex items-center gap-1.5 bg-[#FAF7EE] border border-[#EDE4D5] rounded-xl px-2.5 py-1 text-xs shadow-2xs">
                   {isFetchingCredits && !isLoadingCredits ? (
                     <Loader2 className="w-3.5 h-3.5 text-[#E87A18] animate-spin shrink-0" />
                   ) : (
@@ -670,14 +670,13 @@ export default function CustomerCreditsPage() {
                   <span className="text-[10px] font-bold text-[#8C7361] uppercase tracking-wider hidden sm:inline">
                     {t('stockMovements.date') || "Date"}:
                   </span>
-                  <input
-                    type="date"
+                  <AppDatePicker
                     value={dateFilter}
-                    onChange={(e) => {
-                      setDateFilter(e.target.value);
+                    onChange={(val) => {
+                      setDateFilter(val);
                       setCreditPage(1);
                     }}
-                    className="text-xs font-semibold text-[#2C1B10] bg-transparent outline-none cursor-pointer"
+                    className="text-xs bg-transparent border-0 p-0 shadow-none h-8 w-auto min-w-[130px]"
                   />
                   {dateFilter && (
                     <button
@@ -686,7 +685,7 @@ export default function CustomerCreditsPage() {
                         setDateFilter("");
                         setCreditPage(1);
                       }}
-                      className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white"
+                      className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white shrink-0 ml-1"
                       title="Clear date filter"
                     >
                       <X className="w-3.5 h-3.5" />

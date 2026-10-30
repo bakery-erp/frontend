@@ -846,11 +846,10 @@ export default function ExpensesPage() {
               <div className="flex items-end gap-3 flex-wrap">
                 <div>
                   <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.selectDay')}</label>
-                  <Input
-                    type="date"
+                  <AppDatePicker
                     value={dailyDate}
-                    onChange={(e) => handleDailyDateChange(e.target.value)}
-                    className="w-48 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                    onChange={(val) => handleDailyDateChange(val)}
+                    className="w-48 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10] h-10"
                   />
                 </div>
                 <Button
@@ -865,20 +864,18 @@ export default function ExpensesPage() {
               <div className="flex items-end gap-3 flex-wrap">
                 <div>
                   <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.fromDate')}</label>
-                  <Input
-                    type="date"
+                  <AppDatePicker
                     value={filterFrom}
-                    onChange={(e) => setFilterFrom(e.target.value)}
-                    className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                    onChange={(val) => setFilterFrom(val)}
+                    className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10] h-10"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#8C7361] block mb-1">{t('expenses.toDate')}</label>
-                  <Input
-                    type="date"
+                  <AppDatePicker
                     value={filterTo}
-                    onChange={(e) => setFilterTo(e.target.value)}
-                    className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10]"
+                    onChange={(val) => setFilterTo(val)}
+                    className="w-44 bg-[#FAF6F0] border-[#EDE4D5] rounded-xl text-xs font-semibold text-[#2C1B10] h-10"
                   />
                 </div>
                 <Button

@@ -11,9 +11,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LayoutGrid, List, Plus, PackageCheck, TrendingUp, ShoppingBag, ShieldAlert, Boxes, Truck, AlertTriangle } from "lucide-react";
+import { List, Plus, PackageCheck, TrendingUp, ShoppingBag, ShieldAlert, Boxes, Truck, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { CardGridSkeleton, TableSkeleton } from "@/components/ui/skeletons";
+import { TableSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductCategory {
@@ -67,7 +67,6 @@ export default function ProductsPage() {
     }
   }, [user, router]);
 
-  const [viewMode, setViewMode] = useState<'GRID' | 'TABLE'>('GRID');
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>('ALL');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,27 +149,7 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-extrabold tracking-tight text-[#2C1B10]">{t('products.title')}</h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-          {/* View Switcher */}
-          <div className="bg-[#F4ECE1] p-1 rounded-xl flex items-center border border-[#EDE4D5]">
-            <button
-              onClick={() => setViewMode('GRID')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                viewMode === 'GRID' ? 'bg-[#4A2E1B] text-white shadow-sm' : 'text-[#8C7361] hover:text-[#2C1B10]'
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" /> {t('products.tabVisualCards')}
-            </button>
-            <button
-              onClick={() => setViewMode('TABLE')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                viewMode === 'TABLE' ? 'bg-[#4A2E1B] text-white shadow-sm' : 'text-[#8C7361] hover:text-[#2C1B10]'
-              }`}
-            >
-              <List className="w-3.5 h-3.5" /> {t('products.tabTableList')}
-            </button>
-          </div>
-
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
           {isOwner && (
             <Link href="/products/new">
               <Button className="bg-[#4A2E1B] hover:bg-[#3D2314] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md h-10 px-4">
@@ -399,85 +378,12 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Content Rendering: Visual Grid View vs Table View */}
+      {/* Content Rendering: List / Table View Only */}
       {isLoading ? (
-        viewMode === 'GRID' ? (
-          <CardGridSkeleton count={8} />
-        ) : (
-          <TableSkeleton rows={8} columns={9} hasActions={true} />
-        )
+        <TableSkeleton rows={8} columns={10} hasActions={true} />
       ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12 bg-white border border-[#EDE4D5] rounded-2xl text-[#8C7361]">
           {t('products.noProductsFound')}
-        </div>
-      ) : viewMode === 'GRID' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-          {filteredProducts.map((prod) => {
-            const stockQty = prod.currentHouseStock ?? 0;
-            return (
-              <div key={prod.id} className="bg-white border border-[#EDE4D5] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
-                <div className="p-3.5 sm:p-4 bg-gradient-to-br from-[#FAF6F0] to-[#F4ECE1] border-b border-[#EDE4D5]">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#4A2E1B] border border-[#E0D5C3] shadow-xs">
-                      {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border shadow-xs shrink-0 ${
-                      stockQty > 20
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        : stockQty > 0
-                        ? 'bg-amber-100 text-amber-800 border-amber-300'
-                        : 'bg-rose-100 text-rose-800 border-rose-300'
-                    }`}>
-                      {stockQty} {prod.unitType}
-                    </span>
-                  </div>
-                  <h3 className="font-extrabold text-base text-[#2C1B10] tracking-tight">
-                    {getItemName(prod)}
-                  </h3>
-                  {prod.flavor && <p className="text-xs text-[#8C7361]">{prod.flavor}</p>}
-                </div>
-
-                <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="text-xs text-[#8C7361] font-medium">
-                      <p>Selling Price: <strong className="text-[#E87A18] font-black">{Number(prod.basePrice).toFixed(2)} ETB</strong></p>
-                      {prod.category?.type === 'RESELL' && prod.buyPrice != null && (
-                        <p className="text-[11px] font-mono text-zinc-500 mt-0.5">Buy Cost: {Number(prod.buyPrice).toFixed(2)} ETB</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3.5 pt-3 border-t border-[#F4ECE1] grid grid-cols-4 gap-1 text-center text-xs text-[#8C7361]">
-                    <div>
-                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('products.colProduced')}</span>
-                      <strong className="text-[#2C1B10]">{prod.totalProduced || 0}</strong>
-                    </div>
-                    <div>
-                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('products.colDelivered')}</span>
-                      <strong className="text-[#E87A18] font-black">{prod.totalDelivered || 0}</strong>
-                    </div>
-                    <div>
-                      <span className="block text-[10px] uppercase font-bold text-[#8C7361]">{t('products.colSold')}</span>
-                      <strong className="text-[#2C1B10]">{prod.totalSold || 0}</strong>
-                    </div>
-                    <div>
-                      <span className="block text-[10px] uppercase font-bold text-rose-600">{t('products.colDamaged')}</span>
-                      <strong className={`font-black ${(prod.totalDamaged || 0) > 0 ? 'text-rose-600' : 'text-zinc-400'}`}>
-                        {prod.totalDamaged || 0}
-                      </strong>
-                    </div>
-                  </div>
-                  {isOwner && (
-                    <div className="mt-3 pt-2 border-t border-[#FAF6F0] flex justify-end">
-                      <Button size="sm" variant="ghost" className="h-8 text-xs font-bold text-[#4A2E1B] hover:bg-[#F4ECE1] px-3" onClick={() => router.push(`/products/${prod.id}/edit`)}>
-                        Edit Product
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
         </div>
       ) : (
         <div>
@@ -569,72 +475,72 @@ export default function ProductsPage() {
             })}
           </div>
 
-          {/* Desktop Table View (hidden md:block) */}
-          <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl overflow-x-auto shadow-xs">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('products.colName')}</TableHead>
-                  <TableHead>{t('products.colCategory')}</TableHead>
-                  <TableHead>{t('stock.title')}</TableHead>
-                  <TableHead>{t('products.colUnit')}</TableHead>
-                  <TableHead>{t('products.colPrice')}</TableHead>
-                  <TableHead className="text-center">{t('products.colProduced')}</TableHead>
-                  <TableHead className="text-center">{t('products.colDelivered')}</TableHead>
-                  <TableHead className="text-center">{t('products.colSold')}</TableHead>
-                  <TableHead className="text-center text-rose-700">{t('products.colDamaged')}</TableHead>
-                  <TableHead>{t('products.colActive')}</TableHead>
-                  {isOwner && <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>}
+          {/* Desktop Table View (hidden md:block) - Cleanly fitted without horizontal scroll */}
+          <div className="hidden md:block bg-white border border-[#EDE4D5] rounded-2xl shadow-xs overflow-hidden">
+            <Table className="w-full">
+              <TableHeader className="bg-[#FAF6F0]/70">
+                <TableRow className="border-[#EDE4D5]">
+                  <TableHead className="py-3 px-3.5 text-xs font-bold text-[#4A2E1B]">{t('products.colName')}</TableHead>
+                  <TableHead className="py-3 px-3 text-xs font-bold text-[#4A2E1B]">{t('products.colCategory')}</TableHead>
+                  <TableHead className="py-3 px-3 text-xs font-bold text-[#4A2E1B]">{t('stock.title')}</TableHead>
+                  <TableHead className="py-3 px-3 text-xs font-bold text-[#4A2E1B]">{t('products.colPrice')}</TableHead>
+                  <TableHead className="py-3 px-2 text-center text-xs font-bold text-[#4A2E1B]">{t('products.colProduced')}</TableHead>
+                  <TableHead className="py-3 px-2 text-center text-xs font-bold text-[#4A2E1B]">{t('products.colDelivered')}</TableHead>
+                  <TableHead className="py-3 px-2 text-center text-xs font-bold text-[#4A2E1B]">{t('products.colSold')}</TableHead>
+                  <TableHead className="py-3 px-2 text-center text-xs font-bold text-rose-700">{t('products.colDamaged')}</TableHead>
+                  <TableHead className="py-3 px-3 text-xs font-bold text-[#4A2E1B]">{t('products.colActive')}</TableHead>
+                  {isOwner && <TableHead className="py-3 px-3 text-right text-xs font-bold text-[#4A2E1B] pr-4">{t('common.actions')}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredProducts.map((prod) => {
                   const stockQty = prod.currentHouseStock ?? 0;
                   return (
-                    <TableRow key={prod.id}>
-                      <TableCell className="font-bold text-[#2C1B10]">
-                        <div>{getItemName(prod)}</div>
-                        {prod.flavor && <span className="text-xs font-normal text-[#8C7361]">({prod.flavor})</span>}
+                    <TableRow key={prod.id} className="border-[#EDE4D5] hover:bg-[#FAF6F0]/40 transition-colors">
+                      <TableCell className="py-3 px-3.5 font-bold text-[#2C1B10]">
+                        <div className="font-extrabold text-sm">{getItemName(prod)}</div>
+                        {prod.flavor && <span className="text-[11px] font-normal text-[#8C7361] block">({prod.flavor})</span>}
                       </TableCell>
-                      <TableCell>
-                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
+                      <TableCell className="py-3 px-3">
+                        <span className="inline-block px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5]">
                           {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold border ${
+                      <TableCell className="py-3 px-3">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
                           stockQty > 20 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : stockQty > 0 ? 'bg-amber-100 text-amber-900 border-amber-200' : 'bg-rose-100 text-rose-800 border-rose-200'
                         }`}>
                           {stockQty} {prod.unitType}
                         </span>
                       </TableCell>
-                      <TableCell className="text-xs font-semibold text-[#8C7361]">{prod.unitType}</TableCell>
-                      <TableCell>
-                        <div className="font-extrabold text-[#E87A18] text-sm">{Number(prod.basePrice).toFixed(2)} ETB</div>
+                      <TableCell className="py-3 px-3">
+                        <div className="font-extrabold text-[#E87A18] text-xs font-mono">{Number(prod.basePrice).toFixed(2)} ETB</div>
                         {prod.category?.type === 'RESELL' && prod.buyPrice != null && (
-                          <div className="text-[11px] font-mono text-zinc-500 font-semibold">Cost: {Number(prod.buyPrice).toFixed(2)} ETB</div>
+                          <div className="text-[10px] font-mono text-zinc-500 font-medium">Cost: {Number(prod.buyPrice).toFixed(2)} ETB</div>
                         )}
                       </TableCell>
-                      <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalProduced || 0}</TableCell>
-                      <TableCell className="text-center font-extrabold text-[#E87A18]">{prod.totalDelivered || 0}</TableCell>
-                      <TableCell className="text-center font-bold text-[#2C1B10]">{prod.totalSold || 0}</TableCell>
-                      <TableCell className="text-center font-bold">
+                      <TableCell className="py-3 px-2 text-center font-bold text-[#2C1B10] text-xs font-mono">{prod.totalProduced || 0}</TableCell>
+                      <TableCell className="py-3 px-2 text-center font-extrabold text-[#E87A18] text-xs font-mono">{prod.totalDelivered || 0}</TableCell>
+                      <TableCell className="py-3 px-2 text-center font-bold text-[#2C1B10] text-xs font-mono">{prod.totalSold || 0}</TableCell>
+                      <TableCell className="py-3 px-2 text-center font-bold text-xs font-mono">
                         {(prod.totalDamaged || 0) > 0 ? (
-                          <span className="text-rose-600 font-extrabold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+                          <span className="text-rose-600 font-extrabold bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100">
                             {prod.totalDamaged}
                           </span>
                         ) : (
                           <span className="text-zinc-400">0</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${prod.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
-                          {prod.isActive ? `✓ ${t('products.activeLabel')}` : t('products.inactiveLabel')}
+                      <TableCell className="py-3 px-3">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border ${prod.isActive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
+                          {prod.isActive ? `✓ Active` : 'Inactive'}
                         </span>
                       </TableCell>
                       {isOwner && (
-                        <TableCell className="text-right pr-6">
-                          <Button variant="ghost" size="sm" className="font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0]" onClick={() => router.push(`/products/${prod.id}/edit`)}>{t('common.edit')}</Button>
+                        <TableCell className="py-3 px-3 text-right pr-4">
+                          <Button variant="ghost" size="sm" className="h-8 px-2.5 font-bold text-xs text-[#4A2E1B] hover:text-[#E87A18] hover:bg-[#FAF6F0] rounded-lg" onClick={() => router.push(`/products/${prod.id}/edit`)}>
+                            {t('common.edit')}
+                          </Button>
                         </TableCell>
                       )}
                     </TableRow>
