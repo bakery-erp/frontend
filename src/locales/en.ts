@@ -424,9 +424,31 @@ export const en = {
     // Card 4
     cardOwnerExpensesTitle: "Owner Expenses & Payables",
     cardOwnerExpensesSubtitle: "Drawings + debts owner has to pay",
+    cardOwnerExpensesOnlyTitle: "Owner Cash Drawings",
+    cardOwnerExpensesOnlySubtitle: "Personal cash drawn by owner",
     cashDrawnOut: "Cash Drawn (Already Out):",
     debtsCreditsToPay: "Debts / Credits to Pay (Not Out Yet):",
     clickOwnerDrawingsDebts: "Click for drawings & unpaid debts",
+
+    // Card 5 & 6 (New Customer Credit & Stock Credit Cards)
+    cardCustomerCreditTitle: "Customer Credits",
+    cardCustomerCreditSubtitle: "Products sold on credit / receivable",
+    cardStockCreditTitle: "Stock Credits & Debts",
+    cardStockCreditSubtitle: "Unpaid supplier deliveries & stock loans",
+    clickCustomerCreditDetails: "Click for customer credit records",
+    clickStockCreditDetails: "Click for unpaid supplier debts & loans",
+    withoutCredits: "Without Credits",
+    withCredits: "With Credits",
+    cashOnlyView: "Cash & Actual Inventory View",
+    accrualView: "Full Balance Sheet View",
+    netWithoutCredit: "Net (Without Credit):",
+    netWithCredit: "Net (With Credit):",
+    totalCustomerCreditsModal: "Total Customer Credits (Receivable)",
+    totalStockCreditsModal: "Total Stock Credits & Supplier Debts",
+    customerCreditRecordsTitle: "Customer Credit Records",
+    stockCreditRecordsTitle: "Unpaid Stock & Supplier Debts",
+    searchFilterCustomerCreditsPlaceholder: "Search by customer name, phone, or items...",
+    searchFilterStockCreditsPlaceholder: "Search by supplier, material name...",
 
     // Card 5
     cardStockValuationTitle: "Warehouse Stock Valuation",

@@ -351,6 +351,8 @@ export default function CustomerCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-reports'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to record payment");
       console.error(e);
@@ -373,6 +375,8 @@ export default function CustomerCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-reports'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to delete credit record");
     }
@@ -487,6 +491,8 @@ export default function CustomerCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-reports'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || "Failed to update credit record");
     } finally {

@@ -406,6 +406,8 @@ function NewCustomerCreditFormContent() {
         queryClient.invalidateQueries({ queryKey: ["customer-credits"] });
         queryClient.invalidateQueries({ queryKey: ["customer-detail"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        queryClient.invalidateQueries({ queryKey: ["financial-reports"] });
         router.push("/customer-credits");
       } else {
         await api.post("/customers/credits", {
@@ -430,6 +432,8 @@ function NewCustomerCreditFormContent() {
         queryClient.invalidateQueries({ queryKey: ["customer-credits"] });
         queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        queryClient.invalidateQueries({ queryKey: ["financial-reports"] });
         router.push("/customer-credits");
       }
     } catch (e: any) {

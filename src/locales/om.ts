@@ -426,9 +426,31 @@ export const om: TranslationDictionary = {
     // Card 4
     cardOwnerExpensesTitle: "Baasii fi Idhaa Abbaa Qabeenyaa",
     cardOwnerExpensesSubtitle: "Baasii dhuunfaa + idhaa abbaan qabeenyaa kaffalu",
+    cardOwnerExpensesOnlyTitle: "Baasii Dhuunfaa Abbaa Qabeenyaa",
+    cardOwnerExpensesOnlySubtitle: "Maallaqa callaa abbaan qabeenyaa baase",
     cashDrawnOut: "Maallaqa Fudhatame (Kan Bahe):",
     debtsCreditsToPay: "Idhaawwan Kaffalamuuf Eegan (Amma Hin Baane):",
     clickOwnerDrawingsDebts: "Baasii dhuunfaa fi idhaawwan ilaaluuf cuqi",
+
+    // Card 5 & 6 (New Customer Credit & Stock Credit Cards)
+    cardCustomerCreditTitle: "Liqii Maamiltootaa",
+    cardCustomerCreditSubtitle: "Oomishaalee liqiin gurguraman / walitti qabamu",
+    cardStockCreditTitle: "Liqii Kuusaa & Dhiyeessitootaa",
+    cardStockCreditSubtitle: "Idhaawwan dhiyeessitootaa fi liqii meeshaa",
+    clickCustomerCreditDetails: "Zarzaara liqii maamilaa ilaaluuf cuqi",
+    clickStockCreditDetails: "Idhaawwan dhiyeessitootaa ilaaluuf cuqi",
+    withoutCredits: "Liqii Malee",
+    withCredits: "Liqii Waliin",
+    cashOnlyView: "Ilaalcha Maallaqa & Meeshaa",
+    accrualView: "Madaallii Guutuu (Liqii Waliin)",
+    netWithoutCredit: "Qulqulluu (Liqii Malee):",
+    netWithCredit: "Qulqulluu (Liqii Waliin):",
+    totalCustomerCreditsModal: "Waliigala Liqii Maamiltootaa",
+    totalStockCreditsModal: "Waliigala Idhaawwan Kuusaa & Dhiyeessitootaa",
+    customerCreditRecordsTitle: "Galmee Liqii Maamiltootaa",
+    stockCreditRecordsTitle: "Idhaawwan Kuusaa fi Dhiyeessitootaa Kaffalamuuf Eegan",
+    searchFilterCustomerCreditsPlaceholder: "Maqaa maamilaa, bilbila ykn oomishaan barbaadi...",
+    searchFilterStockCreditsPlaceholder: "Maqaa dhiyeessaa ykn meeshaan barbaadi...",
 
     // Card 5
     cardStockValuationTitle: "Gatii Kuusaa Meeshaalee Dheedhii",

@@ -36,7 +36,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 
-type ModalType = 'REVENUE' | 'EXPENSE' | 'NET_INCOME' | 'OWNER' | 'STOCK' | 'PRODUCT' | 'NET_WEALTH' | null;
+type ModalType = 'REVENUE' | 'EXPENSE' | 'NET_INCOME' | 'OWNER' | 'STOCK' | 'PRODUCT' | 'NET_WEALTH' | 'CUSTOMER_CREDIT' | 'STOCK_CREDIT' | null;
 
 interface StockItem {
   id: string;
@@ -132,6 +132,7 @@ export default function FinancialReportsPage() {
   // Active Clicked Modal Detail State
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [searchFilter, setSearchFilter] = useState<string>('');
+  const [netMode, setNetMode] = useState<'WITHOUT_CREDIT' | 'WITH_CREDIT'>('WITHOUT_CREDIT');
 
   const handlePreset = (preset: 'today' | 'yesterday' | 'week' | 'month') => {
     setActivePreset(preset);
@@ -190,20 +191,15 @@ export default function FinancialReportsPage() {
   // ─────────────────────────────────────────────────────────────
   const totals = report?.totals || {};
 
-  // 1. Daily Money Revenue (Sum of daily session revenues + customer credit taken)
+  // 1. Daily Money Revenue
   const dailyCashRevenue = Number(totals.dailyTotalRevenue ?? 0);
   const customerCreditTaken = Number(totals.customerCreditSalesTotal ?? report?.customerCreditSalesTotal ?? 0);
   const revenueTotalWithCredit = dailyCashRevenue + customerCreditTaken;
 
-  // 2. Company Daily Expense (Taken from daily money)
+  // 2. Company Daily Expense (Taken from daily money register)
   const companyExpenseTotal = Number(totals.companyExpenseTotal ?? report?.companyExpenseTotal ?? 0);
 
-  // 3. Daily Net Income (Change of revenue and expense)
-  const dailyNetIncome = revenueTotalWithCredit - companyExpenseTotal;
-  const netIncomeMargin = revenueTotalWithCredit > 0 ? (dailyNetIncome / revenueTotalWithCredit) * 100 : 0;
-
-  // 4. Owner Expenses & Debts to Pay
-  const ownerCashDrawings = Number(totals.ownerExpenseTotal ?? report?.ownerExpenseTotal ?? 0);
+  // 3. Stock Credits & Supplier Payables (Debts owner has to pay)
   const unpaidSupplierDeliveriesTotal = Number(report?.unpaidSupplierDeliveriesTotal ?? totals.unpaidSupplierDeliveriesTotal ?? 0);
   const unpaidStockLoansTotal = Number(report?.unpaidStockLoansTotal ?? totals.unpaidStockLoansTotal ?? 0);
   const unpaidPayablesTotal = Number(
@@ -211,7 +207,9 @@ export default function FinancialReportsPage() {
       totals.totalPendingOwnerLiabilities ??
       (unpaidSupplierDeliveriesTotal + unpaidStockLoansTotal)
   );
-  const ownerExpenseTotalWithLiabilities = ownerCashDrawings + unpaidPayablesTotal;
+
+  // 4. Owner Cash Drawings (Pure personal drawings, debts separated into Stock Credit)
+  const ownerCashDrawings = Number(totals.ownerExpenseTotal ?? report?.ownerExpenseTotal ?? 0);
 
   // 5. Stock / Raw Material Total Monetary Valuation
   const stockValuation = useMemo(() => {
@@ -222,7 +220,7 @@ export default function FinancialReportsPage() {
     }, 0);
   }, [stockItems]);
 
-  // 6. Products in House Monetary Valuation
+  // 6. Products in House Monetary Valuation (Automatically decreases when products are credited)
   const productValuation = useMemo(() => {
     return products.reduce((sum, p) => {
       const qty = Number(p.currentHouseStock || 0);
@@ -231,12 +229,26 @@ export default function FinancialReportsPage() {
     }, 0);
   }, [products]);
 
-  // 7. Clean Money & Total Net Wealth of Owner
+  // 7. Clean Cash in Hand
   const totalCashCollected = Number(totals.totalCashCollected ?? totals.salesTotal ?? 0);
   const cleanMoneyInHand = totalCashCollected - companyExpenseTotal - ownerCashDrawings;
 
-  // Total Net Wealth: Clean Money + Customer Credit + Stock Value + Product Value - Debts to Pay
-  const totalNetWealth = cleanMoneyInHand + customerCreditTaken + stockValuation + productValuation - unpaidPayablesTotal;
+  // 8. DUAL NET CALCULATIONS (With and Without Credits)
+  // Net Income:
+  // - Without Credits: Daily Cash Revenue - Company Operating Expenses
+  const dailyNetIncomeWithoutCredit = dailyCashRevenue - companyExpenseTotal;
+  // - With Credits: (Cash Revenue + Customer Credit Taken) - (Company Expenses + Stock Credits/Debts)
+  const dailyNetIncomeWithCredit = revenueTotalWithCredit - (companyExpenseTotal + unpaidPayablesTotal);
+  const activeDailyNetIncome = netMode === 'WITHOUT_CREDIT' ? dailyNetIncomeWithoutCredit : dailyNetIncomeWithCredit;
+  const activeRevenueBase = netMode === 'WITHOUT_CREDIT' ? dailyCashRevenue : revenueTotalWithCredit;
+  const netIncomeMargin = activeRevenueBase > 0 ? (activeDailyNetIncome / activeRevenueBase) * 100 : 0;
+
+  // Total Net Wealth:
+  // - Without Credits: Clean Money + Stock Valuation + Product Valuation (Excludes uncollected credits & unpaid supplier debts)
+  const totalNetWealthWithoutCredit = cleanMoneyInHand + stockValuation + productValuation;
+  // - With Credits: Clean Money + Customer Credit + Stock Valuation + Product Valuation - Unpaid Stock Debts
+  const totalNetWealthWithCredit = cleanMoneyInHand + customerCreditTaken + stockValuation + productValuation - unpaidPayablesTotal;
+  const activeTotalNetWealth = netMode === 'WITHOUT_CREDIT' ? totalNetWealthWithoutCredit : totalNetWealthWithCredit;
 
   // Data collections for modal dialogs
   const dailyBreakdown: any[] = Array.isArray(report?.dailyBreakdown) ? report.dailyBreakdown : [];
@@ -341,7 +353,7 @@ export default function FinancialReportsPage() {
                       {t('reports.totalNetWealth')}
                     </CardTitle>
                     <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0 whitespace-nowrap">
-                      {t('reports.balanceSheet')}
+                      {netMode === 'WITHOUT_CREDIT' ? t('reports.cashOnlyView') : t('reports.accrualView')}
                     </span>
                   </div>
                   <CardDescription className="text-xs text-amber-200/80 font-medium leading-relaxed">
@@ -349,9 +361,47 @@ export default function FinancialReportsPage() {
                   </CardDescription>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-xs font-bold text-amber-300 group-hover:translate-x-1 transition-transform self-start sm:self-auto bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-xs shrink-0 mt-1 sm:mt-0">
-                <span>{t('reports.viewFullBalanceSheet')}</span>
-                <ChevronRight className="w-4 h-4" />
+
+              {/* Mode Switcher Pill & Link */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center bg-white/10 p-1 rounded-2xl border border-white/15 backdrop-blur-xs"
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNetMode('WITHOUT_CREDIT');
+                    }}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                      netMode === 'WITHOUT_CREDIT'
+                        ? 'bg-white text-[#2C1B10] shadow-sm'
+                        : 'text-amber-200/80 hover:text-white'
+                    }`}
+                  >
+                    {t('reports.withoutCredits')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNetMode('WITH_CREDIT');
+                    }}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                      netMode === 'WITH_CREDIT'
+                        ? 'bg-[#E87A18] text-white shadow-sm'
+                        : 'text-amber-200/80 hover:text-white'
+                    }`}
+                  >
+                    {t('reports.withCredits')}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1 text-xs font-bold text-amber-300 group-hover:translate-x-1 transition-transform bg-white/10 px-3 py-2 rounded-xl backdrop-blur-xs shrink-0">
+                  <span>{t('reports.viewFullBalanceSheet')}</span>
+                  <ChevronRight className="w-4 h-4" />
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -363,11 +413,13 @@ export default function FinancialReportsPage() {
                   {isLoading ? (
                     <Skeleton className="h-10 sm:h-12 w-56 bg-white/20 rounded-xl" />
                   ) : (
-                    money(totalNetWealth)
+                    money(activeTotalNetWealth)
                   )}
                 </div>
                 <p className="text-xs text-amber-100/70 max-w-xl">
-                  {t('reports.netWealthFormulaDesc')}
+                  {netMode === 'WITHOUT_CREDIT'
+                    ? `${t('reports.cleanMoneyInHand')} + ${t('reports.stockAndProducts')} (${t('reports.withoutCredits')})`
+                    : t('reports.netWealthFormulaDesc')}
                 </p>
               </div>
 
@@ -377,17 +429,25 @@ export default function FinancialReportsPage() {
                   <div className="text-[10px] uppercase font-bold text-emerald-300">{t('reports.cleanMoneyInHand')}</div>
                   <div className="font-mono font-bold text-white text-sm mt-0.5">{money(cleanMoneyInHand)}</div>
                 </div>
-                <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2.5 border border-white/10">
-                  <div className="text-[10px] uppercase font-bold text-sky-300">{t('reports.customerCredits')}</div>
-                  <div className="font-mono font-bold text-white text-sm mt-0.5">+{money(customerCreditTaken)}</div>
+                <div className={`backdrop-blur-xs rounded-xl p-2.5 border transition-opacity ${netMode === 'WITH_CREDIT' ? 'bg-white/10 border-white/10' : 'bg-white/5 border-white/5 opacity-50'}`}>
+                  <div className="text-[10px] uppercase font-bold text-sky-300">
+                    {t('reports.customerCredits')} {netMode === 'WITHOUT_CREDIT' && `(${t('reports.withoutCredits')})`}
+                  </div>
+                  <div className="font-mono font-bold text-white text-sm mt-0.5">
+                    {netMode === 'WITH_CREDIT' ? `+${money(customerCreditTaken)}` : money(customerCreditTaken)}
+                  </div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2.5 border border-white/10">
                   <div className="text-[10px] uppercase font-bold text-amber-300">{t('reports.stockAndProducts')}</div>
                   <div className="font-mono font-bold text-white text-sm mt-0.5">+{money(stockValuation + productValuation)}</div>
                 </div>
-                <div className="col-span-2 sm:col-span-3 bg-rose-500/15 backdrop-blur-xs rounded-xl p-2 border border-rose-500/30 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-rose-200">{t('reports.pendingDebtsToPay')}</span>
-                  <span className="font-mono font-extrabold text-rose-300">-{money(unpaidPayablesTotal)}</span>
+                <div className={`col-span-2 sm:col-span-3 backdrop-blur-xs rounded-xl p-2 border flex items-center justify-between transition-opacity ${netMode === 'WITH_CREDIT' ? 'bg-rose-500/15 border-rose-500/30' : 'bg-white/5 border-white/5 opacity-50'}`}>
+                  <span className="text-[11px] font-bold text-rose-200">
+                    {t('reports.pendingDebtsToPay')} {netMode === 'WITHOUT_CREDIT' && `(${t('reports.withoutCredits')})`}
+                  </span>
+                  <span className="font-mono font-extrabold text-rose-300">
+                    {netMode === 'WITH_CREDIT' ? `-${money(unpaidPayablesTotal)}` : money(unpaidPayablesTotal)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -395,9 +455,9 @@ export default function FinancialReportsPage() {
         </Card>
       </div>
 
-      {/* ── 6 CORE FINANCIAL CARDS (CLICKABLE WITH DETAIL MODALS) ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
-        {/* CARD 1: Daily Money Revenue (In Range) */}
+      {/* ── 8 CORE FINANCIAL CARDS (CLICKABLE WITH DETAIL MODALS) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        {/* CARD 1: Daily Cash Revenue */}
         <Card
           onClick={() => {
             setActiveModal('REVENUE');
@@ -420,8 +480,8 @@ export default function FinancialReportsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
-              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(revenueTotalWithCredit)}
+            <div className="text-2xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(dailyCashRevenue)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
@@ -429,8 +489,8 @@ export default function FinancialReportsPage() {
                 <span className="font-bold text-[#2C1B10] font-mono">{money(dailyCashRevenue)}</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>{t('reports.customerCreditTaken')}</span>
-                <span className="font-bold text-sky-700 font-mono">+{money(customerCreditTaken)}</span>
+                <span>{t('reports.cardCustomerCreditTitle')}</span>
+                <span className="font-bold text-sky-700 font-mono">{money(customerCreditTaken)}</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-emerald-700 flex items-center gap-1 group-hover:underline">
@@ -440,7 +500,7 @@ export default function FinancialReportsPage() {
           </CardContent>
         </Card>
 
-        {/* CARD 2: Company Daily Expenses (From Daily Money) */}
+        {/* CARD 2: Company Daily Operating Expenses */}
         <Card
           onClick={() => {
             setActiveModal('EXPENSE');
@@ -463,7 +523,7 @@ export default function FinancialReportsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-rose-700 font-mono tracking-tight">
+            <div className="text-2xl font-extrabold text-rose-700 font-mono tracking-tight">
               {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(companyExpenseTotal)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
@@ -483,7 +543,7 @@ export default function FinancialReportsPage() {
           </CardContent>
         </Card>
 
-        {/* CARD 3: Daily Net Income */}
+        {/* CARD 3: Daily Net Income (Dual With / Without Credits) */}
         <Card
           onClick={() => {
             setActiveModal('NET_INCOME');
@@ -498,26 +558,28 @@ export default function FinancialReportsPage() {
                 {t('reports.cardNetIncomeTitle')}
               </CardTitle>
               <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
-                {t('reports.cardNetIncomeSubtitle')}
+                {netMode === 'WITHOUT_CREDIT' ? t('reports.withoutCredits') : t('reports.withCredits')}
               </CardDescription>
             </div>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${dailyNetIncome >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
-              {dailyNetIncome >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${activeDailyNetIncome >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+              {activeDailyNetIncome >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
             </div>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl sm:text-3xl font-extrabold font-mono tracking-tight ${dailyNetIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(dailyNetIncome)}
+            <div className={`text-2xl font-extrabold font-mono tracking-tight ${activeDailyNetIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(activeDailyNetIncome)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
-                <span>{t('reports.operatingMargin')}</span>
-                <span className="font-bold text-[#2C1B10] font-mono">{netIncomeMargin.toFixed(1)}%</span>
+                <span>{t('reports.withoutCredits')}:</span>
+                <span className={`font-bold font-mono ${dailyNetIncomeWithoutCredit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {money(dailyNetIncomeWithoutCredit)}
+                </span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>{t('reports.netStatus')}</span>
-                <span className={`font-bold ${dailyNetIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                  {dailyNetIncome >= 0 ? t('reports.statusProfitable') : t('reports.statusDeficit')}
+                <span>{t('reports.withCredits')}:</span>
+                <span className={`font-bold font-mono ${dailyNetIncomeWithCredit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {money(dailyNetIncomeWithCredit)}
                 </span>
               </div>
             </div>
@@ -528,7 +590,7 @@ export default function FinancialReportsPage() {
           </CardContent>
         </Card>
 
-        {/* CARD 4: Owner Expenses & Debts to Pay */}
+        {/* CARD 4: Owner Cash Drawings (Pure Personal Drawings) */}
         <Card
           onClick={() => {
             setActiveModal('OWNER');
@@ -540,10 +602,10 @@ export default function FinancialReportsPage() {
             <div>
               <CardTitle className="text-xs uppercase font-extrabold text-purple-900 tracking-wider flex items-center gap-1.5">
                 <Wallet className="w-4 h-4 text-purple-700" />
-                {t('reports.cardOwnerExpensesTitle')}
+                {t('reports.cardOwnerExpensesOnlyTitle')}
               </CardTitle>
               <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
-                {t('reports.cardOwnerExpensesSubtitle')}
+                {t('reports.cardOwnerExpensesOnlySubtitle')}
               </CardDescription>
             </div>
             <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
@@ -551,8 +613,8 @@ export default function FinancialReportsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-purple-950 font-mono tracking-tight">
-              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(ownerExpenseTotalWithLiabilities)}
+            <div className="text-2xl font-extrabold text-purple-950 font-mono tracking-tight">
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(ownerCashDrawings)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
@@ -560,8 +622,8 @@ export default function FinancialReportsPage() {
                 <span className="font-bold text-purple-800 font-mono">{money(ownerCashDrawings)}</span>
               </div>
               <div className="flex justify-between text-[#8C7361]">
-                <span>{t('reports.debtsCreditsToPay')}</span>
-                <span className="font-bold text-rose-700 font-mono">{money(unpaidPayablesTotal)}</span>
+                <span>{t('expenses.badgeDaily')}</span>
+                <span className="font-bold text-[#2C1B10]">{ownerExpensesList.length} entries</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-purple-800 flex items-center gap-1 group-hover:underline">
@@ -571,7 +633,93 @@ export default function FinancialReportsPage() {
           </CardContent>
         </Card>
 
-        {/* CARD 5: Stock Total Amount in Money */}
+        {/* CARD 5: Customer Credits (NEW STANDALONE CARD) */}
+        <Card
+          onClick={() => {
+            setActiveModal('CUSTOMER_CREDIT');
+            setSearchFilter('');
+          }}
+          className="cursor-pointer group bg-white border-[#EDE4D5] rounded-3xl p-2 shadow-sm hover:shadow-md hover:border-sky-300 transition-all hover:scale-[1.01]"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-xs uppercase font-extrabold text-sky-900 tracking-wider flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-sky-600" />
+                {t('reports.cardCustomerCreditTitle')}
+              </CardTitle>
+              <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
+                {t('reports.cardCustomerCreditSubtitle')}
+              </CardDescription>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center group-hover:bg-sky-100 transition-colors">
+              <ArrowUpRight className="w-5 h-5" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-extrabold text-sky-900 font-mono tracking-tight">
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(customerCreditTaken)}
+            </div>
+            <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
+              <div className="flex justify-between text-[#8C7361]">
+                <span>{t('reports.uncollectedDebtReceivable')}:</span>
+                <span className="font-bold text-sky-900 font-mono">{money(customerCreditTaken)}</span>
+              </div>
+              <div className="flex justify-between text-[#8C7361]">
+                <span>{t('reports.activeProducts')}:</span>
+                <span className="font-bold text-sky-800">{customerLoans.length} loans</span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] font-bold text-sky-700 flex items-center gap-1 group-hover:underline">
+              <span>{t('reports.clickCustomerCreditDetails')}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CARD 6: Stock Credits & Supplier Debts (NEW STANDALONE CARD) */}
+        <Card
+          onClick={() => {
+            setActiveModal('STOCK_CREDIT');
+            setSearchFilter('');
+          }}
+          className="cursor-pointer group bg-white border-[#EDE4D5] rounded-3xl p-2 shadow-sm hover:shadow-md hover:border-rose-300 transition-all hover:scale-[1.01]"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-xs uppercase font-extrabold text-rose-900 tracking-wider flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-rose-600" />
+                {t('reports.cardStockCreditTitle')}
+              </CardTitle>
+              <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
+                {t('reports.cardStockCreditSubtitle')}
+              </CardDescription>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+              <ArrowDownRight className="w-5 h-5" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-extrabold text-rose-700 font-mono tracking-tight">
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(unpaidPayablesTotal)}
+            </div>
+            <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
+              <div className="flex justify-between text-[#8C7361]">
+                <span>{t('reports.unpaidDeliveryBadge')}:</span>
+                <span className="font-bold text-rose-800 font-mono">{money(unpaidSupplierDeliveriesTotal)}</span>
+              </div>
+              <div className="flex justify-between text-[#8C7361]">
+                <span>{t('reports.purchaseLoanBadge')}:</span>
+                <span className="font-bold text-amber-800 font-mono">{money(unpaidStockLoansTotal)}</span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] font-bold text-rose-700 flex items-center gap-1 group-hover:underline">
+              <span>{t('reports.clickStockCreditDetails')}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CARD 7: Warehouse Stock Valuation */}
         <Card
           onClick={() => {
             setActiveModal('STOCK');
@@ -594,7 +742,7 @@ export default function FinancialReportsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
+            <div className="text-2xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
               {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(stockValuation)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
@@ -614,7 +762,7 @@ export default function FinancialReportsPage() {
           </CardContent>
         </Card>
 
-        {/* CARD 6: Products in the House in Money */}
+        {/* CARD 8: Products in the House Valuation */}
         <Card
           onClick={() => {
             setActiveModal('PRODUCT');
@@ -637,7 +785,7 @@ export default function FinancialReportsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
+            <div className="text-2xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
               {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(productValuation)}
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
@@ -1096,20 +1244,63 @@ export default function FinancialReportsPage() {
                   </div>
                 </DialogHeader>
 
+                {/* Switcher & Overview Cards */}
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-[#8C7361]">{t('reports.netStatus')}:</span>
+                    <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
+                      activeDailyNetIncome >= 0 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
+                    }`}>
+                      {activeDailyNetIncome >= 0 ? t('reports.statusProfitable') : t('reports.statusDeficit')}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center bg-[#FAF6F0] p-1 rounded-2xl border border-[#EDE4D5]">
+                    <button
+                      type="button"
+                      onClick={() => setNetMode('WITHOUT_CREDIT')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        netMode === 'WITHOUT_CREDIT'
+                          ? 'bg-[#4A2E1B] text-white shadow-xs'
+                          : 'text-[#8C7361] hover:text-[#2C1B10]'
+                      }`}
+                    >
+                      {t('reports.withoutCredits')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNetMode('WITH_CREDIT')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        netMode === 'WITH_CREDIT'
+                          ? 'bg-[#E87A18] text-white shadow-xs'
+                          : 'text-[#8C7361] hover:text-[#2C1B10]'
+                      }`}
+                    >
+                      {t('reports.withCredits')}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                  <div className={`p-4 rounded-2xl border ${dailyNetIncome >= 0 ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'}`}>
-                    <div className="text-xs font-bold text-[#8C7361]">{t('reports.grandNetIncome')}</div>
-                    <div className={`text-2xl font-black font-mono mt-0.5 ${dailyNetIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      {money(dailyNetIncome)}
+                  <div className={`p-4 rounded-2xl border ${activeDailyNetIncome >= 0 ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'}`}>
+                    <div className="text-xs font-bold text-[#8C7361]">
+                      {t('reports.grandNetIncome')} ({netMode === 'WITHOUT_CREDIT' ? t('reports.withoutCredits') : t('reports.withCredits')})
+                    </div>
+                    <div className={`text-2xl font-black font-mono mt-0.5 ${activeDailyNetIncome >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {money(activeDailyNetIncome)}
                     </div>
                   </div>
                   <div className="bg-[#FAF6F0] p-4 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs font-bold text-[#8C7361]">{t('reports.operatingMargin')}</div>
-                    <div className="text-2xl font-black font-mono text-[#2C1B10] mt-0.5">{netIncomeMargin.toFixed(1)}%</div>
+                    <div className="text-xs font-bold text-[#8C7361]">{t('reports.withoutCredits')} (Cash Only)</div>
+                    <div className={`text-xl font-black font-mono mt-0.5 ${dailyNetIncomeWithoutCredit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {money(dailyNetIncomeWithoutCredit)}
+                    </div>
                   </div>
                   <div className="bg-[#FAF6F0] p-4 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs font-bold text-[#8C7361]">{t('reports.daysActive')}</div>
-                    <div className="text-2xl font-black font-mono text-[#2C1B10] mt-0.5">{t('reports.daysCount').replace('{count}', String(dailyBreakdown.length))}</div>
+                    <div className="text-xs font-bold text-[#8C7361]">{t('reports.withCredits')} (Total)</div>
+                    <div className={`text-xl font-black font-mono mt-0.5 ${dailyNetIncomeWithCredit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {money(dailyNetIncomeWithCredit)}
+                    </div>
                   </div>
                 </div>
 
@@ -1209,7 +1400,7 @@ export default function FinancialReportsPage() {
               </div>
             )}
 
-            {/* 4. OWNER EXPENSES & PAYABLES MODAL */}
+            {/* 4. OWNER EXPENSES ONLY MODAL */}
             {activeModal === 'OWNER' && (
               <div>
                 <DialogHeader className="mb-4">
@@ -1219,265 +1410,558 @@ export default function FinancialReportsPage() {
                     </div>
                     <div>
                       <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
-                        {t('reports.cardOwnerExpensesTitle')}
+                        {t('reports.cardOwnerExpensesOnlyTitle')}
                       </DialogTitle>
                       <DialogDescription className="text-xs text-[#8C7361]">
-                        {t('reports.cardOwnerExpensesSubtitle')}
+                        {t('reports.cardOwnerExpensesOnlySubtitle')}
+                      </DialogDescription>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                  <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200">
+                    <div className="text-xs text-purple-900 font-bold uppercase">{t('reports.ownerDrawingsTakenOut')}</div>
+                    <div className="text-2xl font-black text-purple-950 font-mono mt-1">{money(ownerCashDrawings)}</div>
+                  </div>
+                  <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
+                    <div className="text-xs text-[#8C7361] font-bold">{t('expenses.badgeDaily')}</div>
+                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-1">{ownerExpensesList.length} entries</div>
+                  </div>
+                </div>
+
+                <div className="mb-4 relative">
+                  <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+                  <Input
+                    placeholder={t('reports.searchFilterExpensesPlaceholder')}
+                    value={searchFilter}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="pl-9 h-10 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
+                  />
+                </div>
+
+                {/* Mobile Touch Cards for Drawings */}
+                <div className="block md:hidden space-y-2.5">
+                  {ownerExpensesList
+                    .filter((exp: any) => {
+                      if (!searchFilter) return true;
+                      const q = searchFilter.toLowerCase();
+                      return (
+                        (exp.category || '').toLowerCase().includes(q) ||
+                        (exp.description || '').toLowerCase().includes(q) ||
+                        (exp.financialCategory?.name || '').toLowerCase().includes(q)
+                      );
+                    }).length === 0 ? (
+                    <div className="text-center py-4 text-xs text-[#8C7361] bg-purple-50/40 rounded-xl border border-purple-200">
+                      {t('reports.noOwnerDrawingsRecorded')}
+                    </div>
+                  ) : (
+                    ownerExpensesList
+                      .filter((exp: any) => {
+                        if (!searchFilter) return true;
+                        const q = searchFilter.toLowerCase();
+                        return (
+                          (exp.category || '').toLowerCase().includes(q) ||
+                          (exp.description || '').toLowerCase().includes(q) ||
+                          (exp.financialCategory?.name || '').toLowerCase().includes(q)
+                        );
+                      })
+                      .map((exp: any, idx: number) => (
+                        <div
+                          key={exp.id || idx}
+                          className="bg-purple-50/40 rounded-xl p-3 border border-purple-200 space-y-2"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="font-bold text-xs text-[#2C1B10]">
+                                {exp.financialCategory?.name || exp.category || t('reports.colOwnerDrawings')}
+                              </span>
+                              <span className="text-[10px] text-[#8C7361] block mt-0.5">
+                                {formatEthDate(exp.date || exp.createdAt)}
+                              </span>
+                            </div>
+                            <span className="font-mono font-extrabold text-xs text-purple-900 bg-white border border-purple-200 px-2 py-0.5 rounded-lg">
+                              {money(exp.amount)}
+                            </span>
+                          </div>
+                          {exp.description && (
+                            <p className="text-xs text-zinc-700 bg-white p-2 rounded-lg border border-purple-100">
+                              {exp.description}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                  )}
+                </div>
+
+                {/* Desktop Table for Drawings */}
+                <div className="hidden md:block rounded-2xl border border-purple-200 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-purple-50/60">
+                      <TableRow>
+                        <TableHead>{t('common.date')}</TableHead>
+                        <TableHead>{t('expenses.category')}</TableHead>
+                        <TableHead>{t('expenses.description')}</TableHead>
+                        <TableHead className="text-right pr-4">{t('expenses.amount')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ownerExpensesList.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-4 text-xs text-[#8C7361]">
+                            {t('reports.noOwnerDrawingsRecorded')}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        ownerExpensesList
+                          .filter((exp: any) => {
+                            if (!searchFilter) return true;
+                            const q = searchFilter.toLowerCase();
+                            return (
+                              (exp.category || '').toLowerCase().includes(q) ||
+                              (exp.description || '').toLowerCase().includes(q) ||
+                              (exp.financialCategory?.name || '').toLowerCase().includes(q)
+                            );
+                          })
+                          .map((exp: any, idx: number) => (
+                            <TableRow key={exp.id || idx}>
+                              <TableCell className="text-xs text-[#8C7361]">
+                                {formatEthDate(exp.date || exp.createdAt)}
+                              </TableCell>
+                              <TableCell className="font-bold text-[#2C1B10] text-xs">
+                                {exp.financialCategory?.name || exp.category || t('reports.colOwnerDrawings')}
+                              </TableCell>
+                              <TableCell className="text-xs text-[#8C7361]">{exp.description || '—'}</TableCell>
+                              <TableCell className="text-right font-mono text-xs font-extrabold text-purple-900 pr-4">
+                                {money(exp.amount)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {/* 5. CUSTOMER CREDITS MODAL */}
+            {activeModal === 'CUSTOMER_CREDIT' && (
+              <div>
+                <DialogHeader className="mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
+                        {t('reports.cardCustomerCreditTitle')}
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-[#8C7361]">
+                        {t('reports.cardCustomerCreditSubtitle')}
                       </DialogDescription>
                     </div>
                   </div>
                 </DialogHeader>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                  <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200">
-                    <div className="text-xs text-purple-900 font-bold uppercase">{t('reports.totalOwnerSum')}</div>
-                    <div className="text-xl font-black text-purple-950 font-mono mt-1">{money(ownerExpenseTotalWithLiabilities)}</div>
+                  <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200">
+                    <div className="text-xs text-sky-900 font-bold uppercase">{t('reports.totalCustomerCreditsModal')}</div>
+                    <div className="text-xl font-black text-sky-950 font-mono mt-1">{money(customerCreditTaken)}</div>
                   </div>
                   <div className="bg-white p-3.5 rounded-2xl border border-[#EDE4D5]">
-                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.ownerDrawingsTakenOut')}</div>
-                    <div className="text-xl font-extrabold text-purple-800 font-mono mt-1">{money(ownerCashDrawings)}</div>
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.balanceDueLabel')}</div>
+                    <div className="text-xl font-extrabold text-rose-700 font-mono mt-1">
+                      {money(customerLoans.reduce((sum, l) => sum + Number(l.remainingBalance ?? l.totalAmount ?? 0), 0))}
+                    </div>
                   </div>
-                  <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
-                    <div className="text-xs text-rose-900 font-bold">{t('reports.creditsToPayNotOut')}</div>
-                    <div className="text-xl font-extrabold text-rose-700 font-mono mt-1">{money(unpaidPayablesTotal)}</div>
+                  <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.activeProducts')}</div>
+                    <div className="text-xl font-extrabold text-[#2C1B10] font-mono mt-1">{customerLoans.length} entries</div>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  {/* Section A: Owner Cash Drawings */}
-                  <div>
-                    <h4 className="text-xs font-extrabold text-purple-950 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <Wallet className="w-4 h-4 text-purple-700" />
-                      {t('reports.ownerPersonalDrawingsTitle')}
-                    </h4>
+                {/* Search / Filter input */}
+                <div className="mb-4 relative">
+                  <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+                  <Input
+                    placeholder={t('reports.searchFilterCustomerCreditsPlaceholder')}
+                    value={searchFilter}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="pl-9 h-10 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
+                  />
+                </div>
 
-                    {/* Mobile Touch Cards for Drawings */}
-                    <div className="block md:hidden space-y-2.5">
-                      {ownerExpensesList.length === 0 ? (
-                        <div className="text-center py-4 text-xs text-[#8C7361] bg-purple-50/40 rounded-xl border border-purple-200">
-                          {t('reports.noOwnerDrawingsRecorded')}
-                        </div>
-                      ) : (
-                        ownerExpensesList.map((exp: any, idx: number) => (
+                {/* Mobile Touch Cards for Customer Credits */}
+                <div className="block md:hidden space-y-2.5">
+                  {customerLoans
+                    .filter((l: any) => {
+                      if (!searchFilter) return true;
+                      const q = searchFilter.toLowerCase();
+                      const cust = cleanCustomerInfo(l.entityId);
+                      return (
+                        cust.name.toLowerCase().includes(q) ||
+                        cust.phone.toLowerCase().includes(q) ||
+                        (l.entityId || '').toLowerCase().includes(q)
+                      );
+                    }).length === 0 ? (
+                    <div className="text-center py-6 text-xs text-[#8C7361] bg-sky-50/40 rounded-xl border border-sky-200">
+                      No customer credit records found in this range.
+                    </div>
+                  ) : (
+                    customerLoans
+                      .filter((l: any) => {
+                        if (!searchFilter) return true;
+                        const q = searchFilter.toLowerCase();
+                        const cust = cleanCustomerInfo(l.entityId);
+                        return (
+                          cust.name.toLowerCase().includes(q) ||
+                          cust.phone.toLowerCase().includes(q) ||
+                          (l.entityId || '').toLowerCase().includes(q)
+                        );
+                      })
+                      .map((l: any, idx: number) => {
+                        const cust = cleanCustomerInfo(l.entityId);
+                        return (
                           <div
-                            key={exp.id || idx}
-                            className="bg-purple-50/40 rounded-xl p-3 border border-purple-200 space-y-2"
+                            key={l.id || idx}
+                            className="bg-sky-50/40 rounded-xl p-3 border border-sky-200 space-y-2"
                           >
                             <div className="flex justify-between items-start">
                               <div>
-                                <span className="font-bold text-xs text-[#2C1B10]">
-                                  {exp.financialCategory?.name || exp.category || t('reports.colOwnerDrawings')}
-                                </span>
+                                <span className="font-bold text-xs text-[#2C1B10]">{cust.name}</span>
+                                {cust.phone && (
+                                  <span className="block text-[11px] text-[#8C7361]">{cust.phone}</span>
+                                )}
                                 <span className="text-[10px] text-[#8C7361] block mt-0.5">
-                                  {formatEthDate(exp.date || exp.createdAt)}
+                                  {formatEthDate(l.date || l.createdAt)}
                                 </span>
                               </div>
-                              <span className="font-mono font-extrabold text-xs text-purple-900 bg-white border border-purple-200 px-2 py-0.5 rounded-lg">
-                                {money(exp.amount)}
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                  l.status === 'PAID'
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                                }`}
+                              >
+                                {l.status}
                               </span>
                             </div>
-                            {exp.description && (
-                              <p className="text-xs text-zinc-700 bg-white p-2 rounded-lg border border-purple-100">
-                                {exp.description}
-                              </p>
-                            )}
+                            <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2 rounded-lg border border-sky-100 font-mono">
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.creditedLabel')}</span>
+                                <span className="font-bold text-sky-900">{money(l.totalAmount)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.balanceDueLabel')}</span>
+                                <span className="font-bold text-rose-700">{money(l.remainingBalance)}</span>
+                              </div>
+                            </div>
                           </div>
-                        ))
-                      )}
-                    </div>
+                        );
+                      })
+                  )}
+                </div>
 
-                    {/* Desktop Table for Drawings */}
-                    <div className="hidden md:block rounded-2xl border border-purple-200 overflow-hidden">
-                      <Table>
-                        <TableHeader className="bg-purple-50/60">
-                          <TableRow>
-                            <TableHead>{t('common.date')}</TableHead>
-                            <TableHead>{t('expenses.category')}</TableHead>
-                            <TableHead>{t('expenses.description')}</TableHead>
-                            <TableHead className="text-right pr-4">{t('expenses.amount')}</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {ownerExpensesList.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={4} className="text-center py-4 text-xs text-[#8C7361]">
-                                {t('reports.noOwnerDrawingsRecorded')}
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            ownerExpensesList.map((exp: any, idx: number) => (
-                              <TableRow key={exp.id || idx}>
+                {/* Desktop Table for Customer Credits */}
+                <div className="hidden md:block rounded-2xl border border-sky-200 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-sky-50/60">
+                      <TableRow>
+                        <TableHead>{t('common.date')}</TableHead>
+                        <TableHead>{t('reports.customerNameCol')}</TableHead>
+                        <TableHead className="text-right">{t('reports.creditedAmountCol')}</TableHead>
+                        <TableHead className="text-right">{t('reports.balanceDueCol')}</TableHead>
+                        <TableHead className="text-center pr-4">{t('reports.statusCol')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customerLoans.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-6 text-xs text-[#8C7361]">
+                            No customer credit records found in this range.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        customerLoans
+                          .filter((l: any) => {
+                            if (!searchFilter) return true;
+                            const q = searchFilter.toLowerCase();
+                            const cust = cleanCustomerInfo(l.entityId);
+                            return (
+                              cust.name.toLowerCase().includes(q) ||
+                              cust.phone.toLowerCase().includes(q) ||
+                              (l.entityId || '').toLowerCase().includes(q)
+                            );
+                          })
+                          .map((l: any, idx: number) => {
+                            const cust = cleanCustomerInfo(l.entityId);
+                            return (
+                              <TableRow key={l.id || idx}>
                                 <TableCell className="text-xs text-[#8C7361]">
-                                  {formatEthDate(exp.date || exp.createdAt)}
+                                  {formatEthDate(l.date || l.createdAt)}
                                 </TableCell>
                                 <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                  {exp.financialCategory?.name || exp.category || t('reports.colOwnerDrawings')}
+                                  {cust.name}
+                                  {cust.phone && (
+                                    <span className="ml-1.5 text-[11px] text-[#8C7361] font-normal">
+                                      ({cust.phone})
+                                    </span>
+                                  )}
                                 </TableCell>
-                                <TableCell className="text-xs text-[#8C7361]">{exp.description || '—'}</TableCell>
-                                <TableCell className="text-right font-mono text-xs font-extrabold text-purple-900 pr-4">
-                                  {money(exp.amount)}
+                                <TableCell className="text-right font-mono text-xs font-bold text-sky-900">
+                                  {money(l.totalAmount)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs text-rose-700">
+                                  {money(l.remainingBalance)}
+                                </TableCell>
+                                <TableCell className="text-center pr-4">
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                      l.status === 'PAID'
+                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                        : 'bg-amber-100 text-amber-800 border-amber-300'
+                                    }`}
+                                  >
+                                    {l.status}
+                                  </span>
                                 </TableCell>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
+                            );
+                          })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {/* 6. STOCK CREDITS & SUPPLIER DEBTS MODAL */}
+            {activeModal === 'STOCK_CREDIT' && (
+              <div>
+                <DialogHeader className="mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10]">
+                        {t('reports.cardStockCreditTitle')}
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-[#8C7361]">
+                        {t('reports.cardStockCreditSubtitle')}
+                      </DialogDescription>
                     </div>
                   </div>
+                </DialogHeader>
 
-                  {/* Section B: Unpaid Deliveries / Payables (Credits Owner Has to Pay) */}
-                  <div>
-                    <h4 className="text-xs font-extrabold text-rose-950 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                      <AlertCircle className="w-4 h-4 text-rose-600" />
-                      {t('reports.unpaidBillsTitle')}
-                    </h4>
-                    <p className="text-xs text-[#8C7361] mb-2">
-                      {t('reports.unpaidBillsSubtitle')}
-                    </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                  <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
+                    <div className="text-xs text-rose-900 font-bold uppercase">{t('reports.totalStockCreditsModal')}</div>
+                    <div className="text-xl font-black text-rose-950 font-mono mt-1">{money(unpaidPayablesTotal)}</div>
+                  </div>
+                  <div className="bg-white p-3.5 rounded-2xl border border-[#EDE4D5]">
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.unpaidDeliveryBadge')}</div>
+                    <div className="text-xl font-extrabold text-rose-700 font-mono mt-1">{money(unpaidSupplierDeliveriesTotal)}</div>
+                  </div>
+                  <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.purchaseLoanBadge')}</div>
+                    <div className="text-xl font-extrabold text-amber-800 font-mono mt-1">{money(unpaidStockLoansTotal)}</div>
+                  </div>
+                </div>
 
-                    {/* Mobile Touch Cards for Payables */}
-                    <div className="block md:hidden space-y-2.5">
-                      {unpaidDeliveriesList.length === 0 && unpaidStockLoansList.length === 0 ? (
-                        <div className="text-center py-4 text-xs text-[#8C7361] bg-rose-50/40 rounded-xl border border-rose-200">
-                          {t('reports.noPendingDebtsFound')}
-                        </div>
-                      ) : (
-                        <>
-                          {unpaidDeliveriesList.map((d: any, idx: number) => {
-                            const cost = Number(d.unitBuyPrice) * Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
-                            return (
-                              <div
-                                key={d.id || idx}
-                                className="bg-rose-50/40 rounded-xl p-3 border border-rose-200 space-y-2"
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <span className="font-bold text-xs text-[#2C1B10]">
-                                      {d.supplier?.name || t('suppliers.title')}
-                                    </span>
-                                    <span className="text-[10px] text-[#8C7361] block mt-0.5">
-                                      {formatEthDate(d.createdAt)}
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
-                                    {t('reports.unpaidDeliveryBadge')}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-rose-100 text-xs">
-                                  <span className="text-zinc-700">
-                                    {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
-                                  </span>
-                                  <span className="font-mono font-extrabold text-rose-700">
-                                    {money(cost)}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {unpaidStockLoansList.map((sl: any, idx: number) => (
+                {/* Search / Filter input */}
+                <div className="mb-4 relative">
+                  <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+                  <Input
+                    placeholder={t('reports.searchFilterStockCreditsPlaceholder')}
+                    value={searchFilter}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="pl-9 h-10 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
+                  />
+                </div>
+
+                {/* Mobile Touch Cards for Payables */}
+                <div className="block md:hidden space-y-2.5">
+                  {unpaidDeliveriesList.length === 0 && unpaidStockLoansList.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-[#8C7361] bg-rose-50/40 rounded-xl border border-rose-200">
+                      {t('reports.noPendingDebtsFound')}
+                    </div>
+                  ) : (
+                    <>
+                      {unpaidDeliveriesList
+                        .filter((d: any) => {
+                          if (!searchFilter) return true;
+                          const q = searchFilter.toLowerCase();
+                          return (
+                            (d.supplier?.name || '').toLowerCase().includes(q) ||
+                            (d.product?.name || '').toLowerCase().includes(q) ||
+                            (d.stockItem?.name || '').toLowerCase().includes(q)
+                          );
+                        })
+                        .map((d: any, idx: number) => {
+                          const cost = Number(d.unitBuyPrice) * Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
+                          return (
                             <div
-                              key={sl.id || idx}
-                              className="bg-amber-50/40 rounded-xl p-3 border border-amber-200 space-y-2"
+                              key={d.id || idx}
+                              className="bg-rose-50/40 rounded-xl p-3 border border-rose-200 space-y-2"
                             >
                               <div className="flex justify-between items-start">
                                 <div>
                                   <span className="font-bold text-xs text-[#2C1B10]">
-                                    {sl.supplierName || t('suppliers.title')}
+                                    {d.supplier?.name || t('suppliers.title')}
                                   </span>
                                   <span className="text-[10px] text-[#8C7361] block mt-0.5">
-                                    {formatEthDate(sl.createdAt)}
+                                    {formatEthDate(d.createdAt)}
                                   </span>
                                 </div>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                  {t('reports.purchaseLoanBadge')}
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                                  {t('reports.unpaidDeliveryBadge')}
                                 </span>
                               </div>
-                              <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-amber-100 text-xs">
+                              <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-rose-100 text-xs">
                                 <span className="text-zinc-700">
-                                  {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
+                                  {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
                                 </span>
                                 <span className="font-mono font-extrabold text-rose-700">
-                                  {money(sl.remainingBalance)}
+                                  {money(cost)}
                                 </span>
                               </div>
                             </div>
-                          ))}
-                        </>
-                      )}
-                    </div>
+                          );
+                        })}
+                      {unpaidStockLoansList
+                        .filter((sl: any) => {
+                          if (!searchFilter) return true;
+                          const q = searchFilter.toLowerCase();
+                          return (
+                            (sl.supplierName || '').toLowerCase().includes(q) ||
+                            (sl.stockMovement?.stockItem?.name || '').toLowerCase().includes(q)
+                          );
+                        })
+                        .map((sl: any, idx: number) => (
+                          <div
+                            key={sl.id || idx}
+                            className="bg-amber-50/40 rounded-xl p-3 border border-amber-200 space-y-2"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-bold text-xs text-[#2C1B10]">
+                                  {sl.supplierName || t('suppliers.title')}
+                                </span>
+                                <span className="text-[10px] text-[#8C7361] block mt-0.5">
+                                  {formatEthDate(sl.createdAt)}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                {t('reports.purchaseLoanBadge')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-amber-100 text-xs">
+                              <span className="text-zinc-700">
+                                {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
+                              </span>
+                              <span className="font-mono font-extrabold text-rose-700">
+                                {money(sl.remainingBalance)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                    </>
+                  )}
+                </div>
 
-                    {/* Desktop Table for Payables */}
-                    <div className="hidden md:block rounded-2xl border border-rose-200 overflow-hidden">
-                      <Table>
-                        <TableHeader className="bg-rose-50/60">
-                          <TableRow>
-                            <TableHead>{t('common.date')}</TableHead>
-                            <TableHead>{t('reports.supplierCreditorCol')}</TableHead>
-                            <TableHead>{t('reports.productMaterialCol')}</TableHead>
-                            <TableHead className="text-right">{t('reports.totalCostCol')}</TableHead>
-                            <TableHead className="text-center pr-4">{t('reports.payableStatusCol')}</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {unpaidDeliveriesList.length === 0 && unpaidStockLoansList.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={5} className="text-center py-4 text-xs text-[#8C7361]">
-                                {t('reports.noPendingDebtsFound')}
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            <>
-                              {unpaidDeliveriesList.map((d: any, idx: number) => {
-                                const cost = Number(d.unitBuyPrice) * Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
-                                return (
-                                  <TableRow key={d.id || idx}>
-                                    <TableCell className="text-xs text-[#8C7361]">
-                                      {formatEthDate(d.createdAt)}
-                                    </TableCell>
-                                    <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                      {d.supplier?.name || t('suppliers.title')}
-                                    </TableCell>
-                                    <TableCell className="text-xs text-[#8C7361]">
-                                      {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
-                                      {money(cost)}
-                                    </TableCell>
-                                    <TableCell className="text-center pr-4">
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
-                                        {t('reports.unpaidDeliveryBadge')}
-                                      </span>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                              {unpaidStockLoansList.map((sl: any, idx: number) => (
-                                <TableRow key={sl.id || idx}>
+                {/* Desktop Table for Payables */}
+                <div className="hidden md:block rounded-2xl border border-rose-200 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-rose-50/60">
+                      <TableRow>
+                        <TableHead>{t('common.date')}</TableHead>
+                        <TableHead>{t('reports.supplierCreditorCol')}</TableHead>
+                        <TableHead>{t('reports.productMaterialCol')}</TableHead>
+                        <TableHead className="text-right">{t('reports.totalCostCol')}</TableHead>
+                        <TableHead className="text-center pr-4">{t('reports.payableStatusCol')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {unpaidDeliveriesList.length === 0 && unpaidStockLoansList.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-[#8C7361]">
+                            {t('reports.noPendingDebtsFound')}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        <>
+                          {unpaidDeliveriesList
+                            .filter((d: any) => {
+                              if (!searchFilter) return true;
+                              const q = searchFilter.toLowerCase();
+                              return (
+                                (d.supplier?.name || '').toLowerCase().includes(q) ||
+                                (d.product?.name || '').toLowerCase().includes(q) ||
+                                (d.stockItem?.name || '').toLowerCase().includes(q)
+                              );
+                            })
+                            .map((d: any, idx: number) => {
+                              const cost = Number(d.unitBuyPrice) * Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
+                              return (
+                                <TableRow key={d.id || idx}>
                                   <TableCell className="text-xs text-[#8C7361]">
-                                    {formatEthDate(sl.createdAt)}
+                                    {formatEthDate(d.createdAt)}
                                   </TableCell>
                                   <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                    {sl.supplierName || t('suppliers.title')}
+                                    {d.supplier?.name || t('suppliers.title')}
                                   </TableCell>
                                   <TableCell className="text-xs text-[#8C7361]">
-                                    {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
+                                    {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
                                   </TableCell>
                                   <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
-                                    {money(sl.remainingBalance)}
+                                    {money(cost)}
                                   </TableCell>
                                   <TableCell className="text-center pr-4">
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                      {t('reports.purchaseLoanBadge')}
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                                      {t('reports.unpaidDeliveryBadge')}
                                     </span>
                                   </TableCell>
                                 </TableRow>
-                              ))}
-                            </>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
+                              );
+                            })}
+                          {unpaidStockLoansList
+                            .filter((sl: any) => {
+                              if (!searchFilter) return true;
+                              const q = searchFilter.toLowerCase();
+                              return (
+                                (sl.supplierName || '').toLowerCase().includes(q) ||
+                                (sl.stockMovement?.stockItem?.name || '').toLowerCase().includes(q)
+                              );
+                            })
+                            .map((sl: any, idx: number) => (
+                              <TableRow key={sl.id || idx}>
+                                <TableCell className="text-xs text-[#8C7361]">
+                                  {formatEthDate(sl.createdAt)}
+                                </TableCell>
+                                <TableCell className="font-bold text-[#2C1B10] text-xs">
+                                  {sl.supplierName || t('suppliers.title')}
+                                </TableCell>
+                                <TableCell className="text-xs text-[#8C7361]">
+                                  {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
+                                  {money(sl.remainingBalance)}
+                                </TableCell>
+                                <TableCell className="text-center pr-4">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                    {t('reports.purchaseLoanBadge')}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </>
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             )}
@@ -1801,13 +2285,46 @@ export default function FinancialReportsPage() {
                 </DialogHeader>
 
                 <div className="bg-[#FAF6F0] p-4 rounded-2xl border border-[#EDE4D5] mb-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <div className="text-xs uppercase font-extrabold text-amber-900">{t('reports.grandTotalNetWealthTitle')}</div>
-                      <div className="text-3xl font-black text-[#2C1B10] font-mono mt-0.5">{money(totalNetWealth)}</div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs uppercase font-extrabold text-amber-900">{t('reports.grandTotalNetWealthTitle')}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          {netMode === 'WITHOUT_CREDIT' ? t('reports.withoutCredits') : t('reports.withCredits')}
+                        </span>
+                      </div>
+                      <div className="text-3xl font-black text-[#2C1B10] font-mono mt-0.5">{money(activeTotalNetWealth)}</div>
+                      <p className="text-xs text-[#8C7361] mt-1">
+                        {netMode === 'WITHOUT_CREDIT'
+                          ? `${t('reports.cleanMoneyInHand')} + ${t('reports.stockAndProducts')} (${t('reports.withoutCredits')})`
+                          : t('reports.fullFinancialPositionDesc')}
+                      </p>
                     </div>
-                    <div className="text-xs text-[#8C7361] max-w-sm">
-                      {t('reports.fullFinancialPositionDesc')}
+
+                    {/* Mode Switcher */}
+                    <div className="flex items-center bg-white p-1 rounded-2xl border border-[#EDE4D5] shadow-xs shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setNetMode('WITHOUT_CREDIT')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          netMode === 'WITHOUT_CREDIT'
+                            ? 'bg-[#4A2E1B] text-white shadow-xs'
+                            : 'text-[#8C7361] hover:text-[#2C1B10]'
+                        }`}
+                      >
+                        {t('reports.withoutCredits')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNetMode('WITH_CREDIT')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          netMode === 'WITH_CREDIT'
+                            ? 'bg-[#E87A18] text-white shadow-xs'
+                            : 'text-[#8C7361] hover:text-[#2C1B10]'
+                        }`}
+                      >
+                        {t('reports.withCredits')}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1835,21 +2352,31 @@ export default function FinancialReportsPage() {
                     </div>
                   </div>
 
-                  {/* Item 2: Customer Credits */}
-                  <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  {/* Item 2: Customer Credits (Included if WITH_CREDIT, Muted if WITHOUT_CREDIT) */}
+                  <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-opacity ${
+                    netMode === 'WITH_CREDIT'
+                      ? 'bg-sky-50/70 border-sky-200'
+                      : 'bg-zinc-50 border-zinc-200 opacity-60'
+                  }`}>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                        netMode === 'WITH_CREDIT' ? 'bg-sky-600 text-white' : 'bg-zinc-400 text-white'
+                      }`}>
                         2
                       </div>
                       <div>
-                        <div className="font-extrabold text-sky-950 text-sm">{t('reports.wealthItem2Title')}</div>
-                        <div className="text-xs text-sky-800">
+                        <div className="font-extrabold text-[#2C1B10] text-sm">
+                          {t('reports.wealthItem2Title')} {netMode === 'WITHOUT_CREDIT' && `(${t('reports.withoutCredits')} - Excluded)`}
+                        </div>
+                        <div className="text-xs text-[#8C7361]">
                           {t('reports.wealthItem2Desc').replace('{count}', String(customerLoans.length))}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right font-mono font-black text-lg text-sky-800">
-                      +{money(customerCreditTaken)}
+                    <div className={`text-right font-mono font-black text-lg ${
+                      netMode === 'WITH_CREDIT' ? 'text-sky-800' : 'text-zinc-500 line-through'
+                    }`}>
+                      {netMode === 'WITH_CREDIT' ? `+${money(customerCreditTaken)}` : money(customerCreditTaken)}
                     </div>
                   </div>
 
@@ -1889,23 +2416,33 @@ export default function FinancialReportsPage() {
                     </div>
                   </div>
 
-                  {/* Item 5: Expenses You Have to Give Yet */}
-                  <div className="p-4 rounded-2xl bg-rose-50/80 border border-rose-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  {/* Item 5: Unpaid Stock & Supplier Debts (Included if WITH_CREDIT, Muted if WITHOUT_CREDIT) */}
+                  <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-opacity ${
+                    netMode === 'WITH_CREDIT'
+                      ? 'bg-rose-50/80 border-rose-300'
+                      : 'bg-zinc-50 border-zinc-200 opacity-60'
+                  }`}>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                        netMode === 'WITH_CREDIT' ? 'bg-rose-600 text-white' : 'bg-zinc-400 text-white'
+                      }`}>
                         5
                       </div>
                       <div>
-                        <div className="font-extrabold text-rose-950 text-sm">{t('reports.wealthItem5Title')}</div>
-                        <div className="text-xs text-rose-800">
+                        <div className="font-extrabold text-[#2C1B10] text-sm">
+                          {t('reports.wealthItem5Title')} {netMode === 'WITHOUT_CREDIT' && `(${t('reports.withoutCredits')} - Excluded)`}
+                        </div>
+                        <div className="text-xs text-[#8C7361]">
                           {t('reports.wealthItem5Desc')
                             .replace('{deliveries}', money(unpaidSupplierDeliveriesTotal))
                             .replace('{loans}', money(unpaidStockLoansTotal))}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right font-mono font-black text-lg text-rose-700">
-                      -{money(unpaidPayablesTotal)}
+                    <div className={`text-right font-mono font-black text-lg ${
+                      netMode === 'WITH_CREDIT' ? 'text-rose-700' : 'text-zinc-500 line-through'
+                    }`}>
+                      {netMode === 'WITH_CREDIT' ? `-${money(unpaidPayablesTotal)}` : money(unpaidPayablesTotal)}
                     </div>
                   </div>
                 </div>

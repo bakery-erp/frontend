@@ -426,9 +426,31 @@ export const am: TranslationDictionary = {
     // Card 4
     cardOwnerExpensesTitle: "የባለቤት ወጪዎች እና ዕዳዎች",
     cardOwnerExpensesSubtitle: "የባለቤት ማውጣት + ባለቤቱ መክፈል ያለበት ዕዳ",
+    cardOwnerExpensesOnlyTitle: "የባለቤት የግል ወጪ",
+    cardOwnerExpensesOnlySubtitle: "በባለቤቱ ለግል ጉዳይ የወጣ ጥሬ ገንዘብ",
     cashDrawnOut: "የወጣ ጥሬ ገንዘብ (የወጣ)፦",
     debtsCreditsToPay: "መከፈል ያለባቸው ዕዳዎች (ገና ያልወጣ)፦",
     clickOwnerDrawingsDebts: "የማውጣት እና ያልተከፈሉ ዕዳዎችን ለማየት ይጫኑ",
+
+    // Card 5 & 6 (New Customer Credit & Stock Credit Cards)
+    cardCustomerCreditTitle: "የደንበኞች ብድር",
+    cardCustomerCreditSubtitle: "በብድር የተሸጡ ምርቶች / የሚሰበሰብ",
+    cardStockCreditTitle: "የጥሬ ዕቃ እና አቅራቢ ብድር",
+    cardStockCreditSubtitle: "ያልተከፈሉ የአቅራቢ ዕዳዎች እና ብድሮች",
+    clickCustomerCreditDetails: "የደንበኛ ብድር ዝርዝር ለማየት ይጫኑ",
+    clickStockCreditDetails: "ያልተከፈሉ የጥሬ ዕቃ ዕዳዎችን ለማየት ይጫኑ",
+    withoutCredits: "ያለ ብድር",
+    withCredits: "ከነብድሩ",
+    cashOnlyView: "የጥሬ ገንዘብ እና ዕቃዎች እይታ",
+    accrualView: "ሙሉ ሚዛን (ከነብድሩ)",
+    netWithoutCredit: "የተጣራ (ያለ ብድር)፦",
+    netWithCredit: "የተጣራ (ከነብድሩ)፦",
+    totalCustomerCreditsModal: "ጠቅላላ የደንበኞች ብድር (የሚሰበሰብ)",
+    totalStockCreditsModal: "ጠቅላላ የጥሬ ዕቃ/አቅራቢ ዕዳዎች",
+    customerCreditRecordsTitle: "የደንበኞች ብድር መዝገብ",
+    stockCreditRecordsTitle: "ያልተከፈሉ የጥሬ ዕቃ እና የአቅራቢ ዕዳዎች",
+    searchFilterCustomerCreditsPlaceholder: "በደንበኛ ስም፣ ስልክ ወይም ምርት ይፈልጉ...",
+    searchFilterStockCreditsPlaceholder: "በአቅራቢ ወይም በጥሬ ዕቃ ስም ይፈልጉ...",
 
     // Card 5
     cardStockValuationTitle: "የመጋዘን ጥሬ ዕቃዎች ዋጋ",
