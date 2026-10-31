@@ -80,6 +80,7 @@ export const om: TranslationDictionary = {
     units: {
       piece: "Qorqooda",
       kg: "Kg",
+      gram: "Giraama (g)",
       liter: "Liitira",
     },
   },
@@ -1134,6 +1135,7 @@ export const om: TranslationDictionary = {
     selectCategoryPlaceholder: "Ramaddii Filadhu...",
     unitTypePiece: "Firiidhaan (Qofaan)",
     unitTypeKg: "Kiiloogiraama (Kg)",
+    unitTypeGram: "Giraama (g)",
     unitTypeLiter: "Liitira (L)",
     flavorVariant: "Dhandhama / Gosa Addaa (Filannoo)",
     flavorPlaceholder: "fk. Chokoleetii / Suufii / Qamadii",

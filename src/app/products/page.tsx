@@ -36,7 +36,7 @@ interface Product {
   name: string;
   nameLatin?: string | null;
   flavor?: string;
-  unitType: "PIECE" | "KG" | "LITER";
+  unitType: "PIECE" | "KG" | "LITER" | "GRAM";
   basePrice: number;
   buyPrice?: number;
   imageUrl?: string | null;

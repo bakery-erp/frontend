@@ -53,7 +53,7 @@ interface StockItem {
   nameLatin?: string | null;
   category?: string | null;
   categoryLatin?: string | null;
-  unitType: "PIECE" | "KG" | "LITER";
+  unitType: "PIECE" | "KG" | "LITER" | "GRAM";
   currentQuantity: number;
   unitPrice?: number;
   minStockLevel?: number;
@@ -1544,6 +1544,7 @@ export default function StockItemDetailPage() {
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t("production.unit")}</label>
                   <select name="unitType" required defaultValue={stockItem.unitType} className="w-full border border-[#EDE4D5] rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]">
                     <option value="KG">Kg (Kilogram)</option>
+                    <option value="GRAM">Gram (ግራም / g)</option>
                     <option value="PIECE">Piece</option>
                     <option value="LITER">Liter</option>
                   </select>

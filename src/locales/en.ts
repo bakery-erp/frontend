@@ -78,6 +78,7 @@ export const en = {
     units: {
       piece: "Piece",
       kg: "Kg",
+      gram: "Gram",
       liter: "Liter",
     },
   },
@@ -1132,6 +1133,7 @@ export const en = {
     selectCategoryPlaceholder: "Select Category...",
     unitTypePiece: "Piece (Item)",
     unitTypeKg: "Kilogram (Kg)",
+    unitTypeGram: "Gram (g)",
     unitTypeLiter: "Liter (L)",
     flavorVariant: "Flavor / Variant (Optional)",
     flavorPlaceholder: "e.g. Chocolate / Sesame / Whole Wheat",

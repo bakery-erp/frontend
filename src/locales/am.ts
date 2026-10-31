@@ -80,6 +80,7 @@ export const am: TranslationDictionary = {
     units: {
       piece: "ቁራጭ",
       kg: "ኪ.ግ",
+      gram: "ግራም (ግ)",
       liter: "ሊትር",
     },
   },
@@ -1134,6 +1135,7 @@ export const am: TranslationDictionary = {
     selectCategoryPlaceholder: "ምድብ ይምረጡ...",
     unitTypePiece: "ፍሬ (በቁጥር)",
     unitTypeKg: "ኪሎግራም (ኪ.ግ)",
+    unitTypeGram: "ግራም (ግ/g)",
     unitTypeLiter: "ሊትር (ሊ)",
     flavorVariant: "ጣዕም / ልዩ ዓይነት (አማራጭ)",
     flavorPlaceholder: "ለምሳሌ ቸኮሌት / ሰሊጥ / ስንዴ",

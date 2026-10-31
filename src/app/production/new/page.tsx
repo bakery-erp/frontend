@@ -141,6 +141,7 @@ function ProductionFormContent() {
     const u = unit.toUpperCase();
     if (u === "PIECE" || u === "PCS") return t("common.units.piece") || "Piece";
     if (u === "KG" || u === "KILOGRAM") return t("common.units.kg") || "Kg";
+    if (u === "GRAM" || u === "G") return t("common.units.gram") || "Gram";
     if (u === "LITER" || u === "LITRE" || u === "L") return t("common.units.liter") || "Liter";
     return unit;
   };

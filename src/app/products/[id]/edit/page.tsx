@@ -281,6 +281,7 @@ export default function EditProductPage() {
                 >
                   <option value="PIECE">{t("products.unitTypePiece")}</option>
                   <option value="KG">{t("products.unitTypeKg")}</option>
+                  <option value="GRAM">{t("products.unitTypeGram")}</option>
                   <option value="LITER">{t("products.unitTypeLiter")}</option>
                 </select>
               </div>

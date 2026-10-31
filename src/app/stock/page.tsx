@@ -30,7 +30,7 @@ interface StockItem {
   nameLatin?: string | null;
   category?: string | null;
   categoryLatin?: string | null;
-  unitType: "PIECE" | "KG" | "LITER";
+  unitType: "PIECE" | "KG" | "LITER" | "GRAM";
   currentQuantity: number;
   unitPrice?: number;
   minStockLevel?: number;
@@ -673,13 +673,29 @@ export default function StockPage() {
                   </TableCell>
                   {isOwner && (
                     <TableCell className="py-3 px-2.5 font-bold text-xs text-[#2C1B10] font-mono">
-                      {price > 0 ? `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "0.00 ETB"}
+                      {price > 0 ? (
+                        <div>
+                          <span>{price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ETB</span>
+                          {item.unitType === 'GRAM' && (
+                            <span className="block text-[10px] text-[#8C7361] font-sans font-normal">
+                              ({(price * 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg)
+                            </span>
+                          )}
+                        </div>
+                      ) : "0.00 ETB"}
                     </TableCell>
                   )}
                   <TableCell className="py-3 px-2.5">
-                    <span className={`font-extrabold text-sm font-mono ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
-                      {Number(item.currentQuantity).toFixed(2)}
-                    </span>
+                    <div>
+                      <span className={`font-extrabold text-sm font-mono ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
+                        {item.unitType === 'GRAM' ? Number(item.currentQuantity).toLocaleString() : Number(item.currentQuantity).toFixed(2)}
+                      </span>
+                      {item.unitType === 'GRAM' && Number(item.currentQuantity) >= 1000 && (
+                        <span className="block text-[10px] text-[#8C7361] font-sans font-medium">
+                          ({(Number(item.currentQuantity) / 1000).toFixed(2)} kg)
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   {isOwner && (
                     <TableCell className="py-3 px-2.5 font-extrabold text-xs text-amber-900 font-mono">
@@ -813,8 +829,13 @@ export default function StockPage() {
                 </div>
                 <div className="text-right">
                   <div className={`text-lg font-extrabold font-mono ${isLowStock ? 'text-rose-700' : 'text-emerald-700'}`}>
-                    {Number(item.currentQuantity).toFixed(2)}
+                    {item.unitType === 'GRAM' ? Number(item.currentQuantity).toLocaleString() : Number(item.currentQuantity).toFixed(2)}
                   </div>
+                  {item.unitType === 'GRAM' && Number(item.currentQuantity) >= 1000 && (
+                    <div className="text-[10px] text-[#8C7361] font-sans font-medium">
+                      ({(Number(item.currentQuantity) / 1000).toFixed(2)} kg)
+                    </div>
+                  )}
                   <div className="text-[10px] text-[#8C7361] font-bold uppercase">{t('stock.colCurrentQty')}</div>
                 </div>
               </div>
@@ -991,6 +1012,7 @@ export default function StockPage() {
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.unit')}</label>
                   <select name="unitType" required defaultValue={editingItem?.unitType || "KG"} className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]">
                     <option value="KG">Kg (Kilogram)</option>
+                    <option value="GRAM">Gram (ግራም / g)</option>
                     <option value="PIECE">Piece</option>
                     <option value="LITER">Liter</option>
                   </select>

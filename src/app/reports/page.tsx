@@ -2158,11 +2158,25 @@ export default function FinancialReportsPage() {
                             <div className="grid grid-cols-3 gap-1.5 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5] font-mono">
                               <div>
                                 <span className="text-[10px] text-[#8C7361] block font-sans">{t('stock.stockQuantity')}:</span>
-                                <span className="font-bold text-[#2C1B10]">{qty.toLocaleString()}</span>
+                                <span className="font-bold text-[#2C1B10]">
+                                  {item.unitType === 'GRAM' ? qty.toLocaleString() : qty.toFixed(2)} {item.unitType === 'GRAM' ? 'g' : item.unitType === 'KG' ? 'kg' : ''}
+                                </span>
+                                {item.unitType === 'GRAM' && qty >= 1000 && (
+                                  <span className="block text-[9px] text-[#8C7361] font-sans font-medium">
+                                    ({(qty / 1000).toFixed(2)} kg)
+                                  </span>
+                                )}
                               </div>
                               <div>
                                 <span className="text-[10px] text-[#8C7361] block font-sans">{t('stock.unitPrice')}:</span>
-                                <span className="text-zinc-700">{price.toFixed(2)}</span>
+                                <span className="text-zinc-700">
+                                  {price.toFixed(item.unitType === 'GRAM' ? 4 : 2)}
+                                </span>
+                                {item.unitType === 'GRAM' && price > 0 && (
+                                  <span className="block text-[9px] text-[#8C7361] font-sans font-normal">
+                                    ({(price * 1000).toFixed(2)}/kg)
+                                  </span>
+                                )}
                               </div>
                               <div className="text-right">
                                 <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.totalValueCol')}:</span>
@@ -2214,10 +2228,20 @@ export default function FinancialReportsPage() {
                                 </TableCell>
                                 <TableCell className="text-xs text-[#8C7361]">{item.unitType}</TableCell>
                                 <TableCell className="text-right font-mono text-xs font-bold text-[#2C1B10]">
-                                  {qty.toLocaleString()}
+                                  {item.unitType === 'GRAM' ? qty.toLocaleString() : qty.toFixed(2)}
+                                  {item.unitType === 'GRAM' && qty >= 1000 && (
+                                    <span className="block text-[10px] text-[#8C7361] font-sans font-normal">
+                                      ({(qty / 1000).toFixed(2)} kg)
+                                    </span>
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs text-[#8C7361]">
-                                  {price.toFixed(2)}
+                                  {price.toFixed(item.unitType === 'GRAM' ? 4 : 2)}
+                                  {item.unitType === 'GRAM' && price > 0 && (
+                                    <span className="block text-[10px] text-[#8C7361] font-sans font-normal">
+                                      ({(price * 1000).toFixed(2)} ETB/kg)
+                                    </span>
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right font-mono text-xs font-extrabold text-amber-900 pr-4">
                                   {money(val)}
