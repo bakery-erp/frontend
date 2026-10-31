@@ -303,10 +303,13 @@ export default function StockItemDetailPage() {
       return;
     }
 
+    const remBal = Number(Number(selectedLoan.remainingBalance).toFixed(2));
+    const finalAmount = Math.min(amt, remBal);
+
     setIsPaying(true);
     try {
       await api.post(`/stock-movements/loans/${selectedLoan.id}/pay`, {
-        amount: amt,
+        amount: finalAmount,
         note: payNote.trim() || undefined,
       });
       toast.success(t("stock.toastLoanPaymentSuccess"));
@@ -1292,7 +1295,7 @@ export default function StockItemDetailPage() {
                 </div>
               </div>
 
-              {selectedLoan.remainingBalance > 0 && (
+              {Number(selectedLoan.remainingBalance) > 0.001 && (
                 <form onSubmit={handleRecordPayment} className="space-y-3 p-3.5 bg-white border border-purple-200 rounded-2xl">
                   <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wider">{t("stock.btnSubmitPayment")}</h4>
                   
@@ -1301,7 +1304,8 @@ export default function StockItemDetailPage() {
                     <Input 
                       type="number" 
                       step="0.01" 
-                      max={selectedLoan.remainingBalance} 
+                      min="0.01"
+                      max={Number(Number(selectedLoan.remainingBalance).toFixed(2))} 
                       required 
                       value={payAmount} 
                       onChange={(e) => setPayAmount(e.target.value)} 

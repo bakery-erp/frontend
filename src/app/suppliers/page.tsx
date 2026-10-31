@@ -294,9 +294,9 @@ export default function SuppliersPage() {
   // Open Record Payment
   const handleOpenRecordPayment = (delivery: SupplierDelivery) => {
     const netQty = Math.max(0, delivery.quantityReceived - delivery.returnedQuantity);
-    const cost = netQty * Number(delivery.unitBuyPrice);
-    const paid = delivery.isPaid && Number(delivery.paidAmount) === 0 ? cost : Number(delivery.paidAmount);
-    const rem = Math.max(0, cost - paid);
+    const cost = Number((netQty * Number(delivery.unitBuyPrice)).toFixed(2));
+    const paid = Number(Number(delivery.paidAmount || 0).toFixed(2));
+    const rem = Math.max(0, Number((cost - paid).toFixed(2)));
 
     setPaymentDelivery(delivery);
     setPaymentAmount(rem.toFixed(2));
@@ -315,10 +315,16 @@ export default function SuppliersPage() {
       return;
     }
 
+    const netQty = Math.max(0, paymentDelivery.quantityReceived - paymentDelivery.returnedQuantity);
+    const cost = Number((netQty * Number(paymentDelivery.unitBuyPrice)).toFixed(2));
+    const paid = Number(Number(paymentDelivery.paidAmount || 0).toFixed(2));
+    const rem = Math.max(0, Number((cost - paid).toFixed(2)));
+    const finalAmount = Math.min(amountNum, rem);
+
     setIsRecordingPayment(true);
     try {
       await api.post(`/supplier-deliveries/${paymentDelivery.id}/payments`, {
-        amount: amountNum,
+        amount: finalAmount,
         paymentSource,
         notes: paymentNotes.trim() || undefined,
       });
@@ -712,11 +718,11 @@ export default function SuppliersPage() {
                   <TableRow><TableCell colSpan={11} className="text-center py-8 text-[#8C7361]">{t('stockMovements.noMovements')}</TableCell></TableRow>
                 ) : deliveries.map((d) => {
                   const netQty = Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
-                  const totalCost = netQty * Number(d.unitBuyPrice);
-                  const paid = d.isPaid && Number(d.paidAmount) === 0 ? totalCost : Number(d.paidAmount);
-                  const remBalance = Math.max(0, totalCost - paid);
-                  const isFullyPaid = d.paymentStatus === 'PAID' || d.isPaid;
-                  const isPartial = d.paymentStatus === 'PARTIAL' || (!isFullyPaid && paid > 0);
+                  const totalCost = Number((netQty * Number(d.unitBuyPrice)).toFixed(2));
+                  const paid = Number(Number(d.paidAmount || 0).toFixed(2));
+                  const remBalance = Math.max(0, Number((totalCost - paid).toFixed(2)));
+                  const isFullyPaid = remBalance <= 0.001 || d.paymentStatus === 'PAID';
+                  const isPartial = !isFullyPaid && paid > 0;
 
                   return (
                     <TableRow key={d.id} className="hover:bg-[#FAF6F0]/40">

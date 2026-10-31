@@ -61,7 +61,7 @@ export default function FinancialReportsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     if (!user) return;
@@ -259,10 +259,46 @@ export default function FinancialReportsPage() {
 
   // Data collections for modal dialogs
   const dailyBreakdown: any[] = Array.isArray(report?.dailyBreakdown) ? report.dailyBreakdown : [];
-  const companyExpenses: any[] = Array.isArray(report?.companyExpenses) ? report.companyExpenses : [];
+  const rawCompanyExpenses: any[] = Array.isArray(report?.companyExpenses) ? report.companyExpenses : [];
   const ownerExpensesList: any[] = Array.isArray(report?.ownerExpenses) ? report.ownerExpenses : [];
   const unpaidDeliveriesList: any[] = Array.isArray(report?.unpaidSupplierDeliveries) ? report.unpaidSupplierDeliveries : [];
   const unpaidStockLoansList: any[] = Array.isArray(report?.unpaidStockLoans) ? report.unpaidStockLoans : [];
+  const supplierDeliveryPayments: any[] = Array.isArray(report?.supplierDeliveryPayments) ? report.supplierDeliveryPayments : [];
+  const stockPurchasePayments: any[] = Array.isArray(report?.stockPurchasePayments) ? report.stockPurchasePayments : [];
+
+  const pureCompanyExpenseTotal = Number(totals.pureCompanyExpenseTotal ?? report?.pureCompanyExpenseTotal ?? companyExpenseTotal);
+  const paidStockCreditExpenseTotal = Number(totals.paidStockCreditExpenseTotal ?? report?.paidStockCreditExpenseTotal ?? 0);
+
+  // Combined company expenses list: daily operating expenses + paid supplier credits + paid stock credits
+  const companyExpenses = useMemo(() => {
+    const list: any[] = [
+      ...rawCompanyExpenses.map((e: any) => ({
+        id: e.id,
+        date: e.date || e.createdAt,
+        category: e.financialCategory?.name || e.category || 'Operating Expense',
+        description: e.description || '',
+        amount: Number(e.amount),
+        type: 'DAILY_EXPENSE',
+      })),
+      ...stockPurchasePayments.map((sp: any) => ({
+        id: 'sp-' + sp.id,
+        date: sp.createdAt,
+        category: language === 'am' ? 'የጥሬ ዕቃ ብድር ክፍያ' : 'Stock Purchase Loan Payment',
+        description: (sp.loan?.supplierName ? (language === 'am' ? 'አቅራቢ: ' : 'Supplier: ') + sp.loan.supplierName : '') + (sp.note ? ' - ' + sp.note : ''),
+        amount: Number(sp.amount),
+        type: 'STOCK_CREDIT_PAYMENT',
+      })),
+      ...supplierDeliveryPayments.map((sdp: any) => ({
+        id: 'sdp-' + sdp.id,
+        date: sdp.createdAt,
+        category: language === 'am' ? 'የአቅራቢ ምርት ብድር ክፍያ' : 'Supplier Delivery Payment',
+        description: (sdp.delivery?.supplier?.name ? (language === 'am' ? 'አቅራቢ: ' : 'Supplier: ') + sdp.delivery.supplier.name : '') + (sdp.notes ? ' - ' + sdp.notes : ''),
+        amount: Number(sdp.amount),
+        type: 'SUPPLIER_PAYMENT',
+      })),
+    ];
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [rawCompanyExpenses, stockPurchasePayments, supplierDeliveryPayments, language]);
 
   return (
     <DashboardLayout>
@@ -535,12 +571,14 @@ export default function FinancialReportsPage() {
             <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
               <div className="flex justify-between text-[#8C7361]">
                 <span>{t('reports.operatingExpenses')}</span>
-                <span className="font-bold text-rose-900 font-mono">{money(companyExpenseTotal)}</span>
+                <span className="font-bold text-rose-900 font-mono">{money(pureCompanyExpenseTotal)}</span>
               </div>
-              <div className="flex justify-between text-[#8C7361]">
-                <span>{t('reports.sourceLabel')}</span>
-                <span className="font-bold text-[#4A2E1B]">{t('reports.cashierDailyRegister')}</span>
-              </div>
+              {paidStockCreditExpenseTotal > 0 && (
+                <div className="flex justify-between text-[#8C7361]">
+                  <span>{language === 'am' ? 'የተከፈለ የዕቃና አቅራቢ ብድር' : 'Paid Stock & Supplier Credits'}:</span>
+                  <span className="font-bold text-emerald-800 font-mono">{money(paidStockCreditExpenseTotal)}</span>
+                </div>
+              )}
             </div>
             <div className="mt-3 text-[11px] font-bold text-rose-700 flex items-center gap-1 group-hover:underline">
               <span>{t('reports.clickExpenseLogs')}</span>
@@ -1819,7 +1857,10 @@ export default function FinancialReportsPage() {
                           );
                         })
                         .map((d: any, idx: number) => {
-                          const cost = Number(d.unitBuyPrice) * Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
+                          const netQty = Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
+                          const cost = Number(d.totalCost ?? (Number(d.unitBuyPrice) * netQty));
+                          const paid = Number(d.paidAmount || 0);
+                          const rem = Number(d.remainingBalance ?? Math.max(0, cost - paid));
                           return (
                             <div
                               key={d.id || idx}
@@ -1839,12 +1880,22 @@ export default function FinancialReportsPage() {
                                 </span>
                               </div>
                               <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-rose-100 text-xs">
-                                <span className="text-zinc-700">
-                                  {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
-                                </span>
-                                <span className="font-mono font-extrabold text-rose-700">
-                                  {money(cost)}
-                                </span>
+                                <div>
+                                  <span className="text-zinc-700 block">
+                                    {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
+                                  </span>
+                                  {paid > 0 && (
+                                    <span className="text-[10px] text-emerald-700 font-medium block">
+                                      {language === 'am' ? `የተከፈለ፡ ${money(paid)} | ጠቅላላ፡ ${money(cost)}` : `Paid: ${money(paid)} | Total: ${money(cost)}`}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <span className="font-mono font-extrabold text-rose-700 text-sm">
+                                    {money(rem)}
+                                  </span>
+                                  <span className="text-[9px] text-[#8C7361] block uppercase">{language === 'am' ? 'ቀሪ ዕዳ' : 'Remaining'}</span>
+                                </div>
                               </div>
                             </div>
                           );
@@ -1858,34 +1909,49 @@ export default function FinancialReportsPage() {
                             (sl.stockMovement?.stockItem?.name || '').toLowerCase().includes(q)
                           );
                         })
-                        .map((sl: any, idx: number) => (
-                          <div
-                            key={sl.id || idx}
-                            className="bg-amber-50/40 rounded-xl p-3 border border-amber-200 space-y-2"
-                          >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="font-bold text-xs text-[#2C1B10]">
-                                  {sl.supplierName || t('suppliers.title')}
-                                </span>
-                                <span className="text-[10px] text-[#8C7361] block mt-0.5">
-                                  {formatEthDate(sl.createdAt)}
+                        .map((sl: any, idx: number) => {
+                          const total = Number(sl.totalAmount || 0);
+                          const paid = Number(sl.paidAmount || 0);
+                          const rem = Number(sl.remainingBalance ?? Math.max(0, total - paid));
+                          return (
+                            <div
+                              key={sl.id || idx}
+                              className="bg-amber-50/40 rounded-xl p-3 border border-amber-200 space-y-2"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <span className="font-bold text-xs text-[#2C1B10]">
+                                    {sl.supplierName || t('suppliers.title')}
+                                  </span>
+                                  <span className="text-[10px] text-[#8C7361] block mt-0.5">
+                                    {formatEthDate(sl.createdAt)}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                  {t('reports.purchaseLoanBadge')}
                                 </span>
                               </div>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                {t('reports.purchaseLoanBadge')}
-                              </span>
+                              <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-amber-100 text-xs">
+                                <div>
+                                  <span className="text-zinc-700 block">
+                                    {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
+                                  </span>
+                                  {paid > 0 && (
+                                    <span className="text-[10px] text-emerald-700 font-medium block">
+                                      {language === 'am' ? `የተከፈለ፡ ${money(paid)} | ጠቅላላ፡ ${money(total)}` : `Paid: ${money(paid)} | Total: ${money(total)}`}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <span className="font-mono font-extrabold text-rose-700 text-sm">
+                                    {money(rem)}
+                                  </span>
+                                  <span className="text-[9px] text-[#8C7361] block uppercase">{language === 'am' ? 'ቀሪ ዕዳ' : 'Remaining'}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-amber-100 text-xs">
-                              <span className="text-zinc-700">
-                                {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
-                              </span>
-                              <span className="font-mono font-extrabold text-rose-700">
-                                {money(sl.remainingBalance)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                     </>
                   )}
                 </div>
@@ -1898,7 +1964,7 @@ export default function FinancialReportsPage() {
                         <TableHead>{t('common.date')}</TableHead>
                         <TableHead>{t('reports.supplierCreditorCol')}</TableHead>
                         <TableHead>{t('reports.productMaterialCol')}</TableHead>
-                        <TableHead className="text-right">{t('reports.totalCostCol')}</TableHead>
+                        <TableHead className="text-right">{language === 'am' ? 'ያልተከፈለ ቀሪ ዕዳ' : language === 'om' ? 'Idaa Hin Kaffalamne' : 'Unpaid Remaining Debt'}</TableHead>
                         <TableHead className="text-center pr-4">{t('reports.payableStatusCol')}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1922,7 +1988,10 @@ export default function FinancialReportsPage() {
                               );
                             })
                             .map((d: any, idx: number) => {
-                              const cost = Number(d.unitBuyPrice) * Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
+                              const netQty = Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
+                              const cost = Number(d.totalCost ?? (Number(d.unitBuyPrice) * netQty));
+                              const paid = Number(d.paidAmount || 0);
+                              const rem = Number(d.remainingBalance ?? Math.max(0, cost - paid));
                               return (
                                 <TableRow key={d.id || idx}>
                                   <TableCell className="text-xs text-[#8C7361]">
@@ -1933,9 +2002,19 @@ export default function FinancialReportsPage() {
                                   </TableCell>
                                   <TableCell className="text-xs text-[#8C7361]">
                                     {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
+                                    {paid > 0 && (
+                                      <span className="text-[10px] text-emerald-700 block">
+                                        {language === 'am' ? `የተከፈለ፡ ${money(paid)}` : `Paid: ${money(paid)}`}
+                                      </span>
+                                    )}
                                   </TableCell>
                                   <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
-                                    {money(cost)}
+                                    <div>{money(rem)}</div>
+                                    {paid > 0 && (
+                                      <div className="text-[10px] text-[#8C7361] font-normal font-sans">
+                                        {language === 'am' ? `ጠቅላላ: ${money(cost)}` : `Total: ${money(cost)}`}
+                                      </div>
+                                    )}
                                   </TableCell>
                                   <TableCell className="text-center pr-4">
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
@@ -1954,27 +2033,42 @@ export default function FinancialReportsPage() {
                                 (sl.stockMovement?.stockItem?.name || '').toLowerCase().includes(q)
                               );
                             })
-                            .map((sl: any, idx: number) => (
-                              <TableRow key={sl.id || idx}>
-                                <TableCell className="text-xs text-[#8C7361]">
-                                  {formatEthDate(sl.createdAt)}
-                                </TableCell>
-                                <TableCell className="font-bold text-[#2C1B10] text-xs">
-                                  {sl.supplierName || t('suppliers.title')}
-                                </TableCell>
-                                <TableCell className="text-xs text-[#8C7361]">
-                                  {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
-                                  {money(sl.remainingBalance)}
-                                </TableCell>
-                                <TableCell className="text-center pr-4">
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                    {t('reports.purchaseLoanBadge')}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            .map((sl: any, idx: number) => {
+                              const total = Number(sl.totalAmount || 0);
+                              const paid = Number(sl.paidAmount || 0);
+                              const rem = Number(sl.remainingBalance ?? Math.max(0, total - paid));
+                              return (
+                                <TableRow key={sl.id || idx}>
+                                  <TableCell className="text-xs text-[#8C7361]">
+                                    {formatEthDate(sl.createdAt)}
+                                  </TableCell>
+                                  <TableCell className="font-bold text-[#2C1B10] text-xs">
+                                    {sl.supplierName || t('suppliers.title')}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-[#8C7361]">
+                                    {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
+                                    {paid > 0 && (
+                                      <span className="text-[10px] text-emerald-700 block">
+                                        {language === 'am' ? `የተከፈለ፡ ${money(paid)}` : `Paid: ${money(paid)}`}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs font-bold text-rose-700">
+                                    <div>{money(rem)}</div>
+                                    {paid > 0 && (
+                                      <div className="text-[10px] text-[#8C7361] font-normal font-sans">
+                                        {language === 'am' ? `ጠቅላላ: ${money(total)}` : `Total: ${money(total)}`}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center pr-4">
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                      {t('reports.purchaseLoanBadge')}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                         </>
                       )}
                     </TableBody>

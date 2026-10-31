@@ -492,14 +492,17 @@ export default function StockMovementsPage() {
       return;
     }
 
+    const remBal = Number(Number(selectedLoanForPay.remainingBalance).toFixed(2));
+    const finalAmount = Math.min(amount, remBal);
+
     setIsSubmittingPay(true);
     try {
       await api.post(`/stock-movements/loans/${selectedLoanForPay.id}/pay`, {
-        amount,
+        amount: finalAmount,
         note: payNote.trim() || undefined,
       });
 
-      toast.success(`Payment of ${amount.toFixed(2)} ETB recorded successfully!`);
+      toast.success(`Payment of ${finalAmount.toFixed(2)} ETB recorded successfully!`);
       setSelectedLoanForPay(null);
       setPayAmount("");
       setPayNote("");
@@ -1258,7 +1261,7 @@ export default function StockMovementsPage() {
                   <label className="text-xs font-extrabold text-[#2C1B10] uppercase">{t('stockMovements.payAmountLabel')}</label>
                   <button
                     type="button"
-                    onClick={() => setPayAmount(String(Number(selectedLoanForPay.remainingBalance)))}
+                    onClick={() => setPayAmount(Number(selectedLoanForPay.remainingBalance).toFixed(2))}
                     className="text-[11px] font-bold text-emerald-700 hover:underline"
                   >
                     {t('stockMovements.payFullBalance')} ({Number(selectedLoanForPay.remainingBalance).toLocaleString()} {t('common.currency')})
@@ -1268,7 +1271,7 @@ export default function StockMovementsPage() {
                   type="number"
                   step="0.01"
                   min="0.01"
-                  max={Number(selectedLoanForPay.remainingBalance)}
+                  max={Number(Number(selectedLoanForPay.remainingBalance).toFixed(2))}
                   required
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
