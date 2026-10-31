@@ -380,7 +380,7 @@ export default function ProductsPage() {
 
       {/* Content Rendering: List / Table View Only */}
       {isLoading ? (
-        <TableSkeleton rows={8} columns={10} hasActions={true} />
+        <TableSkeleton rows={8} columns={11} hasActions={true} />
       ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12 bg-white border border-[#EDE4D5] rounded-2xl text-[#8C7361]">
           {t('products.noProductsFound')}
@@ -480,9 +480,10 @@ export default function ProductsPage() {
             <Table className="w-full">
               <TableHeader className="bg-[#FAF6F0]/70">
                 <TableRow className="border-[#EDE4D5]">
+                  <TableHead className="py-3 px-2 text-center text-xs font-bold text-[#8C7361] w-10">#</TableHead>
                   <TableHead className="py-3 px-3.5 text-xs font-bold text-[#4A2E1B]">{t('products.colName')}</TableHead>
                   <TableHead className="py-3 px-3 text-xs font-bold text-[#4A2E1B]">{t('products.colCategory')}</TableHead>
-                  <TableHead className="py-3 px-3 text-xs font-bold text-[#4A2E1B]">{t('stock.title')}</TableHead>
+                  <TableHead className="py-3 px-3 text-center text-xs font-bold text-[#4A2E1B]">{t('products.colStockStatus')}</TableHead>
                   <TableHead className="py-3 px-3 text-xs font-bold text-[#4A2E1B]">{t('products.colPrice')}</TableHead>
                   <TableHead className="py-3 px-2 text-center text-xs font-bold text-[#4A2E1B]">{t('products.colProduced')}</TableHead>
                   <TableHead className="py-3 px-2 text-center text-xs font-bold text-[#4A2E1B]">{t('products.colDelivered')}</TableHead>
@@ -493,10 +494,13 @@ export default function ProductsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.map((prod) => {
+                {filteredProducts.map((prod, index) => {
                   const stockQty = prod.currentHouseStock ?? 0;
                   return (
                     <TableRow key={prod.id} className="border-[#EDE4D5] hover:bg-[#FAF6F0]/40 transition-colors">
+                      <TableCell className="py-3 px-2 text-center font-bold text-xs text-[#8C7361] font-mono">
+                        {index + 1}
+                      </TableCell>
                       <TableCell className="py-3 px-3.5 font-bold text-[#2C1B10]">
                         <div className="font-extrabold text-sm">{getItemName(prod)}</div>
                         {prod.flavor && <span className="text-[11px] font-normal text-[#8C7361] block">({prod.flavor})</span>}
@@ -506,11 +510,11 @@ export default function ProductsPage() {
                           {prod.category ? formatCategoryLabel(prod.category) : "Uncategorized"}
                         </span>
                       </TableCell>
-                      <TableCell className="py-3 px-3">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
+                      <TableCell className="py-3 px-3 text-center">
+                        <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-black font-mono border shadow-2xs ${
                           stockQty > 20 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : stockQty > 0 ? 'bg-amber-100 text-amber-900 border-amber-200' : 'bg-rose-100 text-rose-800 border-rose-200'
                         }`}>
-                          {stockQty} {prod.unitType}
+                          {stockQty} <span className="text-[10px] ml-1 font-sans font-bold">{prod.unitType}</span>
                         </span>
                       </TableCell>
                       <TableCell className="py-3 px-3">

@@ -1101,7 +1101,7 @@ export const en = {
     tabTableList: "Table List",
     colSellingPrice: "Selling Price",
     colBuyingPrice: "Cost / Buy Price",
-    colStockStatus: "Shop Stock",
+    colStockStatus: "Current Stock",
     modalCreateProduct: "Add New Product",
     modalEditProduct: "Edit Product Details",
     productNameLabel: "Product Name",

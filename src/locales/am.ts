@@ -1103,7 +1103,7 @@ export const am: TranslationDictionary = {
     tabTableList: "የሰንጠረዥ ዝርዝር",
     colSellingPrice: "የመሸጫ ዋጋ",
     colBuyingPrice: "የመግዣ ዋጋ / ወጪ",
-    colStockStatus: "በሱቅ ያለ ክምችት",
+    colStockStatus: "በሱቅ ያለ ምርት / ክምችት",
     modalCreateProduct: "አዲስ ምርት መዝግብ",
     modalEditProduct: "የምርት መረጃ አስተካክል",
     productNameLabel: "የምርት ስም",
