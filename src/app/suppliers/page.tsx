@@ -721,7 +721,7 @@ export default function SuppliersPage() {
                   const totalCost = Number((netQty * Number(d.unitBuyPrice)).toFixed(2));
                   const paid = Number(Number(d.paidAmount || 0).toFixed(2));
                   const remBalance = Math.max(0, Number((totalCost - paid).toFixed(2)));
-                  const isFullyPaid = remBalance <= 0.001 || d.paymentStatus === 'PAID';
+                  const isFullyPaid = remBalance <= 0.001 && totalCost > 0;
                   const isPartial = !isFullyPaid && paid > 0;
 
                   return (
@@ -838,11 +838,11 @@ export default function SuppliersPage() {
             ) : (
               deliveries.map((d) => {
                 const netQty = Math.max(0, d.quantityReceived - (d.returnedQuantity || 0));
-                const totalCost = netQty * Number(d.unitBuyPrice);
-                const paid = d.isPaid && Number(d.paidAmount) === 0 ? totalCost : Number(d.paidAmount);
-                const remBalance = Math.max(0, totalCost - paid);
-                const isFullyPaid = d.paymentStatus === 'PAID' || d.isPaid;
-                const isPartial = d.paymentStatus === 'PARTIAL' || (!isFullyPaid && paid > 0);
+                const totalCost = Number((netQty * Number(d.unitBuyPrice)).toFixed(2));
+                const paid = Number(Number(d.paidAmount || 0).toFixed(2));
+                const remBalance = Math.max(0, Number((totalCost - paid).toFixed(2)));
+                const isFullyPaid = remBalance <= 0.001 && totalCost > 0;
+                const isPartial = !isFullyPaid && paid > 0;
 
                 return (
                   <div key={d.id} className="bg-white border border-[#EDE4D5] rounded-2xl p-4 shadow-xs space-y-3 hover:border-[#E87A18]/40 transition-colors">

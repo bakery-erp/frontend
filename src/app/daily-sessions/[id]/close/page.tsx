@@ -62,8 +62,11 @@ interface SupplierDeliveryItem {
   productId: string;
   product?: Product;
   quantityReceived: number;
+  returnedQuantity?: number;
   unitBuyPrice: number;
   unitSellPrice: number;
+  paidAmount?: number;
+  paymentStatus?: string;
   isPaid: boolean;
 }
 
@@ -153,7 +156,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const [resellBuyPrice, setResellBuyPrice] = useState("");
   const [resellSellPrice, setResellSellPrice] = useState("");
   const [resellPaymentSource, setResellPaymentSource] = useState<'DAILY_CASH' | 'OWNER'>('DAILY_CASH');
-  const [resellIsPaid, setResellIsPaid] = useState(true);
+  const [resellPaymentMode, setResellPaymentMode] = useState<'FULL' | 'PARTIAL' | 'ZERO'>('FULL');
+  const [resellPaidAmountNow, setResellPaidAmountNow] = useState("");
   const [isLoggingResell, setIsLoggingResell] = useState(false);
 
   const isDirty = useMemo(() => {
@@ -341,6 +345,24 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       toast.error("Supplier, product, quantity, and buy price are required");
       return;
     }
+
+    const totalCost = Number(resellQty) * Number(resellBuyPrice);
+    let amountPaidNow = totalCost;
+    let isPaid = true;
+
+    if (resellPaymentMode === 'ZERO') {
+      amountPaidNow = 0;
+      isPaid = false;
+    } else if (resellPaymentMode === 'PARTIAL') {
+      const enteredPaid = Number(resellPaidAmountNow) || 0;
+      if (enteredPaid <= 0) {
+        toast.error("Please enter a valid partial payment amount, or choose 'On Credit'");
+        return;
+      }
+      amountPaidNow = Math.min(totalCost, enteredPaid);
+      isPaid = totalCost > 0 && amountPaidNow >= totalCost - 0.001;
+    }
+
     setIsLoggingResell(true);
     try {
       await api.post("/supplier-deliveries", {
@@ -350,7 +372,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         unitBuyPrice: Number(resellBuyPrice),
         unitSellPrice: resellSellPrice ? Number(resellSellPrice) : undefined,
         paymentSource: resellPaymentSource,
-        isPaid: resellIsPaid,
+        amountPaidNow,
+        isPaid,
         sessionId: resolvedParams.id,
       });
       toast.success("Resell delivery logged for this session!");
@@ -361,6 +384,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       setResellBuyPrice("");
       setResellSellPrice("");
       setResellPaymentSource("DAILY_CASH");
+      setResellPaymentMode("FULL");
+      setResellPaidAmountNow("");
       fetchSessionAndProducts();
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to log resell delivery");
@@ -1222,20 +1247,54 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       Payment Status
                     </label>
                     <select
-                      value={resellIsPaid ? "true" : "false"}
-                      onChange={(e) => setResellIsPaid(e.target.value === "true")}
+                      value={resellPaymentMode}
+                      onChange={(e) => {
+                        const mode = e.target.value as 'FULL' | 'PARTIAL' | 'ZERO';
+                        setResellPaymentMode(mode);
+                        if (mode === 'PARTIAL' && !resellPaidAmountNow) {
+                          const half = ((Number(resellQty) * Number(resellBuyPrice) || 0) / 2).toFixed(2);
+                          setResellPaidAmountNow(half);
+                        }
+                      }}
                       className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     >
-                      <option value="true">Paid Cash / Instant</option>
-                      <option value="false">On Credit (Unpaid Supplier Bill)</option>
+                      <option value="FULL">Paid Cash (100% Fully Paid Now)</option>
+                      <option value="PARTIAL">Partial Down Payment (Pay Some Now)</option>
+                      <option value="ZERO">On Credit (Unpaid Supplier Bill)</option>
                     </select>
                     <p className="text-[10px] text-[#8C7361] mt-1">
-                      {resellIsPaid
-                        ? 'Payment settled immediately at delivery time.'
+                      {resellPaymentMode === 'FULL'
+                        ? 'Payment settled immediately in full at delivery time.'
+                        : resellPaymentMode === 'PARTIAL'
+                        ? 'Pay a portion now, remaining balance recorded as supplier debt.'
                         : 'Recorded as supplier debt for later settlement.'}
                     </p>
                   </div>
                 </div>
+
+                {resellPaymentMode === 'PARTIAL' && (
+                  <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <label className="text-xs font-bold text-amber-900">
+                        Amount Paid Now (ETB) <span className="text-rose-600">*</span>
+                      </label>
+                      <span className="text-[11px] text-amber-700">
+                        Remaining Debt: <strong className="font-mono text-rose-700">{Math.max(0, (Number(resellQty) * Number(resellBuyPrice) || 0) - (Number(resellPaidAmountNow) || 0)).toFixed(2)} ETB</strong>
+                      </span>
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={Number(resellQty) * Number(resellBuyPrice) || undefined}
+                      required
+                      placeholder="Enter amount paid today..."
+                      value={resellPaidAmountNow}
+                      onChange={(e) => setResellPaidAmountNow(e.target.value)}
+                      className="bg-white border-amber-300 h-10 text-xs font-mono font-bold text-[#2C1B10] focus:ring-amber-500"
+                    />
+                  </div>
+                )}
 
                 {/* 4. Live Cost Preview & Action Buttons */}
                 <div className="bg-white p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col gap-3.5">
@@ -1286,35 +1345,52 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             <>
               {/* Mobile Cards View (< md) */}
               <div className="space-y-2.5 block md:hidden">
-                {supplierDeliveries.map((del) => (
-                  <div key={del.id} className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h4 className="font-extrabold text-xs text-[#2C1B10]">{del.product?.name || "Resell Product"}</h4>
-                        <p className="text-[10px] text-[#8C7361] font-medium">Supplier: {del.supplier?.name || "Supplier"}</p>
+                {supplierDeliveries.map((del) => {
+                  const netQty = Math.max(0, del.quantityReceived - (del.returnedQuantity || 0));
+                  const cost = netQty * Number(del.unitBuyPrice);
+                  const paid = Number(del.paidAmount || 0);
+                  const rem = Math.max(0, cost - paid);
+                  const isFullyPaid = rem <= 0.001 && cost > 0;
+                  const isPartial = !isFullyPaid && paid > 0;
+
+                  return (
+                    <div key={del.id} className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-extrabold text-xs text-[#2C1B10]">{del.product?.name || "Resell Product"}</h4>
+                          <p className="text-[10px] text-[#8C7361] font-medium">Supplier: {del.supplier?.name || "Supplier"}</p>
+                        </div>
+                        {isFullyPaid ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            ✓ Paid
+                          </span>
+                        ) : isPartial ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            ⏳ Partial (Rem: {rem.toFixed(2)} ETB)
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                            ⚠ Credit ({cost.toFixed(2)} ETB)
+                          </span>
+                        )}
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        del.isPaid ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                      }`}>
-                        {del.isPaid ? "Paid" : "Credit"}
-                      </span>
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#EDE4D5] text-[11px]">
+                        <div>
+                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Qty</span>
+                          <span className="font-mono font-extrabold text-amber-800">{del.quantityReceived} Pcs</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Buy Price</span>
+                          <span className="font-mono">{Number(del.unitBuyPrice).toFixed(2)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Sell Price</span>
+                          <span className="font-mono font-bold text-[#2C1B10]">{Number(del.unitSellPrice).toFixed(2)}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#EDE4D5] text-[11px]">
-                      <div>
-                        <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Qty</span>
-                        <span className="font-mono font-extrabold text-amber-800">{del.quantityReceived} Pcs</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Buy Price</span>
-                        <span className="font-mono">{Number(del.unitBuyPrice).toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Sell Price</span>
-                        <span className="font-mono font-bold text-[#2C1B10]">{Number(del.unitSellPrice).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Desktop Table (>= md) */}
@@ -1331,22 +1407,39 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F4ECE1]">
-                    {supplierDeliveries.map((del) => (
-                      <tr key={del.id}>
-                        <td className="p-3 font-bold text-[#2C1B10]">{del.supplier?.name || "Supplier"}</td>
-                        <td className="p-3 font-semibold text-zinc-900">{del.product?.name || "Product"}</td>
-                        <td className="p-3 font-mono font-bold text-amber-700">{del.quantityReceived} Pcs</td>
-                        <td className="p-3 font-mono">{Number(del.unitBuyPrice).toFixed(2)} ETB</td>
-                        <td className="p-3 font-mono">{Number(del.unitSellPrice).toFixed(2)} ETB</td>
-                        <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            del.isPaid ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                          }`}>
-                            {del.isPaid ? "Paid" : "Credit"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {supplierDeliveries.map((del) => {
+                      const netQty = Math.max(0, del.quantityReceived - (del.returnedQuantity || 0));
+                      const cost = netQty * Number(del.unitBuyPrice);
+                      const paid = Number(del.paidAmount || 0);
+                      const rem = Math.max(0, cost - paid);
+                      const isFullyPaid = rem <= 0.001 && cost > 0;
+                      const isPartial = !isFullyPaid && paid > 0;
+
+                      return (
+                        <tr key={del.id}>
+                          <td className="p-3 font-bold text-[#2C1B10]">{del.supplier?.name || "Supplier"}</td>
+                          <td className="p-3 font-semibold text-zinc-900">{del.product?.name || "Product"}</td>
+                          <td className="p-3 font-mono font-bold text-amber-700">{del.quantityReceived} Pcs</td>
+                          <td className="p-3 font-mono">{Number(del.unitBuyPrice).toFixed(2)} ETB</td>
+                          <td className="p-3 font-mono">{Number(del.unitSellPrice).toFixed(2)} ETB</td>
+                          <td className="p-3">
+                            {isFullyPaid ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                ✓ Paid
+                              </span>
+                            ) : isPartial ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                ⏳ Partial (Rem: {rem.toFixed(2)} ETB)
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                ⚠ Credit ({cost.toFixed(2)} ETB)
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
