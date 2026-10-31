@@ -44,6 +44,16 @@ interface StockItemRoleData {
 
 const PRODUCTION_ROLES = [
   {
+    role: "ADMIN",
+    label: "Branch Admin",
+    shortLabel: "Admin",
+    amharicLabel: "ቅርንጫፍ አስተዳዳሪ",
+    icon: "🛡️",
+    desc: "Branch administration, oversight, and inventory access",
+    color: "from-blue-500/10 to-blue-600/5 border-blue-200 text-blue-900",
+    badgeColor: "bg-blue-100 text-blue-900 border-blue-300",
+  },
+  {
     role: "BAKER",
     label: "Baker (Bread)",
     shortLabel: "Baker",
@@ -83,7 +93,7 @@ export default function RoleMaterialsPage() {
   const queryClient = useQueryClient();
 
   const isOwner = user?.role === "OWNER";
-  const [activeRole, setActiveRole] = useState<string>("BAKER");
+  const [activeRole, setActiveRole] = useState<string>("ADMIN");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
 
@@ -268,7 +278,7 @@ export default function RoleMaterialsPage() {
               Role Stock Materials Access
             </h1>
             <p className="text-xs sm:text-sm text-[#8C7361]">
-              Select which raw materials each production role can view and consume during daily batch logging.
+              Select which raw materials each staff role can view and consume during daily operations.
             </p>
           </div>
 
@@ -292,8 +302,8 @@ export default function RoleMaterialsPage() {
           </div>
         </div>
 
-        {/* Role Selector Cards / Tabs - Compact 3-Column on Mobile */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {/* Role Selector Cards / Tabs - Responsive 4-Column on Desktop / 2-Column on Mobile */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {PRODUCTION_ROLES.map((r) => {
             const isActive = activeRole === r.role;
             const count = roleCounts[r.role] || 0;
