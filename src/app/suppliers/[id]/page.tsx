@@ -53,9 +53,9 @@ interface DeliveryItem {
   id: string;
   supplierId: string;
   productId: string;
-  product?: { id: string; name: string; unitType: string };
+  product?: { id: string; name: string; nameLatin?: string | null; unitType: string };
   stockItemId?: string;
-  stockItem?: { name: string; unitType: string };
+  stockItem?: { name: string; nameLatin?: string | null; unitType: string };
   quantityReceived: number;
   returnedQuantity: number;
   unitBuyPrice: number | string;
@@ -97,7 +97,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
   const router = useRouter();
   const { user } = useAuth();
   const { branches } = useBranch();
-  const { t, language } = useLanguage();
+  const { t, language, getItemName } = useLanguage();
   const queryClient = useQueryClient();
   const isOwner = user?.role === 'OWNER';
 
@@ -643,7 +643,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
 
                         {/* Product */}
                         <TableCell className="font-extrabold text-[#2C1B10]">
-                          {d.product?.name || d.stockItem?.name || 'Raw Material'}
+                          {getItemName(d.product) || getItemName(d.stockItem) || 'Raw Material'}
                           {d.notes && <span className="block text-[11px] font-normal text-[#8C7361]">{d.notes}</span>}
                         </TableCell>
 
@@ -814,7 +814,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                       <div>
                         <span className="text-[10px] font-bold uppercase text-[#8C7361]">{t('stockMovements.colMaterial')}</span>
                         <h4 className="font-extrabold text-[#2C1B10] text-sm">
-                          {d.product?.name || d.stockItem?.name || 'Raw Material'}
+                          {getItemName(d.product) || getItemName(d.stockItem) || 'Raw Material'}
                         </h4>
                         {d.notes && <p className="text-xs text-[#8C7361] mt-0.5">{d.notes}</p>}
                       </div>

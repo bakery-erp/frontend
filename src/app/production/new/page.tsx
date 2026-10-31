@@ -59,6 +59,7 @@ interface Product {
 interface StockItem {
   id: string;
   name: string;
+  nameLatin?: string | null;
   unitType: string;
   currentQuantity: number;
   allowedRoles?: string[];
@@ -315,7 +316,11 @@ function ProductionFormContent() {
   const filteredMaterials = useMemo(() => {
     if (!materialSearch.trim()) return stockItems;
     const q = materialSearch.toLowerCase();
-    return stockItems.filter((s) => s.name.toLowerCase().includes(q));
+    return stockItems.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        Boolean(s.nameLatin && s.nameLatin.toLowerCase().includes(q))
+    );
   }, [stockItems, materialSearch]);
 
   // Product Selection Handlers
@@ -1115,7 +1120,12 @@ function ProductionFormContent() {
                           {isSelected && <CheckCircle2 className="w-4 h-4" />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{mat.name}</h4>
+                          <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{getItemName(mat)}</h4>
+                          {mat.nameLatin && (
+                            <span className="text-[11px] font-mono text-[#8C7361] block truncate">
+                              {getItemName(mat) === mat.name ? mat.nameLatin : mat.name}
+                            </span>
+                          )}
                           <span className="text-[11px] font-semibold text-[#8C7361] block">
                             {t("production.unit")}: <strong className="text-indigo-950">{formatUnit(mat.unitType)}</strong>
                           </span>
@@ -1371,7 +1381,7 @@ function ProductionFormContent() {
                             key={mat.stockItem.id}
                             className="flex items-center justify-between p-2 rounded-lg bg-indigo-50/70 border border-indigo-200/60 font-bold text-indigo-950"
                           >
-                            <span className="truncate mr-2">{mat.stockItem.name}</span>
+                            <span className="truncate mr-2">{getItemName(mat.stockItem)}</span>
                             <span className="whitespace-nowrap">
                               {mat.qty} {formatUnit(mat.stockItem.unitType)}
                             </span>

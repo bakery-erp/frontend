@@ -52,7 +52,7 @@ interface ProductionBatch {
   flaggedAt?: string | null;
   user: { id: string; fullName: string };
   items: { id: string; productId?: string; quantityProduced: number; product: { id?: string; name: string; unitType: string } }[];
-  materialUsages: { id: string; stockItemId?: string; quantityUsed: number; stockItem: { id?: string; name: string; unitType: string } }[];
+  materialUsages: { id: string; stockItemId?: string; quantityUsed: number; stockItem: { id?: string; name: string; nameLatin?: string | null; unitType: string } }[];
 }
 
 export default function ProductionPage() {
@@ -764,7 +764,7 @@ export default function ProductionPage() {
                 ) : (
                   <div className="space-y-1.5">
                     <span className="inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-800">
-                      <span className="truncate">{batch.materialUsages[0].stockItem.name}:</span>
+                      <span className="truncate">{getItemName(batch.materialUsages[0].stockItem)}:</span>
                       <span className="shrink-0">-{formatUsageQty(batch.materialUsages[0].quantityUsed)} {batch.materialUsages[0].stockItem.unitType}</span>
                     </span>
                     {batch.materialUsages.length > 1 && (
@@ -1048,7 +1048,7 @@ export default function ProductionPage() {
                   ) : (
                     <div className="space-y-1.5">
                       <div className="text-sm font-medium text-[#2C1B10]">
-                        {batch.materialUsages[0].stockItem.name}: <span className="font-bold text-rose-700">-{formatUsageQty(batch.materialUsages[0].quantityUsed)} {batch.materialUsages[0].stockItem.unitType}</span>
+                        {getItemName(batch.materialUsages[0].stockItem)}: <span className="font-bold text-rose-700">-{formatUsageQty(batch.materialUsages[0].quantityUsed)} {batch.materialUsages[0].stockItem.unitType}</span>
                       </div>
                       {batch.materialUsages.length > 1 && (
                         <div>

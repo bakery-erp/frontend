@@ -78,7 +78,27 @@ export default function StockPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [useLatinScript, setUseLatinScript] = useState<boolean>(false);
+  const [useLatinScript, setUseLatinScript] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("bakery_stock_use_latin");
+      if (saved !== null) return saved === "true";
+    }
+    return language === "en" || language === "om";
+  });
+
+  const handleToggleLatin = (val: boolean) => {
+    setUseLatinScript(val);
+    try {
+      localStorage.setItem("bakery_stock_use_latin", String(val));
+    } catch {}
+  };
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("bakery_stock_use_latin") : null;
+    if (saved === null) {
+      setUseLatinScript(language === "en" || language === "om");
+    }
+  }, [language]);
 
   // Manual stock addition modal state
   const [addingItem, setAddingItem] = useState<StockItem | null>(null);
@@ -565,7 +585,7 @@ export default function StockPage() {
           <div className="bg-[#FAF6F0] p-1 rounded-xl flex items-center border border-[#EDE4D5] shrink-0 shadow-2xs">
             <button
               type="button"
-              onClick={() => setUseLatinScript(false)}
+              onClick={() => handleToggleLatin(false)}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 !useLatinScript ? 'bg-[#4A2E1B] text-white shadow-2xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
               }`}
@@ -575,7 +595,7 @@ export default function StockPage() {
             </button>
             <button
               type="button"
-              onClick={() => setUseLatinScript(true)}
+              onClick={() => handleToggleLatin(true)}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 useLatinScript ? 'bg-[#4A2E1B] text-white shadow-2xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
               }`}

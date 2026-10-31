@@ -55,6 +55,7 @@ interface StockMovement {
   stockItem: {
     id: string;
     name: string;
+    nameLatin?: string | null;
     unitType: string;
     unitPrice?: number;
   };
@@ -113,7 +114,7 @@ export default function StockMovementsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId } = useBranch();
-  const { t } = useLanguage();
+  const { t, getItemName } = useLanguage();
   const isOwner = user?.role === "OWNER";
   const isGlobalAdmin = user?.role === "ADMIN" || isOwner;
   const isStockKeeper = user?.role === "STOCK_KEEPER";
@@ -790,7 +791,14 @@ export default function StockMovementsPage() {
                         <TableCell className="text-xs font-semibold text-[#8C7361]">
                           {formatEthDate(mov.createdAt, true)}
                         </TableCell>
-                        <TableCell className="font-bold text-[#2C1B10]">{mov.stockItem?.name}</TableCell>
+                        <TableCell className="font-bold text-[#2C1B10]">
+                          <div>{getItemName(mov.stockItem)}</div>
+                          {mov.stockItem?.nameLatin && (
+                            <div className="text-[11px] font-mono text-[#8C7361] font-normal">
+                              {getItemName(mov.stockItem) === mov.stockItem.name ? mov.stockItem.nameLatin : mov.stockItem.name}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getMovementColor(mov.type)}`}>
                             {getMovementTypeLabel(mov.type)}
@@ -857,7 +865,12 @@ export default function StockMovementsPage() {
                     <div key={mov.id} className="bg-white rounded-2xl p-4 border border-[#EDE4D5] shadow-xs space-y-2.5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="font-extrabold text-[#2C1B10] text-base">{mov.stockItem?.name || "Unknown Item"}</div>
+                          <div className="font-extrabold text-[#2C1B10] text-base">{getItemName(mov.stockItem) || "Unknown Item"}</div>
+                          {mov.stockItem?.nameLatin && (
+                            <div className="text-[11px] font-mono text-[#8C7361]">
+                              {getItemName(mov.stockItem) === mov.stockItem.name ? mov.stockItem.nameLatin : mov.stockItem.name}
+                            </div>
+                          )}
                           <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</div>
                         </div>
                         <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${getMovementColor(mov.type)}`}>
@@ -1233,7 +1246,7 @@ export default function StockMovementsPage() {
                 <div className="flex justify-between">
                   <span className="text-[#8C7361] font-semibold">{t('stockMovements.colStockItemPurchased')}:</span>
                   <span className="font-bold text-[#2C1B10]">
-                    {selectedLoanForPay.stockMovement?.stockItem?.name} ({Number(selectedLoanForPay.stockMovement?.quantity || 0)} {selectedLoanForPay.stockMovement?.stockItem?.unitType})
+                    {getItemName(selectedLoanForPay.stockMovement?.stockItem)} ({Number(selectedLoanForPay.stockMovement?.quantity || 0)} {selectedLoanForPay.stockMovement?.stockItem?.unitType})
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1394,7 +1407,12 @@ export default function StockMovementsPage() {
                           <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
                             {t('stockMovements.awaitingAcceptance')}
                           </span>
-                          <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{mov.stockItem?.name}</h3>
+                          <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{getItemName(mov.stockItem)}</h3>
+                          {mov.stockItem?.nameLatin && (
+                            <p className="text-xs font-mono text-[#8C7361]">
+                              {getItemName(mov.stockItem) === mov.stockItem.name ? mov.stockItem.nameLatin : mov.stockItem.name}
+                            </p>
+                          )}
                           <p className="text-xs text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</p>
                         </div>
                         <div className="text-right">
@@ -1487,7 +1505,12 @@ export default function StockMovementsPage() {
                           <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
                             Rejected by Storekeeper
                           </span>
-                          <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{mov.stockItem?.name}</h3>
+                          <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{getItemName(mov.stockItem)}</h3>
+                          {mov.stockItem?.nameLatin && (
+                            <p className="text-xs font-mono text-[#8C7361]">
+                              {getItemName(mov.stockItem) === mov.stockItem.name ? mov.stockItem.nameLatin : mov.stockItem.name}
+                            </p>
+                          )}
                           <p className="text-xs text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</p>
                         </div>
                         <div className="text-right">
@@ -1556,7 +1579,7 @@ export default function StockMovementsPage() {
               <div className="bg-[#FAF7EE] p-3.5 rounded-2xl border border-[#EDE4D5] text-xs space-y-1.5">
                 <div className="flex justify-between">
                   <span className="text-[#8C7361] font-semibold">Stock Item:</span>
-                  <span className="font-bold text-[#2C1B10]">{rejectingMovement.stockItem?.name}</span>
+                  <span className="font-bold text-[#2C1B10]">{getItemName(rejectingMovement.stockItem)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#8C7361] font-semibold">Quantity:</span>
@@ -1629,7 +1652,7 @@ export default function StockMovementsPage() {
 
               <div>
                 <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
-                  Item: <span className="text-amber-800">{resubmittingMovement.stockItem?.name}</span>
+                  Item: <span className="text-amber-800">{getItemName(resubmittingMovement.stockItem)}</span>
                 </label>
                 <div className="relative">
                   <Input

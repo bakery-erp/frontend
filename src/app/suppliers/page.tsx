@@ -62,9 +62,9 @@ interface SupplierDelivery {
   supplierId: string;
   supplier?: { id: string; name: string; type: string };
   productId?: string;
-  product?: { name: string; unitType?: string };
+  product?: { name: string; nameLatin?: string | null; unitType?: string };
   stockItemId?: string;
-  stockItem?: { name: string; unitType?: string };
+  stockItem?: { name: string; nameLatin?: string | null; unitType?: string };
   quantityReceived: number;
   returnedQuantity: number;
   unitBuyPrice: number | string;
@@ -81,7 +81,7 @@ export default function SuppliersPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedBranchId, branches } = useBranch();
-  const { t, language } = useLanguage();
+  const { t, language, getItemName } = useLanguage();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -730,7 +730,7 @@ export default function SuppliersPage() {
                         </Link>
                       </TableCell>
                       <TableCell className="font-semibold text-[#4A2E1B]">
-                        {d.stockItem?.name || d.product?.name || t('stockMovements.colMaterial')}
+                        {getItemName(d.stockItem) || getItemName(d.product) || t('stockMovements.colMaterial')}
                       </TableCell>
                       <TableCell className="text-center font-bold text-[#2C1B10]">
                         {d.quantityReceived}
@@ -873,7 +873,7 @@ export default function SuppliersPage() {
                       <div className="text-right shrink-0">
                         <span className="text-[10px] font-bold uppercase text-[#8C7361] tracking-wider block">{t('stockMovements.colMaterial')}</span>
                         <span className="font-bold text-xs text-[#E87A18] block mt-0.5 bg-[#FAF6F0] px-2 py-0.5 rounded-md border border-[#EDE4D5]">
-                          {d.stockItem?.name || d.product?.name || t('stockMovements.colMaterial')}
+                          {getItemName(d.stockItem) || getItemName(d.product) || t('stockMovements.colMaterial')}
                         </span>
                       </div>
                     </div>
