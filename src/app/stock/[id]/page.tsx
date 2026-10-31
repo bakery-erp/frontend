@@ -602,11 +602,6 @@ export default function StockItemDetailPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#2C1B10] tracking-tight">
                   {getItemName(stockItem)}
-                  {stockItem?.nameLatin && (
-                    <span className="text-sm sm:text-lg font-normal text-[#8C7361] font-mono ml-2">
-                      ({getItemName(stockItem) === stockItem.name ? stockItem.nameLatin : stockItem.name})
-                    </span>
-                  )}
                 </h1>
                 {stockItem.category && (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF6F0] text-[#4A2E1B] border border-[#EDE4D5] shadow-2xs">

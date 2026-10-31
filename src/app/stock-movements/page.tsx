@@ -792,12 +792,7 @@ export default function StockMovementsPage() {
                           {formatEthDate(mov.createdAt, true)}
                         </TableCell>
                         <TableCell className="font-bold text-[#2C1B10]">
-                          <div>{getItemName(mov.stockItem)}</div>
-                          {mov.stockItem?.nameLatin && (
-                            <div className="text-[11px] font-mono text-[#8C7361] font-normal">
-                              {getItemName(mov.stockItem) === mov.stockItem.name ? mov.stockItem.nameLatin : mov.stockItem.name}
-                            </div>
-                          )}
+                          {getItemName(mov.stockItem)}
                         </TableCell>
                         <TableCell>
                           <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getMovementColor(mov.type)}`}>
@@ -866,11 +861,6 @@ export default function StockMovementsPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="font-extrabold text-[#2C1B10] text-base">{getItemName(mov.stockItem) || "Unknown Item"}</div>
-                          {mov.stockItem?.nameLatin && (
-                            <div className="text-[11px] font-mono text-[#8C7361]">
-                              {getItemName(mov.stockItem) === mov.stockItem.name ? mov.stockItem.nameLatin : mov.stockItem.name}
-                            </div>
-                          )}
                           <div className="text-[11px] font-semibold text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</div>
                         </div>
                         <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${getMovementColor(mov.type)}`}>
@@ -1408,11 +1398,6 @@ export default function StockMovementsPage() {
                             {t('stockMovements.awaitingAcceptance')}
                           </span>
                           <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{getItemName(mov.stockItem)}</h3>
-                          {mov.stockItem?.nameLatin && (
-                            <p className="text-xs font-mono text-[#8C7361]">
-                              {getItemName(mov.stockItem) === mov.stockItem.name ? mov.stockItem.nameLatin : mov.stockItem.name}
-                            </p>
-                          )}
                           <p className="text-xs text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</p>
                         </div>
                         <div className="text-right">
@@ -1506,11 +1491,6 @@ export default function StockMovementsPage() {
                             Rejected by Storekeeper
                           </span>
                           <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{getItemName(mov.stockItem)}</h3>
-                          {mov.stockItem?.nameLatin && (
-                            <p className="text-xs font-mono text-[#8C7361]">
-                              {getItemName(mov.stockItem) === mov.stockItem.name ? mov.stockItem.nameLatin : mov.stockItem.name}
-                            </p>
-                          )}
                           <p className="text-xs text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</p>
                         </div>
                         <div className="text-right">

@@ -793,11 +793,6 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                   <div key={mat.id || index} className="p-3.5 rounded-2xl bg-rose-50/50 border border-rose-200/70 flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <span className="font-extrabold text-sm text-rose-950 block truncate">{getItemName(mat.stockItem)}</span>
-                      {mat.stockItem.nameLatin && (
-                        <span className="text-[11px] font-mono text-rose-800/80 block truncate">
-                          {getItemName(mat.stockItem) === mat.stockItem.name ? mat.stockItem.nameLatin : mat.stockItem.name}
-                        </span>
-                      )}
                       <span className="text-[11px] text-rose-800/80 font-semibold">{mat.stockItem.unitType}</span>
                     </div>
                     <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black bg-rose-100 text-rose-800 border border-rose-300 shrink-0">
@@ -826,11 +821,6 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
                         </TableCell>
                         <TableCell>
                           <div className="font-extrabold text-[#2C1B10] text-sm">{getItemName(mat.stockItem)}</div>
-                          {mat.stockItem.nameLatin && (
-                            <div className="text-[11px] font-mono text-[#8C7361]">
-                              {getItemName(mat.stockItem) === mat.stockItem.name ? mat.stockItem.nameLatin : mat.stockItem.name}
-                            </div>
-                          )}
                         </TableCell>
                         <TableCell>
                           <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-zinc-100 text-zinc-700">

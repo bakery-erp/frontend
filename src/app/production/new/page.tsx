@@ -1121,11 +1121,6 @@ function ProductionFormContent() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className="font-extrabold text-sm text-[#2C1B10] truncate">{getItemName(mat)}</h4>
-                          {mat.nameLatin && (
-                            <span className="text-[11px] font-mono text-[#8C7361] block truncate">
-                              {getItemName(mat) === mat.name ? mat.nameLatin : mat.name}
-                            </span>
-                          )}
                           <span className="text-[11px] font-semibold text-[#8C7361] block">
                             {t("production.unit")}: <strong className="text-indigo-950">{formatUnit(mat.unitType)}</strong>
                           </span>

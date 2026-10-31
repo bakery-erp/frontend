@@ -78,28 +78,6 @@ export default function StockPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [useLatinScript, setUseLatinScript] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("bakery_stock_use_latin");
-      if (saved !== null) return saved === "true";
-    }
-    return language === "en" || language === "om";
-  });
-
-  const handleToggleLatin = (val: boolean) => {
-    setUseLatinScript(val);
-    try {
-      localStorage.setItem("bakery_stock_use_latin", String(val));
-    } catch {}
-  };
-
-  useEffect(() => {
-    const saved = typeof window !== "undefined" ? localStorage.getItem("bakery_stock_use_latin") : null;
-    if (saved === null) {
-      setUseLatinScript(language === "en" || language === "om");
-    }
-  }, [language]);
-
   // Manual stock addition modal state
   const [addingItem, setAddingItem] = useState<StockItem | null>(null);
   const [addAmount, setAddAmount] = useState<string>("");
@@ -581,35 +559,11 @@ export default function StockPage() {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Script Transliteration Toggle */}
-          <div className="bg-[#FAF6F0] p-1 rounded-xl flex items-center border border-[#EDE4D5] shrink-0 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => handleToggleLatin(false)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                !useLatinScript ? 'bg-[#4A2E1B] text-white shadow-2xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
-              }`}
-              title="Show Geez Amharic"
-            >
-              ግዕዝ
-            </button>
-            <button
-              type="button"
-              onClick={() => handleToggleLatin(true)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                useLatinScript ? 'bg-[#4A2E1B] text-white shadow-2xs' : 'text-[#8C7361] hover:text-[#2C1B10]'
-              }`}
-              title="Show English Letters (Latin Transliteration)"
-            >
-              🔤 A-Z (Latin)
-            </button>
-          </div>
-
           <Input
             placeholder={t('common.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-56 rounded-xl border-[#EDE4D5] text-xs h-10 bg-[#FAF6F0]/40"
+            className="w-full sm:w-64 rounded-xl border-[#EDE4D5] text-xs h-10 bg-[#FAF6F0]/40"
           />
         </div>
       </div>
@@ -697,21 +651,11 @@ export default function StockPage() {
                           href={`/stock/${item.id}`} 
                           className="hover:text-[#E87A18] hover:underline font-extrabold text-sm transition-colors block truncate"
                         >
-                          {useLatinScript ? (item.nameLatin || item.name) : item.name}
+                          {getItemName(item)}
                         </Link>
-                        {item.nameLatin && !useLatinScript && (
-                          <span className="text-[11px] font-mono text-[#8C7361] block leading-tight truncate">
-                            {item.nameLatin}
-                          </span>
-                        )}
-                        {useLatinScript && item.nameLatin && (
-                          <span className="text-[11px] text-[#8C7361] block leading-tight truncate">
-                            {item.name}
-                          </span>
-                        )}
                         {item.category && (
                           <span className="text-[10px] font-semibold text-[#A48F7F] block mt-0.5 truncate">
-                            {useLatinScript ? (item.categoryLatin || item.category) : item.category}
+                            {getItemName({ name: item.category, nameLatin: item.categoryLatin })}
                           </span>
                         )}
                       </div>
@@ -849,16 +793,11 @@ export default function StockPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <Link href={`/stock/${item.id}`} className="font-extrabold text-[#2C1B10] hover:text-[#E87A18] text-base block">
-                    {useLatinScript ? (item.nameLatin || item.name) : item.name}
+                    {getItemName(item)}
                   </Link>
-                  {item.nameLatin && !useLatinScript && (
-                    <span className="text-[11px] font-mono text-[#8C7361] block leading-tight">
-                      {item.nameLatin}
-                    </span>
-                  )}
-                  {useLatinScript && item.nameLatin && (
-                    <span className="text-[11px] text-[#8C7361] block leading-tight">
-                      {item.name}
+                  {item.category && (
+                    <span className="text-[10px] font-semibold text-[#A48F7F] block">
+                      {getItemName({ name: item.category, nameLatin: item.categoryLatin })}
                     </span>
                   )}
                   <div className="flex items-center gap-2 mt-1">
