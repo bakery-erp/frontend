@@ -537,9 +537,9 @@ function NewCustomerCreditFormContent() {
               </span>
               <div className="min-w-0">
                 <h2 className="text-xs sm:text-sm font-black text-[#2C1B10] truncate">
-                  {currentStep === 1 && (t("credits.step1ChooseCustomer") || "Step 1: Choose Customer")}
-                  {currentStep === 2 && (t("credits.step2SelectProducts") || "Step 2: Select In-Shop Products")}
-                  {currentStep === 3 && (t("credits.step3ReviewSummary") || "Step 3: Review & Summary")}
+                  {currentStep === 1 && t("credits.step1ChooseCustomer")}
+                  {currentStep === 2 && t("credits.step2SelectProducts")}
+                  {currentStep === 3 && t("credits.step3ReviewSummary")}
                 </h2>
               </div>
             </div>
@@ -802,10 +802,10 @@ function NewCustomerCreditFormContent() {
               <div className="space-y-3 border-b border-[#F4ECE1] pb-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B]">
-                    <Layers className="w-4 h-4 text-[#E87A18]" /> Filter by Category:
+                    <Layers className="w-4 h-4 text-[#E87A18]" /> {t('products.filterByCategory')}:
                   </div>
                   <span className="text-xs font-extrabold text-[#E87A18] font-mono">
-                    {selectedItemsList.length} Selected ({totalSelectedUnits} Units)
+                    {t('credits.selectedUnitsCount', { count: selectedItemsList.length, units: totalSelectedUnits })}
                   </span>
                 </div>
 
@@ -826,7 +826,7 @@ function NewCustomerCreditFormContent() {
                           : "bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]"
                       }`}
                     >
-                      All Products ({products.length})
+                      {t('products.allProductsCount', { count: products.length })}
                     </button>
                     {productCategories.map((cat) => {
                       const count = products.filter((p) => p.categoryName === cat).length;
@@ -897,7 +897,7 @@ function NewCustomerCreditFormContent() {
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
                             prod.availableStock > 0 ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-rose-50 text-rose-800 border-rose-200"
                           }`}>
-                            {prod.availableStock} {prod.unitType} in shop
+                            {prod.availableStock} {prod.unitType} {t('products.inShop')}
                           </span>
                         </div>
 
@@ -917,7 +917,7 @@ function NewCustomerCreditFormContent() {
                       <div className="mt-3 pt-2.5 border-t border-[#F4ECE1]">
                         <div>
                           <label className="text-[10px] font-bold text-[#8C7361] uppercase block mb-1">
-                            Quantity
+                            {t('common.quantity')}
                           </label>
                           <div className="flex items-center gap-1.5">
                             <Button
@@ -963,7 +963,7 @@ function NewCustomerCreditFormContent() {
                           <div className="mt-2.5 pt-2 border-t border-[#F4ECE1] space-y-1.5">
                             <div className="flex items-center justify-between gap-1">
                               <label className="text-[10px] font-bold text-[#8C7361] uppercase">
-                                Selling Price (ETB / {prod.unitType})
+                                {t('credits.sellingPriceHeader')} (ETB / {prod.unitType})
                               </label>
                               {customProductPrices[prod.id] !== undefined &&
                                 parseFloat(customProductPrices[prod.id]) !== prod.basePrice && (
@@ -972,7 +972,7 @@ function NewCustomerCreditFormContent() {
                                     onClick={() => updateProductPrice(prod.id, "")}
                                     className="text-[10px] font-extrabold text-[#E87A18] hover:underline cursor-pointer"
                                   >
-                                    Reset
+                                    {t('common.reset')}
                                   </button>
                                 )}
                             </div>
@@ -1149,7 +1149,7 @@ function NewCustomerCreditFormContent() {
                       {t("credits.selectedProducts")}
                     </h3>
                     <p className="text-[11px] text-[#8C7361] font-semibold">
-                      {selectedItemsList.length} distinct item{selectedItemsList.length === 1 ? "" : "s"} ({totalSelectedUnits} total units)
+                      {t('credits.distinctItemsCount', { items: selectedItemsList.length, units: totalSelectedUnits })}
                     </p>
                   </div>
                 </div>
@@ -1181,7 +1181,7 @@ function NewCustomerCreditFormContent() {
                         <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#8C7361]">
                           <span>{it.product?.categoryName || "Bakery"}</span>
                           <span>•</span>
-                          <span>Catalog: {it.catalogPrice.toFixed(2)} ETB</span>
+                          <span>{t('credits.catalogPrice')}: {it.catalogPrice.toFixed(2)} ETB</span>
                         </div>
                       </div>
                       <span className="inline-block px-2.5 py-1 rounded-xl bg-white text-[#2C1B10] font-mono font-black text-xs border border-[#EDE4D5] shrink-0">
@@ -1192,7 +1192,7 @@ function NewCustomerCreditFormContent() {
                     <div className="flex items-center justify-between gap-3 pt-2 border-t border-[#EDE4D5]">
                       <div className="flex-1">
                         <label className="text-[10px] font-bold text-[#8C7361] uppercase block mb-1">
-                          Selling Price (ETB)
+                          {t('credits.sellingPriceHeader')} (ETB)
                         </label>
                         <div className="relative">
                           <Input
@@ -1285,7 +1285,7 @@ function NewCustomerCreditFormContent() {
                           </span>
                           {it.isDiscounted && (
                             <span className="text-[10px] font-extrabold text-emerald-700 block">
-                              -{(it.discountPerUnit * it.quantity).toFixed(2)} ETB ({Math.round((it.discountPerUnit / it.catalogPrice) * 100)}% off)
+                              -{(it.discountPerUnit * it.quantity).toFixed(2)} ETB ({Math.round((it.discountPerUnit / it.catalogPrice) * 100)}% {t('credits.discountOff')})
                             </span>
                           )}
                         </td>
@@ -1322,12 +1322,12 @@ function NewCustomerCreditFormContent() {
                       <span>{t("credits.discountApplied")}</span>
                     </span>
                     <span className="font-mono">
-                      -{totalDiscountSavings.toFixed(2)} ETB ({Math.round((totalDiscountSavings / (totalStandardCatalogBirr || 1)) * 100)}% off catalog)
+                      -{totalDiscountSavings.toFixed(2)} ETB ({Math.round((totalDiscountSavings / (totalStandardCatalogBirr || 1)) * 100)}% {t('credits.discountOffCatalog')})
                     </span>
                   </div>
                 ) : (
                   <p className="text-[11px] text-[#8C7361] font-medium">
-                    Standard catalog rates applied. To apply bulk discounts, adjust the selling price for any product above.
+                    {t('credits.standardCatalogRatesNote')}
                   </p>
                 )}
               </div>
@@ -1343,7 +1343,7 @@ function NewCustomerCreditFormContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                    Credit Date *
+                    {t('credits.creditDateLabel')} *
                   </label>
                   <AppDatePicker
                     value={creditDate}
@@ -1354,7 +1354,7 @@ function NewCustomerCreditFormContent() {
 
                 <div>
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                    Additional Notes / Reference (Optional)
+                    {t('credits.orderNotesOptionalLabel')}
                   </label>
                   <Input
                     placeholder={t("credits.orderNotesPlaceholder")}
@@ -1392,10 +1392,10 @@ function NewCustomerCreditFormContent() {
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>
                   {isSubmitting
-                    ? "Recording Credit..."
+                    ? t('credits.recordingCredit')
                     : isEditMode
-                    ? `Save & Update Credit (${effectiveCreditAmount.toFixed(2)} ETB)`
-                    : `Confirm & Record Credit (${effectiveCreditAmount.toFixed(2)} ETB)`}
+                    ? t('credits.saveAndUpdateCredit', { amount: effectiveCreditAmount.toFixed(2) })
+                    : t('credits.confirmAndRecordCredit', { amount: effectiveCreditAmount.toFixed(2) })}
                 </span>
               </Button>
             </div>
@@ -1427,10 +1427,10 @@ function NewCustomerCreditFormContent() {
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span className="truncate">
                     {isSubmitting
-                      ? "Recording..."
+                      ? t('credits.recordingCredit')
                       : isEditMode
-                      ? `Update (${effectiveCreditAmount.toFixed(0)} ETB)`
-                      : `Confirm (${effectiveCreditAmount.toFixed(0)} ETB)`}
+                      ? t('credits.updateCreditShort', { amount: effectiveCreditAmount.toFixed(0) })
+                      : t('credits.confirmCreditShort', { amount: effectiveCreditAmount.toFixed(0) })}
                   </span>
                 </Button>
               </div>

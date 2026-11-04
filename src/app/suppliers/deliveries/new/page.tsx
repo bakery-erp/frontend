@@ -330,7 +330,7 @@ function NewDeliveryContent() {
                 <span>{t('suppliers.newDeliveryReceipt')}</span>
               </h1>
               <p className="text-[11px] text-[#8C7361] font-semibold truncate hidden xs:block">
-                Step {currentStep} of 4: {currentStep === 1 ? t('suppliers.stepChooseSupplier') : currentStep === 2 ? t('suppliers.stepSelectProducts') : currentStep === 3 ? t('suppliers.stepReviewProducts') : t('suppliers.stepPaymentSettlement')}
+                {t('suppliers.stepXOfY', { current: currentStep, total: 4 })}: {currentStep === 1 ? t('suppliers.stepChooseSupplier') : currentStep === 2 ? t('suppliers.stepSelectProducts') : currentStep === 3 ? t('suppliers.stepReviewProducts') : t('suppliers.stepPaymentSettlement')}
               </p>
             </div>
           </div>
@@ -340,7 +340,7 @@ function NewDeliveryContent() {
             onClick={() => router.push(supplierId ? `/suppliers/${supplierId}` : '/suppliers')}
             className="text-xs font-bold text-[#8C7361] hover:text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl h-9 px-3 shrink-0"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
         </div>
 
@@ -353,10 +353,10 @@ function NewDeliveryContent() {
               </span>
               <div className="min-w-0">
                 <h2 className="text-xs sm:text-sm font-black text-[#2C1B10] truncate">
-                  {currentStep === 1 && "Step 1: Choose Supplier"}
-                  {currentStep === 2 && "Step 2: Select Delivered Products & Rates"}
-                  {currentStep === 3 && "Step 3: Review Delivered Products"}
-                  {currentStep === 4 && "Step 4: Payment Settlement"}
+                  {currentStep === 1 && t('suppliers.step1ChooseSupplier')}
+                  {currentStep === 2 && t('suppliers.step2SelectProducts')}
+                  {currentStep === 3 && t('suppliers.step3ReviewProducts')}
+                  {currentStep === 4 && t('suppliers.step4PaymentSettlement')}
                 </h2>
               </div>
             </div>
@@ -383,7 +383,7 @@ function NewDeliveryContent() {
               )}
               {currentStep === 2 && (
                 <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200">
-                  {selectedItemsList.length} Items ({totalItemsCount} Units)
+                  {t('suppliers.itemsUnitsCount', { items: selectedItemsList.length, units: totalItemsCount })}
                 </span>
               )}
               {currentStep === 3 && (
@@ -393,7 +393,7 @@ function NewDeliveryContent() {
               )}
               {currentStep === 4 && (
                 <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-900 border-emerald-200 font-mono">
-                  Paid: {numPaidNow.toFixed(2)} ETB
+                  {t('suppliers.paidPrefix')}: {numPaidNow.toFixed(2)} ETB
                 </span>
               )}
             </div>
@@ -535,10 +535,10 @@ function NewDeliveryContent() {
               <div className="space-y-3 border-b border-[#F4ECE1] pb-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#4A2E1B]">
-                    <Layers className="w-4 h-4 text-[#E87A18]" /> Filter by Category:
+                    <Layers className="w-4 h-4 text-[#E87A18]" /> {t('products.filterByCategory')}:
                   </div>
                   <span className="text-xs font-extrabold text-[#E87A18] font-mono">
-                    {selectedItemsList.length} Items Selected ({totalItemsCount} Units)
+                    {t('suppliers.selectedUnitsSummary', { items: selectedItemsList.length, units: totalItemsCount })}
                   </span>
                 </div>
 
@@ -559,7 +559,7 @@ function NewDeliveryContent() {
                           : 'bg-[#FAF6F0] text-[#4A2E1B] hover:bg-[#EDE4D5]'
                       }`}
                     >
-                      All Resell Products ({products.length})
+                      {t('suppliers.allResellProductsCount', { count: products.length })}
                     </button>
                     {productCategories.map((cat) => {
                       const count = products.filter((p) => p.category?.name === cat).length;
@@ -642,7 +642,7 @@ function NewDeliveryContent() {
                       <div className="mt-3 pt-2.5 border-t border-[#F4ECE1] space-y-2">
                         <div>
                           <label className="text-[10px] font-bold text-[#8C7361] uppercase block mb-1">
-                            Quantity Received
+                            {t('suppliers.qtyReceived')}
                           </label>
                           <div className="flex items-center gap-1.5">
                             <Button
@@ -683,7 +683,7 @@ function NewDeliveryContent() {
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] font-bold text-[#8C7361] uppercase block mb-0.5">
-                              Buy Price (ETB)
+                              {t('suppliers.buyRate')} (ETB)
                             </label>
                             <Input
                               type="number"
@@ -698,7 +698,7 @@ function NewDeliveryContent() {
                           </div>
                           <div>
                             <label className="text-[10px] font-bold text-[#8C7361] uppercase block mb-0.5">
-                              Sell Price (ETB)
+                              {t('suppliers.sellRate')} (ETB)
                             </label>
                             <Input
                               type="number"
@@ -715,7 +715,7 @@ function NewDeliveryContent() {
 
                         {isSelected && (
                           <div className="text-right text-[11px] font-mono font-bold text-[#2C1B10] pt-1">
-                            Cost: <strong className="text-[#E87A18] font-black">{subTotal.toFixed(2)} ETB</strong>
+                            {t('common.total')}: <strong className="text-[#E87A18] font-black">{subTotal.toFixed(2)} ETB</strong>
                           </div>
                         )}
                       </div>
@@ -795,8 +795,8 @@ function NewDeliveryContent() {
                 >
                   <span className="truncate">
                     {canProceedFromStep2
-                      ? `Next: Review (${selectedItemsList.length} • ${totalCost.toFixed(0)} ETB)`
-                      : "Select products above"}
+                      ? `${t('suppliers.nextReviewProducts')} (${selectedItemsList.length} • ${totalCost.toFixed(0)} ETB)`
+                      : t('suppliers.selectProductsPrompt')}
                   </span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </Button>
@@ -846,7 +846,7 @@ function NewDeliveryContent() {
                       {t('suppliers.deliveredProducts')}
                     </h3>
                     <p className="text-[11px] text-[#8C7361] font-semibold">
-                      {selectedItemsList.length} distinct item{selectedItemsList.length === 1 ? '' : 's'} ({totalItemsCount} total units)
+                      {t('suppliers.distinctItemsCount', { items: selectedItemsList.length, units: totalItemsCount })}
                     </p>
                   </div>
                 </div>
@@ -1017,10 +1017,10 @@ function NewDeliveryContent() {
             <div className="bg-gradient-to-r from-amber-500/10 via-[#FAF6F0] to-[#FAF6F0] border border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] uppercase font-black text-[#8C7361] tracking-wider block">
-                  Delivery for {selectedSupplier?.name}
+                  {t('suppliers.deliveryFor', { name: selectedSupplier?.name || '' })}
                 </span>
                 <p className="text-xs text-[#4A2E1B] font-bold">
-                  {selectedItemsList.length} product{selectedItemsList.length === 1 ? '' : 's'} ({totalItemsCount} units)
+                  {t('suppliers.productsUnitsCount', { products: selectedItemsList.length, units: totalItemsCount })}
                 </p>
               </div>
               <div className="text-left sm:text-right">

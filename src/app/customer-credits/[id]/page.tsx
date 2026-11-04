@@ -245,7 +245,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     );
     if (amtNum < totalPaid) {
       toast.error(
-        `Credit amount (${amtNum.toFixed(2)} ETB) cannot be less than already recorded repayments (${totalPaid.toFixed(2)} ETB).`
+        t("credits.toastAmountCannotBeLessThanPaid", { amount: amtNum.toFixed(2), paid: totalPaid.toFixed(2) })
       );
       return;
     }
