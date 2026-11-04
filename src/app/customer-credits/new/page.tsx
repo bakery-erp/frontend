@@ -80,6 +80,7 @@ function NewCustomerCreditFormContent() {
   const { selectedBranchId } = useBranch();
   const { t, getItemName } = useLanguage();
   const queryClient = useQueryClient();
+  const isCashier = user?.role === "CASHIER";
 
   // 3-step wizard state
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -732,17 +733,19 @@ function NewCustomerCreditFormContent() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                      Address / Business Location (Optional)
-                    </label>
-                    <Input
-                      placeholder="e.g. Shop #14, Main Market Road"
-                      value={newCustomerAddress}
-                      onChange={(e) => setNewCustomerAddress(e.target.value)}
-                      className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
-                    />
-                  </div>
+                  {!isCashier && (
+                    <div className="sm:col-span-2">
+                      <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
+                        Address / Business Location (Optional)
+                      </label>
+                      <Input
+                        placeholder="e.g. Shop #14, Main Market Road"
+                        value={newCustomerAddress}
+                        onChange={(e) => setNewCustomerAddress(e.target.value)}
+                        className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}

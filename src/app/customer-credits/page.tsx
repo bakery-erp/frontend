@@ -174,6 +174,7 @@ export default function CustomerCreditsPage() {
   const queryClient = useQueryClient();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "CASHIER";
   const isAdminOrOwner = user?.role === "OWNER" || user?.role === "ADMIN";
+  const isCashier = user?.role === "CASHIER";
 
   // Active Main Tab: "CREDITS" vs "CUSTOMERS"
   const [activeMainTab, setActiveMainTab] = useState<"CREDITS" | "CUSTOMERS">("CREDITS");
@@ -1608,17 +1609,19 @@ export default function CustomerCreditsPage() {
               />
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
-                {t("credits.addressLabel")}
-              </label>
-              <Input
-                placeholder={t("credits.addressPlaceholder")}
-                value={newCustAddress}
-                onChange={(e) => setNewCustAddress(e.target.value)}
-                className="rounded-xl text-xs"
-              />
-            </div>
+            {!isCashier && (
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                  {t("credits.addressLabel")}
+                </label>
+                <Input
+                  placeholder={t("credits.addressPlaceholder")}
+                  value={newCustAddress}
+                  onChange={(e) => setNewCustAddress(e.target.value)}
+                  className="rounded-xl text-xs"
+                />
+              </div>
+            )}
 
             <div>
               <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
@@ -1688,17 +1691,19 @@ export default function CustomerCreditsPage() {
               />
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
-                {t("credits.addressLabel")}
-              </label>
-              <Input
-                placeholder={t("credits.addressPlaceholder")}
-                value={editCustAddress}
-                onChange={(e) => setEditCustAddress(e.target.value)}
-                className="rounded-xl text-xs"
-              />
-            </div>
+            {!isCashier && (
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                  {t("credits.addressLabel")}
+                </label>
+                <Input
+                  placeholder={t("credits.addressPlaceholder")}
+                  value={editCustAddress}
+                  onChange={(e) => setEditCustAddress(e.target.value)}
+                  className="rounded-xl text-xs"
+                />
+              </div>
+            )}
 
             <div>
               <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">

@@ -579,9 +579,6 @@ export default function ExpensesPage() {
                 <CardTitle className="text-base font-extrabold text-[#2C1B10]">
                   {editingId ? t('expenses.editExpenseRecord') : t('expenses.recordNewExpense')}
                 </CardTitle>
-                <CardDescription className="text-xs text-zinc-500 mt-0.5">
-                  {t('expenses.modalRecordDesc')}
-                </CardDescription>
               </div>
               <Button variant="ghost" size="sm" onClick={resetForm} className="rounded-xl">
                 <X className="w-4 h-4" />
@@ -590,38 +587,38 @@ export default function ExpensesPage() {
 
             <CardContent className="pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Expense Type: Locked for Cashier & Admin to Company Operating Expense */}
-                <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                    {t('expenses.expenseType')} <span className="text-rose-500">*</span>
-                  </label>
-                  {isCashier || isAdmin ? (
-                    <div>
-                      <div className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 flex items-center justify-between">
-                        <span className="text-xs font-black text-[#2C1B10] flex items-center gap-1.5">
-                          🏢 {t('expenses.typeCompanyOption')}
-                        </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          💵 {isCashier ? (language === 'am' ? 'ከዕለቱ ካሽ' : language === 'om' ? 'Kashii Guyyaa' : 'Daily Cash') : 'Company Operating'}
-                        </span>
+                {/* Expense Type: Hidden for Cashier, locked for Admin, selectable for Owner */}
+                {!isCashier && (
+                  <div>
+                    <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
+                      {t('expenses.expenseType')} <span className="text-rose-500">*</span>
+                    </label>
+                    {isAdmin ? (
+                      <div>
+                        <div className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 flex items-center justify-between">
+                          <span className="text-xs font-black text-[#2C1B10] flex items-center gap-1.5">
+                            🏢 {t('expenses.typeCompanyOption')}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            Company Operating
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
+                          {language === 'am' ? 'የድርጅቱ መደበኛ የሥራ ማስኬጃ ወጪ' : language === 'om' ? 'Baasii hojii dhaabbataa' : 'Regular company operational expense'}
+                        </p>
                       </div>
-                      <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
-                        {isCashier
-                          ? (language === 'am' ? 'ይህ ወጪ ከዕለቱ የካሽ መመዝገቢያ ይቀነሳል' : language === 'om' ? 'Baasiin kun kashii guyyaa irraa hir\'ifama' : 'Deducted directly from daily register cash')
-                          : (language === 'am' ? 'የድርጅቱ መደበኛ የሥራ ማስኬጃ ወጪ' : language === 'om' ? 'Baasii hojii dhaabbataa' : 'Regular company operational expense')}
-                      </p>
-                    </div>
-                  ) : (
-                    <select
-                      value={formType}
-                      onChange={(e) => setFormType(e.target.value)}
-                      className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
-                    >
-                      <option value="COMPANY">🏢 {t('expenses.typeCompanyOption')}</option>
-                      <option value="OWNER">👤 {t('expenses.typeOwnerOption')}</option>
-                    </select>
-                  )}
-                </div>
+                    ) : (
+                      <select
+                        value={formType}
+                        onChange={(e) => setFormType(e.target.value)}
+                        className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl px-3 py-2 text-xs font-semibold text-[#2C1B10] focus:outline-none focus:ring-2 focus:ring-[#4A2E1B]"
+                      >
+                        <option value="COMPANY">🏢 {t('expenses.typeCompanyOption')}</option>
+                        <option value="OWNER">👤 {t('expenses.typeOwnerOption')}</option>
+                      </select>
+                    )}
+                  </div>
+                )}
 
                 {/* Amount Input with Auto-Focus and Selection */}
                 <div>
@@ -1383,14 +1380,16 @@ export default function ExpensesPage() {
                 <span className="font-extrabold text-[#2C1B10]">{formCategory}</span>
               </div>
 
-              <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
-                <span className="font-bold text-[#8C7361]">{t('expenses.expenseType')}</span>
-                <span className="font-bold text-[#2C1B10]">
-                  {formType === 'COMPANY'
-                    ? `🏢 ${t('expenses.typeCompanyOption')}`
-                    : `👤 ${t('expenses.typeOwnerOption')}`}
-                </span>
-              </div>
+              {!isCashier && (
+                <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
+                  <span className="font-bold text-[#8C7361]">{t('expenses.expenseType')}</span>
+                  <span className="font-bold text-[#2C1B10]">
+                    {formType === 'COMPANY'
+                      ? `🏢 ${t('expenses.typeCompanyOption')}`
+                      : `👤 ${t('expenses.typeOwnerOption')}`}
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
                 <span className="font-bold text-[#8C7361]">

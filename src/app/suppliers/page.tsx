@@ -92,6 +92,7 @@ export default function SuppliersPage() {
 
   const canManage = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'CASHIER';
   const isOwner = user?.role === 'OWNER';
+  const isCashier = user?.role === 'CASHIER';
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'deliveries' | 'suppliers'>('deliveries');
@@ -981,20 +982,24 @@ export default function SuppliersPage() {
               <DialogTitle className="text-[#2C1B10] font-extrabold">{t('suppliers.modalRegisterTitle')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateSupplier} className="space-y-3.5 py-2">
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('common.branch')}</label>
-                <select
-                  name="branchId"
-                  defaultValue={selectedBranchId || user?.branchId || (branches[0]?.id ?? '')}
-                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs font-medium"
-                >
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      🏢 {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!isCashier ? (
+                <div>
+                  <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('common.branch')}</label>
+                  <select
+                    name="branchId"
+                    defaultValue={selectedBranchId || user?.branchId || (branches[0]?.id ?? '')}
+                    className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs font-medium"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        🏢 {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <input type="hidden" name="branchId" value={selectedBranchId || user?.branchId || (branches[0]?.id ?? '')} />
+              )}
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
@@ -1016,12 +1021,14 @@ export default function SuppliersPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                  {language === 'am' ? 'አድራሻ' : language === 'om' ? 'Teessoo' : 'Address'}
-                </label>
-                <Input name="address" placeholder="e.g., Addis Ababa, Bole" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
-              </div>
+              {!isCashier && (
+                <div>
+                  <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
+                    {language === 'am' ? 'አድራሻ' : language === 'om' ? 'Teessoo' : 'Address'}
+                  </label>
+                  <Input name="address" placeholder="e.g., Addis Ababa, Bole" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colType')}</label>
@@ -1078,12 +1085,14 @@ export default function SuppliersPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                  {language === 'am' ? 'አድራሻ' : language === 'om' ? 'Teessoo' : 'Address'}
-                </label>
-                <Input name="address" defaultValue={editingSupplier.address || ''} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
-              </div>
+              {!isCashier && (
+                <div>
+                  <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
+                    {language === 'am' ? 'አድራሻ' : language === 'om' ? 'Teessoo' : 'Address'}
+                  </label>
+                  <Input name="address" defaultValue={editingSupplier.address || ''} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colType')}</label>

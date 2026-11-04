@@ -71,6 +71,7 @@ function NewDeliveryContent() {
   const { t, language, getItemName } = useLanguage();
   const queryClient = useQueryClient();
   const isOwner = user?.role === 'OWNER';
+  const isCashier = user?.role === 'CASHIER';
 
   useEffect(() => {
     if (user && user.role === 'STOCK_KEEPER') {
@@ -94,7 +95,6 @@ function NewDeliveryContent() {
   // Step 3: Payment & Summary
   const [deliveryDate, setDeliveryDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [paymentSource, setPaymentSource] = useState<'DAILY_CASH' | 'OWNER'>('DAILY_CASH');
-  const [paymentMode, setPaymentMode] = useState<'FULL' | 'HALF' | 'ZERO' | 'CUSTOM'>('FULL');
   const [amountPaidNow, setAmountPaidNow] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -237,14 +237,10 @@ function NewDeliveryContent() {
 
   // Payment synchronization
   useEffect(() => {
-    if (paymentMode === 'FULL') {
-      setAmountPaidNow(totalCost > 0 ? totalCost.toFixed(2) : '0');
-    } else if (paymentMode === 'HALF') {
-      setAmountPaidNow(totalCost > 0 ? (totalCost / 2).toFixed(2) : '0');
-    } else if (paymentMode === 'ZERO') {
-      setAmountPaidNow('0');
+    if (totalCost > 0 && amountPaidNow === '') {
+      setAmountPaidNow(totalCost.toFixed(2));
     }
-  }, [paymentMode, totalCost]);
+  }, [totalCost, amountPaidNow]);
 
   const numPaidNow = Math.min(totalCost, Math.max(0, parseFloat(amountPaidNow) || 0));
   const remainingBalance = Math.max(0, totalCost - numPaidNow);
@@ -283,7 +279,7 @@ function NewDeliveryContent() {
     try {
       await api.post('/supplier-deliveries', {
         supplierId,
-        paymentSource,
+        paymentSource: isCashier ? 'DAILY_CASH' : paymentSource,
         isPaid: numPaidNow >= totalCost && totalCost > 0,
         amountPaidNow: numPaidNow,
         notes: notes.trim() || undefined,
@@ -1049,7 +1045,7 @@ function NewDeliveryContent() {
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div>
+                <div className={isCashier ? "sm:col-span-2" : ""}>
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
                     Delivery Date *
                   </label>
@@ -1060,104 +1056,74 @@ function NewDeliveryContent() {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                    Payment Source *
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 h-11">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentSource('DAILY_CASH')}
-                      className={`rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                        paymentSource === 'DAILY_CASH'
-                          ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs'
-                          : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
-                      }`}
-                    >
-                      💵 Daily Cash
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentSource('OWNER')}
-                      className={`rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                        paymentSource === 'OWNER'
-                          ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs'
-                          : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
-                      }`}
-                    >
-                      🏦 Owner Direct
-                    </button>
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2 space-y-2">
-                  <label className="text-xs font-extrabold text-[#2C1B10] block uppercase">
-                    Payment Settlement Mode
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode('FULL')}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
-                        paymentMode === 'FULL'
-                          ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
-                          : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
-                      }`}
-                    >
-                      Full (100%)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode('HALF')}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
-                        paymentMode === 'HALF'
-                          ? 'bg-blue-700 text-white border-blue-700 shadow-xs'
-                          : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
-                      }`}
-                    >
-                      Partial (50%)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode('ZERO')}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
-                        paymentMode === 'ZERO'
-                          ? 'bg-rose-700 text-white border-rose-700 shadow-xs'
-                          : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
-                      }`}
-                    >
-                      Credit (0%)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode('CUSTOM')}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all cursor-pointer ${
-                        paymentMode === 'CUSTOM'
-                          ? 'bg-purple-700 text-white border-purple-700 shadow-xs'
-                          : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
-                      }`}
-                    >
-                      Custom Amount
-                    </button>
-                  </div>
-                </div>
-
-                {paymentMode === 'CUSTOM' && (
-                  <div className="sm:col-span-2">
+                {!isCashier && (
+                  <div>
                     <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                      Custom Paid Amount (ETB)
+                      Payment Source *
                     </label>
-                    <Input
-                      type="number"
-                      step="any"
-                      min="0"
-                      max={totalCost}
-                      value={amountPaidNow}
-                      onChange={(e) => setAmountPaidNow(e.target.value)}
-                      className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5] font-mono text-base font-bold"
-                    />
+                    <div className="grid grid-cols-2 gap-2 h-11">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSource('DAILY_CASH')}
+                        className={`rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                          paymentSource === 'DAILY_CASH'
+                            ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs'
+                            : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
+                        }`}
+                      >
+                        💵 Daily Cash
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSource('OWNER')}
+                        className={`rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                          paymentSource === 'OWNER'
+                            ? 'bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs'
+                            : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
+                        }`}
+                      >
+                        🏦 Owner Direct
+                      </button>
+                    </div>
                   </div>
                 )}
+
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-extrabold text-[#2C1B10] uppercase">
+                      Paid Amount Now (ETB) *
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setAmountPaidNow(totalCost > 0 ? totalCost.toFixed(2) : '0')}
+                        className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                      >
+                        Pay Full ({totalCost.toFixed(2)})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAmountPaidNow('0')}
+                        className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                      >
+                        Credit (0.00)
+                      </button>
+                    </div>
+                  </div>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    max={totalCost}
+                    placeholder="0.00"
+                    value={amountPaidNow}
+                    onChange={(e) => setAmountPaidNow(e.target.value)}
+                    className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5] font-mono text-base font-bold"
+                  />
+                  <p className="text-[11px] text-[#8C7361] mt-1">
+                    Enter the amount paid upfront in cash. Any remaining balance will be logged as credit debt to this supplier.
+                  </p>
+                </div>
 
                 {/* Settlement Summary Pill */}
                 <div className="sm:col-span-2 p-3.5 sm:p-4 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-xs">
