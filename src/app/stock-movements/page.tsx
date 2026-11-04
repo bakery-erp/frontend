@@ -456,7 +456,7 @@ export default function StockMovementsPage() {
         unitPrice: resubmitUnitPrice ? Number(resubmitUnitPrice) : undefined,
         reason: resubmitReason.trim(),
       });
-      toast.success("Delivery resubmitted for Storekeeper approval");
+      toast.success(t('stockMovements.toastResubmitted'));
 
       // Optimistically remove from rejected
       queryClient.setQueryData<StockMovement[]>(['stock-movements-rejected', selectedBranchId], (old) => {
@@ -663,7 +663,7 @@ export default function StockMovementsPage() {
               }`}
             >
               <AlertCircle className={`w-4 h-4 shrink-0 ${activeTab === "rejected" ? "text-rose-300" : "text-rose-600"}`} />
-              <span>Rejected Deliveries</span>
+              <span>{t('stockMovements.rejectedDeliveriesTab')}</span>
               {rejectedMovements.length > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-600 text-white font-bold animate-pulse">
                   {rejectedMovements.length}
@@ -1474,9 +1474,9 @@ export default function StockMovementsPage() {
               <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h3 className="font-extrabold text-[#2C1B10] text-base">No Rejected Deliveries</h3>
+              <h3 className="font-extrabold text-[#2C1B10] text-base">{t('stockMovements.noRejectedDeliveriesTitle')}</h3>
               <p className="text-xs text-[#8C7361] mt-1 max-w-md mx-auto">
-                All stock inward deliveries have either been verified by the Storekeeper or none have been rejected.
+                {t('stockMovements.noRejectedDeliveriesDesc')}
               </p>
             </div>
           ) : (
@@ -1491,7 +1491,7 @@ export default function StockMovementsPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
-                            Rejected by Storekeeper
+                            {t('stockMovements.rejectedByStorekeeper')}
                           </span>
                           <h3 className="font-extrabold text-lg text-[#2C1B10] mt-1">{getItemName(mov.stockItem)}</h3>
                           <p className="text-xs text-[#8C7361]">{formatEthDate(mov.createdAt, true)}</p>
@@ -1508,10 +1508,10 @@ export default function StockMovementsPage() {
                       <div className="mt-3 p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs space-y-1">
                         <div className="flex items-center gap-1.5 text-rose-800 font-extrabold uppercase text-[10px]">
                           <AlertCircle className="w-3.5 h-3.5" />
-                          <span>Storekeeper Rejection Note</span>
+                          <span>{t('stockMovements.storekeeperRejectionNote')}</span>
                         </div>
                         <p className="text-rose-900 font-medium text-xs pl-5">
-                          {mov.reason || "No explicit reason was provided by the storekeeper."}
+                          {mov.reason || t('stockMovements.noExplicitReason')}
                         </p>
                       </div>
 
@@ -1536,7 +1536,7 @@ export default function StockMovementsPage() {
                         className="w-full sm:w-auto bg-[#4A2E1B] hover:bg-[#382315] text-white font-bold rounded-xl h-10 text-xs flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <RotateCcw className="w-4 h-4 shrink-0 text-amber-300" />
-                        <span>Edit & Resubmit Delivery</span>
+                        <span>{t('stockMovements.editResubmitBtn')}</span>
                       </Button>
                     </div>
                   </div>
@@ -1554,34 +1554,34 @@ export default function StockMovementsPage() {
             <DialogHeader>
               <DialogTitle className="text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                Reject Stock Intake
+                {t('stockMovements.modalRejectTitle')}
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleConfirmRejectSubmit} className="space-y-4 py-2">
               <div className="bg-[#FAF7EE] p-3.5 rounded-2xl border border-[#EDE4D5] text-xs space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-[#8C7361] font-semibold">Stock Item:</span>
+                  <span className="text-[#8C7361] font-semibold">{t('stockMovements.colMaterial')}:</span>
                   <span className="font-bold text-[#2C1B10]">{getItemName(rejectingMovement.stockItem)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#8C7361] font-semibold">Quantity:</span>
+                  <span className="text-[#8C7361] font-semibold">{t('common.quantity')}:</span>
                   <span className="font-bold text-[#2C1B10]">{Number(rejectingMovement.quantity)} {rejectingMovement.stockItem?.unitType}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#8C7361] font-semibold">Added By:</span>
+                  <span className="text-[#8C7361] font-semibold">{t('stockMovements.addedBy')}:</span>
                   <span className="font-bold text-[#2C1B10]">{rejectingMovement.user?.fullName} ({rejectingMovement.user?.role})</span>
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
-                  Reason for Rejection (Optional)
+                  {t('stockMovements.rejectionReasonLabel')}
                 </label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="e.g. Quantity discrepancy, damaged packaging, wrong delivery..."
+                  placeholder={t('stockMovements.rejectionReasonPlaceholder')}
                   rows={3}
                   className="w-full text-xs rounded-xl border border-[#EDE4D5] bg-white p-2.5 outline-none focus:ring-2 focus:ring-amber-500/20"
                 />
@@ -1596,10 +1596,10 @@ export default function StockMovementsPage() {
                   {isSubmittingReject ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      Rejecting...
+                      {t('stockMovements.rejecting')}
                     </>
                   ) : (
-                    "Confirm Rejection"
+                    t('stockMovements.btnConfirmReject')
                   )}
                 </Button>
                 <Button
@@ -1623,19 +1623,19 @@ export default function StockMovementsPage() {
             <DialogHeader>
               <DialogTitle className="text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <RotateCcw className="w-5 h-5 text-amber-600 shrink-0" />
-                Edit & Resubmit Stock Delivery
+                {t('stockMovements.modalEditResubmitTitle')}
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleResubmitSubmit} className="space-y-4 py-2">
               <div className="bg-rose-50 p-3 rounded-xl border border-rose-200 text-xs space-y-1">
-                <span className="text-[10px] uppercase font-bold text-rose-800 block">Storekeeper Rejection Feedback:</span>
-                <p className="text-rose-900 font-semibold">{resubmittingMovement.reason || "None specified"}</p>
+                <span className="text-[10px] uppercase font-bold text-rose-800 block">{t('stockMovements.storekeeperFeedback')}</span>
+                <p className="text-rose-900 font-semibold">{resubmittingMovement.reason || t('stockMovements.noneSpecified')}</p>
               </div>
 
               <div>
                 <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
-                  Item: <span className="text-amber-800">{getItemName(resubmittingMovement.stockItem)}</span>
+                  {t('stockMovements.colMaterial')}: <span className="text-amber-800">{getItemName(resubmittingMovement.stockItem)}</span>
                 </label>
                 <div className="relative">
                   <Input
@@ -1645,7 +1645,7 @@ export default function StockMovementsPage() {
                     required
                     value={resubmitQuantity}
                     onChange={(e) => setResubmitQuantity(e.target.value)}
-                    placeholder="Correct Quantity"
+                    placeholder={t('stockMovements.correctQtyPlaceholder')}
                     className="h-10 rounded-xl font-mono font-bold text-base pr-16"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8C7361]">
@@ -1657,7 +1657,7 @@ export default function StockMovementsPage() {
               {isOwner && (
                 <div>
                   <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
-                    Unit Price ({t('common.currency')})
+                    {t('stock.unitPrice')} ({t('common.currency')})
                   </label>
                   <Input
                     type="number"
@@ -1665,7 +1665,7 @@ export default function StockMovementsPage() {
                     min="0"
                     value={resubmitUnitPrice}
                     onChange={(e) => setResubmitUnitPrice(e.target.value)}
-                    placeholder="Optional Unit Price"
+                    placeholder={t('stockMovements.optionalUnitPricePlaceholder')}
                     className="h-10 rounded-xl font-mono text-sm"
                   />
                 </div>
@@ -1673,12 +1673,12 @@ export default function StockMovementsPage() {
 
               <div>
                 <label className="text-xs font-extrabold text-[#2C1B10] uppercase mb-1 block">
-                  Updated Reason / Note to Storekeeper
+                  {t('stockMovements.updatedReasonNote')}
                 </label>
                 <Input
                   value={resubmitReason}
                   onChange={(e) => setResubmitReason(e.target.value)}
-                  placeholder="e.g. Corrected quantity to 150 liters as verified"
+                  placeholder={t('stockMovements.resubmitReasonPlaceholder')}
                   className="h-10 rounded-xl text-xs"
                 />
               </div>
@@ -1692,10 +1692,10 @@ export default function StockMovementsPage() {
                   {isSubmittingResubmit ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      Resubmitting...
+                      {t('stockMovements.resubmitting')}
                     </>
                   ) : (
-                    "Resubmit for Verification"
+                    t('stockMovements.btnResubmitVerification')
                   )}
                 </Button>
                 <Button

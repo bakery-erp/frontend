@@ -325,9 +325,9 @@ export default function StockPage() {
         } : undefined,
       });
       if (effectiveAutoConfirm) {
-        toast.success(`Successfully added ${qty} ${addingItem.unitType} to ${addingItem.name}`);
+        toast.success(t('stock.toastAddStockSuccess', { qty, unit: addingItem.unitType, name: addingItem.name }));
       } else {
-        toast.success(`Inward stock entry logged for ${addingItem.name}. Awaiting Stock Keeper physical count & verification.`);
+        toast.success(t('stock.toastInwardAwaitingVerification', { name: addingItem.name }));
       }
       setAddingItem(null);
       setAddAmount("");
@@ -446,7 +446,7 @@ export default function StockPage() {
             <Link href="/stock/role-materials" className="flex-1 sm:flex-initial">
               <Button variant="outline" size="default" className="w-full flex items-center justify-center gap-1.5 border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold text-xs sm:text-sm h-10 rounded-xl">
                 <SlidersHorizontal className="w-4 h-4 text-[#8C7361]" />
-                <span>Role Stock Access</span>
+                <span>{t('stock.roleStockAccess')}</span>
               </Button>
             </Link>
             <Button onClick={() => setIsAddOpen(true)} size="default" className="flex-1 sm:flex-initial h-10 rounded-xl">
@@ -466,17 +466,19 @@ export default function StockPage() {
             </div>
             <div>
               <h4 className="font-extrabold text-sm text-[#2C1B10]">
-                {pendingApprovals.length} Inward {pendingApprovals.length === 1 ? 'Delivery' : 'Deliveries'} Awaiting Verification
+                {pendingApprovals.length === 1
+                  ? t('stock.inwardDeliveryAwaitingVerificationSingular')
+                  : t('stock.inwardDeliveriesAwaitingVerification', { count: pendingApprovals.length })}
               </h4>
               <p className="text-xs text-[#8C7361]">
-                Goods added by Admin/Owner must be physically counted and confirmed by the Stock Keeper before updating warehouse inventory.
+                {t('stock.inwardDeliveriesAwaitingVerificationDesc')}
               </p>
             </div>
           </div>
           <Link href="/stock-movements?tab=approvals" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto h-9 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-xs">
               <CheckCircle2 className="w-4 h-4" />
-              <span>Verify & Accept Deliveries</span>
+              <span>{t('stock.btnVerifyAcceptDeliveries')}</span>
             </Button>
           </Link>
         </div>
@@ -491,17 +493,19 @@ export default function StockPage() {
             </div>
             <div>
               <h4 className="font-extrabold text-sm text-[#2C1B10]">
-                {rejectedDeliveries.length} Inward {rejectedDeliveries.length === 1 ? 'Delivery Was' : 'Deliveries Were'} Rejected by Stock Keeper
+                {rejectedDeliveries.length === 1
+                  ? t('stock.inwardDeliveryRejectedTitleSingular')
+                  : t('stock.inwardDeliveriesRejectedTitle', { count: rejectedDeliveries.length })}
               </h4>
               <p className="text-xs text-[#8C7361]">
-                Stock intakes rejected during physical inspection need your review, quantity adjustment, and resubmission.
+                {t('stock.inwardDeliveriesRejectedDesc')}
               </p>
             </div>
           </div>
           <Link href="/stock-movements?tab=rejected" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto h-9 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-xs">
               <Edit3 className="w-4 h-4" />
-              <span>Review & Resubmit</span>
+              <span>{t('stock.btnReviewResubmit')}</span>
             </Button>
           </Link>
         </div>
@@ -1297,7 +1301,7 @@ export default function StockPage() {
                       <span className="text-xs font-bold text-zinc-800">{t('stock.autoConfirmPrompt')}</span>
                     </label>
                     <p className="text-[10px] text-zinc-500 mt-1 pl-6">
-                      {isAutoConfirm ? "Stock balance will increment immediately without awaiting physical verification." : "Stock will be pending until Stock Keeper verifies and confirms physical receipt."}
+                      {isAutoConfirm ? t('stock.autoConfirmDesc') : t('stock.awaitingVerificationDesc')}
                     </p>
                   </div>
                 )}
