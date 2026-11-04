@@ -63,7 +63,7 @@ export default function ProductsPage() {
     if (!user) return;
     if (user.role !== 'OWNER') {
       router.push('/production/history');
-      toast.error('Unauthorized access to Products.');
+      toast.error(t('products.toastUnauthorizedProducts'));
     }
   }, [user, router]);
 
@@ -287,7 +287,7 @@ export default function ProductsPage() {
                 : 'bg-white border border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]'
             }`}
           >
-            <span>{language === 'en' ? 'All Products' : 'ሁሉም ምርቶች'}</span>
+            <span>{t('products.allProducts')}</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
               selectedMainCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-[#EDE4D5] text-[#4A2E1B]'
             }`}>
@@ -338,7 +338,7 @@ export default function ProductsPage() {
                   : 'bg-[#F4ECE1] text-[#4A2E1B] hover:bg-[#EDE4D5]'
               }`}
             >
-              {language === 'en' ? 'All Subcategories' : 'ሁሉም ንዑስ ምድቦች'}
+              {t('categories.allSubcategories')}
             </button>
             {activeSubCategories.map((sub) => {
               const count = products.filter((p) => p.categoryId === sub.id).length;
@@ -423,11 +423,11 @@ export default function ProductsPage() {
                   {/* Stock and Price Row */}
                   <div className="mt-3 pt-2.5 border-t border-[#F4ECE1] flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Price</span>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('common.price') || 'Price'}</span>
                       <span className="font-extrabold text-sm text-[#E87A18] font-mono">{Number(prod.basePrice).toFixed(2)} ETB</span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block text-right">House Stock</span>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block text-right">{t('products.houseStock') || 'House Stock'}</span>
                       <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-extrabold border ${
                         stockQty > 20 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : stockQty > 0 ? 'bg-amber-100 text-amber-900 border-amber-200' : 'bg-rose-100 text-rose-800 border-rose-200'
                       }`}>

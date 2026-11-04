@@ -2,6 +2,9 @@ import { TranslationDictionary } from "./en";
 
 export const om: TranslationDictionary = {
   common: {
+    max: "Ol'aanaa",
+    totalItems: "Waliigala {count}",
+
     save: "Olkaa'i",
     cancel: "Haqi",
     delete: "Balleessi",
@@ -205,6 +208,12 @@ export const om: TranslationDictionary = {
     noTransactionsFound: "Sochiin barbaadame hin argamne.",
   },
   sessions: {
+    ownerDirectAuditMode: "Haala Odiitii Kallattii Abbaa Qabeenyaa",
+    ownerDirectAuditDesc: "Guyyaa cufame kallattiin sirreessaa jirtu. Herreega ykn maallaqa irratti jijjiiramni kamiyyuu gurgurtaa haaromsee gara guyyoota itti aananiitti ofumaan darba.",
+    maxAvailableStock: "Kuusaa Ol'aanaa Argamu",
+
+    closedStatus: "CUFAMEERA",
+
     title: "Yeroolee Hojii Guyyaa",
     subtitle: "Maallaqa jalqabaa, hordoffii gurgurtaa, hambaa oomishaa (Adarii), fi cufiinsa yeroo to'achuuf.",
     startNewSession: "Cufiinsa Har'aa Jalqabi",
@@ -773,6 +782,17 @@ export const om: TranslationDictionary = {
     batches: "Kuusaalee",
   },
   stock: {
+    adjustCount: "Lakkofsa Sirreessi",
+    estimatedWasteCost: "Baasii qisaasaa tilmaamame",
+    clearDateFilter: "Calaltuu guyyaa haqii",
+    unitKgDesc: "Kg (Kiiloograamii)",
+    unitPieceDesc: "Tokkoo (Firi)",
+    unitLiterDesc: "Liitirii",
+    onlyOwnerPermissionMaterials: "Hojjettoonni oomishaa meeshaalee dheedhii kam akka fayyadaman murteessuuf abbaa qabeenyaa qofatu eeyyama qaba.",
+    backToStock: "Gara Kuusaatti Deebi'i",
+    unsavedPermissions: "Eeyyamoota Hin Galmoofne",
+    unsavedPermissionsNotice: "Jijjiiramoonni hin galmoofne jiru. Gahee biraatti osoo hin darbiniin dura galmeessaa.",
+
     title: "Meeshaalee Dhiyeessii & Kuusaa",
     subtitle: "Hamma daakuu, sukkaara fi dhadhaa, akkasumas dhiyeessitoota fi liqii hordofi.",
     newItem: "Meeshaa Haaraa Ida'i",
@@ -1251,6 +1271,11 @@ export const om: TranslationDictionary = {
     statusAvailableForSale: "Gurgurtaaf Kan Qophaa'e",
   },
   categories: {
+    noSubcategories: "Garee xiqqaan hin argamne. Garee guddaa jalatti uumuuf '+ Garee Xiqqaa Dabali' cuqaasaa.",
+    deleteCategoryTitle: "Garee Oomishaa Haqi",
+    confirmDeleteCategory: "Dhuguma '{name}' haquu barbaadduu? Gochi kun duubatti deebi'uu hin danda'u.",
+    deleteCategoryBtn: "Garee Haqi",
+
     title: "Gosa Oomishaalee",
     subtitle: "Oomishaalee kushiinaa keessatti oomishamanii fi dhiyeessitoota irraa bitamanii gurguraman qindeessi.",
     manageSubtitle: "Gosa oomishaalee fi kutaa isaanii bulchaa",
@@ -1364,6 +1389,16 @@ export const om: TranslationDictionary = {
     toastFailedToDelete: "Damee haquun hin milkoofne.",
   },
   users: {
+    uploadPersonnelMediaDesc: "Suuraa hojjetaa fi sanada waraqaa eenyummaa seeraa olfe'aa",
+    idDocumentFormatsDesc: "Waraqaa eenyummaa gandaa, paaspoortii, waliigaltee ykn heyyama konkolaachisummaa (PDF ykn Suuraa).",
+    discardRegistrationConfirm: "Oodeeffannoo galmee hojjetaa galchitanii jirtu. Dhiistanii ba'uu barbaadduu?",
+    managePersonnelMediaDesc: "Suuraa hojjetaa fi waraqaa eenyummaa seeraa addaan qooduun bulchaa",
+    officialDocOnFile: "Sanadni Seeraa Qabameera",
+    currentAvatarActive: "Suuraan ammaa hojii irra jira",
+    ownerSecurityVerification: "Mirkaneessa Nageenya Abbaa Qabeenyaa",
+    mustBeAfterStartDate: "Guyyaa hojii eegaleen walqixa ykn sana booda ta'uu qaba",
+    autoCalculatedFromStartDate: "Guyyaa hojii eegalame irraa ofumaan herreegama",
+
     title: "Hojjettoota & Herrega Ittifayyadamtootaa",
     subtitle: "Mirga galumsaa, gahee hojii, ramaddii dammee, bilbila fi odeeffannoo hojjettootaa to'adhu.",
     newUser: "Herrega Hojjetaa Haaraa Uumi",
@@ -1487,6 +1522,19 @@ export const om: TranslationDictionary = {
     cannotDeactivateSelf: "Herrega ofii dhoowwuun hin danda'amu.",
   },
   payroll: {
+    savePayrollChanges: "Jijjiirama Mindaa Galmeessi",
+
+    loanPackageAmount: "Hamma Liqii (ETB)",
+    statusOpenActive: "BANA (Liqii Hin Kaffalamne)",
+    statusPaidSettled: "KAFFALAME (Guutuu Kaffalame)",
+    settlementStatus: "Haala Kaffaltii",
+    pendingNotDeducted: "Eeggataa jira (Mindaa irraa hin hir'ifamne)",
+    editPayrollTitle: "Galmee Mindaa fi Kaffaltii Xumuraa Sirreessi",
+    editPayrollDesc: "Mindaa ka'umsaa, boonasii, hir'ifamoota sirreessaa ykn kaffaltii xumuraa kallattiin jijjiiraa.",
+    finalNetSalaryPayout: "Kaffaltii Mindaa Qulqulluu Xumuraa (ETB)",
+    overridePayoutDesc: "Kaffaltii galmee kanaaf qabame kallattiin bakka buusa.",
+    savePenaltyChanges: "Jijjiirama Adabbii Galmeessi",
+
     title: "Mindaa & Kaffaltii Hojjettootaa",
     subtitle: "Waraqaa mindaa ji'aa qopheessi, hir'ifama liqii fi adabbii raawwadhu, kaffaltii mirkaneessi.",
     generatePayroll: "Mindaa Ji'aa Qopheessi",
@@ -1662,6 +1710,9 @@ export const om: TranslationDictionary = {
     selectLanguage: "Afaan Filadhu",
   },
   ownerLoans: {
+    noSpecificReason: "Sababni ifaa hin ibsamne",
+    historyWithCount: "Seenaa ({count})",
+
     title: "Liqiiwwan Dhuunfaa Abbaa Qabeenyaa",
     subtitle: "Liqii dhuunfaa qabeenya mana daabboo irraa fudhatame hordofi, liqii haaraa galmeessi, fi kaffaltii raawwadhu.",
     logNewLoan: "Liqii Dhuunfaa Haaraa Galmeessi",

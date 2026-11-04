@@ -342,7 +342,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   const handleLogResellDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resellSupplierId || !resellProductId || !resellQty || !resellBuyPrice) {
-      toast.error("Supplier, product, quantity, and buy price are required");
+      toast.error(t('sessions.toastResellRequiredFields'));
       return;
     }
 
@@ -356,7 +356,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     } else if (resellPaymentMode === 'PARTIAL') {
       const enteredPaid = Number(resellPaidAmountNow) || 0;
       if (enteredPaid <= 0) {
-        toast.error("Please enter a valid partial payment amount, or choose 'On Credit'");
+        toast.error(t("sessions.toastValidPartialAmount"));
         return;
       }
       amountPaidNow = Math.min(totalCost, enteredPaid);
@@ -376,7 +376,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         isPaid,
         sessionId: resolvedParams.id,
       });
-      toast.success("Resell delivery logged for this session!");
+      toast.success(t('sessions.toastResellLogged'));
       setIsResellFormOpen(false);
       setResellSupplierId("");
       setResellProductId("");
@@ -467,7 +467,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       };
 
       await api.post(`/daily-sessions/${resolvedParams.id}/save-draft`, payload);
-      toast.success("Draft saved successfully! Leftovers, cash counts, and exchange log are stored.");
+      toast.success(t('sessions.toastDraftSaved'));
       await fetchSessionAndProducts();
       queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] });
@@ -485,7 +485,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     setIsSubmitting(true);
     try {
       await api.patch(`/daily-sessions/${resolvedParams.id}`, payload);
-      toast.success("Session edits saved successfully!");
+      toast.success(t('sessions.toastSessionEditsSaved'));
       fetchSessionAndProducts();
       queryClient.invalidateQueries({ queryKey: ["daily-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] });
@@ -503,7 +503,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     setIsSubmitting(true);
     try {
       await api.post(`/daily-sessions/${resolvedParams.id}/submit-close`, payload);
-      toast.success("Session close request submitted to Admin/Owner for approval");
+      toast.success(t('sessions.toastSessionSubmittedApproval'));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["daily-sessions"] }),
         queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] }),
@@ -519,7 +519,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
   const handleFinalizeApprove = async () => {
     if (!isOwner) {
-      toast.error("Only the Owner can finalize session approval");
+      toast.error(t('sessions.toastOnlyOwnerFinalize'));
       return;
     }
     const payload = buildPayload();
@@ -527,7 +527,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
     setIsSubmitting(true);
     try {
       await api.post(`/daily-sessions/${resolvedParams.id}/finalize`, payload);
-      toast.success("Session close request approved and finalized!");
+      toast.success(t('sessions.toastSessionApproved'));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["daily-sessions"] }),
         queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] }),
@@ -544,13 +544,13 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
   const handleReopenSession = async () => {
     if (!isOwner) {
-      toast.error("Only the Owner can reopen a closed session");
+      toast.error(t('sessions.toastOnlyOwnerReopen'));
       return;
     }
     setIsSubmitting(true);
     try {
       await api.post(`/daily-sessions/${resolvedParams.id}/reopen`);
-      toast.success("Session reopened to OPEN status");
+      toast.success(t('sessions.toastSessionReopenedOpen'));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["daily-sessions"] }),
         queryClient.invalidateQueries({ queryKey: ["daily-session", resolvedParams.id] }),
@@ -585,7 +585,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
   if (!session) {
     return (
       <DashboardLayout>
-        <div className="text-center py-20 text-red-600 font-semibold">Session not found.</div>
+        <div className="text-center py-20 text-red-600 font-semibold">{t('sessions.sessionNotFound')}</div>
       </DashboardLayout>
     );
   }
@@ -610,7 +610,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               <Tag className="w-4 h-4 text-[#E87A18] shrink-0" />
               <Input
                 type="text"
-                placeholder="Daily Closing Label (e.g. Daily Closing - 2026-10-19)"
+                placeholder={t('sessions.labelPlaceholder')}
                 value={sessionLabel}
                 disabled={isViewOnly}
                 onChange={(e) => setSessionLabel(e.target.value)}
@@ -638,7 +638,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               variant={!isViewOnly ? "default" : "ghost"}
               onClick={() => {
                 if (session.status === "CLOSED" && !isOwner) {
-                  toast.error("Session is closed. Only the Owner can modify closed sessions or reopen them.");
+                  toast.error(t('sessions.toastSessionClosedRestricted'));
                   return;
                 }
                 setIsViewOnly(false);
@@ -666,9 +666,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start space-x-3 shadow-sm">
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-extrabold text-sm">Owner Direct Audit Mode</h4>
+            <h4 className="font-extrabold text-sm">{t('sessions.ownerDirectAuditMode')}</h4>
             <p className="text-xs text-amber-800 mt-0.5">
-              You are directly modifying a <strong>CLOSED</strong> session. Any updates to counts or cash amounts will recalculate sales and automatically cascade forward to subsequent business days.
+              {t('sessions.ownerDirectAuditDesc')}
             </p>
           </div>
         </div>
@@ -679,7 +679,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         <div className="mb-6 p-4 rounded-2xl bg-zinc-100 border border-zinc-200 text-zinc-900 flex items-start space-x-3 shadow-sm">
           <Lock className="w-5 h-5 text-zinc-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-extrabold text-sm">Session Closed (Read Only)</h4>
+            <h4 className="font-extrabold text-sm">{t("sessions.sessionClosedReadOnly") || "Session Closed (Read Only)"}</h4>
             <p className="text-xs text-zinc-700 mt-0.5">
               This session is closed and locked. Only the Owner can modify closed sessions or reopen them. If corrections are needed, please request the Owner to reopen this session.
             </p>
@@ -692,7 +692,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start space-x-3 shadow-sm">
           <AlertTriangle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-extrabold text-sm">Session Close Submitted — Pending Owner Approval</h4>
+            <h4 className="font-extrabold text-sm">{t("sessions.sessionClosePendingApproval") || "Session Close Submitted — Pending Owner Approval"}</h4>
             <p className="text-xs text-amber-800 mt-0.5">
               {isOwner
                 ? "The closing report and inventory counts have been submitted. You can review, make adjustments, and click 'Approve & Finalize Session' below."
@@ -709,25 +709,25 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             <div>
               <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <PackageCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span>Production & Resell Summary</span>
+                <span>{t("sessions.productionAndResellSummary") || "Production & Resell Summary"}</span>
               </h2>
               <p className="text-xs text-[#8C7361] mt-0.5">
-                Produced items and resale stock logged in this shift.
+                {t("sessions.producedItemsAndResaleStock") || "Produced items and resale stock logged in this shift."}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
-                {productionSummary.reduce((acc, p) => acc + p.totalProduced, 0)} Pcs Produced
+                {productionSummary.reduce((acc, p) => acc + p.totalProduced, 0)} {t("sessions.pcsProduced") || "Pcs Produced"}
               </span>
               <span className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-800 rounded-full border border-indigo-200">
-                {supplierDeliveries.reduce((acc, d) => acc + d.quantityReceived, 0)} Resell Pcs Delivered
+                {supplierDeliveries.reduce((acc, d) => acc + d.quantityReceived, 0)} {t("sessions.resellPcsDelivered") || "Resell Pcs Delivered"}
               </span>
             </div>
           </div>
 
           {productionSummary.length === 0 && supplierDeliveries.length === 0 ? (
             <div className="text-center py-6 border border-dashed border-[#EDE4D5] rounded-xl text-xs text-[#8C7361]">
-              No production batches or resell deliveries recorded for this session date yet.
+              {t("sessions.noBatchesOrDeliveries") || "No production batches or resell deliveries recorded for this session date yet."}
             </div>
           ) : (
             <div className="space-y-4">
@@ -772,10 +772,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-sm">
           <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] mb-1 flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-[#E87A18] shrink-0" />
-            <span>Payment Channels & Cash Reconciliation</span>
+            <span>{t("sessions.paymentChannelsAndReconciliation") || "Payment Channels & Cash Reconciliation"}</span>
           </h2>
           <p className="text-xs text-[#8C7361] mb-5">
-            Record actual collected revenues (Cash in Hand, CBE Bank, Telebirr) and specify the Leftover Cash reserved for tomorrow's opening float.
+            {t("sessions.recordActualRevenues") || "Record actual collected revenues (Cash in Hand, CBE Bank, Telebirr) and specify the Leftover Cash reserved for tomorrow's opening float."}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -784,13 +784,13 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] flex items-center justify-between gap-1.5 mb-2">
                   <span className="flex items-center gap-1.5">
-                    <Banknote className="w-4 h-4 text-emerald-600" /> Cash in Hand Today
+                    <Banknote className="w-4 h-4 text-emerald-600" /> {t("sessions.cashInHandToday") || "Cash in Hand Today"}
                   </span>
                 </label>
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="0.00 ETB"
+                  placeholder="0.00"
                   value={actualCash}
                   disabled={isViewOnly}
                   onFocus={(e) => e.target.select()}
@@ -798,19 +798,19 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
                 />
               </div>
-              <p className="text-[10px] text-[#8C7361] mt-2">Physical paper Birr collected</p>
+              <p className="text-[10px] text-[#8C7361] mt-2">{t('sessions.paperCashCollected')}</p>
             </div>
 
             {/* 2. CBE Bank Transfer */}
             <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] flex flex-col justify-between">
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] flex items-center gap-1.5 mb-2">
-                  <CreditCard className="w-4 h-4 text-blue-600" /> CBE Bank Transfer
+                  <CreditCard className="w-4 h-4 text-blue-600" /> {t("sessions.cbeBankTransfer") || "CBE Bank Transfer"}
                 </label>
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="0.00 ETB"
+                  placeholder="0.00"
                   value={actualCbe}
                   disabled={isViewOnly}
                   onFocus={(e) => e.target.select()}
@@ -818,19 +818,19 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
                 />
               </div>
-              <p className="text-[10px] text-[#8C7361] mt-2">Direct bank transfer income</p>
+              <p className="text-[10px] text-[#8C7361] mt-2">{t('sessions.directBankTransferIncome')}</p>
             </div>
 
             {/* 3. Telebirr Mobile Money */}
             <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#EDE4D5] flex flex-col justify-between">
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] flex items-center gap-1.5 mb-2">
-                  <Smartphone className="w-4 h-4 text-purple-600" /> Telebirr Money
+                  <Smartphone className="w-4 h-4 text-purple-600" /> {t("sessions.telebirrMoney") || "Telebirr Money"}
                 </label>
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="0.00 ETB"
+                  placeholder="0.00"
                   value={actualTelebirr}
                   disabled={isViewOnly}
                   onFocus={(e) => e.target.select()}
@@ -838,7 +838,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   className="bg-white border-[#EDE4D5] font-mono font-bold text-base disabled:opacity-80"
                 />
               </div>
-              <p className="text-[10px] text-[#8C7361] mt-2">Mobile wallet payment income</p>
+              <p className="text-[10px] text-[#8C7361] mt-2">{t('sessions.mobileWalletPaymentIncome')}</p>
             </div>
 
             {/* 4. Leftover Cash for Tomorrow */}
@@ -846,7 +846,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               <div>
                 <label className="text-xs font-bold text-[#92400E] flex items-center justify-between gap-1.5 mb-2">
                   <span className="flex items-center gap-1.5">
-                    <RefreshCw className="w-4 h-4 text-amber-600" /> Tomorrow's Float (Leftover)
+                    <RefreshCw className="w-4 h-4 text-amber-600" /> {t("sessions.tomorrowFloat") || "Tomorrow's Float (Leftover)"}
                   </span>
                   {session?.cashLeftoverAmount != null && (
                     <span className="text-[9px] font-extrabold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300">
@@ -857,7 +857,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="0.00 ETB"
+                  placeholder="0.00"
                   value={cashLeftover}
                   disabled={isViewOnly}
                   onFocus={(e) => e.target.select()}
@@ -865,35 +865,35 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   className="bg-white border-[#FDE68A] font-mono font-bold text-base text-[#92400E] disabled:opacity-80"
                 />
               </div>
-              <p className="text-[10px] text-amber-700 font-medium mt-2">Cash kept in drawer for tomorrow</p>
+              <p className="text-[10px] text-amber-700 font-medium mt-2">{t('sessions.cashKeptInDrawerTomorrow')}</p>
             </div>
           </div>
 
           {/* Detailed Financial Summary & Reconciliation Bar */}
           <div className="mt-5 pt-4 border-t border-[#F4ECE1] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <div className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#8C7361] block">Total Shift Revenue</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#8C7361] block">{t('sessions.totalShiftRevenue')}</span>
               <span className="text-base sm:text-lg font-extrabold font-mono text-[#2C1B10] mt-1">
                 {((Number(actualCash) || 0) + (Number(actualCbe) || 0) + (Number(actualTelebirr) || 0)).toFixed(2)} ETB
               </span>
             </div>
 
             <div className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#8C7361] block">Bank Income (CBE + Telebirr)</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#8C7361] block">{t('sessions.bankIncome')}</span>
               <span className="text-base sm:text-lg font-extrabold font-mono text-blue-700 mt-1">
                 {((Number(actualCbe) || 0) + (Number(actualTelebirr) || 0)).toFixed(2)} ETB
               </span>
             </div>
 
             <div className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#8C7361] block">Cash Expenses Paid</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#8C7361] block">{t('sessions.cashExpensesPaid')}</span>
               <span className="text-base sm:text-lg font-extrabold font-mono text-rose-600 mt-1">
                 -{totalExpenseSum.toFixed(2)} ETB
               </span>
             </div>
 
             <div className="bg-emerald-50 p-3.5 rounded-xl border border-emerald-200 flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-800 block">Net Cash Handover / Deposit</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-800 block">{t('sessions.netCashHandover')}</span>
               <span className="text-base sm:text-lg font-extrabold font-mono text-emerald-700 mt-1">
                 {(
                   (Number(actualCash) || 0) -
@@ -911,10 +911,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             <div>
               <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#E87A18] shrink-0" />
-                <span>Session Expenses & Staff Loans</span>
+                <span>{t("sessions.sessionExpensesAndStaffLoans") || "Session Expenses & Staff Loans"}</span>
               </h2>
               <p className="text-xs text-[#8C7361] mt-0.5">
-                List all expenses paid during this shift (including staff loans, transport, raw material purchases, etc.)
+                {t("sessions.sessionExpensesDesc") || "List all expenses paid during this shift (including staff loans, transport, raw material purchases, etc.)"}
               </p>
             </div>
             <Button
@@ -923,7 +923,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               size="sm"
               className="bg-[#4A2E1B] text-white hover:bg-[#3D2314] text-xs font-bold rounded-xl disabled:opacity-50 w-full sm:w-auto h-9"
             >
-              <Plus className="w-4 h-4 mr-1" /> Add Expense Item
+              <Plus className="w-4 h-4 mr-1" /> {t("expenses.addExpense") || "Add Expense Item"}
             </Button>
           </div>
 
@@ -942,7 +942,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     className="bg-[#FAF6F0] p-3.5 rounded-xl border border-amber-300 shadow-2xs space-y-3 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 sm:items-center animate-in fade-in duration-150"
                   >
                     <div className="sm:col-span-4">
-                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Expense Category</label>
+                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">{t('expenses.categoryLabel')}</label>
                       <select
                         value={exp.category}
                         disabled={isViewOnly}
@@ -956,7 +956,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     </div>
 
                     <div className="sm:col-span-3">
-                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Amount (ETB)</label>
+                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">{t("common.amount")} (ETB)</label>
                       <Input
                         ref={idx === 0 ? expenseAmountInputRef : undefined}
                         type="number"
@@ -971,10 +971,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     </div>
 
                     <div className="sm:col-span-3">
-                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Description / Person / Reason</label>
+                      <label className="text-[10px] font-bold text-[#8C7361] block mb-1">{t('sessions.descPersonReason')}</label>
                       <Input
                         type="text"
-                        placeholder="e.g. Employee advance to Abebe / Flour purchase"
+                        placeholder={t('sessions.expenseNotesPlaceholder')}
                         value={exp.description || ""}
                         disabled={isViewOnly}
                         onChange={(e) => handleExpenseChange(idx, "description", e.target.value)}
@@ -989,7 +989,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                         onClick={() => handleExpenseChange(idx, "isEditing", false)}
                         className="bg-emerald-700 hover:bg-emerald-800 text-white h-9 px-3 text-xs font-bold rounded-lg flex-1 sm:flex-initial shadow-2xs"
                       >
-                        <Check className="w-3.5 h-3.5 mr-1" /> Done
+                        <Check className="w-3.5 h-3.5 mr-1" /> {t("common.done") || "Done"}
                       </Button>
                       <Button
                         type="button"
@@ -998,7 +998,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                         disabled={isViewOnly}
                         onClick={() => handleRemoveExpenseRow(idx)}
                         className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 rounded-lg disabled:opacity-40"
-                        title="Remove expense item"
+                        title={t("expenses.deleteExpense") || "Remove expense item"}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -1014,11 +1014,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                           {exp.category}
                         </span>
                         {exp.user?.fullName && (
-                          <span className="text-[10px] text-[#8C7361] font-medium">by {exp.user.fullName}</span>
+                          <span className="text-[10px] text-[#8C7361] font-medium">{t("common.by")} {exp.user.fullName}</span>
                         )}
                       </div>
                       <p className="text-xs text-[#2C1B10] font-medium">
-                        {exp.description ? exp.description : <span className="italic text-[#8C7361]">No description provided</span>}
+                        {exp.description ? exp.description : <span className="italic text-[#8C7361]">{t('sessions.noDescriptionProvided')}</span>}
                       </p>
                     </div>
 
@@ -1036,7 +1036,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                             onClick={() => handleExpenseChange(idx, "isEditing", true)}
                             className="h-8 px-2.5 text-xs font-bold text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#F4ECE1] rounded-lg"
                           >
-                            <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit
+                            <Edit3 className="w-3.5 h-3.5 mr-1" /> {t("common.edit")}
                           </Button>
                           <Button
                             type="button"
@@ -1044,7 +1044,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                             size="sm"
                             onClick={() => handleRemoveExpenseRow(idx)}
                             className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50 rounded-lg"
-                            title="Remove expense"
+                            title={t("expenses.deleteExpense") || "Remove expense"}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -1059,7 +1059,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
           <div className="mt-4 pt-3 border-t border-[#F4ECE1] text-right">
             <span className="text-xs font-bold text-[#8C7361]">
-              Total Session Expenses: <strong className="text-rose-600 font-mono text-sm ml-1">{totalExpenseSum.toFixed(2)} ETB</strong>
+              {t("sessions.totalSessionExpenses") || "Total Session Expenses:"} <strong className="text-rose-600 font-mono text-sm ml-1">{totalExpenseSum.toFixed(2)} ETB</strong>
             </span>
           </div>
         </div>
@@ -1070,10 +1070,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             <div>
               <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-indigo-600 shrink-0" />
-                <span>Resell Products & Supplier Deliveries</span>
+                <span>{t("sessions.resellProductsAndDeliveries") || "Resell Products & Supplier Deliveries"}</span>
               </h2>
               <p className="text-xs text-[#8C7361] mt-0.5">
-                External products purchased for resell (drinks, snacks, milk, water) during this session.
+                {t("sessions.resellProductsDesc") || "External products purchased for resell (drinks, snacks, milk, water) during this session."}
               </p>
             </div>
             <Button
@@ -1088,11 +1088,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             >
               {isResellFormOpen ? (
                 <>
-                  <X className="w-4 h-4 mr-1.5" /> Close Entry Form
+                  <X className="w-4 h-4 mr-1.5" /> {t("sessions.closeEntryForm") || "Close Entry Form"}
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4 mr-1.5" /> Log Resell Delivery
+                  <Plus className="w-4 h-4 mr-1.5" /> {t("sessions.logResellDelivery") || "Log Resell Delivery"}
                 </>
               )}
             </Button>
@@ -1110,8 +1110,8 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     <ShoppingCart className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-sm text-[#2C1B10]">Log Resell Product Delivery</h3>
-                    <p className="text-[11px] text-[#8C7361]">Record supplier purchases received during this shift</p>
+                    <h3 className="font-extrabold text-sm text-[#2C1B10]">{t('sessions.logResellDelivery')}</h3>
+                    <p className="text-[11px] text-[#8C7361]">{t('sessions.recordSupplierPurchasesDesc')}</p>
                   </div>
                 </div>
                 <Button
@@ -1130,7 +1130,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                      Supplier <span className="text-rose-600">*</span>
+                      {t("suppliers.supplier") || "Supplier"} <span className="text-rose-600">*</span>
                     </label>
                     <select
                       ref={resellSupplierRef}
@@ -1139,7 +1139,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       onChange={(e) => setResellSupplierId(e.target.value)}
                       className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     >
-                      <option value="">Select Supplier...</option>
+                      <option value="">{t('sessions.selectSupplier')}</option>
                       {suppliers.map((s) => (
                         <option key={s.id} value={s.id}>{s.name} ({s.type})</option>
                       ))}
@@ -1148,7 +1148,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
                   <div>
                     <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                      Resell Product <span className="text-rose-600">*</span>
+                      {t("sessions.resellProduct")} <span className="text-rose-600">*</span>
                     </label>
                     <select
                       required
@@ -1165,7 +1165,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       }}
                       className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     >
-                      <option value="">Select Product...</option>
+                      <option value="">{t('sessions.selectProduct')}</option>
                       {products
                         .filter((p) => p.category?.type === 'RESELL')
                         .map((p) => (
@@ -1179,7 +1179,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                      Quantity Received <span className="text-rose-600">*</span>
+                      {t("sessions.quantityReceived") || "Quantity Received"} <span className="text-rose-600">*</span>
                     </label>
                     <Input
                       type="number"
@@ -1193,7 +1193,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
                   <div>
                     <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                      Unit Buy Price (ETB) <span className="text-rose-600">*</span>
+                      {t("sessions.unitBuyPrice") || "Unit Buy Price (ETB)"} <span className="text-rose-600">*</span>
                     </label>
                     <Input
                       type="number"
@@ -1208,7 +1208,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
                   <div>
                     <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                      Unit Sell Price (ETB)
+                      {t("sessions.unitSellPrice") || "Unit Sell Price (ETB)"}
                     </label>
                     <Input
                       type="number"
@@ -1225,15 +1225,15 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                      Paid From
+                      {t("sessions.paidFrom") || "Paid From"}
                     </label>
                     <select
                       value={resellPaymentSource}
                       onChange={(e) => setResellPaymentSource(e.target.value as 'DAILY_CASH' | 'OWNER')}
                       className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     >
-                      <option value="DAILY_CASH">Daily Money (Cashier Register)</option>
-                      <option value="OWNER">Paid by Owner / Company Direct</option>
+                      <option value="DAILY_CASH">{t("sessions.dailyMoneyDrawer") || "Daily Money (Cashier Register)"}</option>
+                      <option value="OWNER">{t('sessions.paidByOwnerDirect')}</option>
                     </select>
                     <p className="text-[10px] text-[#8C7361] mt-1">
                       {resellPaymentSource === 'DAILY_CASH'
@@ -1244,7 +1244,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
                   <div>
                     <label className="text-xs font-bold text-[#4A2E1B] block mb-1">
-                      Payment Status
+                      {t("sessions.paymentStatus")}
                     </label>
                     <select
                       value={resellPaymentMode}
@@ -1258,9 +1258,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       }}
                       className="w-full bg-white border border-[#EDE4D5] rounded-xl h-10 text-xs px-3 font-medium text-[#2C1B10] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     >
-                      <option value="FULL">Paid Cash (100% Fully Paid Now)</option>
-                      <option value="PARTIAL">Partial Down Payment (Pay Some Now)</option>
-                      <option value="ZERO">On Credit (Unpaid Supplier Bill)</option>
+                      <option value="FULL">{t("sessions.paidImmediatelyFull") || "Paid Cash (100% Fully Paid Now)"}</option>
+                      <option value="PARTIAL">{t("sessions.partialDownPayment") || "Partial Down Payment (Pay Some Now)"}</option>
+                      <option value="ZERO">{t("sessions.onCreditSupplier") || "On Credit (Unpaid Supplier Bill)"}</option>
                     </select>
                     <p className="text-[10px] text-[#8C7361] mt-1">
                       {resellPaymentMode === 'FULL'
@@ -1288,7 +1288,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       min="0.01"
                       max={Number(resellQty) * Number(resellBuyPrice) || undefined}
                       required
-                      placeholder="Enter amount paid today..."
+                      placeholder={t('sessions.amountPaidTodayPlaceholder')}
                       value={resellPaidAmountNow}
                       onChange={(e) => setResellPaidAmountNow(e.target.value)}
                       className="bg-white border-amber-300 h-10 text-xs font-mono font-bold text-[#2C1B10] focus:ring-amber-500"
@@ -1300,14 +1300,14 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 <div className="bg-white p-3.5 rounded-xl border border-[#EDE4D5] flex flex-col gap-3.5">
                   <div className="flex items-center justify-between gap-3 text-xs border-b border-[#F4ECE1] pb-2.5">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Total Batch Cost</span>
+                      <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('sessions.totalBatchCost')}</span>
                       <span className="font-mono font-extrabold text-sm sm:text-base text-[#4A2E1B]">
                         {(Number(resellQty) * Number(resellBuyPrice) || 0).toFixed(2)} ETB
                       </span>
                     </div>
                     {Number(resellSellPrice) > 0 && (
                       <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Est. Revenue</span>
+                        <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t('sessions.estRevenue')}</span>
                         <span className="font-mono font-extrabold text-sm sm:text-base text-emerald-700">
                           {(Number(resellQty) * Number(resellSellPrice) || 0).toFixed(2)} ETB
                         </span>
@@ -1321,7 +1321,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       disabled={isLoggingResell}
                       className="bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold h-11 w-full shadow-xs flex items-center justify-center text-center"
                     >
-                      {isLoggingResell ? "Saving..." : "Save Resell Delivery"}
+                      {isLoggingResell ? (t("common.loading") || "Saving...") : (t("sessions.saveResellDelivery") || "Save Resell Delivery")}
                     </Button>
                     <Button
                       type="button"
@@ -1329,7 +1329,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       onClick={() => setIsResellFormOpen(false)}
                       className="border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] rounded-xl text-xs h-10 w-full font-bold hover:bg-[#FAF6F0]"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
                   </div>
                 </div>
@@ -1376,15 +1376,15 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       </div>
                       <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#EDE4D5] text-[11px]">
                         <div>
-                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Qty</span>
-                          <span className="font-mono font-extrabold text-amber-800">{del.quantityReceived} Pcs</span>
+                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">{t('common.quantity') || 'Qty'}</span>
+                          <span className="font-mono font-extrabold text-amber-800">{del.quantityReceived} {del.product?.unitType || "Pcs"}</span>
                         </div>
                         <div>
-                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Buy Price</span>
+                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">{t("sessions.buyPrice")}</span>
                           <span className="font-mono">{Number(del.unitBuyPrice).toFixed(2)}</span>
                         </div>
                         <div>
-                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">Sell Price</span>
+                          <span className="text-[9px] uppercase font-bold text-[#8C7361] block">{t("sessions.sellPrice")}</span>
                           <span className="font-mono font-bold text-[#2C1B10]">{Number(del.unitSellPrice).toFixed(2)}</span>
                         </div>
                       </div>
@@ -1398,12 +1398,12 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
                     <tr>
-                      <th className="p-3 font-extrabold text-[#2C1B10]">Supplier</th>
-                      <th className="p-3 font-extrabold text-[#2C1B10]">Resell Product</th>
-                      <th className="p-3 font-extrabold text-[#2C1B10]">Qty Received</th>
-                      <th className="p-3 font-extrabold text-[#2C1B10]">Buy Price</th>
-                      <th className="p-3 font-extrabold text-[#2C1B10]">Sell Price</th>
-                      <th className="p-3 font-extrabold text-[#2C1B10]">Payment Status</th>
+                      <th className="p-3 font-extrabold text-[#2C1B10]">{t('suppliers.title') || 'Supplier'}</th>
+                      <th className="p-3 font-extrabold text-[#2C1B10]">{t("sessions.resellProduct")}</th>
+                      <th className="p-3 font-extrabold text-[#2C1B10]">{t("sessions.qtyReceived")}</th>
+                      <th className="p-3 font-extrabold text-[#2C1B10]">{t("sessions.buyPrice")}</th>
+                      <th className="p-3 font-extrabold text-[#2C1B10]">{t("sessions.sellPrice")}</th>
+                      <th className="p-3 font-extrabold text-[#2C1B10]">{t("sessions.paymentStatus")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F4ECE1]">
@@ -1419,7 +1419,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                         <tr key={del.id}>
                           <td className="p-3 font-bold text-[#2C1B10]">{del.supplier?.name || "Supplier"}</td>
                           <td className="p-3 font-semibold text-zinc-900">{del.product?.name || "Product"}</td>
-                          <td className="p-3 font-mono font-bold text-amber-700">{del.quantityReceived} Pcs</td>
+                          <td className="p-3 font-mono font-bold text-amber-700">{del.quantityReceived} {del.product?.unitType || "Pcs"}</td>
                           <td className="p-3 font-mono">{Number(del.unitBuyPrice).toFixed(2)} ETB</td>
                           <td className="p-3 font-mono">{Number(del.unitSellPrice).toFixed(2)} ETB</td>
                           <td className="p-3">
@@ -1451,10 +1451,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-sm">
           <h2 className="text-base sm:text-lg font-extrabold text-[#2C1B10] mb-1 flex items-center gap-2">
             <PackageCheck className="w-5 h-5 text-amber-600 shrink-0" />
-            <span>Product Leftovers (Adari) & Losses</span>
+            <span>{t("sessions.productLeftoversAdariAndLosses") || "Product Leftovers (Adari) & Losses"}</span>
           </h2>
           <p className="text-xs text-[#8C7361] mb-4">
-            Enter the remaining unsold product quantities and any damaged items. Unsold leftovers cannot exceed total stock available in this session.
+            {t("sessions.productLeftoversDesc") || "Enter the remaining unsold product quantities and any damaged items. Unsold leftovers cannot exceed total stock available in this session."}
           </p>
 
           {/* Mobile Leftovers Touch Cards (< md) */}
@@ -1479,7 +1479,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       <p className="text-[10px] text-[#8C7361]">{p.unitType || "Pieces"}</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] font-bold text-[#8C7361] block">Max Available</span>
+                      <span className="text-[10px] font-bold text-[#8C7361] block">{t("sessions.maxAvailable")}</span>
                       <span className="font-mono font-extrabold text-xs text-amber-800">
                         {stockInfo ? stockInfo.maxAvailable : 0} Pcs
                       </span>
@@ -1494,7 +1494,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
 
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="text-[10px] font-bold text-[#4A2E1B] block mb-1">Unsold Remaining</label>
+                      <label className="text-[10px] font-bold text-[#4A2E1B] block mb-1">{t("sessions.unsoldRemaining")}</label>
                       <Input
                         type="number"
                         min="0"
@@ -1511,7 +1511,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-[#4A2E1B] block mb-1">Damaged (Pcs)</label>
+                      <label className="text-[10px] font-bold text-[#4A2E1B] block mb-1">{t("sessions.damagedPcs") || "Damaged (Pcs)"}</label>
                       <Input
                         type="number"
                         min="0"
@@ -1532,10 +1532,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                   )}
 
                   <div>
-                    <label className="text-[10px] font-bold text-[#8C7361] block mb-1">Damage Reason (Optional)</label>
+                    <label className="text-[10px] font-bold text-[#8C7361] block mb-1">{t("sessions.damageReasonOptional") || "Damage Reason (Optional)"}</label>
                     <Input
                       type="text"
-                      placeholder="e.g. dropped on floor, burnt..."
+                      placeholder={t('sessions.damageReasonPlaceholder')}
                       value={val.damageReason}
                       disabled={isViewOnly}
                       onChange={(e) => handleLeftoverChange(p.id, "damageReason", e.target.value)}
@@ -1552,10 +1552,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAF6F0] border-b border-[#EDE4D5]">
                 <tr>
-                  <th className="p-3 font-extrabold text-[#2C1B10]">Product Name & Session Stock</th>
-                  <th className="p-3 font-extrabold text-[#2C1B10] w-48">Unsold Remaining (Pcs)</th>
-                  <th className="p-3 font-extrabold text-[#2C1B10] w-36">Damaged (Pcs)</th>
-                  <th className="p-3 font-extrabold text-[#2C1B10]">Damage Reason</th>
+                  <th className="p-3 font-extrabold text-[#2C1B10]">{t("sessions.productNameAndSessionStock") || "Product Name & Session Stock"}</th>
+                  <th className="p-3 font-extrabold text-[#2C1B10] w-48">{t("sessions.unsoldRemainingPcs") || "Unsold Remaining (Pcs)"}</th>
+                  <th className="p-3 font-extrabold text-[#2C1B10] w-36">{t("sessions.damagedPcs") || "Damaged (Pcs)"}</th>
+                  <th className="p-3 font-extrabold text-[#2C1B10]">{t("sessions.damageReason")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F4ECE1]">
@@ -1571,7 +1571,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       <td className="p-3">
                         <div className="font-extrabold text-xs text-[#2C1B10]">{p.name}</div>
                         <div className="text-[10px] font-semibold text-[#8C7361] mt-0.5">
-                          Max Available Stock: <strong className="text-amber-800 font-mono font-bold">{stockInfo ? stockInfo.maxAvailable : 0} Pcs</strong>
+                          {t('sessions.maxAvailableStock') || 'Max Available Stock'}: <strong className="text-amber-800 font-mono font-bold">{stockInfo ? stockInfo.maxAvailable : 0} {p.unitType || 'Pcs'}</strong>
                           {stockInfo && (
                             <span> (Produced/Delivered: {stockInfo.producedQty + stockInfo.deliveredQty}, Sold: {stockInfo.soldQty})</span>
                           )}
@@ -1612,7 +1612,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
                       <td className="p-3">
                         <Input
                           type="text"
-                          placeholder="Reason if damaged..."
+                          placeholder={t('sessions.damageShortReasonPlaceholder')}
                           value={val.damageReason}
                           disabled={isViewOnly}
                           onChange={(e) => handleLeftoverChange(p.id, "damageReason", e.target.value)}
@@ -1656,7 +1656,7 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           <div>
             <textarea
               rows={3}
-              placeholder="e.g. 10:30 AM: Exchanged 2,000 ETB cash for CBE with customer. 2:00 PM: Counter 1 took 500 ETB change float..."
+              placeholder={t('sessions.exchangeLogPlaceholder')}
               value={exchangeLogs}
               disabled={isViewOnly}
               onChange={(e) => setExchangeLogs(e.target.value)}
@@ -1665,10 +1665,10 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[#2C1B10] block mb-1">Session Closing Notes / Remarks</label>
+            <label className="text-xs font-bold text-[#2C1B10] block mb-1">{t('sessions.closingNotesRemarks')}</label>
             <textarea
               rows={2}
-              placeholder="Add any remarks regarding sales, stock differences, or staff notes..."
+              placeholder={t('sessions.staffRemarksPlaceholder')}
               value={notes}
               disabled={isViewOnly}
               onChange={(e) => setNotes(e.target.value)}

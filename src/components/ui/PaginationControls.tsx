@@ -2,6 +2,7 @@
 import React from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Button } from "./button";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface PaginationControlsProps {
   currentPage: number;
@@ -25,9 +26,12 @@ export function PaginationControls({
   onPageChange,
   onPageSizeChange,
   isLoading = false,
-  itemLabel = "items",
+  itemLabel,
   className = "",
 }: PaginationControlsProps) {
+  const { t } = useLanguage();
+  const effectiveItemLabel = itemLabel || t("common.items") || "items";
+
   if (totalPages <= 1 && (!totalItems || totalItems === 0)) {
     return null;
   }
@@ -65,21 +69,26 @@ export function PaginationControls({
       <div className="flex items-center gap-2">
         {totalItems != null && startItem != null && endItem != null ? (
           <div>
-            Showing <strong className="text-[#2C1B10] font-semibold">{startItem}</strong> to{" "}
-            <strong className="text-[#2C1B10] font-semibold">{endItem}</strong> of{" "}
-            <strong className="text-[#2C1B10] font-semibold">{totalItems}</strong> {itemLabel}
+            {t("common.showingOf", {
+              start: String(startItem),
+              end: String(endItem),
+              total: String(totalItems),
+              items: effectiveItemLabel,
+            })}
           </div>
         ) : (
           <div>
-            Page <strong className="text-[#2C1B10] font-semibold">{safeCurrentPage}</strong> of{" "}
-            <strong className="text-[#2C1B10] font-semibold">{totalPages}</strong>
+            {t("common.pageOf", {
+              current: String(safeCurrentPage),
+              total: String(totalPages),
+            })}
           </div>
         )}
 
         {/* Optional Page size selector */}
         {onPageSizeChange && pageSize && (
           <div className="flex items-center gap-1.5 ml-2 border-l border-zinc-200 pl-3">
-            <span className="text-[11px] text-[#8C7361]">Rows:</span>
+            <span className="text-[11px] text-[#8C7361]">{t("common.rows") || "Rows:"}</span>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
@@ -105,7 +114,7 @@ export function PaginationControls({
           disabled={safeCurrentPage <= 1 || isLoading}
           onClick={() => onPageChange(1)}
           className="h-8 w-8 p-0 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40"
-          title="First page"
+          title={t("common.firstPage") || "First page"}
         >
           <ChevronsLeft className="w-3.5 h-3.5" />
         </Button>
@@ -118,7 +127,7 @@ export function PaginationControls({
           className="h-8 px-2 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40 flex items-center gap-1"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-xs font-semibold">Prev</span>
+          <span className="hidden sm:inline text-xs font-semibold">{t("common.prev") || "Prev"}</span>
         </Button>
 
         {/* Page buttons */}
@@ -161,7 +170,7 @@ export function PaginationControls({
           onClick={() => onPageChange(safeCurrentPage + 1)}
           className="h-8 px-2 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40 flex items-center gap-1"
         >
-          <span className="hidden sm:inline text-xs font-semibold">Next</span>
+          <span className="hidden sm:inline text-xs font-semibold">{t("common.next") || "Next"}</span>
           <ChevronRight className="w-3.5 h-3.5" />
         </Button>
         <Button
@@ -171,7 +180,7 @@ export function PaginationControls({
           disabled={safeCurrentPage >= totalPages || isLoading}
           onClick={() => onPageChange(totalPages)}
           className="h-8 w-8 p-0 rounded-lg border-[#EDE4D5] text-[#2C1B10] hover:bg-[#FAF7EE] disabled:opacity-40"
-          title="Last page"
+          title={t("common.lastPage") || "Last page"}
         >
           <ChevronsRight className="w-3.5 h-3.5" />
         </Button>

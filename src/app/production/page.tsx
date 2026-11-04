@@ -726,7 +726,7 @@ export default function ProductionPage() {
                   {t('production.colProductsBaked')} ({batch.items.length})
                 </span>
                 {batch.items.length === 0 ? (
-                  <span className="text-xs text-zinc-400 italic">No products</span>
+                  <span className="text-xs text-zinc-400 italic">{t('production.noProducts') || 'No products'}</span>
                 ) : (
                   <div className="space-y-1.5">
                     <div className="inline-flex max-w-full items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FAF6F0] border border-[#EDE4D5] text-xs font-bold text-[#2C1B10]">
@@ -824,7 +824,7 @@ export default function ProductionPage() {
                     {navigatingBatchId === batch.id ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-[#E87A18]" />
-                        <span>Loading...</span>
+                        <span>{t('common.loading') || "Loading..."}</span>
                       </>
                     ) : (
                       <>
@@ -1014,7 +1014,7 @@ export default function ProductionPage() {
                 </TableCell>
                 <TableCell>
                   {batch.items.length === 0 ? (
-                    <span className="text-zinc-400 italic text-xs">No products</span>
+                    <span className="text-zinc-400 italic text-xs">{t('production.noProducts') || 'No products'}</span>
                   ) : (
                     <div className="space-y-1.5">
                       <div className="font-bold text-[#2C1B10] text-sm">
@@ -1029,7 +1029,7 @@ export default function ProductionPage() {
                             type="button"
                             onClick={(e) => navigateToBatch(batch.id, e)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#4A2E1B] border border-[#EDE4D5] hover:border-[#4A2E1B]/30 transition-all cursor-pointer group shadow-2xs"
-                            title="View all products in batch"
+                            title={t('production.viewAllProducts') || 'View all products in batch'}
                           >
                             <span className="text-[#E87A18] font-black">+{batch.items.length - 1}</span>
                             <span className="font-semibold text-[#8C7361] group-hover:text-[#4A2E1B]">
@@ -1056,7 +1056,7 @@ export default function ProductionPage() {
                             type="button"
                             onClick={(e) => navigateToBatch(batch.id, e)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 hover:border-rose-300 transition-all cursor-pointer group shadow-2xs"
-                            title="View all raw materials in batch"
+                            title={t('production.viewAllMaterials') || 'View all raw materials in batch'}
                           >
                             <span className="text-rose-600 font-black">+{batch.materialUsages.length - 1}</span>
                             <span className="font-semibold text-rose-700">
@@ -1101,7 +1101,7 @@ export default function ProductionPage() {
                       {navigatingBatchId === batch.id ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-[#E87A18]" />
-                          <span>Loading...</span>
+                          <span>{t('common.loading') || "Loading..."}</span>
                         </>
                       ) : (
                         <>

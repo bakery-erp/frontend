@@ -249,7 +249,7 @@ export default function PayrollLoansPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-[#8C7361]" />
             <Input
-              placeholder="Search by staff name or phone..."
+              placeholder={t('payroll.searchStaffPlaceholder')}
               className="pl-9 h-10 rounded-xl border-[#EDE4D5] bg-[#FAF6F0]/50 text-xs sm:text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -263,11 +263,11 @@ export default function PayrollLoansPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full h-10 rounded-xl border border-[#EDE4D5] bg-[#FAF6F0]/50 px-3 text-xs sm:text-sm font-semibold text-[#2C1B10] focus:outline-none"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="OPEN">Open (Approved)</option>
-              <option value="PENDING_APPROVAL">Pending Review</option>
-              <option value="PAID">Fully Repaid</option>
-              <option value="REJECTED">Rejected</option>
+              <option value="ALL">{t("common.allStatuses") || "All Statuses"}</option>
+              <option value="OPEN">{t("payroll.statusOpenApproved") || "Open (Approved)"}</option>
+              <option value="PENDING_APPROVAL">{t("common.pendingReview") || "Pending Review"}</option>
+              <option value="PAID">{t("payroll.statusFullyRepaid") || "Fully Repaid"}</option>
+              <option value="REJECTED">{t("common.rejected") || "Rejected"}</option>
             </select>
           </div>
 
@@ -282,7 +282,7 @@ export default function PayrollLoansPage() {
               }}
               className="h-10 px-3 border-[#EDE4D5] text-[#8C7361] hover:text-[#4A2E1B] rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset
+              <RotateCcw className="w-3.5 h-3.5" /> {t("common.reset") || "Reset"}
             </Button>
           )}
         </div>

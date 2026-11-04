@@ -235,7 +235,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
     if (!credit) return;
     const amtNum = Number(editCreditAmount);
     if (isNaN(amtNum) || amtNum <= 0) {
-      toast.error("Please enter a valid total credit amount greater than 0.");
+      toast.error(t("credits.toastValidAmountRequired"));
       return;
     }
 
@@ -452,7 +452,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                   <Link
                     href={`/customers/${credit.customer.id}`}
                     className="hover:text-[#E87A18] hover:underline transition-colors truncate"
-                    title="View Customer Profile & Ledger"
+                    title={t("credits.viewCustomerProfile") || "View Customer Profile & Ledger"}
                   >
                     {parsed.name}
                   </Link>
@@ -481,7 +481,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E87A18] hover:underline bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#EDE4D5]"
                   >
                     <User className="w-3 h-3" />
-                    Customer Profile & Full Ledger →
+                    {t("credits.customerProfileAndLedger") || "Customer Profile & Full Ledger →"}
                   </Link>
                 </div>
               )}
@@ -826,7 +826,7 @@ export default function CustomerCreditDetailPage({ params }: { params: Promise<{
               </label>
               <textarea
                 rows={3}
-                placeholder="Product summary, delivery references, notes..."
+                placeholder={t("credits.statementNotesPlaceholder")}
                 value={editCreditDescription}
                 onChange={(e) => setEditCreditDescription(e.target.value)}
                 className="w-full border border-zinc-200 rounded-xl p-2.5 text-xs text-[#2C1B10] outline-none focus:ring-2 focus:ring-[#E87A18]/30 resize-none"

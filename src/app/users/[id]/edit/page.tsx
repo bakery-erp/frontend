@@ -115,11 +115,11 @@ export default function EditUserPage() {
           if (res.data.startDate) setStartDateVal(res.data.startDate.split("T")[0]);
           if (res.data.lastPaidDate) setLastPaidDateVal(res.data.lastPaidDate.split("T")[0]);
         } else {
-          toast.error("User not found");
+          toast.error(t("users.toastUserNotFound"));
           router.push("/users");
         }
       } catch (err: any) {
-        toast.error("Failed to load user information");
+        toast.error(t("users.toastFailedLoadUser"));
         router.push("/users");
       } finally {
         setLoading(false);
@@ -139,7 +139,7 @@ export default function EditUserPage() {
       if (userData.role === 'OWNER') {
         const currentPassword = formData.get("currentPassword") as string;
         if (!currentPassword || !currentPassword.trim()) {
-          toast.error("Current password is required to save changes to an Owner account");
+          toast.error(t("users.toastCurrentPasswordRequired"));
           setIsSubmitting(false);
           return;
         }
@@ -161,7 +161,7 @@ export default function EditUserPage() {
 
       const role = formData.get("role") as string;
       if (role === 'OWNER' && user?.role !== 'OWNER') {
-        toast.error("Privilege restriction: Only Owners can assign the Owner role");
+        toast.error(t("users.toastOnlyOwnerAssignOwner"));
         setIsSubmitting(false);
         return;
       }
@@ -223,12 +223,12 @@ export default function EditUserPage() {
   const handleDelete = async () => {
     if (!userData) return;
     if (user?.role !== "OWNER") {
-      toast.error("Access Restricted: Only Owner can delete users");
+      toast.error(t("users.toastOnlyOwnerDelete"));
       setIsDeleteModalOpen(false);
       return;
     }
     if (!deletePassword.trim()) {
-      toast.error("Please enter your account password to confirm deletion");
+      toast.error(t("users.toastPasswordConfirmRequired"));
       return;
     }
     try {
@@ -239,7 +239,7 @@ export default function EditUserPage() {
       if (res.data?.deactivated) {
         toast.info(res.data.message || "User deactivated (historical transaction records preserved)");
       } else {
-        toast.success("User deleted successfully");
+        toast.success(t("users.toastUserDeleted"));
       }
       queryClient.invalidateQueries({ queryKey: ["users-page"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-users"] });
@@ -334,7 +334,7 @@ export default function EditUserPage() {
                 <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 uppercase">
                     <Lock className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Owner Security Verification</span>
+                    <span>{t('users.ownerSecurityVerification') || 'Owner Security Verification'}</span>
                   </div>
                   <p className="text-[11px] text-[#8C7361]">
                     To protect owner privileges, your current password is required to save any changes to this account.
@@ -347,7 +347,7 @@ export default function EditUserPage() {
                       <Input
                         name="currentPassword"
                         type={showCurrentPassword ? "text" : "password"}
-                        placeholder="Enter your current password"
+                        placeholder={t("users.enterCurrentPasswordPlaceholder")}
                         required
                         className="h-10 rounded-xl border-[#EDE4D5] bg-white text-sm pr-10"
                       />
@@ -539,7 +539,7 @@ export default function EditUserPage() {
                   value={lastPaidDateVal}
                   onChange={handleLastPaidDateChange}
                 />
-                <p className="text-[10px] text-[#8C7361] mt-1">Must be on or after start date</p>
+                <p className="text-[10px] text-[#8C7361] mt-1">{t('users.mustBeAfterStartDate') || 'Must be on or after start date'}</p>
               </div>
             </div>
           </div>
@@ -552,7 +552,7 @@ export default function EditUserPage() {
               </div>
               <div>
                 <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionDocs') || "Staff Media & Documentation"}</h2>
-                <p className="text-xs text-[#8C7361]">Manage personnel profile picture and official identification document separately</p>
+                <p className="text-xs text-[#8C7361]">{t('users.managePersonnelMediaDesc') || 'Manage personnel profile picture and official identification document separately'}</p>
               </div>
             </div>
 
@@ -574,7 +574,7 @@ export default function EditUserPage() {
                         alt={userData.fullName}
                         className="w-10 h-10 rounded-lg object-cover border border-[#E87A18]/30"
                       />
-                      <span className="text-xs text-zinc-600 font-medium truncate">Current avatar active</span>
+                      <span className="text-xs text-zinc-600 font-medium truncate">{t('users.currentAvatarActive') || 'Current avatar active'}</span>
                     </div>
                   )}
                 </div>
@@ -603,7 +603,7 @@ export default function EditUserPage() {
 
                   {userData.filesUrl && (
                     <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-xl mb-3">
-                      <span className="text-xs font-semibold text-blue-900 truncate">Official Document on File</span>
+                      <span className="text-xs font-semibold text-blue-900 truncate">{t('users.officialDocOnFile') || 'Official Document on File'}</span>
                       <a
                         href={getFileUrl(userData.filesUrl) || "#"}
                         target="_blank"
@@ -710,7 +710,7 @@ export default function EditUserPage() {
               <Input
                 id="deleteUserPasswordInput"
                 type={showDeletePassword ? "text" : "password"}
-                placeholder="Enter your account password"
+                placeholder={t("users.enterAccountPasswordPlaceholder")}
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
                 className="rounded-xl border-[#EDE4D5] pr-10 text-xs sm:text-sm"

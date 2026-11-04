@@ -265,13 +265,13 @@ function NewDeliveryContent() {
     if (e) e.preventDefault();
     if (!supplierId) {
       setCurrentStep(1);
-      toast.error('Please select a supplier');
+      toast.error(t('suppliers.toastSelectSupplier'));
       return;
     }
 
     if (selectedItemsList.length === 0) {
       setCurrentStep(2);
-      toast.error('Please add at least one product with a valid quantity and buy price');
+      toast.error(t('suppliers.toastAddProductRequired'));
       return;
     }
 
@@ -291,13 +291,7 @@ function NewDeliveryContent() {
         })),
       });
 
-      toast.success(
-        language === 'am'
-          ? `የርክክብ ደረሰኝ በተሳካ ሁኔታ ተመዝግቧል!`
-          : language === 'om'
-          ? `Nagaheen dhiyeessii milkaa'inaan galmaa'eera!`
-          : `Delivery receipt recorded successfully!`
-      );
+      toast.success(t('suppliers.toastDeliverySuccess'));
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['suppliers-page'] }),
@@ -309,7 +303,7 @@ function NewDeliveryContent() {
 
       router.push(`/suppliers/${supplierId}`);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to record delivery receipt');
+      toast.error(err.response?.data?.error || t('suppliers.toastDeleteDeliveryFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -326,17 +320,17 @@ function NewDeliveryContent() {
               size="icon"
               onClick={() => router.push(supplierId ? `/suppliers/${supplierId}` : '/suppliers')}
               className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 w-9 shadow-2xs cursor-pointer shrink-0"
-              title="Cancel"
+              title={t('common.cancel')}
             >
               <ArrowLeft className="w-4 h-4 text-[#E87A18]" />
             </Button>
             <div className="min-w-0">
               <h1 className="text-base sm:text-lg font-black text-[#2C1B10] tracking-tight truncate flex items-center gap-2">
                 <Truck className="w-4 h-4 text-[#E87A18] shrink-0" />
-                <span>New Supplier Delivery Receipt</span>
+                <span>{t('suppliers.newDeliveryReceipt')}</span>
               </h1>
               <p className="text-[11px] text-[#8C7361] font-semibold truncate hidden xs:block">
-                Step {currentStep} of 4: {currentStep === 1 ? 'Choose Supplier' : currentStep === 2 ? 'Select Delivered Products & Rates' : currentStep === 3 ? 'Review Delivered Products' : 'Payment Settlement'}
+                Step {currentStep} of 4: {currentStep === 1 ? t('suppliers.stepChooseSupplier') : currentStep === 2 ? t('suppliers.stepSelectProducts') : currentStep === 3 ? t('suppliers.stepReviewProducts') : t('suppliers.stepPaymentSettlement')}
               </p>
             </div>
           </div>
@@ -379,7 +373,7 @@ function NewDeliveryContent() {
                   className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#E87A18] hover:text-[#4A2E1B] transition-colors cursor-pointer px-2 py-1 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5]"
                 >
                   <ArrowLeft className="w-3 h-3" />
-                  <span>Back</span>
+                  <span>{t('common.back')}</span>
                 </button>
               )}
               {currentStep === 1 && selectedSupplier && (
@@ -427,7 +421,7 @@ function NewDeliveryContent() {
             <div className="flex items-center justify-between gap-2 border-b border-[#F4ECE1] pb-3">
               <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                 <Truck className="w-4 h-4 text-[#E87A18]" />
-                <span>Select Supplier ({suppliers.length})</span>
+                <span>{t("suppliers.selectSupplier") || "Select Supplier"} ({suppliers.length})</span>
               </h3>
             </div>
 
@@ -435,7 +429,7 @@ function NewDeliveryContent() {
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7361]" />
               <Input
-                placeholder="Search supplier by name, phone, or category..."
+                placeholder={t('suppliers.searchSupplierPlaceholder')}
                 value={supplierSearch}
                 onChange={(e) => setSupplierSearch(e.target.value)}
                 className="pl-10 h-11 rounded-xl bg-[#FAF6F0]/60 border-[#EDE4D5] text-sm"
@@ -507,7 +501,7 @@ function NewDeliveryContent() {
                 }}
                 className="h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
               >
-                <span>Next: Select Products</span>
+                <span>{t('suppliers.nextSelectProducts')}</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
             </div>
@@ -526,7 +520,7 @@ function NewDeliveryContent() {
                 }}
                 className="w-full h-12 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
               >
-                <span>{canProceedFromStep1 ? "Next: Select Products" : "Select a supplier to continue"}</span>
+                <span>{canProceedFromStep1 ? t('suppliers.nextSelectProducts') : (t('suppliers.selectSupplierToContinue') || "Select a supplier to continue")}</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
             </div>
@@ -596,7 +590,7 @@ function NewDeliveryContent() {
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7361]" />
                   <Input
-                    placeholder="Search product name..."
+                    placeholder={t('products.searchPlaceholder')}
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     className="pl-10 h-10 rounded-xl bg-[#FAF6F0]/50 border-[#EDE4D5] text-xs"
@@ -744,12 +738,12 @@ function NewDeliveryContent() {
                 className="h-12 px-5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Back to Supplier</span>
+                <span>{t('suppliers.backToSupplier')}</span>
               </Button>
 
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <span className="text-[10px] text-[#8C7361] font-bold uppercase block">Total Cost</span>
+                  <span className="text-[10px] text-[#8C7361] font-bold uppercase block">{t('suppliers.totalCost')}</span>
                   <span className="text-base font-black text-[#E87A18] font-mono">{totalCost.toFixed(2)} ETB</span>
                 </div>
 
@@ -765,7 +759,7 @@ function NewDeliveryContent() {
                   }}
                   className="h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  <span>Next: Review Products ({selectedItemsList.length})</span>
+                  <span>{t('suppliers.nextReviewProducts')} ({selectedItemsList.length})</span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </Button>
               </div>
@@ -785,7 +779,7 @@ function NewDeliveryContent() {
                   className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
+                  <span>{t("common.back")}</span>
                 </Button>
                 <Button
                   type="button"
@@ -821,7 +815,7 @@ function NewDeliveryContent() {
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] uppercase font-bold text-[#8C7361] tracking-wider block">Supplier</span>
+                  <span className="text-[10px] uppercase font-bold text-[#8C7361] tracking-wider block">{t('suppliers.supplierLabel')}</span>
                   <h3 className="font-black text-sm sm:text-base text-[#2C1B10] truncate">{selectedSupplier?.name}</h3>
                   <p className="text-xs font-mono text-[#8C7361] truncate">
                     {selectedSupplier?.phone || 'No phone'} • Type: <strong className="uppercase">{selectedSupplier?.type}</strong>
@@ -836,7 +830,7 @@ function NewDeliveryContent() {
                 onClick={() => setCurrentStep(1)}
                 className="h-8 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl self-end sm:self-center cursor-pointer"
               >
-                Change Supplier
+                {t('suppliers.changeSupplier')}
               </Button>
             </div>
 
@@ -849,7 +843,7 @@ function NewDeliveryContent() {
                   </div>
                   <div>
                     <h3 className="font-black text-sm sm:text-base text-[#2C1B10]">
-                      Delivered Products
+                      {t('suppliers.deliveredProducts')}
                     </h3>
                     <p className="text-[11px] text-[#8C7361] font-semibold">
                       {selectedItemsList.length} distinct item{selectedItemsList.length === 1 ? '' : 's'} ({totalItemsCount} total units)
@@ -865,7 +859,7 @@ function NewDeliveryContent() {
                   className="h-8 px-3 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl text-[#4A2E1B] flex items-center gap-1.5 cursor-pointer"
                 >
                   <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
-                  <span>Edit Products</span>
+                  <span>{t('suppliers.editProducts')}</span>
                 </Button>
               </div>
 
@@ -903,11 +897,11 @@ function NewDeliveryContent() {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="bg-[#FAF6F0]/70 text-[#8C7361] border-b border-[#F4ECE1]">
-                      <th className="py-2.5 px-3 font-extrabold uppercase text-[10px]">Product</th>
-                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">Qty Received</th>
-                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Buy Rate</th>
-                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Sell Rate</th>
-                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Subtotal Cost</th>
+                      <th className="py-2.5 px-3 font-extrabold uppercase text-[10px]">{t('common.product')}</th>
+                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">{t('suppliers.qtyReceived')}</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">{t('suppliers.buyRate')}</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">{t('suppliers.sellRate')}</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">{t('suppliers.subtotalCost')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F4ECE1]">
@@ -940,8 +934,8 @@ function NewDeliveryContent() {
               {/* Total Cost Display */}
               <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] p-3.5 sm:p-4 rounded-2xl">
                 <div>
-                  <span className="text-xs uppercase font-extrabold text-[#4A2E1B] block">Total Delivery Value</span>
-                  <span className="text-[11px] text-[#8C7361]">{totalItemsCount} total units added to shop inventory</span>
+                  <span className="text-xs uppercase font-extrabold text-[#4A2E1B] block">{t('suppliers.totalDeliveryValue')}</span>
+                  <span className="text-[11px] text-[#8C7361]">{totalItemsCount} {t("suppliers.totalUnitsAddedToInventory")}</span>
                 </div>
                 <div className="text-right">
                   <span className="text-xl sm:text-2xl font-black text-[#E87A18] font-mono">
@@ -964,7 +958,7 @@ function NewDeliveryContent() {
                 className="h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 shrink-0" />
-                <span>Back to Products</span>
+                <span>{t('suppliers.backToProducts')}</span>
               </Button>
 
               <Button
@@ -977,7 +971,7 @@ function NewDeliveryContent() {
                 }}
                 className="h-12 px-8 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 shrink-0"
               >
-                <span>Proceed to Payment Settlement</span>
+                <span>{t('suppliers.proceedToPaymentSettlement')}</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
             </div>
@@ -996,7 +990,7 @@ function NewDeliveryContent() {
                   className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
+                  <span>{t('common.back')}</span>
                 </Button>
                 <Button
                   type="button"
@@ -1008,7 +1002,7 @@ function NewDeliveryContent() {
                   }}
                   className="flex-1 h-12 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  <span className="truncate">Proceed to Payment</span>
+                  <span className="truncate">{t('suppliers.proceedToPayment')}</span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </Button>
               </div>
@@ -1030,7 +1024,7 @@ function NewDeliveryContent() {
                 </p>
               </div>
               <div className="text-left sm:text-right">
-                <span className="text-[10px] text-[#8C7361] font-bold uppercase block">Total Payable</span>
+                <span className="text-[10px] text-[#8C7361] font-bold uppercase block">{t('suppliers.totalPayable')}</span>
                 <span className="text-xl sm:text-2xl font-black text-[#E87A18] font-mono">
                   {totalCost.toFixed(2)} ETB
                 </span>
@@ -1041,13 +1035,13 @@ function NewDeliveryContent() {
             <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
               <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-[#E87A18]" />
-                <span>Payment Settlement Configuration</span>
+                <span>{t('suppliers.paymentSettlementConfig')}</span>
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className={isCashier ? "sm:col-span-2" : ""}>
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                    Delivery Date *
+                    {t('suppliers.deliveryDateLabel')} *
                   </label>
                   <AppDatePicker
                     value={deliveryDate}
@@ -1059,7 +1053,7 @@ function NewDeliveryContent() {
                 {!isCashier && (
                   <div>
                     <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                      Payment Source *
+                      {t('suppliers.paymentSourceLabel')} *
                     </label>
                     <div className="grid grid-cols-2 gap-2 h-11">
                       <button
@@ -1071,7 +1065,7 @@ function NewDeliveryContent() {
                             : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
                         }`}
                       >
-                        💵 Daily Cash
+                        💵 {t('suppliers.sourceDailyCash')}
                       </button>
                       <button
                         type="button"
@@ -1082,7 +1076,7 @@ function NewDeliveryContent() {
                             : 'bg-[#FAF6F0]/50 text-[#8C7361] border-[#EDE4D5] hover:bg-[#FAF6F0]'
                         }`}
                       >
-                        🏦 Owner Direct
+                        🏦 {t('suppliers.sourceOwnerDirect')}
                       </button>
                     </div>
                   </div>
@@ -1091,7 +1085,7 @@ function NewDeliveryContent() {
                 <div className="sm:col-span-2">
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-extrabold text-[#2C1B10] uppercase">
-                      Paid Amount Now (ETB) *
+                      {t('suppliers.paidAmountNowLabel')} *
                     </label>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -1099,14 +1093,14 @@ function NewDeliveryContent() {
                         onClick={() => setAmountPaidNow(totalCost > 0 ? totalCost.toFixed(2) : '0')}
                         className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
                       >
-                        Pay Full ({totalCost.toFixed(2)})
+                        {t('suppliers.payFullAmount', { amount: totalCost.toFixed(2) })}
                       </button>
                       <button
                         type="button"
                         onClick={() => setAmountPaidNow('0')}
                         className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
                       >
-                        Credit (0.00)
+                        {t('suppliers.fullCreditBtn')}
                       </button>
                     </div>
                   </div>
@@ -1121,20 +1115,20 @@ function NewDeliveryContent() {
                     className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5] font-mono text-base font-bold"
                   />
                   <p className="text-[11px] text-[#8C7361] mt-1">
-                    Enter the amount paid upfront in cash. Any remaining balance will be logged as credit debt to this supplier.
+                    {t('suppliers.paidAmountExplainer')}
                   </p>
                 </div>
 
                 {/* Settlement Summary Pill */}
                 <div className="sm:col-span-2 p-3.5 sm:p-4 rounded-2xl bg-[#FAF6F0] border border-[#EDE4D5] flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-[#8C7361] font-bold block uppercase text-[10px]">Paid Now</span>
+                    <span className="text-[#8C7361] font-bold block uppercase text-[10px]">{t('suppliers.paidNow')}</span>
                     <strong className="text-emerald-700 font-extrabold font-mono text-base sm:text-lg">
                       {numPaidNow.toFixed(2)} ETB
                     </strong>
                   </div>
                   <div className="text-right">
-                    <span className="text-[#8C7361] font-bold block uppercase text-[10px]">Supplier Credit Balance</span>
+                    <span className="text-[#8C7361] font-bold block uppercase text-[10px]">{t('suppliers.supplierCreditBalance')}</span>
                     <strong className={`font-mono text-base sm:text-lg ${remainingBalance > 0 ? 'text-rose-700 font-black' : 'text-zinc-500 font-semibold'}`}>
                       {remainingBalance.toFixed(2)} ETB
                     </strong>
@@ -1143,10 +1137,10 @@ function NewDeliveryContent() {
 
                 <div className="sm:col-span-2">
                   <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                    Delivery Notes / Invoice Number (Optional)
+                    {t('suppliers.deliveryNotesOptionalPlaceholder')}
                   </label>
                   <Input
-                    placeholder="e.g. Invoice #9910, Morning delivery"
+                    placeholder={t('suppliers.deliveryNotesPlaceholder')}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
@@ -1169,7 +1163,7 @@ function NewDeliveryContent() {
                 className="h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 shrink-0" />
-                <span>Back to Review</span>
+                <span>{t('suppliers.backToReview')}</span>
               </Button>
 
               <Button
@@ -1181,8 +1175,8 @@ function NewDeliveryContent() {
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>
                   {isSubmitting
-                    ? "Recording Delivery..."
-                    : `Confirm & Record Delivery Receipt (${totalCost.toFixed(2)} ETB)`}
+                    ? t('suppliers.recordingDelivery')
+                    : t('suppliers.confirmAndRecordDelivery', { amount: totalCost.toFixed(2) })}
                 </span>
               </Button>
             </div>
@@ -1202,7 +1196,7 @@ function NewDeliveryContent() {
                   className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
+                  <span>{t('common.back')}</span>
                 </Button>
 
                 <Button
@@ -1214,8 +1208,8 @@ function NewDeliveryContent() {
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span className="truncate">
                     {isSubmitting
-                      ? "Recording..."
-                      : `Confirm Delivery (${totalCost.toFixed(0)} ETB)`}
+                      ? t('suppliers.recordingDelivery')
+                      : t('suppliers.confirmDeliveryShort', { amount: totalCost.toFixed(0) })}
                   </span>
                 </Button>
               </div>
@@ -1228,11 +1222,12 @@ function NewDeliveryContent() {
 }
 
 export default function NewDeliveryPage() {
+  const { t } = useLanguage();
   return (
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#FAF7EE] flex items-center justify-center">
-          <p className="text-[#4A2E1B] font-bold text-sm">Loading delivery form...</p>
+          <p className="text-[#4A2E1B] font-bold text-sm">{t('suppliers.loadingDeliveryForm')}</p>
         </div>
       }
     >

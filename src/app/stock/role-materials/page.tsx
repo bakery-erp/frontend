@@ -233,15 +233,15 @@ export default function RoleMaterialsPage() {
           <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 text-rose-800 flex items-center justify-center">
             <Lock className="w-7 h-7" />
           </div>
-          <h2 className="text-xl font-extrabold text-[#2C1B10]">Owner Access Required</h2>
+          <h2 className="text-xl font-extrabold text-[#2C1B10]">{t('stock.ownerAccessRequired') || 'Owner Access Required'}</h2>
           <p className="text-sm text-[#8C7361]">
-            Only the bakery Owner has permission to configure which raw materials are accessible by each production worker role.
+            {t('stock.onlyOwnerPermissionMaterials') || 'Only the bakery Owner has permission to configure which raw materials are accessible by each production worker role.'}
           </p>
           <Button
             onClick={() => router.push("/stock")}
             className="w-full bg-[#E87A18] hover:bg-[#d06910] text-white rounded-xl font-bold"
           >
-            Back to Stock
+            {t('stock.backToStock') || 'Back to Stock'}
           </Button>
         </div>
       </DashboardLayout>
@@ -261,13 +261,13 @@ export default function RoleMaterialsPage() {
               <Link
                 href="/stock"
                 className="w-8 h-8 rounded-xl bg-white border border-[#EDE4D5] flex items-center justify-center text-[#8C7361] hover:text-[#2C1B10] hover:bg-[#EDE4D5]/30 transition-colors"
-                title="Back to Stock"
+                title={t('stock.backToStock') || 'Back to Stock'}
               >
                 <ArrowLeft className="w-4 h-4" />
               </Link>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
-                  Owner Management
+                  {t('stock.ownerManagement') || 'Owner Management'}
                 </span>
                 <span className="text-xs font-bold text-[#8C7361]">
                   • {activeBranchName}
@@ -333,7 +333,7 @@ export default function RoleMaterialsPage() {
                         : "bg-[#FAF6F0] text-[#8C7361] border-[#EDE4D5]"
                     }`}
                   >
-                    {count} <span className="hidden sm:inline">items</span>
+                    {count} <span className="hidden sm:inline">{t("common.items") || "items"}</span>
                   </span>
                 </div>
                 <div>
@@ -364,7 +364,7 @@ export default function RoleMaterialsPage() {
                   {currentRoleMeta.label} ({currentRoleMeta.amharicLabel})
                 </h3>
                 <p className="text-[11px] sm:text-xs text-[#8C7361]">
-                  Has access to <strong className="text-[#2C1B10]">{selectedIds.size}</strong> of {stockItems.length} warehouse materials.
+                  {t('stock.hasAccessToMaterials', { count: selectedIds.size, total: stockItems.length })}
                 </p>
               </div>
             </div>
@@ -377,7 +377,7 @@ export default function RoleMaterialsPage() {
                 className="text-[11px] sm:text-xs font-bold border-[#EDE4D5] hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-200 rounded-xl cursor-pointer h-8 px-2 sm:px-3 justify-center"
               >
                 <CheckSquare className="w-3.5 h-3.5 mr-1 shrink-0" />
-                <span className="truncate">Select ({filteredItems.length})</span>
+                <span className="truncate">{t('stock.selectAllCount', { count: filteredItems.length })}</span>
               </Button>
               <Button
                 variant="outline"
@@ -386,7 +386,7 @@ export default function RoleMaterialsPage() {
                 className="text-[11px] sm:text-xs font-bold border-[#EDE4D5] hover:bg-rose-50 hover:text-rose-800 hover:border-rose-200 rounded-xl cursor-pointer h-8 px-2 sm:px-3 justify-center"
               >
                 <Square className="w-3.5 h-3.5 mr-1 shrink-0" />
-                <span className="truncate">Clear</span>
+                <span className="truncate">{t('common.clear') || 'Clear'}</span>
               </Button>
             </div>
           </div>
@@ -511,7 +511,7 @@ export default function RoleMaterialsPage() {
         {hasChanges && (
           <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-8 sm:w-96 p-4 rounded-2xl bg-[#2C1B10] text-white shadow-2xl border border-white/10 flex items-center justify-between gap-3 z-40 animate-in slide-in-from-bottom duration-200">
             <div>
-              <div className="font-extrabold text-sm">Unsaved Permissions</div>
+              <div className="font-extrabold text-sm">{t('stock.unsavedPermissions') || 'Unsaved Permissions'}</div>
               <div className="text-xs text-[#EDE4D5]/80">
                 {selectedIds.size} items assigned to {currentRoleMeta.label}
               </div>
@@ -522,7 +522,7 @@ export default function RoleMaterialsPage() {
               disabled={saveMutation.isPending}
               className="bg-[#E87A18] hover:bg-[#d06910] text-white rounded-xl font-bold text-xs h-9 px-4 shrink-0 shadow-md cursor-pointer"
             >
-              {saveMutation.isPending ? "Saving..." : "Save Now"}
+              {saveMutation.isPending ? (t('common.saving') || 'Saving...') : (t('common.save') || 'Save Now')}
             </Button>
           </div>
         )}

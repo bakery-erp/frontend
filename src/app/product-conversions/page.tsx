@@ -122,11 +122,11 @@ export default function ProductConversionsPage() {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!fromProductId || !toProductId) {
-            toast.error("Please select source and target products");
+            toast.error(t('conversions.toastSelectProductsRequired'));
             return;
         }
         if (fromProductId === toProductId) {
-            toast.error("Source and target products must be different");
+            toast.error(t('conversions.toastProductsMustBeDifferent'));
             return;
         }
 
@@ -150,7 +150,7 @@ export default function ProductConversionsPage() {
                 fromQuantity: Number(fromQuantity),
                 toQuantity: Number(toQuantity),
             });
-            toast.success("Product conversion recorded successfully");
+            toast.success(t('conversions.toastConversionRecorded'));
             setIsAddOpen(false);
             resetForm();
             queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
@@ -169,11 +169,11 @@ export default function ProductConversionsPage() {
         e.preventDefault();
         if (!editingConversion) return;
         if (!fromProductId || !toProductId) {
-            toast.error("Please select source and target products");
+            toast.error(t('conversions.toastSelectProductsRequired'));
             return;
         }
         if (fromProductId === toProductId) {
-            toast.error("Source and target products must be different");
+            toast.error(t('conversions.toastProductsMustBeDifferent'));
             return;
         }
 
@@ -199,7 +199,7 @@ export default function ProductConversionsPage() {
                 fromQuantity: Number(fromQuantity),
                 toQuantity: Number(toQuantity),
             });
-            toast.success("Product conversion updated successfully");
+            toast.success(t('conversions.toastConversionUpdated'));
             setEditingConversion(null);
             resetForm();
             queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
@@ -215,10 +215,10 @@ export default function ProductConversionsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this conversion record?")) return;
+        if (!confirm(t('conversions.confirmDelete') || "Are you sure you want to delete this conversion record?")) return;
         try {
             await api.delete(`/product-conversions/${id}`);
-            toast.success("Conversion record deleted");
+            toast.success(t('conversions.toastConversionDeleted'));
             queryClient.invalidateQueries({ queryKey: ['product-conversions'] });
             queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -566,7 +566,7 @@ export default function ProductConversionsPage() {
                                                     onClick={() => setFromQuantity(String(maxAvailableForConversion))}
                                                     className="px-1.5 py-0.5 bg-[#E87A18] hover:bg-[#D26911] text-white font-black text-[9px] rounded-md active:scale-95 transition-all"
                                                 >
-                                                    Max
+                                                    {t('common.max') || 'Max'}
                                                 </button>
                                             )}
                                         </div>
@@ -581,7 +581,7 @@ export default function ProductConversionsPage() {
                                             onChange={(e) => setFromProductId(e.target.value)}
                                             className="w-full border border-[#EDE4D5] rounded-xl h-9 px-2.5 bg-white text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] outline-none truncate"
                                         >
-                                            <option value="" disabled>Select Source Product</option>
+                                            <option value="" disabled>{t('conversions.selectSourceProduct') || 'Select Source Product'}</option>
                                             {products.map((p) => (
                                                 <option key={p.id} value={p.id}>
                                                     {p.name} ({p.unitType})
@@ -598,7 +598,7 @@ export default function ProductConversionsPage() {
                                             value={fromQuantity}
                                             onFocus={(e) => e.target.select()}
                                             onChange={(e) => setFromQuantity(e.target.value)}
-                                            placeholder="Qty"
+                                            placeholder={t("common.quantity") || "Qty"}
                                             className="rounded-xl border-[#EDE4D5] h-9 text-xs font-mono font-bold bg-white text-center"
                                         />
                                     </div>
@@ -607,12 +607,12 @@ export default function ProductConversionsPage() {
                                 {isOutOfStock ? (
                                     <div className="p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
                                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                        <span>No pieces currently in shop for this product. Cannot convert.</span>
+                                        <span>{t('conversions.noStockCannotConvert')}</span>
                                     </div>
                                 ) : isExceedingStock ? (
                                     <div className="p-1.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
                                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                        <span>Exceeds shop stock ({maxAvailableForConversion} {selectedProd?.unitType || 'Pcs'}).</span>
+                                        <span>{t('conversions.exceedsShopStock', { max: maxAvailableForConversion, unit: selectedProd?.unitType || 'Pcs' })}</span>
                                     </div>
                                 ) : null}
                             </div>
@@ -621,7 +621,7 @@ export default function ProductConversionsPage() {
                             <div className="flex items-center justify-center gap-1.5 py-0.5">
                                 <ArrowRightLeft className="w-3.5 h-3.5 text-[#E87A18]" />
                                 <span className="text-[10px] font-black uppercase tracking-wider text-[#8C7361]">
-                                    Converts Into
+                                    {t('conversions.convertsInto') || 'Converts Into'}
                                 </span>
                             </div>
 
@@ -638,7 +638,7 @@ export default function ProductConversionsPage() {
                                             onChange={(e) => setToProductId(e.target.value)}
                                             className="w-full border border-[#EDE4D5] rounded-xl h-9 px-2.5 bg-white text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] outline-none truncate"
                                         >
-                                            <option value="" disabled>Select Target Product</option>
+                                            <option value="" disabled>{t('conversions.selectTargetProduct') || 'Select Target Product'}</option>
                                             {products.map((p) => (
                                                 <option key={p.id} value={p.id}>
                                                     {p.name} ({p.unitType})
@@ -654,7 +654,7 @@ export default function ProductConversionsPage() {
                                             value={toQuantity}
                                             onFocus={(e) => e.target.select()}
                                             onChange={(e) => setToQuantity(e.target.value)}
-                                            placeholder="Qty"
+                                            placeholder={t("common.quantity") || "Qty"}
                                             className="rounded-xl border-[#EDE4D5] h-9 text-xs font-mono font-bold bg-white text-center"
                                         />
                                     </div>
@@ -676,7 +676,7 @@ export default function ProductConversionsPage() {
                                     disabled={isExceedingStock || isOutOfStock}
                                     className="rounded-xl h-9 text-xs font-bold flex-1 sm:flex-initial bg-[#E87A18] hover:bg-[#D26911] text-white"
                                 >
-                                    {isOutOfStock ? "No Stock In Shop" : isExceedingStock ? "Exceeds Stock" : t('common.save')}
+                                    {isOutOfStock ? (t('stock.statusOutOfStock') || "No Stock In Shop") : isExceedingStock ? (t('conversions.exceedsStock') || "Exceeds Stock") : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -713,7 +713,7 @@ export default function ProductConversionsPage() {
                                                     onClick={() => setFromQuantity(String(maxAvailableForConversion))}
                                                     className="px-1.5 py-0.5 bg-[#E87A18] hover:bg-[#D26911] text-white font-black text-[9px] rounded-md active:scale-95 transition-all"
                                                 >
-                                                    Max
+                                                    {t('common.max') || 'Max'}
                                                 </button>
                                             )}
                                         </div>
@@ -728,7 +728,7 @@ export default function ProductConversionsPage() {
                                             onChange={(e) => setFromProductId(e.target.value)}
                                             className="w-full border border-[#EDE4D5] rounded-xl h-9 px-2.5 bg-white text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] outline-none truncate"
                                         >
-                                            <option value="" disabled>Select Source Product</option>
+                                            <option value="" disabled>{t('conversions.selectSourceProduct') || 'Select Source Product'}</option>
                                             {products.map((p) => (
                                                 <option key={p.id} value={p.id}>
                                                     {p.name} ({p.unitType})
@@ -745,7 +745,7 @@ export default function ProductConversionsPage() {
                                             value={fromQuantity}
                                             onFocus={(e) => e.target.select()}
                                             onChange={(e) => setFromQuantity(e.target.value)}
-                                            placeholder="Qty"
+                                            placeholder={t("common.quantity") || "Qty"}
                                             className="rounded-xl border-[#EDE4D5] h-9 text-xs font-mono font-bold bg-white text-center"
                                         />
                                     </div>
@@ -754,12 +754,12 @@ export default function ProductConversionsPage() {
                                 {isOutOfStock ? (
                                     <div className="p-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
                                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                        <span>No pieces currently in shop for this product. Cannot convert.</span>
+                                        <span>{t('conversions.noStockCannotConvert')}</span>
                                     </div>
                                 ) : isExceedingStock ? (
                                     <div className="p-1.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-[10px] font-bold flex items-center gap-1.5">
                                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                        <span>Exceeds shop stock ({maxAvailableForConversion} {selectedProd?.unitType || 'Pcs'}).</span>
+                                        <span>{t('conversions.exceedsShopStock', { max: maxAvailableForConversion, unit: selectedProd?.unitType || 'Pcs' })}</span>
                                     </div>
                                 ) : null}
                             </div>
@@ -768,7 +768,7 @@ export default function ProductConversionsPage() {
                             <div className="flex items-center justify-center gap-1.5 py-0.5">
                                 <ArrowRightLeft className="w-3.5 h-3.5 text-[#E87A18]" />
                                 <span className="text-[10px] font-black uppercase tracking-wider text-[#8C7361]">
-                                    Converts Into
+                                    {t('conversions.convertsInto') || 'Converts Into'}
                                 </span>
                             </div>
 
@@ -785,7 +785,7 @@ export default function ProductConversionsPage() {
                                             onChange={(e) => setToProductId(e.target.value)}
                                             className="w-full border border-[#EDE4D5] rounded-xl h-9 px-2.5 bg-white text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] outline-none truncate"
                                         >
-                                            <option value="" disabled>Select Target Product</option>
+                                            <option value="" disabled>{t('conversions.selectTargetProduct') || 'Select Target Product'}</option>
                                             {products.map((p) => (
                                                 <option key={p.id} value={p.id}>
                                                     {p.name} ({p.unitType})
@@ -801,7 +801,7 @@ export default function ProductConversionsPage() {
                                             value={toQuantity}
                                             onFocus={(e) => e.target.select()}
                                             onChange={(e) => setToQuantity(e.target.value)}
-                                            placeholder="Qty"
+                                            placeholder={t("common.quantity") || "Qty"}
                                             className="rounded-xl border-[#EDE4D5] h-9 text-xs font-mono font-bold bg-white text-center"
                                         />
                                     </div>
@@ -823,7 +823,7 @@ export default function ProductConversionsPage() {
                                     disabled={isExceedingStock || isOutOfStock}
                                     className="rounded-xl h-9 text-xs font-bold flex-1 sm:flex-initial bg-[#E87A18] hover:bg-[#D26911] text-white"
                                 >
-                                    {isOutOfStock ? "No Stock In Shop" : isExceedingStock ? "Exceeds Stock" : t('common.save')}
+                                    {isOutOfStock ? (t('stock.statusOutOfStock') || "No Stock In Shop") : isExceedingStock ? (t('conversions.exceedsStock') || "Exceeds Stock") : t('common.save')}
                                 </Button>
                             </DialogFooter>
                         </form>

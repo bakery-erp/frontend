@@ -57,7 +57,7 @@ export default function PayrollHistoryPage() {
       } else {
         router.push("/production/history");
       }
-      toast.error("Unauthorized access to Payroll history.");
+      toast.error(t('payroll.toastUnauthorizedHistory'));
     }
   }, [user, router]);
 
@@ -377,11 +377,11 @@ export default function PayrollHistoryPage() {
         <Dialog open={true} onOpenChange={(open) => !open && setIsEditOpen(false)}>
           <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">Edit Payroll Execution Record</DialogTitle>
+              <DialogTitle className="text-lg font-extrabold text-[#2C1B10]">{t("payroll.editPayrollRecord") || "Edit Payroll Execution Record"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleUpdatePayroll} className="space-y-3.5 py-2">
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1">Base Salary (ETB)</label>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1">{t("payroll.baseSalary")} (ETB)</label>
                 <Input
                   name="baseSalary"
                   type="number"
@@ -393,7 +393,7 @@ export default function PayrollHistoryPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1">Bonus (ETB)</label>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1">{t("common.bonus")} (ETB)</label>
                 <Input
                   name="bonus"
                   type="number"
@@ -405,7 +405,7 @@ export default function PayrollHistoryPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1">Loan Deductions (ETB)</label>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1">{t("payroll.loanDeductionsLabel")} (ETB)</label>
                 <Input
                   name="loanDeductions"
                   type="number"
@@ -417,7 +417,7 @@ export default function PayrollHistoryPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1">Penalty Deductions (ETB)</label>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1">{t("payroll.penaltyDeductionsLabel")} (ETB)</label>
                 <Input
                   name="penaltyDeductions"
                   type="number"
@@ -429,7 +429,7 @@ export default function PayrollHistoryPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1">Final Net Payout (ETB)</label>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1">{t("payroll.finalNetPayoutLabel")} (ETB)</label>
                 <Input
                   name="finalAmount"
                   type="number"

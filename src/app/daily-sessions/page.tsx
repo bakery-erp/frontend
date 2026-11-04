@@ -180,7 +180,7 @@ export default function DailySessionsPage() {
 
   const handleOpenNewSession = async (overrideBranchId?: string, overrideDate?: string) => {
     if (!canManageSessions) {
-      toast.error('Only Owners and Admins can manage daily closing');
+      toast.error(t('sessions.toastOnlyOwnerAdminClose'));
       return;
     }
     const targetBranch = overrideBranchId || selectedBranchId || user?.branchId;
@@ -189,7 +189,7 @@ export default function DailySessionsPage() {
         setIsBranchSelectModalOpen(true);
         return;
       }
-      toast.error('Please select a specific branch');
+      toast.error(t('sessions.toastSelectSpecificBranch'));
       return;
     }
     const targetDate = overrideDate || ethTodayYmd;
@@ -211,12 +211,12 @@ export default function DailySessionsPage() {
 
   const handleReopenSession = async (session: DailySession) => {
     if (!isOwner) {
-      toast.error('Only the Owner can reopen closed sessions');
+      toast.error(t('sessions.toastOnlyOwnerReopen'));
       return;
     }
     try {
       await api.post(`/daily-sessions/${session.id}/reopen`);
-      toast.success('Business session reopened for editing');
+      toast.success(t('sessions.toastSessionReopened'));
       queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (e: any) {
@@ -226,7 +226,7 @@ export default function DailySessionsPage() {
 
   const openFinalizeModal = (session: DailySession) => {
     if (!isOwner) {
-      toast.error('Only the Owner can finalize and approve daily sessions');
+      toast.error(t('sessions.toastOnlyOwnerFinalize'));
       return;
     }
     setActiveSession(session);
@@ -255,7 +255,7 @@ export default function DailySessionsPage() {
         cashLeftoverAmount: cashFloat ? Number(cashFloat) : null,
         leftoverRecords: leftoversPayload,
       });
-      toast.success('Daily session finalized & closed successfully');
+      toast.success(t('sessions.toastSessionClosedSuccess'));
       setActiveSession(null);
       queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -272,12 +272,12 @@ export default function DailySessionsPage() {
     e.preventDefault();
     const targetBranch = selectedBranchId || user?.branchId || branches[0]?.id;
     if (!fromProductId || !toProductId) {
-      toast.error('Please select both source and target products');
+      toast.error(t('sessions.toastConversionSelectProducts'));
       return;
     }
     const qty = parseInt(conversionQty, 10);
     if (isNaN(qty) || qty <= 0) {
-      toast.error('Please enter a valid conversion quantity');
+      toast.error(t('sessions.toastConversionValidQty'));
       return;
     }
     setIsConverting(true);
@@ -289,7 +289,7 @@ export default function DailySessionsPage() {
         fromQuantity: qty,
         toQuantity: qty,
       });
-      toast.success('Product conversion logged successfully');
+      toast.success(t('sessions.toastConversionSuccess'));
       setIsConversionOpen(false);
       setConversionQty('1');
       setFromProductId('');
@@ -888,20 +888,20 @@ export default function DailySessionsPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <RefreshCw className="w-5 h-5 text-indigo-600" />
-                <span>Product Conversion (e.g., Bomboloni ➔ Donut)</span>
+                <span>{t("conversions.title") || "Product Conversion"}</span>
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleConversionSubmit} className="space-y-4 py-2">
               <div>
-                <label className="text-xs font-semibold text-zinc-700 block mb-1">Source Product (Convert From)</label>
+                <label className="text-xs font-semibold text-zinc-700 block mb-1">{t("conversions.sourceProduct") || "Source Product (Convert From)"}</label>
                 <select
                   value={fromProductId}
                   onChange={(e) => setFromProductId(e.target.value)}
                   className="w-full bg-zinc-50 border border-zinc-300 rounded-md p-2 text-sm"
                   required
                 >
-                  <option value="">Select source product...</option>
+                  <option value="">{t("conversions.selectSourceProduct") || "Select source product..."}</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} {p.flavor ? `(${p.flavor})` : ''}</option>
                   ))}
@@ -909,14 +909,14 @@ export default function DailySessionsPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-zinc-700 block mb-1">Target Product (Convert To)</label>
+                <label className="text-xs font-semibold text-zinc-700 block mb-1">{t("conversions.targetProduct") || "Target Product"}</label>
                 <select
                   value={toProductId}
                   onChange={(e) => setToProductId(e.target.value)}
                   className="w-full bg-zinc-50 border border-zinc-300 rounded-md p-2 text-sm"
                   required
                 >
-                  <option value="">Select target product...</option>
+                  <option value="">{t("conversions.selectTargetProduct") || "Select target product..."}</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} {p.flavor ? `(${p.flavor})` : ''}</option>
                   ))}
@@ -924,7 +924,7 @@ export default function DailySessionsPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-zinc-700 block mb-1">Quantity</label>
+                <label className="text-xs font-semibold text-zinc-700 block mb-1">{t("common.quantity")}</label>
                 <Input
                   type="number"
                   min="1"
@@ -935,7 +935,7 @@ export default function DailySessionsPage() {
               </div>
 
               <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsConversionOpen(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setIsConversionOpen(false)}>{t("common.cancel")}</Button>
                 <Button type="submit" disabled={isConverting} className="bg-indigo-600 text-white hover:bg-indigo-700">
                   {isConverting ? 'Converting...' : 'Execute Conversion'}
                 </Button>
@@ -966,7 +966,7 @@ export default function DailySessionsPage() {
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="e.g. 500.00"
+                  placeholder={t('sessions.floatPlaceholder')}
                   value={cashFloat}
                   onChange={(e) => setCashFloat(e.target.value)}
                   className="bg-white border-amber-300 font-mono font-bold"
@@ -1129,10 +1129,10 @@ export default function DailySessionsPage() {
                         }}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-8 px-3"
                       >
-                        <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reopen
+                        <RotateCcw className="w-3.5 h-3.5 mr-1" /> {t("sessions.reopen") || "Reopen"}
                       </Button>
                     ) : (
-                      <span className="text-xs font-bold text-emerald-700 px-2 py-1">Active</span>
+                      <span className="text-xs font-bold text-emerald-700 px-2 py-1">{t("common.active")}</span>
                     )}
                   </div>
                 </div>

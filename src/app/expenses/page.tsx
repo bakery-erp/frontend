@@ -604,7 +604,7 @@ export default function ExpensesPage() {
                           </span>
                         </div>
                         <p className="text-[10px] text-[#8C7361] mt-1 font-medium">
-                          {language === 'am' ? 'የድርጅቱ መደበኛ የሥራ ማስኬጃ ወጪ' : language === 'om' ? 'Baasii hojii dhaabbataa' : 'Regular company operational expense'}
+                          {t('expenses.regularExpenseDesc')}
                         </p>
                       </div>
                     ) : (
@@ -905,7 +905,7 @@ export default function ExpensesPage() {
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>{language === 'am' ? 'የዛሬ ወጪዎች' : language === 'om' ? 'Baasii Har\'aa' : 'Today'}</span>
+              <span>{t('expenses.filterToday')}</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
                   cashierDateTab === "TODAY" ? "bg-white/20 text-white" : "bg-[#E0D5C3] text-[#4A2E1B]"
@@ -928,7 +928,7 @@ export default function ExpensesPage() {
               }`}
             >
               <CalendarDays className="w-3.5 h-3.5" />
-              <span>{language === 'am' ? 'የትናንት ወጪዎች' : language === 'om' ? 'Baasii Kaleessaa' : 'Yesterday'}</span>
+              <span>{t('expenses.filterYesterday')}</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
                   cashierDateTab === "YESTERDAY" ? "bg-white/20 text-white" : "bg-[#E0D5C3] text-[#4A2E1B]"
@@ -958,7 +958,7 @@ export default function ExpensesPage() {
               }`}
             >
               <CalendarDays className="w-3.5 h-3.5" />
-              <span>{language === 'am' ? 'ሁሉም ወጪዎች (1 ሳምንት)' : language === 'om' ? 'Baasii Hundaa (Torban 1)' : 'All Expenses (1 Week)'}</span>
+              <span>{t('expenses.filterWeek')}</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
                   adminDateTab === "ALL" ? "bg-white/20 text-white" : "bg-[#E0D5C3] text-[#4A2E1B]"
@@ -981,7 +981,7 @@ export default function ExpensesPage() {
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>{language === 'am' ? 'የዛሬ ወጪዎች' : language === 'om' ? 'Baasii Har\'aa' : 'Today'}</span>
+              <span>{t('expenses.filterToday')}</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
                   adminDateTab === "TODAY" ? "bg-white/20 text-white" : "bg-[#E0D5C3] text-[#4A2E1B]"
@@ -1355,8 +1355,8 @@ export default function ExpensesPage() {
               <Wallet className="w-5 h-5 text-[#E87A18]" />
               <span>
                 {editingId
-                  ? (language === 'am' ? 'የወጪ ማሻሻያ ማረጋገጫ' : language === 'om' ? 'Mirkaneessa Fooyya\'iinsa Baasii' : 'Confirm Expense Update')
-                  : (language === 'am' ? 'የወጪ መዝገብ ማረጋገጫ' : language === 'om' ? 'Mirkaneessa Galmee Baasii' : 'Confirm Expense Record')}
+                  ? t('expenses.confirmExpenseUpdate')
+                  : t('expenses.confirmExpenseRecord')}
               </span>
             </DialogTitle>
           </DialogHeader>
@@ -1393,10 +1393,10 @@ export default function ExpensesPage() {
 
               <div className="flex items-center justify-between pb-2 border-b border-[#FAF6F0]">
                 <span className="font-bold text-[#8C7361]">
-                  {language === 'am' ? 'የክፍያ ምንጭ' : language === 'om' ? 'Maddi Kaffaltii' : 'Payment Source'}
+                  {t('suppliers.paymentSourceLabel')}
                 </span>
                 <span className="font-extrabold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  💵 {language === 'am' ? 'ከዕለቱ ካሽ መመዝገቢያ' : language === 'om' ? 'Kashii Guyyaa Irraa' : 'Daily Cash Register'}
+                  💵 {t('expenses.dailyCashRegister')}
                 </span>
               </div>
 
@@ -1432,7 +1432,7 @@ export default function ExpensesPage() {
               className="rounded-xl w-full sm:w-auto font-bold"
             >
               <Check className="w-4 h-4 mr-1.5" />
-              {language === 'am' ? 'አረጋግጥና መዝግብ' : language === 'om' ? 'Mirkaneessi & Galmeessi' : 'Confirm & Save Expense'}
+              {t('expenses.confirmAndSave')}
             </Button>
           </DialogFooter>
         </DialogContent>

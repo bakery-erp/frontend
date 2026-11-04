@@ -355,7 +355,7 @@ export default function CustomerCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['financial-reports'] });
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to record payment");
+      toast.error(e.response?.data?.error || t("credits.toastPaymentFailed"));
       console.error(e);
     } finally {
       setIsSubmittingPay(false);
@@ -364,14 +364,14 @@ export default function CustomerCreditsPage() {
 
   // Delete Credit
   const handleDeleteCredit = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this customer credit record?")) return;
+    if (!confirm(t("credits.confirmDeleteCredit") || "Are you sure you want to delete this customer credit record?")) return;
     try {
       try {
         await api.delete(`/customers/credits/${id}`);
       } catch {
         await api.delete(`/loans/${id}`);
       }
-      toast.success("Customer credit record deleted");
+      toast.success(t("credits.toastCreditDeleted"));
       queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credits'] });
@@ -379,7 +379,7 @@ export default function CustomerCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['financial-reports'] });
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to delete credit record");
+      toast.error(e.response?.data?.error || t("credits.toastDeleteCreditFailed"));
     }
   };
 
@@ -387,7 +387,7 @@ export default function CustomerCreditsPage() {
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustName.trim() || !newCustPhone.trim()) {
-      toast.error("Customer name and phone number are required.");
+      toast.error(t("credits.toastNamePhoneRequired"));
       return;
     }
 
@@ -411,7 +411,7 @@ export default function CustomerCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ['customer-credits-page-customers'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to create customer");
+      toast.error(e.response?.data?.error || t("credits.toastCreateCustomerFailed"));
     } finally {
       setIsSubmittingCust(false);
     }
@@ -422,7 +422,7 @@ export default function CustomerCreditsPage() {
     e.preventDefault();
     if (!editingCustomer) return;
     if (!editCustName.trim() || !editCustPhone.trim()) {
-      toast.error("Customer full name and phone number are required.");
+      toast.error(t("credits.toastNamePhoneRequired"));
       return;
     }
 
@@ -441,7 +441,7 @@ export default function CustomerCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ['customer-credits-page-credits'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to update customer");
+      toast.error(e.response?.data?.error || t("credits.toastUpdateCustomerFailed"));
     } finally {
       setIsSubmittingEditCust(false);
     }
@@ -453,7 +453,7 @@ export default function CustomerCreditsPage() {
     if (!editingCredit) return;
     const amtNum = Number(editCreditAmount);
     if (isNaN(amtNum) || amtNum <= 0) {
-      toast.error("Please enter a valid total credit amount greater than 0.");
+      toast.error(t("credits.toastValidAmountRequired"));
       return;
     }
 
@@ -495,7 +495,7 @@ export default function CustomerCreditsPage() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['financial-reports'] });
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to update credit record");
+      toast.error(e.response?.data?.error || t("credits.toastUpdateCreditFailed"));
     } finally {
       setIsSubmittingEditCredit(false);
     }
@@ -687,7 +687,7 @@ export default function CustomerCreditsPage() {
                         setCreditPage(1);
                       }}
                       className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white shrink-0 ml-1"
-                      title="Clear date filter"
+                      title={t("common.clearDate") || "Clear date filter"}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -829,7 +829,7 @@ export default function CustomerCreditsPage() {
                                     href={`/customers/${c.customer.id}`}
                                     onClick={(e) => e.stopPropagation()}
                                     className="font-extrabold text-[#2C1B10] text-sm leading-tight truncate hover:text-[#E87A18] hover:underline block"
-                                    title="View Customer Profile & Ledger"
+                                    title={t("credits.viewCustomerProfile") || "View Customer Profile & Ledger"}
                                   >
                                     {parsed.name}
                                   </Link>
@@ -861,14 +861,14 @@ export default function CustomerCreditsPage() {
                                           className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#FAF6F0] hover:bg-[#F3ECE1] text-[#4A2E1B] border border-[#EDE4D5] cursor-pointer transition-colors inline-flex items-center gap-0.5"
                                         >
                                           <span className="text-[#E87A18] font-black">+{parsed.items.length - 1}</span>
-                                          <span>more</span>
+                                          <span>{t("common.more") || "more"}</span>
                                           <ChevronRight className="w-2.5 h-2.5 text-[#8C7361]" />
                                         </button>
                                       </div>
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
+                                  <span className="text-xs text-[#8C7361] italic">{t("credits.bakeryProductCredit")}</span>
                                 )}
                                 {parsed.notes && (
                                   <p className="text-[11px] text-[#8C7361] italic mt-0.5 font-normal truncate max-w-[170px]">
@@ -914,13 +914,13 @@ export default function CustomerCreditsPage() {
                                         }}
                                         className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-800 hover:text-emerald-950 hover:underline cursor-pointer"
                                       >
-                                        <span>+{c.payments.length - 1} more payment{c.payments.length > 2 ? 's' : ''}</span>
+                                        <span>+{c.payments.length - 1} {t("credits.morePayments")}</span>
                                         <ChevronRight className="w-2.5 h-2.5" />
                                       </button>
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-[#8C7361] italic">No repayments</span>
+                                  <span className="text-xs text-[#8C7361] italic">{t("credits.noRepayments")}</span>
                                 )}
                               </TableCell>
 
@@ -973,7 +973,7 @@ export default function CustomerCreditsPage() {
                                             ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
                                             : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
                                         }`}
-                                        title="More Actions"
+                                        title={t("common.moreActions") || "More Actions"}
                                       >
                                         <MoreVertical className="w-4 h-4" />
                                       </button>
@@ -1065,7 +1065,7 @@ export default function CustomerCreditsPage() {
                               <Link
                                 href={`/customers/${c.customer.id}`}
                                 className="font-extrabold text-[#2C1B10] text-base leading-tight hover:text-[#E87A18] hover:underline block"
-                                title="View Customer Profile & Ledger"
+                                title={t("credits.viewCustomerProfile") || "View Customer Profile & Ledger"}
                               >
                                 {parsed.name}
                               </Link>
@@ -1095,11 +1095,11 @@ export default function CustomerCreditsPage() {
                                 >
                                   {expandedCreditCards[c.id] ? (
                                     <>
-                                      Show Less <ChevronUp className="w-3.5 h-3.5" />
+                                      {t("common.showLess") || "Show Less"} <ChevronUp className="w-3.5 h-3.5" />
                                     </>
                                   ) : (
                                     <>
-                                      +{parsed.items.length - 2} more <ChevronDown className="w-3.5 h-3.5" />
+                                      +{parsed.items.length - 2} {t("common.more") || "more"} <ChevronDown className="w-3.5 h-3.5" />
                                     </>
                                   )}
                                 </button>
@@ -1117,7 +1117,7 @@ export default function CustomerCreditsPage() {
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-xs text-[#8C7361] italic">Bakery Product Credit</span>
+                              <span className="text-xs text-[#8C7361] italic">{t("credits.bakeryProductCredit")}</span>
                             )}
                             {parsed.notes && (
                               <p className="text-xs text-[#8C7361] italic mt-1.5 bg-[#FAF6F0]/60 p-2 rounded-lg border border-[#EDE4D5]">
@@ -1156,7 +1156,7 @@ export default function CustomerCreditsPage() {
                                 variant="outline"
                                 onClick={() => router.push(`/customer-credits/new?edit=${c.id}`)}
                                 className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] px-3 shrink-0"
-                                title="Edit Credit & Products"
+                                title={t("credits.editCreditBtn") || "Edit Credit & Products"}
                               >
                                 <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
                               </Button>
@@ -1279,7 +1279,7 @@ export default function CustomerCreditsPage() {
                       <TableRow>
                         <TableHead>{t("credits.colCustomer")}</TableHead>
                         <TableHead>{t("credits.phoneNumberLabel")}</TableHead>
-                        <TableHead>{t("credits.addressLabel")}</TableHead>
+                        {!isCashier && <TableHead>{t("credits.addressLabel")}</TableHead>}
                         <TableHead className="text-center">{t("credits.totalCreditsCount")}</TableHead>
                         <TableHead className="text-right">{t("credits.totalBorrowed")}</TableHead>
                         <TableHead className="text-right">{t("credits.totalRepaid")}</TableHead>
@@ -1293,7 +1293,7 @@ export default function CustomerCreditsPage() {
                           <TableRow key={i}>
                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                            {!isCashier && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
                             <TableCell className="text-center"><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
                             <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
                             <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
@@ -1303,7 +1303,7 @@ export default function CustomerCreditsPage() {
                         ))
                       ) : filteredCusts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-[#8C7361] font-medium">
+                          <TableCell colSpan={isCashier ? 7 : 8} className="text-center py-8 text-[#8C7361] font-medium">
                             {t("credits.noCustomersFound")}
                           </TableCell>
                         </TableRow>
@@ -1316,7 +1316,7 @@ export default function CustomerCreditsPage() {
                                 <Link
                                   href={`/customers/${c.id}`}
                                   className="font-extrabold text-[#2C1B10] text-sm block hover:text-[#E87A18] hover:underline"
-                                  title="View Customer Profile & Ledger"
+                                  title={t("credits.viewCustomerProfile") || "View Customer Profile & Ledger"}
                                 >
                                   {c.fullName}
                                 </Link>
@@ -1329,9 +1329,11 @@ export default function CustomerCreditsPage() {
                               <TableCell className="font-mono text-xs text-[#4A2E1B] font-bold">
                                 {c.phone}
                               </TableCell>
-                              <TableCell className="text-xs text-[#8C7361]">
-                                {c.address || "-"}
-                              </TableCell>
+                              {!isCashier && (
+                                <TableCell className="text-xs text-[#8C7361]">
+                                  {c.address || "-"}
+                                </TableCell>
+                              )}
                               <TableCell className="text-center font-bold text-xs">
                                 <span className="px-2 py-0.5 bg-[#FAF6F0] rounded-full border border-[#EDE4D5] font-mono">
                                   {c.totalCredits}
@@ -1361,10 +1363,10 @@ export default function CustomerCreditsPage() {
                                     variant="outline"
                                     onClick={() => router.push(`/customers/${c.id}`)}
                                     className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl shadow-2xs"
-                                    title="View Customer Profile & Ledger"
+                                    title={t("credits.viewCustomerProfile") || "View Customer Profile & Ledger"}
                                   >
                                     <Eye className="w-3.5 h-3.5 mr-1 text-[#E87A18]" />
-                                    Ledger
+                                    {t("common.details") || "Details"}
                                   </Button>
                                   {canManage && (
                                     <Button
@@ -1372,7 +1374,7 @@ export default function CustomerCreditsPage() {
                                       variant="outline"
                                       onClick={() => openEditCustomer(c)}
                                       className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl shadow-2xs"
-                                      title="Edit Customer"
+                                      title={t("credits.editCustomer") || "Edit Customer"}
                                     >
                                       <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
                                     </Button>
@@ -1413,7 +1415,7 @@ export default function CustomerCreditsPage() {
                               <Link
                                 href={`/customers/${c.id}`}
                                 className="font-extrabold text-[#2C1B10] text-base leading-tight hover:text-[#E87A18] hover:underline block"
-                                title="View Customer Profile & Ledger"
+                                title={t("credits.viewCustomerProfile") || "View Customer Profile & Ledger"}
                               >
                                 {c.fullName}
                               </Link>
@@ -1433,14 +1435,14 @@ export default function CustomerCreditsPage() {
                                     : "bg-emerald-100 text-emerald-800 border-emerald-300"
                                 }`}
                               >
-                                {rem > 0.01 ? `${rem.toFixed(2)} ETB` : "Settled"}
+                                {rem > 0.01 ? `${rem.toFixed(2)} ETB` : t("credits.statusPaid")}
                               </span>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => router.push(`/customers/${c.id}`)}
                                 className="h-7 w-7 p-0 rounded-lg border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
-                                title="View Customer Profile & Ledger"
+                                title={t("credits.viewCustomerProfile") || "View Customer Profile & Ledger"}
                               >
                                 <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
                               </Button>
@@ -1450,7 +1452,7 @@ export default function CustomerCreditsPage() {
                                   variant="outline"
                                   onClick={() => openEditCustomer(c)}
                                   className="h-7 w-7 p-0 rounded-lg border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]"
-                                  title="Edit Customer"
+                                  title={t("credits.editCustomer") || "Edit Customer"}
                                 >
                                   <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
                                 </Button>
@@ -1458,7 +1460,7 @@ export default function CustomerCreditsPage() {
                             </div>
                           </div>
 
-                          {c.address && (
+                          {!isCashier && c.address && (
                             <p className="text-xs text-[#8C7361] flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5 text-[#8C7361] shrink-0" /> {c.address}
                             </p>
@@ -1628,7 +1630,7 @@ export default function CustomerCreditsPage() {
                 {t("credits.noteLabel")}
               </label>
               <Input
-                placeholder="Optional notes or references"
+                placeholder={t("credits.optionalNotesPlaceholder")}
                 value={newCustNotes}
                 onChange={(e) => setNewCustNotes(e.target.value)}
                 className="rounded-xl text-xs"
@@ -1710,7 +1712,7 @@ export default function CustomerCreditsPage() {
                 {t("credits.noteLabel")}
               </label>
               <Input
-                placeholder="Optional notes or references"
+                placeholder={t("credits.optionalNotesPlaceholder")}
                 value={editCustNotes}
                 onChange={(e) => setEditCustNotes(e.target.value)}
                 className="rounded-xl text-xs"
@@ -1810,7 +1812,7 @@ export default function CustomerCreditsPage() {
               </label>
               <textarea
                 rows={3}
-                placeholder="Custom delivery references or notes (leave empty if none)..."
+                placeholder={t("credits.customDeliveryNotesPlaceholder")}
                 value={editCreditDescription}
                 onChange={(e) => setEditCreditDescription(e.target.value)}
                 className="w-full border border-zinc-200 rounded-xl p-2.5 text-xs text-[#2C1B10] outline-none focus:ring-2 focus:ring-[#E87A18]/30 resize-none"
@@ -1819,7 +1821,7 @@ export default function CustomerCreditsPage() {
 
             <div className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-3 flex items-center justify-between gap-2">
               <span className="text-[11px] text-[#8C7361]">
-                Need to change products, quantities, or unit prices?
+                {t("credits.needToEditItems")}
               </span>
               <Button
                 type="button"
@@ -1835,7 +1837,7 @@ export default function CustomerCreditsPage() {
                 className="h-7 text-xs px-2.5 font-bold border-[#E87A18]/40 text-[#E87A18] hover:bg-[#FAF6F0]"
               >
                 <ShoppingBag className="w-3 h-3 mr-1" />
-                Edit Products →
+                {t("credits.editProducts")} →
               </Button>
             </div>
 

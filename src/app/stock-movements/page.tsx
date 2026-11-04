@@ -124,7 +124,7 @@ export default function StockMovementsPage() {
 
   useEffect(() => {
     if (user && !isStockStaff) {
-      toast.error("Access Restricted: Stock movements are only available to Stock Keeper, Admin, and Owner roles.");
+      toast.error(t("stock.toastRestrictedMovements"));
       router.replace("/my-profile");
     }
   }, [user, isStockStaff, router]);
@@ -394,7 +394,7 @@ export default function StockMovementsPage() {
       ]);
       await refetchPending();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to confirm stock intake");
+      toast.error(err.response?.data?.error || t("stock.toastConfirmIntakeFailed"));
     } finally {
       setIsConfirmingId(null);
     }
@@ -426,7 +426,7 @@ export default function StockMovementsPage() {
       ]);
       await refetchPending();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to reject stock intake");
+      toast.error(err.response?.data?.error || t("stock.toastRejectIntakeFailed"));
     } finally {
       setIsSubmittingReject(false);
     }
@@ -445,7 +445,7 @@ export default function StockMovementsPage() {
 
     const qty = Number(resubmitQuantity);
     if (isNaN(qty) || qty <= 0) {
-      toast.error("Please enter a valid positive quantity");
+      toast.error(t("stock.toastValidPositiveQty"));
       return;
     }
 
@@ -474,7 +474,7 @@ export default function StockMovementsPage() {
         queryClient.invalidateQueries({ queryKey: ['stock-summary'] }),
       ]);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to resubmit stock delivery");
+      toast.error(err.response?.data?.error || t("stock.toastResubmitDeliveryFailed"));
     } finally {
       setIsSubmittingResubmit(false);
     }
@@ -488,7 +488,7 @@ export default function StockMovementsPage() {
 
     const amount = Number(payAmount);
     if (isNaN(amount) || amount <= 0) {
-      toast.error("Please enter a valid positive payment amount");
+      toast.error(t("stock.toastValidPositivePayment"));
       return;
     }
 
@@ -510,7 +510,7 @@ export default function StockMovementsPage() {
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error processing loan payment");
+      toast.error(error.response?.data?.error || t("stock.toastLoanPaymentFailed"));
       console.error(error);
     } finally {
       setIsSubmittingPay(false);
@@ -713,7 +713,7 @@ export default function StockMovementsPage() {
                     type="button"
                     onClick={() => setDateFilter("")}
                     className="text-[#8C7361] hover:text-[#2C1B10] p-0.5 rounded-full hover:bg-white shrink-0 ml-1"
-                    title="Clear date"
+                    title={t('common.clearDate') || "Clear date"}
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -1286,7 +1286,7 @@ export default function StockMovementsPage() {
                 <Input
                   value={payNote}
                   onChange={(e) => setPayNote(e.target.value)}
-                  placeholder="e.g. Bank transfer, Cash installment #2, Receipt #1024"
+                  placeholder={t("stock.stockMovementsNotesPlaceholder")}
                   className="h-10 rounded-xl text-xs"
                 />
               </div>

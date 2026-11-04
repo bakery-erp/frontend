@@ -484,7 +484,7 @@ export default function PayrollPenaltiesPage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.reason')}</label>
-                <Input name="reason" required placeholder="e.g. Late arrival, Broken inventory item" className="h-10 rounded-xl border-zinc-200" />
+                <Input name="reason" required placeholder={t('payroll.penaltyShortReasonPlaceholder')} className="h-10 rounded-xl border-zinc-200" />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.date')}</label>

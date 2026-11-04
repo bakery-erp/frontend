@@ -159,6 +159,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   });
 
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "CASHIER";
+  const isCashier = user?.role === "CASHIER";
 
   // Reconstructed flat payments ledger
   const allPayments = useMemo(() => {
@@ -193,7 +194,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       return;
     }
     if (amt > Number(payingCredit.remainingBalance) + 0.01) {
-      toast.error("Payment amount cannot exceed the remaining balance");
+      toast.error(t("credits.toastPaymentExceedsRemaining"));
       return;
     }
 
@@ -266,7 +267,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     if (!editingCredit) return;
     const amt = Number(editCreditAmount);
     if (isNaN(amt) || amt <= 0) {
-      toast.error("Please enter a valid credit amount");
+      toast.error(t("credits.toastValidAmountRequired"));
       return;
     }
 
@@ -301,7 +302,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   const copyPhoneNumber = (phone: string) => {
     navigator.clipboard.writeText(phone);
-    toast.success("Phone number copied to clipboard");
+    toast.success(t("credits.toastPhoneCopied"));
   };
 
   if (isLoading) {
@@ -323,13 +324,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto">
             <AlertTriangle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-black text-[#2C1B10]">Customer Not Found</h2>
+          <h2 className="text-xl font-black text-[#2C1B10]">{t("credits.customerNotFound")}</h2>
           <p className="text-sm text-[#8C7361]">
-            {(error as any)?.response?.data?.error || "The requested customer profile could not be located."}
+            {(error as any)?.response?.data?.error || t("credits.customerProfileNotFound")}
           </p>
           <Button onClick={() => router.push("/customer-credits")} variant="outline" className="rounded-xl">
             <ArrowLeft className="w-4 h-4 mr-1.5" />
-            Back to Credit Sales
+            {t("credits.backToCredits")}
           </Button>
         </div>
       </DashboardLayout>
@@ -342,16 +343,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     <DashboardLayout>
       <div className="space-y-6 max-w-6xl mx-auto pb-12">
         {/* Top Navigation & Breadcrumbs */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 print:hidden">
+        <div className="flex items-center justify-between gap-2 print:hidden w-full">
           <div className="flex items-center gap-2 min-w-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push("/customer-credits")}
-              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] shrink-0 h-9 px-3 text-xs font-bold shadow-2xs flex items-center gap-1.5"
+              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] shrink-0 h-9 px-2.5 sm:px-3 text-xs font-bold shadow-2xs flex items-center gap-1.5"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>{t("common.back") || "Back"}</span>
+              <span className="hidden sm:inline">{t("common.back") || "Back"}</span>
             </Button>
             <div className="hidden sm:flex items-center text-xs text-[#8C7361] gap-1.5 min-w-0 truncate">
               <Link href="/customer-credits" className="hover:underline shrink-0">
@@ -362,7 +363,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -378,7 +379,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 variant="outline"
                 size="sm"
                 onClick={openEditCustomerModal}
-                className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] h-9 text-xs font-bold px-3 shadow-2xs shrink-0 flex items-center gap-1.5"
+                className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] h-9 text-xs font-bold px-2.5 sm:px-3 shadow-2xs shrink-0 flex items-center gap-1.5"
               >
                 <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
                 <span>{t("common.edit") || "Edit"}</span>
@@ -388,11 +389,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <Button
               size="sm"
               onClick={() => router.push(`/customer-credits/new?customerId=${customer.id}`)}
-              className="rounded-xl bg-[#E87A18] hover:bg-[#D26911] text-white shadow-xs h-9 text-xs font-black px-3.5 whitespace-nowrap shrink-0 flex items-center gap-1.5"
+              className="rounded-xl bg-[#E87A18] hover:bg-[#D26911] text-white shadow-xs h-9 text-xs font-black px-2.5 sm:px-3.5 whitespace-nowrap shrink-0 flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t("credits.newCredit") || "Log Credit"}</span>
-              <span className="sm:hidden">{t("credits.btnNewCreditMobile")}</span>
+              <span className="sm:hidden">{t("credits.btnNewCreditMobile") || "New Credit"}</span>
             </Button>
           </div>
         </div>
@@ -416,7 +417,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </div>
 
             <div className="text-right shrink-0">
-              <span className="text-[9px] font-black uppercase tracking-wider text-[#8C7361] block">Outstanding</span>
+              <span className="text-[9px] font-black uppercase tracking-wider text-[#8C7361] block">{t("credits.colRemaining")}</span>
               <span className={`text-base font-mono font-black ${isFullySettled ? "text-emerald-700" : "text-rose-700"}`}>
                 {Number(customer.totalRemaining || 0).toFixed(2)}
                 <span className="text-[10px] font-sans font-bold text-[#8C7361] ml-0.5">ETB</span>
@@ -424,9 +425,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
-          {(customer.address || customer.notes) && (
+          {((!isCashier && customer.address) || customer.notes) && (
             <div className="pt-2 border-t border-[#F4ECE1] text-[11px] text-[#8C7361] space-y-1">
-              {customer.address && (
+              {!isCashier && customer.address && (
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3 h-3 text-[#8C7361] shrink-0" />
                   <span className="truncate">{customer.address}</span>
@@ -434,7 +435,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {customer.notes && (
                 <p className="italic line-clamp-2">
-                  <span className="font-bold text-[#4A2E1B] not-italic mr-1">Note:</span>
+                  <span className="font-bold text-[#4A2E1B] not-italic mr-1">{t("common.notes")}:</span>
                   {customer.notes}
                 </p>
               )}
@@ -462,12 +463,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     {isFullySettled ? (
                       <>
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        All Credits Settled
+                        {t("credits.allCreditsSettled") || "All Credits Settled"}
                       </>
                     ) : (
                       <>
                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                        Balance Due: {Number(customer.totalRemaining).toFixed(2)} ETB
+                        {t("credits.balanceDuePrefix") || "Balance Due:"} {Number(customer.totalRemaining).toFixed(2)} ETB
                       </>
                     )}
                   </span>
@@ -481,14 +482,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     </a>
                     <button
                       onClick={() => copyPhoneNumber(customer.phone)}
-                      title="Copy phone"
+                      title={t("credits.copyPhone") || "Copy phone"}
                       className="text-[#8C7361] hover:text-[#2C1B10] ml-1"
                     >
                       <Copy className="w-3 h-3" />
                     </button>
                   </div>
 
-                  {customer.address && (
+                  {!isCashier && customer.address && (
                     <div className="inline-flex items-center gap-1.5 bg-[#FAF6F0] px-3 py-1 rounded-xl border border-[#EDE4D5]">
                       <MapPin className="w-3.5 h-3.5 text-[#8C7361]" />
                       <span>{customer.address}</span>
@@ -505,7 +506,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
                 {customer.notes && (
                   <p className="text-xs text-[#8C7361] pt-1 italic max-w-2xl bg-[#FAF6F0]/60 px-3 py-1.5 rounded-xl border border-[#EDE4D5]/60">
-                    <span className="font-bold text-[#4A2E1B] not-italic mr-1.5">Note:</span>
+                    <span className="font-bold text-[#4A2E1B] not-italic mr-1.5">{t("common.notes")}:</span>
                     {customer.notes}
                   </p>
                 )}
@@ -515,7 +516,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             {/* Quick Balance Spotlight */}
             <div className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 lg:min-w-[240px] text-center lg:text-right shrink-0">
               <span className="text-[11px] font-black uppercase tracking-wider text-[#8C7361] block">
-                Outstanding Balance
+                {t("credits.colRemaining") || "Outstanding Balance"}
               </span>
               <div
                 className={`text-2xl sm:text-3xl font-mono font-black mt-1 ${
@@ -526,7 +527,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <span className="text-xs font-sans font-bold text-[#8C7361] ml-1">ETB</span>
               </div>
               <span className="text-[10px] text-[#8C7361] font-semibold mt-1 block">
-                {isFullySettled ? "No pending debt" : "Total across all open credits"}
+                {isFullySettled ? t("credits.noPendingDebt") : t("credits.totalAcrossOpenCredits")}
               </span>
             </div>
           </div>
@@ -542,7 +543,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <div className="text-2xl sm:text-3xl font-mono font-black text-[#2C1B10]">
               {customer.totalCredits}
             </div>
-            <span className="text-[11px] text-[#8C7361] font-medium mt-1 block">Credit sales recorded</span>
+            <span className="text-[11px] text-[#8C7361] font-medium mt-1 block">{t("credits.creditSalesRecorded")}</span>
           </div>
 
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-2xs">
@@ -554,7 +555,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               {Number(customer.totalBorrowed || 0).toFixed(2)}
               <span className="text-xs font-sans font-bold text-[#8C7361] ml-1">ETB</span>
             </div>
-            <span className="text-[11px] text-[#8C7361] font-medium mt-1 block">Cumulative credit value</span>
+            <span className="text-[11px] text-[#8C7361] font-medium mt-1 block">{t("credits.cumulativeCreditValue")}</span>
           </div>
 
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-2xs">
@@ -566,7 +567,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               {Number(customer.totalPaid || 0).toFixed(2)}
               <span className="text-xs font-sans font-bold text-[#8C7361] ml-1">ETB</span>
             </div>
-            <span className="text-[11px] text-emerald-700/80 font-medium mt-1 block">Successfully collected</span>
+            <span className="text-[11px] text-emerald-700/80 font-medium mt-1 block">{t("credits.successfullyCollected")}</span>
           </div>
 
           <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-2xs">
@@ -582,7 +583,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               {Number(customer.totalRemaining || 0).toFixed(2)}
               <span className="text-xs font-sans font-bold text-[#8C7361] ml-1">ETB</span>
             </div>
-            <span className="text-[11px] text-[#8C7361] font-medium mt-1 block">Current outstanding</span>
+            <span className="text-[11px] text-[#8C7361] font-medium mt-1 block">{t("credits.currentOutstanding")}</span>
           </div>
         </div>
 
@@ -626,7 +627,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <TableHeader className="bg-[#FAF6F0]">
                   <TableRow className="border-b border-[#EDE4D5]">
                     <TableHead className="font-bold text-xs text-[#4A2E1B]">{t("common.date") || "Date"}</TableHead>
-                    <TableHead className="font-bold text-xs text-[#4A2E1B]">Due Date</TableHead>
+                    <TableHead className="font-bold text-xs text-[#4A2E1B]">{t("credits.colDueDate")}</TableHead>
                     <TableHead className="font-bold text-xs text-[#4A2E1B]">{t("credits.colItems") || "Items / Description"}</TableHead>
                     <TableHead className="font-bold text-xs text-[#4A2E1B] text-right">{t("credits.colTotalAmount") || "Total (ETB)"}</TableHead>
                     <TableHead className="font-bold text-xs text-[#4A2E1B] text-right">{t("credits.colPaidAmount") || "Paid (ETB)"}</TableHead>
@@ -639,7 +640,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   {customer.credits.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-12 text-[#8C7361] font-medium">
-                        No credit sales recorded for this customer yet.
+                        {t("credits.noCreditSalesRecorded")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -667,7 +668,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-xs text-[#8C7361] italic">{parsed.notes || "Standard Credit Sale"}</span>
+                              <span className="text-xs text-[#8C7361] italic">{parsed.notes || t("credits.standardCreditSale")}</span>
                             )}
                             {parsed.items.length > 0 && parsed.notes && (
                               <span className="text-[10px] text-[#8C7361] italic block truncate mt-0.5">{parsed.notes}</span>
@@ -698,7 +699,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                                   : "bg-amber-100 text-amber-800 border border-amber-200"
                               }`}
                             >
-                              {isPaid ? "PAID" : "OPEN"}
+                              {isPaid ? t("credits.statusPaid") : t("credits.statusOpen")}
                             </span>
                           </TableCell>
                           <TableCell className="text-right pr-6">
@@ -747,7 +748,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <div className="md:hidden space-y-3">
               {customer.credits.length === 0 ? (
                 <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                  No credit sales recorded for this customer yet.
+                  {t("credits.noCreditSalesRecorded")}
                 </div>
               ) : (
                 customer.credits.map((cr) => {
@@ -763,7 +764,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           </div>
                           {cr.dueDate && (
                             <span className="text-[10px] text-[#8C7361] block mt-0.5">
-                              Due: {formatEthDate(cr.dueDate)}
+                              {t("credits.dueDatePrefix")} {formatEthDate(cr.dueDate)}
                             </span>
                           )}
                         </div>
@@ -776,7 +777,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                                 : "bg-amber-100 text-amber-800 border border-amber-200"
                             }`}
                           >
-                            {isPaid ? "PAID" : "OPEN"}
+                            {isPaid ? t("credits.statusPaid") : t("credits.statusOpen")}
                           </span>
                         </div>
                       </div>
@@ -794,25 +795,25 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-[#8C7361] italic">{parsed.notes || "Standard Credit Sale"}</p>
+                        <p className="text-xs text-[#8C7361] italic">{parsed.notes || t("credits.standardCreditSale")}</p>
                       )}
 
                       {/* Amounts Breakdown */}
                       <div className="grid grid-cols-3 gap-2 bg-[#FAF6F0] p-2.5 rounded-xl border border-[#EDE4D5] text-center">
                         <div>
-                          <span className="text-[9px] font-bold uppercase text-[#8C7361] block">Total</span>
+                          <span className="text-[9px] font-bold uppercase text-[#8C7361] block">{t("common.total")}</span>
                           <span className="text-xs font-mono font-extrabold text-[#2C1B10]">
                             {Number(cr.amount).toFixed(2)}
                           </span>
                         </div>
                         <div>
-                          <span className="text-[9px] font-bold uppercase text-[#8C7361] block">Paid</span>
+                          <span className="text-[9px] font-bold uppercase text-[#8C7361] block">{t("credits.colPaidAmount")}</span>
                           <span className="text-xs font-mono font-extrabold text-emerald-700">
                             {Number(cr.paidAmount).toFixed(2)}
                           </span>
                         </div>
                         <div>
-                          <span className="text-[9px] font-bold uppercase text-[#8C7361] block">Remaining</span>
+                          <span className="text-[9px] font-bold uppercase text-[#8C7361] block">{t("credits.colRemaining")}</span>
                           <span
                             className={`text-xs font-mono font-extrabold ${
                               isPaid ? "text-emerald-700" : "text-rose-700"
@@ -842,7 +843,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8.5 px-3 rounded-xl shadow-2xs flex items-center gap-1.5"
                         >
                           <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                          <span>{t("common.view") || "View"}</span>
+                          <span>{t("common.view")}</span>
                         </Button>
                         {canManage && (
                           <Button
@@ -873,9 +874,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <TableHeader className="bg-[#FAF6F0]">
                   <TableRow className="border-b border-[#EDE4D5]">
                     <TableHead className="font-bold text-xs text-[#4A2E1B]">{t("common.date") || "Date"}</TableHead>
-                    <TableHead className="font-bold text-xs text-[#4A2E1B]">Related Invoice</TableHead>
+                    <TableHead className="font-bold text-xs text-[#4A2E1B]">{t("credits.relatedInvoice")}</TableHead>
                     <TableHead className="font-bold text-xs text-[#4A2E1B] text-right">{t("credits.colPaidAmount") || "Amount Paid (ETB)"}</TableHead>
-                    <TableHead className="font-bold text-xs text-[#4A2E1B]">Notes / Reference</TableHead>
+                    <TableHead className="font-bold text-xs text-[#4A2E1B]">{t("credits.notesReference")}</TableHead>
                     <TableHead className="font-bold text-xs text-[#4A2E1B] text-right pr-6">{t("common.actions") || "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -883,7 +884,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   {allPayments.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-12 text-[#8C7361] font-medium">
-                        No repayments recorded yet for this customer.
+                        {t("credits.noRepayments")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -895,14 +896,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                             {formatEthDate(p.date || p.createdAt)}
                           </TableCell>
                           <TableCell className="text-xs">
-                            <span className="font-semibold text-[#4A2E1B]">Credit of {formatEthDate(p.creditDate)}</span>
-                            <span className="text-[10px] text-[#8C7361] block font-mono">Total: {Number(p.creditTotal).toFixed(2)} ETB</span>
+                            <span className="font-semibold text-[#4A2E1B]">{t("credits.creditOfDate", { date: formatEthDate(p.creditDate) })}</span>
+                            <span className="text-[10px] text-[#8C7361] block font-mono">{t("credits.totalPrefix")} {Number(p.creditTotal).toFixed(2)} ETB</span>
                           </TableCell>
                           <TableCell className="text-right font-mono font-bold text-xs text-emerald-700">
                             +{payVal.toFixed(2)} ETB
                           </TableCell>
                           <TableCell className="text-xs text-[#8C7361]">
-                            {p.note || p.description || "Direct Payment"}
+                            {p.note || p.description || t("credits.directPayment")}
                           </TableCell>
                           <TableCell className="text-right pr-6">
                             <Button
@@ -927,7 +928,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <div className="md:hidden space-y-3">
               {allPayments.length === 0 ? (
                 <div className="bg-white border border-[#EDE4D5] rounded-2xl p-6 text-center text-[#8C7361] text-xs font-medium">
-                  No repayments recorded yet for this customer.
+                  {t("credits.noRepayments")}
                 </div>
               ) : (
                 allPayments.map((p) => {
@@ -946,7 +947,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-[#8C7361]">
-                          Credit on {formatEthDate(p.creditDate)}
+                          {t("credits.creditOnDate", { date: formatEthDate(p.creditDate) })}
                         </span>
                         <Button
                           size="sm"
@@ -986,19 +987,19 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               <form onSubmit={handlePaySubmit} className="space-y-4 pt-2">
                 <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5] space-y-1 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-[#8C7361] font-medium">Customer:</span>
+                    <span className="text-[#8C7361] font-medium">{t("credits.customerLabel")}</span>
                     <span className="font-bold text-[#2C1B10]">{customer.fullName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#8C7361] font-medium">Credit Date:</span>
+                    <span className="text-[#8C7361] font-medium">{t("credits.creditDateLabel")}</span>
                     <span className="font-bold text-[#2C1B10]">{formatEthDate(payingCredit.date)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#8C7361] font-medium">Total Credit Value:</span>
+                    <span className="text-[#8C7361] font-medium">{t("credits.totalCreditValueLabel")}</span>
                     <span className="font-mono font-bold text-[#2C1B10]">{Number(payingCredit.amount).toFixed(2)} ETB</span>
                   </div>
                   <div className="flex justify-between border-t border-[#EDE4D5] pt-1 mt-1">
-                    <span className="text-[#8C7361] font-bold uppercase">Remaining Due:</span>
+                    <span className="text-[#8C7361] font-bold uppercase">{t("credits.remainingDueLabel")}</span>
                     <span className="font-mono font-black text-rose-700 text-sm">
                       {Number(payingCredit.remainingBalance).toFixed(2)} ETB
                     </span>
@@ -1015,7 +1016,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       onClick={() => setPaymentAmount(Number(payingCredit.remainingBalance).toFixed(2))}
                       className="text-[11px] font-bold text-[#E87A18] hover:underline"
                     >
-                      Pay Full Balance
+                      {t("credits.payFullBalance")}
                     </button>
                   </div>
                   <Input
@@ -1048,7 +1049,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </Button>
                   <Button type="submit" loading={isSubmittingPay} className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold">
                     <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                    Confirm Payment
+                    {t("credits.confirmPayment")}
                   </Button>
                 </DialogFooter>
               </form>
@@ -1091,16 +1092,18 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
-                  {t("credits.addressLabel") || "Address / Cafe Location"}
-                </label>
-                <Input
-                  value={editCustomerAddress}
-                  onChange={(e) => setEditCustomerAddress(e.target.value)}
-                  className="rounded-xl text-xs"
-                />
-              </div>
+              {!isCashier && (
+                <div>
+                  <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
+                    {t("credits.addressLabel") || "Address / Cafe Location"}
+                  </label>
+                  <Input
+                    value={editCustomerAddress}
+                    onChange={(e) => setEditCustomerAddress(e.target.value)}
+                    className="rounded-xl text-xs"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block uppercase mb-1">
@@ -1140,8 +1143,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               <form onSubmit={handleCreditEditSubmit} className="space-y-4 pt-2">
                 <div className="p-3 bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl flex items-center justify-between gap-2">
                   <div className="text-xs text-[#4A2E1B]">
-                    <span className="font-bold block">Need to edit items or quantities?</span>
-                    <span className="text-[11px] text-[#8C7361]">Use the full credit editor to change products.</span>
+                    <span className="font-bold block">{t("credits.needToEditItems")}</span>
+                    <span className="text-[11px] text-[#8C7361]">{t("credits.useFullCreditEditor")}</span>
                   </div>
                   <Button
                     type="button"
@@ -1154,7 +1157,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     }}
                     className="border-[#DFCBB5] text-[#E87A18] hover:bg-white text-xs font-bold rounded-xl shrink-0"
                   >
-                    Full Edit &rarr;
+                    {t("credits.fullEdit")} &rarr;
                   </Button>
                 </div>
 
@@ -1174,7 +1177,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     />
                     {Number(editingCredit.paidAmount) > 0 && (
                       <span className="text-[10px] text-amber-700 block mt-0.5">
-                        Min: {Number(editingCredit.paidAmount).toFixed(2)} ETB (already paid)
+                        {t("credits.minPaidNotice", { amount: Number(editingCredit.paidAmount).toFixed(2) })}
                       </span>
                     )}
                   </div>

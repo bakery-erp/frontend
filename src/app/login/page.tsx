@@ -180,7 +180,7 @@ export default function LoginPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 xs:p-4 bg-black/40 backdrop-blur-xs animate-in fade-in-0">
           <div className="bg-[#FFFDF8] rounded-2xl xs:rounded-3xl p-4 xs:p-6 w-[calc(100vw-1.5rem)] max-w-md shadow-2xl border border-[#EDE4D5] space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#EDE4D5]">
-              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10]">Request Password Reset</h3>
+              <h3 className="text-sm xs:text-base font-extrabold text-[#2C1B10]">{t('auth.requestPasswordReset')}</h3>
               <button
                 onClick={() => setIsResetOpen(false)}
                 className="text-[#8C7361] hover:text-[#4A2E1B] text-lg font-bold p-1 transition-colors"
@@ -190,7 +190,7 @@ export default function LoginPage() {
             </div>
 
             <p className="text-xs text-[#8C7361] font-medium leading-relaxed">
-              Enter your registered phone number. Your Bakery Owner or Branch Manager will receive the request and generate a new temporary password for you.
+              {t('auth.requestResetDesc')}
             </p>
 
             {resetMsg ? (
@@ -200,7 +200,7 @@ export default function LoginPage() {
                   onClick={() => setIsResetOpen(false)}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-11 rounded-xl"
                 >
-                  Return to Login
+                  {t('auth.returnToLogin')}
                 </Button>
               </div>
             ) : (
@@ -212,7 +212,7 @@ export default function LoginPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="reset-phone" className="text-xs font-bold uppercase tracking-wider text-[#4A2E1B]">Phone Number</Label>
+                  <Label htmlFor="reset-phone" className="text-xs font-bold uppercase tracking-wider text-[#4A2E1B]">{t('auth.phoneLabel')}</Label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C7361]">
                       <Phone className="h-4 w-4" />
@@ -220,7 +220,7 @@ export default function LoginPage() {
                     <Input
                       id="reset-phone"
                       type="text"
-                      placeholder="0912..."
+                      placeholder={t('auth.phonePlaceholder')}
                       className="pl-10 h-11 rounded-xl bg-[#F4ECE1]/50 text-[#2C1B10] border-[#EDE4D5] focus:bg-white focus-visible:ring-[#E87A18]"
                       value={resetPhone}
                       onChange={(e) => setResetPhone(e.target.value)}
@@ -237,16 +237,16 @@ export default function LoginPage() {
                     onClick={() => setIsResetOpen(false)}
                     className="w-full xs:flex-1"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     type="submit"
                     size="lg"
                     loading={isResetSubmitting}
-                    loadingText="Submitting..."
+                    loadingText={t('common.loading')}
                     className="w-full xs:flex-1"
                   >
-                    Submit Reset Request
+                    {t('auth.requestResetButton')}
                   </Button>
                 </div>
               </form>

@@ -1,5 +1,8 @@
 export const en = {
   common: {
+    max: "Max",
+    totalItems: "{count} total",
+
     save: "Save",
     cancel: "Cancel",
     delete: "Delete",
@@ -203,6 +206,12 @@ export const en = {
     noTransactionsFound: "No transactions match the selected criteria.",
   },
   sessions: {
+    ownerDirectAuditMode: "Owner Direct Audit Mode",
+    ownerDirectAuditDesc: "You are directly modifying a CLOSED session. Any updates to counts or cash amounts will recalculate sales and automatically cascade forward to subsequent business days.",
+    maxAvailableStock: "Max Available Stock",
+
+    closedStatus: "CLOSED",
+
     title: "Daily Closing & Reconciliation",
     subtitle: "Manage daily food leftovers (Adari), count drawer cash with cashier, and finalize the day.",
     startNewSession: "Start Today's Closing",
@@ -771,6 +780,17 @@ export const en = {
     batches: "Batches",
   },
   stock: {
+    adjustCount: "Adjust Count",
+    estimatedWasteCost: "Estimated waste/loss cost",
+    clearDateFilter: "Clear date filter",
+    unitKgDesc: "Kg (Kilogram)",
+    unitPieceDesc: "Piece",
+    unitLiterDesc: "Liter",
+    onlyOwnerPermissionMaterials: "Only the bakery Owner has permission to configure which raw materials are accessible by each production worker role.",
+    backToStock: "Back to Stock",
+    unsavedPermissions: "Unsaved Permissions",
+    unsavedPermissionsNotice: "You have unsaved permission changes. Save before switching roles.",
+
     title: "Raw Materials & Inventory Stock",
     subtitle: "Monitor inventory levels, supplier deliveries, purchase loans, and stock movements.",
     newItem: "Add New Stock Item",
@@ -1249,6 +1269,11 @@ export const en = {
     statusAvailableForSale: "Available for Sale",
   },
   categories: {
+    noSubcategories: "No subcategories found. Click '+ Add Subcategory' to create one under a parent category.",
+    deleteCategoryTitle: "Delete Product Category",
+    confirmDeleteCategory: "Are you sure you want to delete '{name}'? This action cannot be undone.",
+    deleteCategoryBtn: "Delete Category",
+
     title: "Product Categories",
     subtitle: "Organize products into kitchen produced items and supplier resells.",
     manageSubtitle: "Manage bakery product categories and sub-classifications",
@@ -1362,6 +1387,16 @@ export const en = {
     toastFailedToDelete: "Failed to delete branch.",
   },
   users: {
+    uploadPersonnelMediaDesc: "Upload personnel profile photo and official employment identification file",
+    idDocumentFormatsDesc: "Kebele ID, passport, contract, or license (PDF or Image). Stored under /uploads/documents/",
+    discardRegistrationConfirm: "You have entered personnel registration details. Are you sure you want to discard them and leave?",
+    managePersonnelMediaDesc: "Manage personnel profile picture and official identification document separately",
+    officialDocOnFile: "Official Document on File",
+    currentAvatarActive: "Current avatar active",
+    ownerSecurityVerification: "Owner Security Verification",
+    mustBeAfterStartDate: "Must be on or after start date",
+    autoCalculatedFromStartDate: "Auto-calculated from employment start date",
+
     title: "Staff & User Accounts",
     subtitle: "Manage system access, assign roles, branches, phone credentials, and staff records.",
     newUser: "Create Staff Account",
@@ -1485,6 +1520,19 @@ export const en = {
     cannotDeactivateSelf: "You cannot deactivate your own account.",
   },
   payroll: {
+    savePayrollChanges: "Save Payroll Changes",
+
+    loanPackageAmount: "Loan Package Amount (ETB)",
+    statusOpenActive: "OPEN (Active Unpaid Loan)",
+    statusPaidSettled: "PAID (Fully Settled)",
+    settlementStatus: "Settlement Status",
+    pendingNotDeducted: "Pending (Not yet deducted from salary)",
+    editPayrollTitle: "Edit Payroll Record & Final Salary",
+    editPayrollDesc: "Modify base salary, bonuses, deductions, or override final payout amount directly.",
+    finalNetSalaryPayout: "Final Net Salary Payout (ETB)",
+    overridePayoutDesc: "Directly overrides the stored payout amount for this payslip.",
+    savePenaltyChanges: "Save Penalty Changes",
+
     title: "Payroll & Staff Salaries",
     subtitle: "Generate monthly salary sheets, process loan and penalty deductions, and record payments.",
     generatePayroll: "Generate Monthly Payroll",
@@ -1660,6 +1708,9 @@ export const en = {
     selectLanguage: "Language",
   },
   ownerLoans: {
+    noSpecificReason: "No specific reason",
+    historyWithCount: "History ({count})",
+
     title: "Owner Personal Loans",
     subtitle: "Dedicated record of personal funds borrowed and repayments made by the owner.",
     logNewLoan: "Log Personal Loan",

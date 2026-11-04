@@ -68,7 +68,7 @@ export default function MobileCashierStation() {
       });
       setLeftoverCounts(initial);
     } catch (e: any) {
-      toast.error('Failed to load cashier station');
+      toast.error(t('mobile.toastLoadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +102,7 @@ export default function MobileCashierStation() {
           date: new Date().toISOString().slice(0, 10),
           records: leftoversPayload,
         });
-        toast.success('Leftovers saved successfully!');
+        toast.success(t('mobile.toastLeftoversSaved'));
       }
       fetchCashierData();
     } catch (e: any) {

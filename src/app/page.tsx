@@ -631,9 +631,9 @@ export default function Dashboard() {
                     <Table>
                       <TableHeader className="bg-amber-50/60">
                         <TableRow>
-                          <TableHead className="text-amber-950 font-bold">Supplier</TableHead>
-                          <TableHead className="text-amber-950 font-bold">Product / Material</TableHead>
-                          <TableHead className="text-right text-amber-950 font-bold pr-6">Total Cost</TableHead>
+                          <TableHead className="text-amber-950 font-bold">{t('suppliers.title') || 'Supplier'}</TableHead>
+                          <TableHead className="text-amber-950 font-bold">{t('products.colProduct') || 'Product / Material'}</TableHead>
+                          <TableHead className="text-right text-amber-950 font-bold pr-6">{t('suppliers.totalCost') || 'Total Cost'}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -665,12 +665,12 @@ export default function Dashboard() {
                     <Table>
                       <TableHeader className="bg-indigo-50/60">
                         <TableRow>
-                          <TableHead className="text-indigo-950 font-bold">Employee</TableHead>
-                          <TableHead className="text-indigo-950 font-bold">Role</TableHead>
-                          <TableHead className="text-indigo-950 font-bold">Base Salary</TableHead>
-                          <TableHead className="text-indigo-950 font-bold">Deductions</TableHead>
-                          <TableHead className="text-indigo-950 font-bold">Status</TableHead>
-                          <TableHead className="text-right text-indigo-950 font-bold pr-6">Net Paid</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">{t('payroll.colStaffMember') || 'Employee'}</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">{t('payroll.colRole') || 'Role'}</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">{t('payroll.colBaseSalary') || 'Base Salary'}</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">{t('payroll.colLoansDeducted') || 'Deductions'}</TableHead>
+                          <TableHead className="text-indigo-950 font-bold">{t('common.status') || 'Status'}</TableHead>
+                          <TableHead className="text-right text-indigo-950 font-bold pr-6">{t('payroll.colNetSalary') || 'Net Paid'}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>

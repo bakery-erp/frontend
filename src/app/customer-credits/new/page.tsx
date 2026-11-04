@@ -225,11 +225,11 @@ function NewCustomerCreditFormContent() {
             }
           }
         } catch {
-          toast.error("Failed to load credit details for editing");
+          toast.error(t("credits.toastLoadCreditFailed"));
         }
       }
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to load initial data");
+      toast.error(e.response?.data?.error || t("common.failedToLoad") || "Failed to load initial data");
     } finally {
       setIsLoading(false);
     }
@@ -420,18 +420,18 @@ function NewCustomerCreditFormContent() {
 
     if (!canProceedFromStep1) {
       setCurrentStep(1);
-      toast.error("Please select or enter customer details.");
+      toast.error(t("credits.toastSelectCustomerRequired"));
       return;
     }
 
     if (!canProceedFromStep2) {
       setCurrentStep(2);
-      toast.error("Please select products and valid quantities before submitting.");
+      toast.error(t("credits.toastSelectProductsRequired"));
       return;
     }
 
     if (effectiveCreditAmount <= 0) {
-      toast.error("Total credit amount must be greater than zero.");
+      toast.error(t("credits.toastValidAmountRequired"));
       return;
     }
 
@@ -483,7 +483,7 @@ function NewCustomerCreditFormContent() {
 
       router.push("/customer-credits");
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to save customer credit transaction");
+      toast.error(err.response?.data?.error || t("credits.toastSaveCreditFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -500,17 +500,21 @@ function NewCustomerCreditFormContent() {
               size="icon"
               onClick={handleCancelClick}
               className="border-[#EDE4D5] bg-white text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl font-extrabold h-9 w-9 shadow-2xs cursor-pointer shrink-0"
-              title="Cancel"
+              title={t("common.cancel")}
             >
               <ArrowLeft className="w-4 h-4 text-[#E87A18]" />
             </Button>
             <div className="min-w-0">
               <h1 className="text-base sm:text-lg font-black text-[#2C1B10] tracking-tight truncate flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-[#E87A18] shrink-0" />
-                <span>{isEditMode ? "Edit Customer Credit" : "New Customer Credit Sale"}</span>
+                <span>{isEditMode ? (t("credits.editCreditSaleTitle") || "Edit Customer Credit") : (t("credits.newCreditSaleTitle") || "New Customer Credit Sale")}</span>
               </h1>
               <p className="text-[11px] text-[#8C7361] font-semibold truncate hidden xs:block">
-                Step {currentStep} of 3: {currentStep === 1 ? "Choose Customer" : currentStep === 2 ? "Select In-Shop Products" : "Review & Verification"}
+                {currentStep === 1
+                  ? t("credits.step1ChooseCustomer")
+                  : currentStep === 2
+                  ? t("credits.step2SelectProducts")
+                  : t("credits.step3ReviewSummary")}
               </p>
             </div>
           </div>
@@ -520,7 +524,7 @@ function NewCustomerCreditFormContent() {
             onClick={handleCancelClick}
             className="text-xs font-bold text-[#8C7361] hover:text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl h-9 px-3 shrink-0"
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
         </div>
 
@@ -533,9 +537,9 @@ function NewCustomerCreditFormContent() {
               </span>
               <div className="min-w-0">
                 <h2 className="text-xs sm:text-sm font-black text-[#2C1B10] truncate">
-                  {currentStep === 1 && "Step 1: Choose Customer"}
-                  {currentStep === 2 && "Step 2: Select In-Shop Products"}
-                  {currentStep === 3 && "Step 3: Review & Summary"}
+                  {currentStep === 1 && (t("credits.step1ChooseCustomer") || "Step 1: Choose Customer")}
+                  {currentStep === 2 && (t("credits.step2SelectProducts") || "Step 2: Select In-Shop Products")}
+                  {currentStep === 3 && (t("credits.step3ReviewSummary") || "Step 3: Review & Summary")}
                 </h2>
               </div>
             </div>
@@ -552,7 +556,7 @@ function NewCustomerCreditFormContent() {
                   className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#E87A18] hover:text-[#4A2E1B] transition-colors cursor-pointer px-2 py-1 rounded-lg bg-[#FAF6F0] border border-[#EDE4D5]"
                 >
                   <ArrowLeft className="w-3 h-3" />
-                  <span>Back</span>
+                  <span>{t("common.back")}</span>
                 </button>
               )}
               {currentStep === 1 && selectedCustomer && (
@@ -602,7 +606,7 @@ function NewCustomerCreditFormContent() {
                 }`}
               >
                 <UserCheck className="w-4 h-4 shrink-0" />
-                <span className="truncate">Existing Customer ({customers.length})</span>
+                <span className="truncate">{t("credits.existingCustomer")} ({customers.length})</span>
               </button>
               <button
                 type="button"
@@ -614,7 +618,7 @@ function NewCustomerCreditFormContent() {
                 }`}
               >
                 <UserPlus className="w-4 h-4 shrink-0" />
-                <span className="truncate">Register New Customer</span>
+                <span className="truncate">{t("credits.registerNewCustomer")}</span>
               </button>
             </div>
 
@@ -624,7 +628,7 @@ function NewCustomerCreditFormContent() {
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7361]" />
                   <Input
-                    placeholder="Search by customer name or phone number..."
+                    placeholder={t("credits.searchCustomerInlinePlaceholder")}
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     className="pl-10 h-11 rounded-xl bg-[#FAF6F0]/60 border-[#EDE4D5] text-sm"
@@ -670,7 +674,7 @@ function NewCustomerCreditFormContent() {
                             <div className="min-w-0 flex-1">
                               <h4 className="font-black text-sm text-[#2C1B10] truncate">{cust.fullName}</h4>
                               <p className="text-xs font-mono text-[#8C7361] mt-0.5">{cust.phone}</p>
-                              {cust.address && (
+                              {!isCashier && cust.address && (
                                 <p className="text-[11px] text-[#A48F7F] mt-1 flex items-center gap-1 truncate">
                                   <MapPin className="w-3 h-3 shrink-0" /> {cust.address}
                                 </p>
@@ -688,7 +692,7 @@ function NewCustomerCreditFormContent() {
                           </div>
 
                           <div className="mt-3 pt-2 border-t border-[#F4ECE1] flex items-center justify-between text-xs">
-                            <span className="text-[#8C7361] text-[10px] uppercase font-bold">Unpaid Credit</span>
+                            <span className="text-[#8C7361] text-[10px] uppercase font-bold">{t("credits.unpaidCredit")}</span>
                             <span className={`font-mono font-extrabold ${cust.totalRemaining > 0 ? "text-rose-700" : "text-emerald-700"}`}>
                               {Number(cust.totalRemaining || 0).toLocaleString()} ETB
                             </span>
@@ -703,16 +707,16 @@ function NewCustomerCreditFormContent() {
               <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-6 shadow-xs space-y-4">
                 <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                   <UserPlus className="w-4 h-4 text-[#E87A18]" />
-                  <span>Customer Information</span>
+                  <span>{t("credits.customerInformation")}</span>
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                      Full Name <span className="text-red-500">*</span>
+                      {t("credits.customerName")} <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      placeholder="e.g. Abebe Bikila"
+                      placeholder={t("credits.personNamePlaceholder")}
                       value={newCustomerName}
                       onChange={(e) => setNewCustomerName(e.target.value)}
                       className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
@@ -722,10 +726,10 @@ function NewCustomerCreditFormContent() {
 
                   <div>
                     <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                      Phone Number <span className="text-red-500">*</span>
+                      {t("credits.phoneNumber")} <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      placeholder="e.g. 0911223344"
+                      placeholder={t("credits.customerPhonePlaceholder")}
                       value={newCustomerPhone}
                       onChange={(e) => setNewCustomerPhone(e.target.value)}
                       className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5] font-mono"
@@ -736,10 +740,10 @@ function NewCustomerCreditFormContent() {
                   {!isCashier && (
                     <div className="sm:col-span-2">
                       <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase">
-                        Address / Business Location (Optional)
+                        {t("credits.addressLabel")}
                       </label>
                       <Input
-                        placeholder="e.g. Shop #14, Main Market Road"
+                        placeholder={t("credits.customerAddressPlaceholder")}
                         value={newCustomerAddress}
                         onChange={(e) => setNewCustomerAddress(e.target.value)}
                         className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
@@ -764,7 +768,7 @@ function NewCustomerCreditFormContent() {
                 }}
                 className="h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
               >
-                <span>Next: Select Products</span>
+                <span>{t("credits.nextSelectProducts")}</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
             </div>
@@ -783,7 +787,7 @@ function NewCustomerCreditFormContent() {
                 }}
                 className="w-full h-12 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
               >
-                <span>{canProceedFromStep1 ? "Next: Select Products" : "Select a customer to continue"}</span>
+                <span>{canProceedFromStep1 ? t("credits.nextSelectProducts") : (t("credits.selectCustomerToContinue") || "Select a customer to continue")}</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
             </div>
@@ -854,7 +858,7 @@ function NewCustomerCreditFormContent() {
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7361]" />
                   <Input
-                    placeholder="Search product name..."
+                    placeholder={t("products.searchPlaceholder")}
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     className="pl-10 h-10 rounded-xl bg-[#FAF6F0]/50 border-[#EDE4D5] text-xs"
@@ -1034,12 +1038,12 @@ function NewCustomerCreditFormContent() {
                 className="h-12 px-5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Back to Customer</span>
+                <span>{t("credits.backToCustomer")}</span>
               </Button>
 
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <span className="text-[10px] text-[#8C7361] font-bold uppercase block">Total Credit</span>
+                  <span className="text-[10px] text-[#8C7361] font-bold uppercase block">{t("credits.totalCredit")}</span>
                   <span className="text-base font-black text-[#E87A18] font-mono">{totalCalculatedBirr.toFixed(2)} ETB</span>
                 </div>
 
@@ -1055,7 +1059,7 @@ function NewCustomerCreditFormContent() {
                   }}
                   className="h-12 px-6 rounded-xl bg-[#4A2E1B] hover:bg-[#3D2516] text-white font-extrabold text-sm flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  <span>Next: Review & Summary ({selectedItemsList.length})</span>
+                  <span>{t("credits.nextReviewSummary")} ({selectedItemsList.length})</span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </Button>
               </div>
@@ -1075,7 +1079,7 @@ function NewCustomerCreditFormContent() {
                   className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
+                  <span>{t("common.back")}</span>
                 </Button>
                 <Button
                   type="button"
@@ -1091,8 +1095,8 @@ function NewCustomerCreditFormContent() {
                 >
                   <span className="truncate">
                     {canProceedFromStep2
-                      ? `Next: Review (${selectedItemsList.length} • ${totalCalculatedBirr.toFixed(0)} ETB)`
-                      : "Select products above"}
+                      ? `${t("credits.nextReviewSummary")} (${selectedItemsList.length} • ${totalCalculatedBirr.toFixed(0)} ETB)`
+                      : (t("credits.selectProductsAbove") || "Select products above")}
                   </span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </Button>
@@ -1111,13 +1115,13 @@ function NewCustomerCreditFormContent() {
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] uppercase font-bold text-[#8C7361] tracking-wider block">Customer</span>
+                  <span className="text-[10px] uppercase font-bold text-[#8C7361] tracking-wider block">{t("credits.customerLabel")}</span>
                   <h3 className="font-black text-sm sm:text-base text-[#2C1B10] truncate">
                     {customerMode === "EXISTING" ? selectedCustomer?.fullName : newCustomerName}
                   </h3>
                   <p className="text-xs font-mono text-[#8C7361] truncate">
                     {customerMode === "EXISTING" ? selectedCustomer?.phone : newCustomerPhone}
-                    {(customerMode === "EXISTING" ? selectedCustomer?.address : newCustomerAddress) && ` • ${(customerMode === "EXISTING" ? selectedCustomer?.address : newCustomerAddress)}`}
+                    {!isCashier && (customerMode === "EXISTING" ? selectedCustomer?.address : newCustomerAddress) && ` • ${(customerMode === "EXISTING" ? selectedCustomer?.address : newCustomerAddress)}`}
                   </p>
                 </div>
               </div>
@@ -1129,7 +1133,7 @@ function NewCustomerCreditFormContent() {
                 onClick={() => setCurrentStep(1)}
                 className="h-8 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl self-end sm:self-center cursor-pointer"
               >
-                Change Customer
+                {t("credits.changeCustomer")}
               </Button>
             </div>
 
@@ -1142,7 +1146,7 @@ function NewCustomerCreditFormContent() {
                   </div>
                   <div>
                     <h3 className="font-black text-sm sm:text-base text-[#2C1B10]">
-                      Selected Products
+                      {t("credits.selectedProducts")}
                     </h3>
                     <p className="text-[11px] text-[#8C7361] font-semibold">
                       {selectedItemsList.length} distinct item{selectedItemsList.length === 1 ? "" : "s"} ({totalSelectedUnits} total units)
@@ -1158,7 +1162,7 @@ function NewCustomerCreditFormContent() {
                   className="h-8 px-3 text-xs font-bold border-[#EDE4D5] hover:bg-[#FAF6F0] rounded-xl text-[#4A2E1B] flex items-center gap-1.5 cursor-pointer"
                 >
                   <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
-                  <span>Edit Products</span>
+                  <span>{t("credits.editProducts")}</span>
                 </Button>
               </div>
 
@@ -1212,7 +1216,7 @@ function NewCustomerCreditFormContent() {
                       </div>
 
                       <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Subtotal</span>
+                        <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t("credits.subtotal")}</span>
                         <span className="font-mono font-black text-sm text-[#E87A18]">
                           {it.totalPrice.toFixed(2)} ETB
                         </span>
@@ -1232,11 +1236,11 @@ function NewCustomerCreditFormContent() {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="bg-[#FAF6F0]/70 text-[#8C7361] border-b border-[#F4ECE1]">
-                      <th className="py-2.5 px-3 font-extrabold uppercase text-[10px]">Product</th>
-                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">Quantity</th>
-                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Catalog Rate</th>
-                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">Selling Price (ETB)</th>
-                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">Subtotal</th>
+                      <th className="py-2.5 px-3 font-extrabold uppercase text-[10px]">{t("common.product")}</th>
+                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">{t("common.quantity")}</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">{t("credits.catalogRate")}</th>
+                      <th className="py-2.5 px-3 text-center font-extrabold uppercase text-[10px]">{t("credits.sellingPriceHeader")}</th>
+                      <th className="py-2.5 px-3 text-right font-extrabold uppercase text-[10px]">{t("credits.subtotal")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F4ECE1]">
@@ -1295,8 +1299,8 @@ function NewCustomerCreditFormContent() {
               <div className="bg-gradient-to-br from-[#FAF6F0] to-[#F5ECE1] border border-[#EDE4D5] p-3.5 sm:p-5 rounded-2xl space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EDE4D5]">
                   <div>
-                    <span className="text-[10px] uppercase font-black text-[#8C7361] tracking-wider block">Standard Catalog Value</span>
-                    <span className="text-xs sm:text-sm font-bold text-[#4A2E1B]">{totalSelectedUnits} total items from shop inventory</span>
+                    <span className="text-[10px] uppercase font-black text-[#8C7361] tracking-wider block">{t("credits.standardCatalogValue")}</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#4A2E1B]">{totalSelectedUnits} {t("credits.totalItemsFromInventory")}</span>
                   </div>
                   <div className="text-left sm:text-right">
                     {totalDiscountSavings > 0 && (
@@ -1315,7 +1319,7 @@ function NewCustomerCreditFormContent() {
                   <div className="flex items-center justify-between text-xs font-extrabold text-emerald-800 bg-emerald-50 px-3.5 py-2.5 rounded-xl border border-emerald-200">
                     <span className="flex items-center gap-1.5">
                       <span>🏷️</span>
-                      <span>Bulk / Negotiated Discount Applied</span>
+                      <span>{t("credits.discountApplied")}</span>
                     </span>
                     <span className="font-mono">
                       -{totalDiscountSavings.toFixed(2)} ETB ({Math.round((totalDiscountSavings / (totalStandardCatalogBirr || 1)) * 100)}% off catalog)
@@ -1333,7 +1337,7 @@ function NewCustomerCreditFormContent() {
             <div className="bg-white border border-[#EDE4D5] rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
               <h3 className="font-extrabold text-base text-[#2C1B10] flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#E87A18]" />
-                <span>Transaction Date & Notes</span>
+                <span>{t("credits.dateAndNotes")}</span>
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -1353,7 +1357,7 @@ function NewCustomerCreditFormContent() {
                     Additional Notes / Reference (Optional)
                   </label>
                   <Input
-                    placeholder="e.g. Special order pickup, negotiated bulk discount"
+                    placeholder={t("credits.orderNotesPlaceholder")}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="h-11 rounded-xl bg-[#FAF6F0]/40 border-[#EDE4D5]"
@@ -1376,7 +1380,7 @@ function NewCustomerCreditFormContent() {
                 className="h-12 px-6 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 shrink-0" />
-                <span>Back to Products</span>
+                <span>{t("credits.backToProducts")}</span>
               </Button>
 
               <Button
@@ -1411,7 +1415,7 @@ function NewCustomerCreditFormContent() {
                   className="h-12 px-3.5 rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-extrabold text-xs shrink-0 cursor-pointer flex items-center gap-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
+                  <span>{t("common.back")}</span>
                 </Button>
 
                 <Button
@@ -1450,11 +1454,12 @@ function NewCustomerCreditFormContent() {
 }
 
 export default function NewCustomerCreditPage() {
+  const { t } = useLanguage();
   return (
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#FAF7EE] flex items-center justify-center">
-          <p className="text-[#4A2E1B] font-bold text-sm">Loading Customer Credit...</p>
+          <p className="text-[#4A2E1B] font-bold text-sm">{t("credits.loadingCredit")}</p>
         </div>
       }
     >

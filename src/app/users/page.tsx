@@ -196,17 +196,17 @@ export default function UsersPage() {
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
     if (user?.role !== "OWNER") {
-      toast.error("Access Restricted: Only Owner can delete users");
+      toast.error(t("users.toastOnlyOwnerDelete"));
       setUserToDelete(null);
       return;
     }
     if (userToDelete.id === user?.id) {
-      toast.error("You cannot delete your own account");
+      toast.error(t("users.toastCannotDeleteSelf"));
       setUserToDelete(null);
       return;
     }
     if (userToDelete.role === "OWNER") {
-      toast.error("Owner accounts cannot be deleted");
+      toast.error(t("users.toastCannotDeleteOwner"));
       setUserToDelete(null);
       return;
     }
@@ -222,7 +222,7 @@ export default function UsersPage() {
       if (res.data?.deactivated) {
         toast.info(res.data.message || "User deactivated (historical transaction records preserved)");
       } else {
-        toast.success("User deleted successfully");
+        toast.success(t("users.toastUserDeleted"));
       }
       setUserToDelete(null);
       setDeletePassword("");
@@ -273,10 +273,10 @@ export default function UsersPage() {
   const handleRejectRequest = async (requestId: string) => {
     try {
       await api.post(`/auth/password-reset-requests/${requestId}/reject`);
-      toast.success("Password reset request rejected");
+      toast.success(t("users.toastResetRejected"));
       queryClient.invalidateQueries({ queryKey: ["users-page"] });
     } catch (err: any) {
-      toast.error("Failed to reject request");
+      toast.error(t("users.toastRejectFailed"));
     }
   };
 
@@ -334,7 +334,7 @@ export default function UsersPage() {
     }
     const targetUser = users.find((u) => u.id === userId);
     if (targetUser?.role === "OWNER") {
-      toast.error("Owner accounts cannot be deactivated");
+      toast.error(t("users.toastCannotDeactivateOwner"));
       return;
     }
     try {
@@ -507,7 +507,7 @@ export default function UsersPage() {
                               u.id === user?.id
                                 ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account")
                                 : u.role === "OWNER"
-                                ? "Owner accounts cannot be deactivated"
+                                ? (t("users.toastCannotDeactivateOwner") || "Owner accounts cannot be deactivated")
                                 : undefined
                             }
                           />
@@ -552,7 +552,7 @@ export default function UsersPage() {
                           aria-label={t('users.btnView') || "View"}
                         >
                           <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
-                          <span>View</span>
+                          <span>{t('common.view') || 'View'}</span>
                         </Button>
                         {canReset && (
                           <Button
@@ -576,7 +576,7 @@ export default function UsersPage() {
                             aria-label={t('users.btnEditEmployee') || "Edit"}
                           >
                             <Edit2 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
+                            <span>{t('common.edit') || 'Edit'}</span>
                           </Button>
                         )}
                         {canDelete && (
@@ -694,7 +694,7 @@ export default function UsersPage() {
                                   u.id === user?.id
                                     ? (t('users.cannotDeactivateSelf') || "You cannot deactivate your own account")
                                     : u.role === "OWNER"
-                                    ? "Owner accounts cannot be deactivated"
+                                    ? (t("users.toastCannotDeactivateOwner") || "Owner accounts cannot be deactivated")
                                     : undefined
                                 }
                               />
@@ -1092,7 +1092,7 @@ export default function UsersPage() {
                 </label>
                 <Input
                   type="text"
-                  placeholder="Leave empty to auto-generate secure code (e.g. Bakery#A4K8)"
+                  placeholder={t("users.autoPasscodePlaceholder")}
                   value={customNewPassword}
                   onChange={(e) => setCustomNewPassword(e.target.value)}
                   className="h-10 text-xs"
@@ -1217,7 +1217,7 @@ export default function UsersPage() {
               <Input
                 id="deleteUserPasswordInputDirect"
                 type={showDeletePassword ? "text" : "password"}
-                placeholder="Enter your account password"
+                placeholder={t("users.enterAccountPasswordPlaceholder")}
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
                 className="rounded-xl border-[#EDE4D5] pr-10 text-xs sm:text-sm"

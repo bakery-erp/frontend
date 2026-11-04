@@ -186,12 +186,12 @@ export default function SuppliersPage() {
 
     try {
       await api.post('/suppliers', data);
-      toast.success(t('suppliers.modalRegisterTitle') + ' successful');
+      toast.success(t('suppliers.toastSupplierRegistered'));
       setIsAddSupplierOpen(false);
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to add supplier');
+      toast.error(err.response?.data?.error || t('suppliers.toastCreateSupplierFailed'));
     } finally {
       setIsSubmittingSupplier(false);
     }
@@ -215,12 +215,12 @@ export default function SuppliersPage() {
 
     try {
       await api.patch(`/suppliers/${editingSupplier.id}`, data);
-      toast.success('Supplier profile updated');
+      toast.success(t('suppliers.toastSupplierUpdated'));
       setEditingSupplier(null);
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update supplier');
+      toast.error(err.response?.data?.error || t('suppliers.toastUpdateSupplierFailed'));
     } finally {
       setIsUpdatingSupplier(false);
     }
@@ -232,12 +232,12 @@ export default function SuppliersPage() {
     setIsDeletingSupplier(true);
     try {
       await api.delete(`/suppliers/${deletingSupplier.id}`);
-      toast.success('Supplier deleted successfully');
+      toast.success(t('suppliers.toastSupplierDeleted'));
       setDeletingSupplier(null);
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to delete supplier');
+      toast.error(err.response?.data?.error || t('suppliers.toastDeleteSupplierFailed'));
     } finally {
       setIsDeletingSupplier(false);
     }
@@ -264,12 +264,12 @@ export default function SuppliersPage() {
 
     try {
       await api.patch(`/supplier-deliveries/${editingDelivery.id}`, payload);
-      toast.success('Delivery receipt updated');
+      toast.success(t('suppliers.toastDeliveryUpdated'));
       setEditingDelivery(null);
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update delivery');
+      toast.error(err.response?.data?.error || t('suppliers.toastUpdateDeliveryFailed'));
     } finally {
       setIsUpdatingDelivery(false);
     }
@@ -281,12 +281,12 @@ export default function SuppliersPage() {
     setIsDeletingDelivery(true);
     try {
       await api.delete(`/supplier-deliveries/${deletingDeliveryId}`);
-      toast.success('Delivery receipt deleted');
+      toast.success(t('suppliers.toastDeliveryDeleted'));
       setDeletingDeliveryId(null);
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to delete delivery');
+      toast.error(err.response?.data?.error || t('suppliers.toastDeleteDeliveryFailed'));
     } finally {
       setIsDeletingDelivery(false);
     }
@@ -312,7 +312,7 @@ export default function SuppliersPage() {
 
     const amountNum = parseFloat(paymentAmount);
     if (!amountNum || amountNum <= 0) {
-      toast.error('Please enter a valid amount greater than 0');
+      toast.error(t('suppliers.toastValidAmountRequired'));
       return;
     }
 
@@ -330,12 +330,12 @@ export default function SuppliersPage() {
         notes: paymentNotes.trim() || undefined,
       });
 
-      toast.success('Payment recorded successfully!');
+      toast.success(t('suppliers.toastPaymentRecorded'));
       setPaymentDelivery(null);
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to record payment');
+      toast.error(err.response?.data?.error || t('suppliers.toastRecordPaymentFailed'));
     } finally {
       setIsRecordingPayment(false);
     }
@@ -442,7 +442,7 @@ export default function SuppliersPage() {
         >
           <Clock className="w-4 h-4 shrink-0" />
           <span className="font-extrabold truncate">
-            {language === 'am' ? 'ርክክቦች' : language === 'om' ? 'Dhiyeessii' : 'Deliveries'}
+            {t('suppliers.tabDeliveries')}
           </span>
           <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black font-mono shrink-0 ${
             activeTab === 'deliveries' ? 'bg-white/20 text-white' : 'bg-[#E0D5C3] text-[#4A2E1B]'
@@ -462,7 +462,7 @@ export default function SuppliersPage() {
         >
           <Truck className="w-4 h-4 shrink-0" />
           <span className="font-extrabold truncate">
-            {language === 'am' ? 'አቅራቢዎች' : language === 'om' ? 'Dhiyeessitoota' : 'Suppliers'}
+            {t('suppliers.tabSuppliers')}
           </span>
           <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black font-mono shrink-0 ${
             activeTab === 'suppliers' ? 'bg-white/20 text-white' : 'bg-[#E0D5C3] text-[#4A2E1B]'
@@ -491,7 +491,7 @@ export default function SuppliersPage() {
                   <TableHead>{t('suppliers.colType')}</TableHead>
                   <TableHead>{t('branches.title')}</TableHead>
                   <TableHead className="text-center">{t('suppliers.totalReceipts')}</TableHead>
-                  <TableHead className="text-right">{language === 'am' ? 'ቀሪ ሂሳብ' : language === 'om' ? 'Haftee' : 'Balance Due'}</TableHead>
+                  <TableHead className="text-right">{t('suppliers.colBalanceDue')}</TableHead>
                   <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -543,7 +543,7 @@ export default function SuppliersPage() {
                           <Link href={`/suppliers/${sup.id}`}>
                             <Button size="sm" variant="outline" className="h-8 px-2.5 rounded-lg text-xs font-bold border-[#EDE4D5]">
                               <Eye className="w-3.5 h-3.5 mr-1" />
-                              <span>{language === 'am' ? 'ዝርዝር' : language === 'om' ? 'Ilaali' : 'View'}</span>
+                              <span>{t('common.view')}</span>
                             </Button>
                           </Link>
 
@@ -621,7 +621,7 @@ export default function SuppliersPage() {
                         )}
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-[#B09987] block">{language === 'am' ? 'ቀሪ ሂሳብ' : language === 'om' ? 'Haftee' : 'Balance Due'}</span>
+                        <span className="text-[10px] uppercase font-bold text-[#B09987] block">{t('suppliers.colBalanceDue')}</span>
                         <span className={`font-black font-mono text-xs block mt-0.5 ${bal > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
                           {bal.toFixed(2)} {t('common.currency')}
                         </span>
@@ -637,7 +637,7 @@ export default function SuppliersPage() {
                         <Link href={`/suppliers/${sup.id}`}>
                           <Button size="sm" variant="outline" className="h-7 px-2.5 rounded-lg text-xs font-bold border-[#EDE4D5]">
                             <Eye className="w-3 h-3 mr-1" />
-                            <span>{language === 'am' ? 'ዝርዝር' : language === 'om' ? 'Ilaali' : 'View'}</span>
+                            <span>{t('common.view')}</span>
                           </Button>
                         </Link>
 
@@ -1005,45 +1005,45 @@ export default function SuppliersPage() {
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
                   {t('suppliers.colSupplierName')} <span className="text-red-500">*</span>
                 </label>
-                <Input name="name" required placeholder="e.g. Flour Factory / Milk Dairy" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                <Input name="name" required placeholder={t('suppliers.supplierNamePlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colPhone')}</label>
-                  <Input name="phone" placeholder="0911223344" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                  <Input name="phone" placeholder={t('suppliers.supplierPhonePlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                    {language === 'am' ? 'ተጠሪ ሰው' : language === 'om' ? 'Nama Quunnamtii' : 'Contact Person'}
+                    {t('suppliers.colContactPerson')}
                   </label>
-                  <Input name="contactPerson" placeholder="Ato Kebede" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                  <Input name="contactPerson" placeholder={t('suppliers.supplierContactPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
                 </div>
               </div>
 
               {!isCashier && (
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                    {language === 'am' ? 'አድራሻ' : language === 'om' ? 'Teessoo' : 'Address'}
+                    {t('suppliers.colAddress')}
                   </label>
-                  <Input name="address" placeholder="e.g., Addis Ababa, Bole" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                  <Input name="address" placeholder={t('suppliers.supplierAddressPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
                 </div>
               )}
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colType')}</label>
                 <select name="type" required className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs">
-                  <option value="GENERAL">GENERAL SUPPLIER</option>
-                  <option value="MILK">MILK SUPPLIER</option>
-                  <option value="INJERA">INJERA SUPPLIER</option>
+                  <option value="GENERAL">{t('suppliers.typeGeneral')}</option>
+                  <option value="MILK">{t('suppliers.typeMilk')}</option>
+                  <option value="INJERA">{t('suppliers.typeInjera')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                  {language === 'am' ? 'ማስታወሻ' : language === 'om' ? 'Yaadannoo' : 'Notes'}
+                  {t('suppliers.colNotes')}
                 </label>
-                <Input name="notes" placeholder="Optional notes" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                <Input name="notes" placeholder={t('suppliers.supplierNotesPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
               </div>
 
               <DialogFooter className="pt-2">
@@ -1075,39 +1075,39 @@ export default function SuppliersPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colPhone')}</label>
-                  <Input name="phone" defaultValue={editingSupplier.phone || ''} placeholder="0911223344" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                  <Input name="phone" defaultValue={editingSupplier.phone || ''} placeholder={t('suppliers.supplierPhonePlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                    {language === 'am' ? 'ተጠሪ ሰው' : language === 'om' ? 'Nama Quunnamtii' : 'Contact Person'}
+                    {t('suppliers.colContactPerson')}
                   </label>
-                  <Input name="contactPerson" defaultValue={editingSupplier.contactPerson || ''} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                  <Input name="contactPerson" defaultValue={editingSupplier.contactPerson || ''} placeholder={t('suppliers.supplierContactPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
                 </div>
               </div>
 
               {!isCashier && (
                 <div>
                   <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                    {language === 'am' ? 'አድራሻ' : language === 'om' ? 'Teessoo' : 'Address'}
+                    {t('suppliers.colAddress')}
                   </label>
-                  <Input name="address" defaultValue={editingSupplier.address || ''} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                  <Input name="address" defaultValue={editingSupplier.address || ''} placeholder={t('suppliers.supplierAddressPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
                 </div>
               )}
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colType')}</label>
                 <select name="type" defaultValue={editingSupplier.type} className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs">
-                  <option value="GENERAL">GENERAL SUPPLIER</option>
-                  <option value="MILK">MILK SUPPLIER</option>
-                  <option value="INJERA">INJERA SUPPLIER</option>
+                  <option value="GENERAL">{t('suppliers.typeGeneral')}</option>
+                  <option value="MILK">{t('suppliers.typeMilk')}</option>
+                  <option value="INJERA">{t('suppliers.typeInjera')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                  {language === 'am' ? 'ማስታወሻ' : language === 'om' ? 'Yaadannoo' : 'Notes'}
+                  {t('suppliers.colNotes')}
                 </label>
-                <Input name="notes" defaultValue={editingSupplier.notes || ''} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                <Input name="notes" defaultValue={editingSupplier.notes || ''} placeholder={t('suppliers.supplierNotesPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
               </div>
 
               <DialogFooter className="pt-2">
@@ -1159,7 +1159,7 @@ export default function SuppliersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Returned Qty</label>
+                  <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.returnedQty')}</label>
                   <Input
                     name="returnedQuantity"
                     type="number"
@@ -1216,11 +1216,11 @@ export default function SuppliersPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Notes</label>
+                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('common.notes')}</label>
                 <Input
                   name="notes"
                   defaultValue={editingDelivery.notes || ''}
-                  placeholder="Optional delivery notes"
+                  placeholder={t('suppliers.deliveryNotesOptionalPlaceholder')}
                   className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs"
                 />
               </div>
@@ -1282,7 +1282,7 @@ export default function SuppliersPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1.5 block">
-                  {language === 'am' ? 'የሚከፈል የገንዘብ መጠን' : language === 'om' ? 'Hanga Kaffaltii' : 'Payment Amount'} ({t('common.currency')})
+                  {t('suppliers.paymentAmountLabel')} ({t('common.currency')})
                 </label>
                 <div className="relative">
                   <Input
@@ -1307,12 +1307,12 @@ export default function SuppliersPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1.5 block">
-                  {language === 'am' ? 'ማስታወሻ' : language === 'om' ? 'Yaadannoo' : 'Payment Note'}
+                  {t('suppliers.colNotes')}
                 </label>
                 <Input
                   value={paymentNotes}
                   onChange={(e) => setPaymentNotes(e.target.value)}
-                  placeholder="e.g., Paid via Telebirr or Cash installment"
+                  placeholder={t('suppliers.installmentNotesPlaceholder')}
                   className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs rounded-xl"
                 />
               </div>

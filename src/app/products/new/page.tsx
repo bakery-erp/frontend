@@ -172,7 +172,7 @@ export default function NewProductPage() {
                 </label>
                 <Input
                   name="name"
-                  placeholder="ምሳሌ፡ መደበኛ ዳቦ ባለ 15"
+                  placeholder={t("products.productNamePlaceholder")}
                   required
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm"
                 />
@@ -184,7 +184,7 @@ export default function NewProductPage() {
                 </label>
                 <Input
                   name="nameLatin"
-                  placeholder="e.g. Medebegna Dabo Bale 15"
+                  placeholder={t("products.productNamePlaceholder")}
                   className="h-11 rounded-xl border-[#EDE4D5] text-sm font-mono"
                 />
               </div>

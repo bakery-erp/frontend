@@ -58,7 +58,7 @@ export default function StockPage() {
 
   useEffect(() => {
     if (user && !isStockStaff) {
-      toast.error("Access Restricted: Stock inventory is only available to Stock Keeper, Admin, and Owner roles.");
+      toast.error(t("stock.toastRestrictedStock"));
       router.replace("/my-profile");
     }
   }, [user, isStockStaff, router]);
@@ -134,11 +134,11 @@ export default function StockPage() {
     if (!adjustingItem || !isOwner) return;
     const newQty = parseFloat(adjustTo);
     if (isNaN(newQty) || newQty < 0) {
-      toast.error("Please enter a valid non-negative physical count");
+      toast.error(t("stock.toastValidCount"));
       return;
     }
     if (!adjustReason.trim()) {
-      toast.error("Please provide a reason for the adjustment");
+      toast.error(t("stock.toastReasonRequired"));
       return;
     }
     setIsAdjusting(true);
@@ -158,7 +158,7 @@ export default function StockPage() {
         queryClient.invalidateQueries({ queryKey: ['stock-summary'] }),
       ]);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to adjust stock');
+      toast.error(err.response?.data?.error || t("stock.toastFailedAdjust"));
     } finally {
       setIsAdjusting(false);
     }
@@ -260,17 +260,17 @@ export default function StockPage() {
     };
 
     if (isEdit && !isOwner) {
-      toast.error("Access Restricted: Only Owner can edit stock items");
+      toast.error(t("stock.toastOnlyOwnerEditStock"));
       return;
     }
 
     try {
       if (isEdit && editingItem) {
         await api.patch(`/stock-items/${editingItem.id}`, data);
-        toast.success("Stock item updated");
+        toast.success(t("stock.toastStockUpdated"));
       } else {
         await api.post("/stock-items", data);
-        toast.success("Stock item created & movement logged");
+        toast.success(t("stock.toastStockCreated"));
       }
       setIsAddOpen(false);
       setEditingItem(null);
@@ -282,7 +282,7 @@ export default function StockPage() {
       queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error saving stock item");
+      toast.error(error.response?.data?.error || t("stock.toastErrorSavingStock"));
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -292,20 +292,20 @@ export default function StockPage() {
   const handleAddStock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isGlobalAdmin) {
-      toast.error("Access Restricted: Only Admin and Owner can add stock");
+      toast.error(t("stock.toastOnlyAdminOwnerAddStock"));
       return;
     }
     if (!addingItem) return;
 
     const qty = parseFloat(addAmount);
     if (isNaN(qty) || qty <= 0) {
-      toast.error("Please enter a valid positive quantity");
+      toast.error(t("stock.toastValidPositiveQty"));
       return;
     }
 
     const parsedUnitPrice = addUnitPrice !== "" ? parseFloat(addUnitPrice) : undefined;
     if (parsedUnitPrice !== undefined && (isNaN(parsedUnitPrice) || parsedUnitPrice < 0)) {
-      toast.error("Please enter a valid positive unit price");
+      toast.error(t("stock.toastValidPositivePrice"));
       return;
     }
 
@@ -344,7 +344,7 @@ export default function StockPage() {
       queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to add stock level");
+      toast.error(err.response?.data?.error || t("stock.toastFailedAddStock"));
     } finally {
       setIsSubmitting(false);
     }
@@ -355,13 +355,13 @@ export default function StockPage() {
     if (!reducingItem) return;
 
     if (!reduceReceivedBy.trim()) {
-      toast.error("Please choose the staff member who took this stock item");
+      toast.error(t("stock.toastChooseStaff"));
       return;
     }
 
     const qty = parseFloat(reduceAmount);
     if (isNaN(qty) || qty <= 0) {
-      toast.error("Please enter a valid positive quantity");
+      toast.error(t("stock.toastValidPositiveQty"));
       return;
     }
 
@@ -382,7 +382,7 @@ export default function StockPage() {
       queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to reduce stock level");
+      toast.error(err.response?.data?.error || t("stock.toastFailedReduceStock"));
     } finally {
       setIsSubmitting(false);
     }
@@ -393,17 +393,17 @@ export default function StockPage() {
   const confirmDelete = async () => {
     if (!itemToDelete) return;
     if (!isOwner) {
-      toast.error("Access Restricted: Only Owner can delete stock items");
+      toast.error(t("stock.toastOnlyOwnerDeleteStock"));
       setItemToDelete(null);
       return;
     }
     try {
       await api.delete(`/stock-items/${itemToDelete.id}`);
-      toast.success("Stock item deleted");
+      toast.success(t("stock.toastStockDeleted"));
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to delete item");
+      toast.error(err.response?.data?.error || t("stock.toastFailedDeleteItem"));
     } finally {
       setItemToDelete(null);
     }
@@ -584,7 +584,7 @@ export default function StockPage() {
               : 'bg-white border border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0]'
           }`}
         >
-          <span>{language === 'en' ? 'All Stock' : 'ሁሉም እቃዎች'}</span>
+          <span>{t('stock.allStock')}</span>
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
             selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-[#EDE4D5] text-[#4A2E1B]'
           }`}>
@@ -732,7 +732,7 @@ export default function StockPage() {
                           title={t('stock.addStock')}
                         >
                           <PlusCircle className="w-3.5 h-3.5 shrink-0" />
-                          <span>Add</span>
+                          <span>{t('common.add') || 'Add'}</span>
                         </Button>
                       )}
 
@@ -750,7 +750,7 @@ export default function StockPage() {
                           title={t('stock.reduceStock')}
                         >
                           <MinusCircle className="w-3.5 h-3.5 shrink-0" />
-                          <span>Reduce</span>
+                          <span>{t('stock.reduceStock') || 'Reduce'}</span>
                         </Button>
                       )}
 
@@ -760,10 +760,10 @@ export default function StockPage() {
                           size="sm" 
                           onClick={() => openAdjustStockModal(item)}
                           className="h-8 px-2 text-xs text-orange-700 bg-orange-50/70 border-orange-300 hover:bg-orange-100 flex items-center gap-1 font-bold rounded-lg"
-                          title="Audit / Adjust Physical Stock Count"
+                          title={t('stock.auditAdjustTitle') || 'Audit / Adjust Physical Stock Count'}
                         >
                           <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-                          <span className="hidden xl:inline">Adjust</span>
+                          <span className="hidden xl:inline">{t('stock.adjustStock') || 'Adjust'}</span>
                         </Button>
                       )}
 
@@ -774,7 +774,7 @@ export default function StockPage() {
                             size="sm" 
                             onClick={() => setEditingItem(item)}
                             className="h-8 w-8 p-0 text-zinc-600 hover:text-zinc-900 rounded-lg"
-                            title="Edit"
+                            title={t('common.edit') || "Edit"}
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </Button>
@@ -783,7 +783,7 @@ export default function StockPage() {
                             size="sm" 
                             onClick={() => setItemToDelete(item)}
                             className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                            title="Delete"
+                            title={t('common.delete') || "Delete"}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -884,10 +884,10 @@ export default function StockPage() {
                     size="sm" 
                     onClick={() => openAdjustStockModal(item)}
                     className="h-9 px-1 text-xs text-orange-700 border-orange-300 hover:bg-orange-50 font-bold flex items-center justify-center gap-1"
-                    title="Audit / Adjust Stock"
+                    title={t('stock.auditAdjustTitle') || 'Audit / Adjust Stock'}
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-                    <span>Adjust</span>
+                    <span>{t('stock.adjustStock') || 'Adjust'}</span>
                   </Button>
                 )}
 
@@ -968,7 +968,7 @@ export default function StockPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    {language === 'en' ? 'Stock Category' : 'የእቃ ምድብ (Category)'}
+                    {t('stock.categoryLabel')}
                   </label>
                   <select 
                     name="category" 
@@ -977,7 +977,7 @@ export default function StockPage() {
                     className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]"
                   >
                     <option value="" disabled>
-                      {language === 'en' ? '-- Select Category --' : '-- ምድብ ይምረጡ --'}
+                      {t('stock.selectCategoryPlaceholder')}
                     </option>
                     {STOCK_CATEGORIES.map(cat => (
                       <option key={cat.name} value={cat.name}>
@@ -989,25 +989,25 @@ export default function StockPage() {
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    {language === 'en' ? 'Item Name (Ge\'ez)' : 'የእቃ ስም በግዕዝ'}
+                    {t('stock.nameGeezLabel')}
                   </label>
                   <Input 
                     name="name" 
                     required 
                     defaultValue={editingItem?.name || ""} 
-                    placeholder="e.g. ስንዴ ዱቄት" 
+                    placeholder={t("stock.nameAmharicPlaceholder")} 
                     className="h-10 rounded-xl border-zinc-200" 
                   />
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">
-                    {language === 'en' ? 'Item Name (Latin Letters)' : 'የእቃ ስም በላቲን ፊደላት'}
+                    {t('stock.nameLatinLabel')}
                   </label>
                   <Input 
                     name="nameLatin" 
                     defaultValue={editingItem?.nameLatin || ""} 
-                    placeholder="e.g. Sinde Duket" 
+                    placeholder={t("stock.nameLatinPlaceholder")} 
                     className="h-10 rounded-xl border-zinc-200" 
                   />
                 </div>
@@ -1015,10 +1015,10 @@ export default function StockPage() {
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.unit')}</label>
                   <select name="unitType" required defaultValue={editingItem?.unitType || "KG"} className="w-full border border-zinc-200 rounded-xl h-10 px-3 bg-white text-sm focus:ring-2 focus:ring-[#E87A18]">
-                    <option value="KG">Kg (Kilogram)</option>
+                    <option value="KG">{t('stock.unitKgDesc') || 'Kg (Kilogram)'}</option>
                     <option value="GRAM">Gram (ግራም / g)</option>
-                    <option value="PIECE">Piece</option>
-                    <option value="LITER">Liter</option>
+                    <option value="PIECE">{t('stock.unitPieceDesc') || 'Piece'}</option>
+                    <option value="LITER">{t('stock.unitLiterDesc') || 'Liter'}</option>
                   </select>
                 </div>
 
@@ -1093,7 +1093,7 @@ export default function StockPage() {
                           <Input 
                             value={createSupplierName} 
                             onChange={(e) => setCreateSupplierName(e.target.value)} 
-                            placeholder="e.g. Flour Factory PLC" 
+                            placeholder={t("stock.supplierPlaceholder")} 
                             className="bg-white rounded-xl border-purple-200 text-xs h-9" 
                           />
                         </div>
@@ -1106,7 +1106,7 @@ export default function StockPage() {
                             value={createPaidAmount} 
                             onChange={(e) => setCreatePaidAmount(e.target.value)} 
                             onFocus={(e) => e.target.select()}
-                            placeholder="0.00 (leave 0 if full credit)" 
+                            placeholder={t("stock.leaveZeroFullCredit")} 
                             className="bg-white rounded-xl border-purple-200 text-xs h-9 font-mono" 
                           />
                           <p className="text-[10px] text-purple-700 mt-1 font-medium">
@@ -1242,7 +1242,7 @@ export default function StockPage() {
                   <Input 
                     value={addReason} 
                     onChange={(e) => setAddReason(e.target.value)} 
-                    placeholder="e.g. Local Purchase, Restock, Inventory Audit" 
+                    placeholder={t("stock.intakeReasonPlaceholder")} 
                     className="h-10 rounded-xl border-zinc-200" 
                   />
                                 {isGlobalAdmin && (
@@ -1264,7 +1264,7 @@ export default function StockPage() {
                           <Input 
                             value={addSupplierName} 
                             onChange={(e) => setAddSupplierName(e.target.value)} 
-                            placeholder="e.g. Grain Market Supplier" 
+                            placeholder={t("stock.supplierPlaceholder")} 
                             className="bg-white rounded-xl border-purple-200 text-xs h-9" 
                           />
                         </div>
@@ -1277,7 +1277,7 @@ export default function StockPage() {
                             value={addPaidAmount} 
                             onChange={(e) => setAddPaidAmount(e.target.value)} 
                             onFocus={(e) => e.target.select()} 
-                            placeholder="0.00 (leave 0 if full credit)" 
+                            placeholder={t("stock.leaveZeroFullCredit")} 
                             className="bg-white rounded-xl border-purple-200 text-xs h-9 font-mono" 
                           />
                           <p className="text-[10px] text-purple-700 mt-1 font-medium">
@@ -1430,7 +1430,7 @@ export default function StockPage() {
                   <Input 
                     value={reduceReason} 
                     onChange={(e) => setReduceReason(e.target.value)}
-                    placeholder="e.g. Spoilage, Wastage, Production Handover" 
+                    placeholder={t("stock.dispatchReasonPlaceholder")} 
                     className="h-11 rounded-xl border-zinc-200 text-sm sm:text-base bg-white focus:ring-2 focus:ring-[#E87A18]" 
                   />
                 </div>
@@ -1562,7 +1562,7 @@ export default function StockPage() {
                       required
                       value={adjustReason} 
                       onChange={(e) => setAdjustReason(e.target.value)} 
-                      placeholder="e.g. Expired batch, torn sack, physical count discrepancy..." 
+                      placeholder={t("stock.reasonPlaceholder")} 
                       className="h-10 rounded-xl border-zinc-200 text-xs" 
                     />
                   </div>

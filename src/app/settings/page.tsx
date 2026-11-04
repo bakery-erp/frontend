@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useDateSettings, CalendarType } from '@/context/DateSettingsContext';
 import { formatPureEthDate, formatGregDate } from '@/lib/ethiopianDate';
 import { AppDatePicker } from '@/components/AppDatePicker';
@@ -21,6 +22,7 @@ import {
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { calendarType, setCalendarType, isLoading: isSettingsLoading } = useDateSettings();
   const [selectedType, setSelectedType] = useState<CalendarType>(calendarType);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,7 +38,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     if (!isOwner) {
-      toast.error('Only the System Owner can modify global system settings.');
+      toast.error(t('settings.toastOnlyOwnerSettings'));
       return;
     }
 
@@ -45,15 +47,15 @@ export default function SettingsPage() {
       const success = await setCalendarType(selectedType);
       if (success) {
         toast.success(
-          `System calendar successfully set to ${
-            selectedType === 'ETHIOPIAN' ? 'Ethiopian Calendar' : 'Gregorian (Gero) Calendar'
-          }!`,
+          t('settings.toastCalendarSuccess', {
+            type: selectedType === 'ETHIOPIAN' ? t('settings.ethiopianOptionTitle') : t('settings.gregorianOptionTitle'),
+          }),
           {
-            description: 'All pages, tables, pickers, and reports are now synchronized.',
+            description: t('settings.toastCalendarSuccessDesc'),
           }
         );
       } else {
-        toast.error('Failed to update system calendar preference.');
+        toast.error(t('settings.toastCalendarUpdateFailed'));
       }
     } catch (e: any) {
       toast.error(e?.message || 'Error saving settings');
@@ -84,7 +86,7 @@ export default function SettingsPage() {
                   </span>
                 </div>
                 <p className="text-sm text-[#8C7361] mt-1">
-                  Configure global ERP system behavior, calendars, and organizational preferences.
+                  {t("settings.subtitle")}
                 </p>
               </div>
             </div>
@@ -102,12 +104,12 @@ export default function SettingsPage() {
                 {isSaving ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Saving Changes...</span>
+                    <span>{t("settings.savingChanges")}</span>
                   </>
                 ) : (
                   <>
                     <Check className="w-4 h-4" />
-                    <span>Save Preference</span>
+                    <span>{t("settings.savePreference")}</span>
                   </>
                 )}
               </button>
@@ -122,11 +124,11 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-[#E87A18]" />
                 <h2 className="text-lg sm:text-xl font-bold text-[#4A2E1B]">
-                  System Date & Calendar System
+                  {t("settings.calendarCardTitle")}
                 </h2>
               </div>
               <p className="text-sm text-[#8C7361]">
-                Choose whether the ERP operates under the Ethiopian Calendar or the standard Gregorian (&quot;Gero&quot;) Calendar. This applies across all pages, forms, and reports for every employee.
+                {t("settings.calendarCardDesc")}
               </p>
             </div>
           </div>
@@ -174,18 +176,18 @@ export default function SettingsPage() {
 
               <div className="mt-4 pt-4 border-t border-[#EADBCC]/60 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#8C7361]">Today&apos;s Date:</span>
+                  <span className="text-[#8C7361]">{t("settings.todayDateLabel")}</span>
                   <span className="font-bold text-[#4A2E1B] bg-white px-2.5 py-1 rounded-lg border border-[#EADBCC]">
                     {formatPureEthDate(today)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#8C7361]">Months Format:</span>
-                  <span className="font-semibold text-zinc-700">Meskerem – Pagume (13 Months)</span>
+                  <span className="text-[#8C7361]">{t("settings.monthsFormatLabel")}</span>
+                  <span className="font-semibold text-zinc-700">{t("settings.monthsFormatEth")}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#8C7361]">Payroll / Sessions:</span>
-                  <span className="font-semibold text-emerald-700">Local Ethiopian Fiscal Cycle</span>
+                  <span className="text-[#8C7361]">{t("settings.fiscalCycleLabel")}</span>
+                  <span className="font-semibold text-emerald-700">{t("settings.fiscalCycleEth")}</span>
                 </div>
               </div>
             </div>
@@ -231,18 +233,18 @@ export default function SettingsPage() {
 
               <div className="mt-4 pt-4 border-t border-[#EADBCC]/60 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#8C7361]">Today&apos;s Date:</span>
+                  <span className="text-[#8C7361]">{t("settings.todayDateLabel")}</span>
                   <span className="font-bold text-[#4A2E1B] bg-white px-2.5 py-1 rounded-lg border border-[#EADBCC]">
                     {formatGregDate(today)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#8C7361]">Months Format:</span>
-                  <span className="font-semibold text-zinc-700">January – December (12 Months)</span>
+                  <span className="text-[#8C7361]">{t("settings.monthsFormatLabel")}</span>
+                  <span className="font-semibold text-zinc-700">{t("settings.monthsFormatGreg")}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#8C7361]">Standard:</span>
-                  <span className="font-semibold text-blue-700">Standard International ISO</span>
+                  <span className="text-[#8C7361]">{t("settings.fiscalCycleLabel")}</span>
+                  <span className="font-semibold text-blue-700">{t("settings.fiscalCycleGreg")}</span>
                 </div>
               </div>
             </div>
@@ -254,16 +256,16 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#E87A18]" />
                 <h4 className="text-xs sm:text-sm font-bold text-[#4A2E1B]">
-                  Live Interactive Date Picker Preview
+                  {t("settings.previewTitle")}
                 </h4>
               </div>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-white border border-[#EADBCC] text-[#8C7361]">
-                Simulating: {selectedType === 'ETHIOPIAN' ? 'Ethiopian' : 'Gregorian'}
+                {t("settings.previewSimulating", { type: selectedType === "ETHIOPIAN" ? t("settings.ethiopianOptionTitle") : t("settings.gregorianOptionTitle") })}
               </span>
             </div>
 
             <p className="text-xs text-[#8C7361]">
-              Try picking a date below to see how date input fields will look and feel to your staff on forms:
+              {t("settings.previewDesc")}
             </p>
 
             <div className="max-w-md">
@@ -275,7 +277,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="text-xs text-[#8C7361] flex items-center gap-2 pt-1">
-              <span>Standard ISO Output (Saved to DB):</span>
+              <span>{t("settings.previewIsoOutput")}</span>
               <code className="font-mono font-bold text-[#4A2E1B] bg-white px-2 py-0.5 rounded border border-[#EADBCC]">
                 {testDate}
               </code>
@@ -287,10 +289,10 @@ export default function SettingsPage() {
             <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div className="space-y-0.5 text-xs">
               <p className="font-bold text-emerald-900">
-                100% Data Integrity &amp; Safe Conversion
+                {t("settings.safetyTitle")}
               </p>
               <p className="text-emerald-700 leading-relaxed">
-                Switching calendars will never alter your actual financial data, sales records, or stock ledger. The database stores universal timestamps and translates them on-the-fly according to your preference. You can change this setting at any time.
+                {t("settings.safetyDesc")}
               </p>
             </div>
           </div>

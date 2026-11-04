@@ -184,13 +184,13 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
 
     try {
       await api.patch(`/suppliers/${id}`, data);
-      toast.success('Supplier profile updated successfully');
+      toast.success(t('suppliers.toastSupplierUpdated'));
       setIsEditSupplierOpen(false);
       queryClient.invalidateQueries({ queryKey: ['supplier-detail', id] });
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update supplier');
+      toast.error(err.response?.data?.error || t('suppliers.toastUpdateSupplierFailed'));
     }
   };
 
@@ -199,12 +199,12 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
     setIsDeletingSupplier(true);
     try {
       await api.delete(`/suppliers/${id}`);
-      toast.success('Supplier removed successfully');
+      toast.success(t('suppliers.toastSupplierDeleted'));
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       router.push('/suppliers');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to delete supplier');
+      toast.error(err.response?.data?.error || t('suppliers.toastDeleteSupplierFailed'));
     } finally {
       setIsDeletingSupplier(false);
       setIsDeleteSupplierOpen(false);
@@ -233,13 +233,13 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
 
     try {
       await api.patch(`/supplier-deliveries/${editingDelivery.id}`, payload);
-      toast.success('Delivery receipt updated successfully');
+      toast.success(t('suppliers.toastDeliveryUpdated'));
       setEditingDelivery(null);
       queryClient.invalidateQueries({ queryKey: ['supplier-detail', id] });
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update delivery');
+      toast.error(err.response?.data?.error || t('suppliers.toastUpdateDeliveryFailed'));
     } finally {
       setIsSubmittingDeliveryEdit(false);
     }
@@ -251,13 +251,13 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
     setIsDeletingDelivery(true);
     try {
       await api.delete(`/supplier-deliveries/${deletingDeliveryId}`);
-      toast.success('Delivery receipt deleted successfully');
+      toast.success(t('suppliers.toastDeliveryDeleted'));
       setDeletingDeliveryId(null);
       queryClient.invalidateQueries({ queryKey: ['supplier-detail', id] });
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to delete delivery receipt');
+      toast.error(err.response?.data?.error || t('suppliers.toastDeleteDeliveryFailed'));
     } finally {
       setIsDeletingDelivery(false);
     }
@@ -282,7 +282,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
 
     const amountNum = parseFloat(paymentAmount);
     if (!amountNum || amountNum <= 0) {
-      toast.error('Please enter a valid payment amount greater than 0');
+      toast.error(t('suppliers.toastValidAmountRequired'));
       return;
     }
 
@@ -300,13 +300,13 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
         notes: paymentNotes.trim() || undefined,
       });
 
-      toast.success('Payment recorded successfully!');
+      toast.success(t('suppliers.toastPaymentRecorded'));
       setPaymentDelivery(null);
       queryClient.invalidateQueries({ queryKey: ['supplier-detail', id] });
       queryClient.invalidateQueries({ queryKey: ['suppliers-page'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to record payment');
+      toast.error(err.response?.data?.error || t('suppliers.toastRecordPaymentFailed'));
     } finally {
       setIsRecordingPayment(false);
     }
@@ -332,9 +332,9 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
     return (
       <DashboardLayout>
         <div className="text-center py-16 space-y-4">
-          <p className="text-rose-600 font-bold">Supplier record not found or inaccessible.</p>
+          <p className="text-rose-600 font-bold">{t('suppliers.supplierNotFound')}</p>
           <Link href="/suppliers">
-            <Button variant="outline">Back to Suppliers</Button>
+            <Button variant="outline">{t('suppliers.backToSuppliers')}</Button>
           </Link>
         </div>
       </DashboardLayout>
@@ -423,7 +423,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
           {/* Supplier Info Overview Box */}
           <div className="lg:col-span-1 bg-white border border-[#EDE4D5] rounded-2xl p-5 shadow-xs space-y-3.5">
             <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#8C7361] border-b border-[#FAF6F0] pb-2">
-              {language === 'am' ? 'የአቅራቢ መረጃ' : language === 'om' ? 'Oodeeffannoo Dhiyeessaa' : 'Supplier Profile'}
+              {t('suppliers.supplierProfile')}
             </h2>
 
             <div className="space-y-2.5 text-xs">
@@ -441,7 +441,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
               {supplier.contactPerson && (
                 <div>
                   <span className="text-[10px] uppercase font-bold text-[#B09987] block">
-                    {language === 'am' ? 'ተጠሪ ሰው' : language === 'om' ? 'Nama Quunnamtii' : 'Contact Person'}
+                    {t('suppliers.colContactPerson')}
                   </span>
                   <span className="font-semibold text-[#2C1B10] inline-flex items-center gap-1 mt-0.5">
                     <UserIcon className="w-3.5 h-3.5 text-[#8C7361]" /> {supplier.contactPerson}
@@ -452,7 +452,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
               {supplier.address && (
                 <div>
                   <span className="text-[10px] uppercase font-bold text-[#B09987] block">
-                    {language === 'am' ? 'አድራሻ' : language === 'om' ? 'Teessoo' : 'Address'}
+                    {t('suppliers.colAddress')}
                   </span>
                   <span className="font-semibold text-[#4A2E1B] inline-flex items-center gap-1 mt-0.5">
                     <MapPin className="w-3.5 h-3.5 text-[#8C7361]" /> {supplier.address}
@@ -470,7 +470,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
               {supplier.notes && (
                 <div className="pt-2 border-t border-[#FAF6F0]">
                   <span className="text-[10px] uppercase font-bold text-[#B09987] block">
-                    {language === 'am' ? 'ማስታወሻ' : language === 'om' ? 'Yaadannoo' : 'Notes'}
+                    {t('suppliers.colNotes')}
                   </span>
                   <p className="text-[#8C7361] mt-0.5 italic">{supplier.notes}</p>
                 </div>
@@ -479,7 +479,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
               {/* Compact Mobile Financial Summary (hidden on desktop, shown on mobile for clarity) */}
               <div className="md:hidden pt-3 border-t border-[#EDE4D5] space-y-2">
                 <span className="text-[10px] uppercase font-bold text-[#8C7361] tracking-wider block">
-                  {language === 'am' ? 'የክፍያና ርክክብ ማጠቃለያ' : language === 'om' ? 'Cuunfaa Kaffaltii' : 'Financial Summary'}
+                  {t('suppliers.financialSummary')}
                 </span>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="bg-[#FAF6F0] p-2 rounded-xl border border-[#EDE4D5]">
@@ -498,7 +498,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
 
                   <div className={`p-2 rounded-xl border ${stats.totalBalanceDue > 0 ? 'bg-amber-50 border-amber-300' : 'bg-[#FAF6F0] border-[#EDE4D5]'}`}>
                     <span className={`text-[9px] font-bold uppercase block truncate ${stats.totalBalanceDue > 0 ? 'text-amber-800' : 'text-[#8C7361]'}`}>
-                      {language === 'am' ? 'ቀሪ' : language === 'om' ? 'Haftee' : 'Balance'}
+                      {t('suppliers.balance')}
                     </span>
                     <p className={`text-sm font-black mt-0.5 truncate ${stats.totalBalanceDue > 0 ? 'text-amber-800' : 'text-[#2C1B10]'}`}>
                       {stats.totalBalanceDue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 })}
@@ -548,7 +548,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
             }`}>
               <div>
                 <p className="text-xs font-bold text-amber-800 uppercase truncate">
-                  {language === 'am' ? 'የሚከፈል ቀሪ ሂሳብ' : language === 'om' ? 'Haftee Kaffalamu' : 'Outstanding Balance Due'}
+                  {t('suppliers.outstandingBalanceDue')}
                 </p>
                 <h3 className={`text-xl sm:text-2xl font-black mt-1 ${
                   stats.totalBalanceDue > 0 ? 'text-amber-800' : 'text-[#2C1B10]'
@@ -574,7 +574,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
           <div className="p-4 bg-[#FAF6F0] border-b border-[#EDE4D5] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="font-extrabold text-[#2C1B10] text-sm flex items-center gap-2">
               <Clock className="w-4 h-4 text-[#E87A18]" />
-              {language === 'am' ? 'የርክክብና የክፍያ ታሪክ' : language === 'om' ? 'Seenaa Dhiyeessii fi Kaffaltii' : 'Delivery Receipts & Ledger'} ({filteredDeliveries.length})
+              {t('suppliers.deliveryReceiptsAndLedger')} ({filteredDeliveries.length})
             </h2>
 
             {/* Status Filter Tabs */}
@@ -643,7 +643,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                 {filteredDeliveries.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-10 text-[#8C7361]">
-                      {language === 'am' ? 'ምንም ርክክቦች አልተገኙም' : language === 'om' ? 'Dhiyeessiin hin argamne' : 'No delivery records match this filter.'}
+                      {t('suppliers.noDeliveriesFound')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -748,7 +748,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                                 type="button"
                                 onClick={() => setHistoryDelivery(d)}
                                 className="p-1.5 text-[#8C7361] hover:text-[#2C1B10] hover:bg-zinc-100 rounded-lg transition-colors"
-                                title="View payment history"
+                                title={t("suppliers.viewPaymentHistory") || "View payment history"}
                               >
                                 <History className="w-4 h-4" />
                               </button>
@@ -791,7 +791,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
           <div className="block md:hidden p-3 space-y-3">
             {filteredDeliveries.length === 0 ? (
               <p className="text-center py-8 text-xs text-[#8C7361]">
-                {language === 'am' ? 'ምንም ርክክቦች አልተገኙም' : language === 'om' ? 'Dhiyeessiin hin argamne' : 'No delivery records match this filter.'}
+                {t('suppliers.noDeliveriesFound')}
               </p>
             ) : (
               filteredDeliveries.map((d) => {
@@ -956,29 +956,29 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
               </div>
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                  {language === 'am' ? 'ተጠሪ ሰው' : language === 'om' ? 'Nama Quunnamtii' : 'Contact Person'}
+                  {t('suppliers.colContactPerson')}
                 </label>
-                <Input name="contactPerson" defaultValue={supplier.contactPerson || ''} placeholder="e.g., Ato Kebede" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                <Input name="contactPerson" defaultValue={supplier.contactPerson || ''} placeholder={t('suppliers.supplierContactPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                  {language === 'am' ? 'አድራሻ' : language === 'om' ? 'Teessoo' : 'Address'}
+                  {t('suppliers.colAddress')}
                 </label>
-                <Input name="address" defaultValue={supplier.address || ''} placeholder="e.g., Bole, Addis Ababa" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                <Input name="address" defaultValue={supplier.address || ''} placeholder={t('suppliers.supplierAddressPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
               </div>
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.colType')}</label>
                 <select name="type" defaultValue={supplier.type} className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs">
-                  <option value="GENERAL">GENERAL SUPPLIER</option>
-                  <option value="MILK">MILK SUPPLIER</option>
-                  <option value="INJERA">INJERA SUPPLIER</option>
+                  <option value="GENERAL">{t('suppliers.typeGeneral')}</option>
+                  <option value="MILK">{t('suppliers.typeMilk')}</option>
+                  <option value="INJERA">{t('suppliers.typeInjera')}</option>
                 </select>
               </div>
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">
-                  {language === 'am' ? 'ማስታወሻ' : language === 'om' ? 'Yaadannoo' : 'Notes'}
+                  {t('suppliers.colNotes')}
                 </label>
-                <Input name="notes" defaultValue={supplier.notes || ''} placeholder="Optional notes" className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
+                <Input name="notes" defaultValue={supplier.notes || ''} placeholder={t('suppliers.supplierNotesPlaceholder')} className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs" />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditSupplierOpen(false)}>
@@ -1042,7 +1042,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Returned Qty</label>
+                  <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('suppliers.returnedQty')}</label>
                   <Input
                     name="returnedQuantity"
                     type="number"
@@ -1099,11 +1099,11 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">Notes</label>
+                <label className="text-xs font-bold text-[#4A2E1B] mb-1 block">{t('common.notes')}</label>
                 <Input
                   name="notes"
                   defaultValue={editingDelivery.notes || ''}
-                  placeholder="Optional delivery notes"
+                  placeholder={t('suppliers.deliveryNotesOptionalPlaceholder')}
                   className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs"
                 />
               </div>
@@ -1154,7 +1154,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1.5 block">
-                  {language === 'am' ? 'የሚከፈል የገንዘብ መጠን' : language === 'om' ? 'Hanga Kaffaltii' : 'Payment Amount'} ({t('common.currency')})
+                  {t('suppliers.paymentAmountLabel')} ({t('common.currency')})
                 </label>
                 <div className="relative">
                   <Input
@@ -1179,12 +1179,12 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
 
               <div>
                 <label className="text-xs font-bold text-[#4A2E1B] mb-1.5 block">
-                  {language === 'am' ? 'ማስታወሻ' : language === 'om' ? 'Yaadannoo' : 'Payment Note'}
+                  {t('suppliers.colNotes')}
                 </label>
                 <Input
                   value={paymentNotes}
                   onChange={(e) => setPaymentNotes(e.target.value)}
-                  placeholder="e.g., Paid via Telebirr or Cash installment"
+                  placeholder={t('suppliers.installmentNotesPlaceholder')}
                   className="bg-[#FAF6F0] border-[#EDE4D5] h-10 text-xs rounded-xl"
                 />
               </div>
@@ -1209,13 +1209,13 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
             <DialogHeader>
               <DialogTitle className="text-[#2C1B10] font-extrabold flex items-center gap-2">
                 <History className="w-5 h-5 text-[#E87A18]" />
-                {language === 'am' ? 'የክፍያ ክፍተቶች ታሪክ' : language === 'om' ? 'Seenaa Kaffaltii' : 'Payment Installment History'}
+                {t('suppliers.paymentInstallmentHistory')}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-3 py-2 max-h-80 overflow-y-auto">
               {!historyDelivery.payments || historyDelivery.payments.length === 0 ? (
-                <p className="text-xs text-[#8C7361] text-center py-6">No payment history recorded.</p>
+                <p className="text-xs text-[#8C7361] text-center py-6">{t('suppliers.noPaymentHistory')}</p>
               ) : (
                 historyDelivery.payments.map((p, idx) => (
                   <div key={p.id || idx} className="bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl p-3 flex items-center justify-between text-xs">

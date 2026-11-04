@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { EthDateTime } from 'ethiopian-calendar-date-converter';
 import { useDateSettings } from '@/context/DateSettingsContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 const ETH_MONTHS = [
   'Meskerem', 'Tikimt', 'Hidar', 'Tahsas', 'Tir', 'Yakatit',
@@ -39,6 +40,7 @@ export function AppDatePicker({
   id,
   placeholder,
 }: AppDatePickerProps) {
+  const { t } = useLanguage();
   const { isEthiopian } = useDateSettings();
   const [mounted, setMounted] = useState(false);
 
@@ -321,8 +323,8 @@ export function AppDatePicker({
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                title="Previous month"
-                aria-label="Previous month"
+                title={t("common.prevMonth") || "Previous month"}
+                aria-label={t("common.prevMonth") || "Previous month"}
                 className="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-bold cursor-pointer transition-colors"
               >
                 ↑
@@ -330,8 +332,8 @@ export function AppDatePicker({
               <button
                 type="button"
                 onClick={handleNextMonth}
-                title="Next month"
-                aria-label="Next month"
+                title={t("common.nextMonth") || "Next month"}
+                aria-label={t("common.nextMonth") || "Next month"}
                 className="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-bold cursor-pointer transition-colors"
               >
                 ↓

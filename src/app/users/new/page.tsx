@@ -72,21 +72,21 @@ export default function NewUserPage() {
       const formData = new FormData(e.currentTarget);
       const phoneStr = (formData.get("phone") as string)?.trim();
       if (!/^(?:\+251|0)[97]\d{8}$/.test(phoneStr)) {
-        toast.error("Invalid Ethiopian phone number. Must be 10 digits starting with 09 or 07 (or +251).");
+        toast.error(t("users.toastInvalidPhone"));
         setIsSubmitting(false);
         return;
       }
 
       const passwordStr = formData.get("password") as string;
       if (!passwordStr || passwordStr.length < 4) {
-        toast.error("Password must be at least 4 characters long.");
+        toast.error(t("users.toastPasswordLength"));
         setIsSubmitting(false);
         return;
       }
 
       const roleStr = formData.get("role") as string;
       if (roleStr === "OWNER" && user?.role !== "OWNER") {
-        toast.error("Access denied: Only Owners can create Owner accounts.");
+        toast.error(t("users.toastOnlyOwnerCreateOwner"));
         setIsSubmitting(false);
         return;
       }
@@ -354,7 +354,7 @@ export default function NewUserPage() {
                   {t('users.lastPaidDateLabel')}
                 </label>
                 <EthDatePicker name="lastPaidDate" value={lastPaidDateVal} onChange={handleLastPaidDateChange} />
-                <p className="text-[10px] text-[#8C7361] mt-1">Auto-calculated from employment start date</p>
+                <p className="text-[10px] text-[#8C7361] mt-1">{t('users.autoCalculatedFromStartDate') || 'Auto-calculated from employment start date'}</p>
               </div>
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function NewUserPage() {
               </div>
               <div>
                 <h2 className="text-sm font-extrabold text-[#2C1B10]">{t('users.sectionDocs') || "Staff Media & Documentation"}</h2>
-                <p className="text-xs text-[#8C7361]">Upload personnel profile photo and official employment identification file</p>
+                <p className="text-xs text-[#8C7361]">{t('users.uploadPersonnelMediaDesc') || 'Upload personnel profile photo and official employment identification file'}</p>
               </div>
             </div>
 
@@ -397,7 +397,7 @@ export default function NewUserPage() {
                     {t('users.attachmentFileLabel') || "Identification Document"} <span className="text-rose-600">*</span>
                   </label>
                   <p className="text-[11px] text-[#8C7361] mb-3">
-                    Kebele ID, passport, contract, or license (PDF or Image). Stored under <span className="font-mono font-semibold text-zinc-600">/uploads/documents/</span>
+                    {t('users.idDocumentFormatsDesc') || 'Kebele ID, passport, contract, or license (PDF or Image). Stored under /uploads/documents/'}
                   </p>
                 </div>
                 <Input
@@ -438,7 +438,7 @@ export default function NewUserPage() {
       <ConfirmModal
         isOpen={showPrompt}
         title={t('common.unsavedChanges') || 'Unsaved Changes'}
-        description="You have entered personnel registration details. Are you sure you want to discard them and leave?"
+        description={t('users.discardRegistrationConfirm') || 'You have entered personnel registration details. Are you sure you want to discard them and leave?'}
         confirmText={t('common.discardChanges') || 'Discard Changes'}
         cancelText={t('common.keepEditing') || 'Keep Editing'}
         variant="warning"

@@ -2,6 +2,9 @@ import { TranslationDictionary } from "./en";
 
 export const am: TranslationDictionary = {
   common: {
+    max: "ከፍተኛ",
+    totalItems: "ጠቅላላ {count}",
+
     save: "አስቀምጥ",
     cancel: "ሰርዝ",
     delete: "አጥፋ",
@@ -205,6 +208,12 @@ export const am: TranslationDictionary = {
     noTransactionsFound: "ከተመረጠው መስፈርት ጋር የሚስማማ ልውውጥ አልተገኘም።",
   },
   sessions: {
+    ownerDirectAuditMode: "የባለቤት ቀጥተኛ ኦዲት ሁነታ",
+    ownerDirectAuditDesc: "የተዘጋ የሂሳብ ቀን በቀጥታ እያስተካከሉ ነው። በቆጠራ ወይም በጥሬ ገንዘብ ላይ የሚደረጉ ማናቸውም ለውጦች ሽያጭን እንደገና ያሰላሉ እና ወደ ተከታዩ የስራ ቀናት በራስ-ሰር ይተላለፋሉ።",
+    maxAvailableStock: "በክምችት ያለው ከፍተኛ መጠን",
+
+    closedStatus: "የተዘጋ",
+
     title: "የቀን ሂሳብ ማጠቃለያና ቁጥጥር",
     subtitle: "የቀን ምርት ቀሪዎችን (አዳሪ) ያመሳክሩ፣ ገንዘብ እና የባንክ ገቢዎችን ከካሸሩ ጋር ቆጥረው ቀኑን ያጠቃልሉ።",
     startNewSession: "የዛሬውን ማጠቃለያ ጀምር",
@@ -773,6 +782,17 @@ export const am: TranslationDictionary = {
     batches: "ምድቦች",
   },
   stock: {
+    adjustCount: "ቆጠራ አስተካክል",
+    estimatedWasteCost: "የተገመተው የብክነት/ኪሳራ ወጪ",
+    clearDateFilter: "የቀን ማጣሪያን አጽዳ",
+    unitKgDesc: "ኪ.ግ (ኪሎግራም)",
+    unitPieceDesc: "ፍሬ",
+    unitLiterDesc: "ሊትር",
+    onlyOwnerPermissionMaterials: "ለእያንዳንዱ የማምረቻ ሠራተኛ የትኞቹ ጥሬ ዕቃዎች እንደሚፈቀዱ መወሰን የሚችለው የዳቦ ቤቱ ባለቤት ብቻ ነው።",
+    backToStock: "ወደ ክምችት ተመለስ",
+    unsavedPermissions: "ያልተቀመጡ ፈቃዶች",
+    unsavedPermissionsNotice: "ያልተቀመጡ የፈቃድ ለውጦች አሉ። ሚና ከመቀየርዎ በፊት ያስቀምጡ።",
+
     title: "ጥሬ ዕቃዎችና የመጋዘን ክምችት",
     subtitle: "የዱቄት፣ ስኳርና ቅቤ ክምችት፣ የአቅራቢዎች አቅርቦት እና የብድር መዝገብ።",
     newItem: "አዲስ ጥሬ ዕቃ መዝግብ",
@@ -1251,6 +1271,11 @@ export const am: TranslationDictionary = {
     statusAvailableForSale: "ለሽያጭ የቀረበ",
   },
   categories: {
+    noSubcategories: "ምንም ንዑስ ምድብ አልተገኘም። በዋና ምድብ ስር ለመፍጠር '+ ንዑስ ምድብ አክል' ን ይጫኑ።",
+    deleteCategoryTitle: "የምርት ምድብ ሰርዝ",
+    confirmDeleteCategory: "እርግጠኛ ነዎት '{name}' ን መሰረዝ ይፈልጋሉ? ይህ እርምጃ ሊመለስ አይችልም።",
+    deleteCategoryBtn: "ምድብ ሰርዝ",
+
     title: "የምርት ምድቦች",
     subtitle: "ምርቶችን በኩሽና የሚመረቱ እና ከአቅራቢዎች ተገዝተው የሚሸጡ በማለት መድብ።",
     manageSubtitle: "የዳቦና ኬክ ምርት ምድቦችን እና ንዑስ ምድቦችን ያስተዳድሩ",
@@ -1364,6 +1389,16 @@ export const am: TranslationDictionary = {
     toastFailedToDelete: "ቅርንጫፍ መሰረዝ አልተሳካም።",
   },
   users: {
+    uploadPersonnelMediaDesc: "የሠራተኛውን የመገለጫ ፎቶ እና ሕጋዊ መታወቂያ ሰነድ ይጫኑ",
+    idDocumentFormatsDesc: "የቀበሌ መታወቂያ፣ ፓስፖርት፣ ውል ወይም መንጃ ፍቃድ (PDF ወይም ምስል)።",
+    discardRegistrationConfirm: "ያስገቧቸው የምዝገባ መረጃዎች አሉ። ትተዋቸው መውጣት እንደሚፈልጉ እርግጠኛ ነዎት?",
+    managePersonnelMediaDesc: "የሠራተኛውን ፎቶ እና ሕጋዊ መታወቂያ ሰነድ ለየብቻ ያስተዳድሩ",
+    officialDocOnFile: "ሕጋዊ ሰነድ ተያይዟል",
+    currentAvatarActive: "የአሁኑ ፎቶ በሥራ ላይ ነው",
+    ownerSecurityVerification: "የባለቤት ደህንነት ማረጋገጫ",
+    mustBeAfterStartDate: "ከሥራ መጀመሪያ ቀን እኩል ወይም ከዚያ በኋላ መሆን አለበት",
+    autoCalculatedFromStartDate: "ከሥራ መጀመሪያ ቀን በራሱ ይሰላል",
+
     title: "ሠራተኞችና የተጠቃሚ አካውንቶች",
     subtitle: "የሲስተም መግቢያ ፍቃድ፣ የስራ ድርሻ፣ ቅርንጫፍ፣ ስልክ ቁጥርና የሰራተኞች መረጃ ያስተዳድሩ።",
     newUser: "አዲስ የሠራተኛ አካውንት ፍጠር",
@@ -1487,6 +1522,19 @@ export const am: TranslationDictionary = {
     cannotDeactivateSelf: "የራስዎን አካውንት ማገድ አይችሉም።",
   },
   payroll: {
+    savePayrollChanges: "የደመወዝ ለውጦችን አስቀምጥ",
+
+    loanPackageAmount: "የብድር መጠን (ብር)",
+    statusOpenActive: "ክፍት (ያልተከፈለ ገቢር ብድር)",
+    statusPaidSettled: "የተከፈለ (ሙሉ በሙሉ የተጠናቀቀ)",
+    settlementStatus: "የአከፋፈል ሁኔታ",
+    pendingNotDeducted: "በመጠባበቅ ላይ (እስካሁን ከደመወዝ ያልተቀነሰ)",
+    editPayrollTitle: "የደመወዝ መዝገብ እና የመጨረሻ ክፍያን አስተካክል",
+    editPayrollDesc: "መሰረታዊ ደመወዝ፣ ቦነስ፣ ቅነሳዎችን ያስተካክሉ ወይም የመጨረሻውን ክፍያ በቀጥታ ይቀይሩ።",
+    finalNetSalaryPayout: "የመጨረሻ የተጣራ ደመወዝ ክፍያ (ብር)",
+    overridePayoutDesc: "ለዚህ የክፍያ ወረቀት የተመዘገበውን የክፍያ መጠን በቀጥታ ይተካል።",
+    savePenaltyChanges: "የቅጣት ለውጦችን አስቀምጥ",
+
     title: "የሠራተኞች ደመወዝና ክፍያ",
     subtitle: "ወርሃዊ የደመወዝ ሰነድ ያዘጋጁ፣ የብድርና ቅጣት ቅነሳዎችን ያከናውኑ፣ ክፍያዎችን ያጽድቁ።",
     generatePayroll: "ወርሃዊ ደመወዝ አዘጋጅ",
@@ -1662,6 +1710,9 @@ export const am: TranslationDictionary = {
     selectLanguage: "ቋንቋ ይምረጡ",
   },
   ownerLoans: {
+    noSpecificReason: "ምንም የተለየ ምክንያት አልተጠቀሰም",
+    historyWithCount: "ታሪክ ({count})",
+
     title: "የባለቤቱ የግል ብድሮች",
     subtitle: "ከዳቦ ቤቱ የተወሰዱ የግል ብድሮችን መከታተያ፣ አዲስ ብድር መመዝገቢያ እና ክፍያዎችን ማካሄጃ።",
     logNewLoan: "አዲስ የግል ብድር መዝግብ",

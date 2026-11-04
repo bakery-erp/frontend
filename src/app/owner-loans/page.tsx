@@ -168,7 +168,7 @@ export default function OwnerLoansPage() {
   // Redirect if not Owner
   useEffect(() => {
     if (!isAuthLoading && user && user.role !== "OWNER") {
-      toast.error("Access restricted to Owner only");
+      toast.error(t("ownerLoans.toastAccessRestricted"));
       router.replace("/");
     }
   }, [user, isAuthLoading, router]);
@@ -263,17 +263,17 @@ export default function OwnerLoansPage() {
     e.preventDefault();
     const amountNum = Number(logAmount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      toast.error("Please enter a valid loan amount greater than 0");
+      toast.error(t("ownerLoans.toastValidAmount"));
       return;
     }
 
     if (!logLender.trim()) {
-      toast.error("Please enter the name of the person or company you lent from");
+      toast.error(t("ownerLoans.toastLenderRequired"));
       return;
     }
 
     if (!logBranchId) {
-      toast.error("Please select a branch");
+      toast.error(t("ownerLoans.toastBranchRequired"));
       return;
     }
 
@@ -314,7 +314,7 @@ export default function OwnerLoansPage() {
     const remainingNum = Number(payingLoan.remainingBalance);
 
     if (isNaN(amountNum) || amountNum <= 0) {
-      toast.error("Please enter a valid repayment amount");
+      toast.error(t("ownerLoans.toastValidRepayment"));
       return;
     }
 
@@ -366,7 +366,7 @@ export default function OwnerLoansPage() {
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
           <ShieldAlert className="w-16 h-16 text-rose-500 mb-4 animate-pulse" />
-          <h2 className="text-2xl font-black text-[#2C1B10]">Access Restricted</h2>
+          <h2 className="text-2xl font-black text-[#2C1B10]">{t("common.accessRestricted") || "Access Restricted"}</h2>
           <p className="text-sm text-[#8C7361] mt-1 max-w-md">
             This module is reserved exclusively for the bakery business owner to track personal borrowings and repayments.
           </p>
@@ -516,7 +516,7 @@ export default function OwnerLoansPage() {
             <Search className="w-4 h-4 text-[#8C7361] absolute left-3 top-3" />
             <Input
               type="text"
-              placeholder="Search by person/company, purpose, branch, amount or notes..."
+              placeholder={t("ownerLoans.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 h-10 rounded-xl border-[#EDE4D5] bg-[#FAF6F0]/40 text-xs sm:text-sm font-medium focus:bg-white transition-colors"
@@ -530,7 +530,7 @@ export default function OwnerLoansPage() {
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="h-10 px-3 rounded-xl border border-[#EDE4D5] bg-[#FAF6F0]/60 text-xs sm:text-sm font-bold text-[#2C1B10] focus:ring-1 focus:ring-[#E87A18] focus:bg-white"
             >
-              <option value="ALL">{t("common.all")} Statuses</option>
+              <option value="ALL">{t("common.allStatuses") || "All Statuses"}</option>
               <option value="OPEN">{t("ownerLoans.statusOpen")}</option>
               <option value="PAID">{t("ownerLoans.statusPaid")}</option>
             </select>
@@ -561,7 +561,7 @@ export default function OwnerLoansPage() {
                 }}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
+                <span>{t("common.reset") || "Reset"}</span>
               </Button>
             )}
           </div>
@@ -653,8 +653,8 @@ export default function OwnerLoansPage() {
 
                           {/* Reason / Purpose (Manual) */}
                           <TableCell className="px-3 py-2.5 max-w-[140px]">
-                            <div className="font-semibold text-xs text-[#4A2E1B] truncate" title={loanInfo.reason || "No specific reason"}>
-                              {loanInfo.reason || <span className="text-[#8C7361] italic text-[11px]">No specific reason</span>}
+                            <div className="font-semibold text-xs text-[#4A2E1B] truncate" title={loanInfo.reason || (t("ownerLoans.noSpecificReason") || "No specific reason")}>
+                              {loanInfo.reason || <span className="text-[#8C7361] italic text-[11px]">{t("ownerLoans.noSpecificReason") || "No specific reason"}</span>}
                             </div>
                             {loanInfo.notes && (
                               <div className="text-[10px] text-[#8C7361] truncate mt-0.5" title={loanInfo.notes}>
@@ -739,7 +739,7 @@ export default function OwnerLoansPage() {
                                   className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl flex items-center gap-1 shadow-2xs shrink-0"
                                 >
                                   <FileText className="w-3.5 h-3.5 text-[#E87A18]" />
-                                  <span>History ({loan.payments?.length || 0})</span>
+                                  <span>{t("ownerLoans.history") || "History"} ({loan.payments?.length || 0})</span>
                                 </Button>
                               )}
 
@@ -753,7 +753,7 @@ export default function OwnerLoansPage() {
                                       ? "bg-[#4A2E1B] text-white border-[#4A2E1B] shadow-xs"
                                       : "bg-white text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#FAF6F0]"
                                   }`}
-                                  title="More Actions"
+                                  title={t("common.moreActions") || "More Actions"}
                                 >
                                   <MoreVertical className="w-4 h-4" />
                                 </button>
@@ -769,7 +769,7 @@ export default function OwnerLoansPage() {
                                       className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-[#4A2E1B] hover:bg-[#FAF6F0] rounded-xl transition-colors cursor-pointer text-left"
                                     >
                                       <FileText className="w-3.5 h-3.5 text-[#E87A18] shrink-0" />
-                                      <span>Payment History ({loan.payments?.length || 0})</span>
+                                      <span>{t("ownerLoans.history") || "History"} ({loan.payments?.length || 0})</span>
                                     </button>
 
                                     {!isPaid && (
@@ -799,7 +799,7 @@ export default function OwnerLoansPage() {
                                       className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer text-left"
                                     >
                                       <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                                      <span>{t("common.delete")} Record</span>
+                                      <span>{t("common.delete")}</span>
                                     </button>
                                   </div>
                                 )}
@@ -860,15 +860,15 @@ export default function OwnerLoansPage() {
                       {/* Financial Amounts Breakdown */}
                       <div className="bg-[#FAF6F0] rounded-xl p-3 grid grid-cols-3 gap-2 text-center text-xs">
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Borrowed</span>
+                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t("ownerLoans.colBorrowed") || "Borrowed"}</span>
                           <strong className="text-[#2C1B10] font-mono text-sm block mt-0.5">{totalNum.toLocaleString()}</strong>
                         </div>
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Repaid</span>
+                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t("ownerLoans.colRepaid") || "Repaid"}</span>
                           <strong className="text-emerald-700 font-mono text-sm block mt-0.5">{paidNum.toLocaleString()}</strong>
                         </div>
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">Remaining</span>
+                          <span className="text-[10px] uppercase font-bold text-[#8C7361] block">{t("ownerLoans.colRemaining") || "Remaining"}</span>
                           <strong className={`font-mono text-sm block mt-0.5 ${isPaid ? "text-emerald-700" : "text-rose-600 font-black"}`}>
                             {remNum.toLocaleString()}
                           </strong>
@@ -878,7 +878,7 @@ export default function OwnerLoansPage() {
                       {/* Progress Bar */}
                       <div className="space-y-1">
                         <div className="flex justify-between text-[11px] font-semibold text-[#8C7361]">
-                          <span>Repayment Progress</span>
+                          <span>{t("ownerLoans.repaymentProgress") || "Repayment Progress"}</span>
                           <span className="font-bold text-emerald-700">{percentPaid}%</span>
                         </div>
                         <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden border border-zinc-200">
@@ -910,7 +910,7 @@ export default function OwnerLoansPage() {
                           className="h-9 px-3 rounded-xl border-[#EDE4D5] text-[#4A2E1B] font-bold text-xs flex items-center gap-1"
                         >
                           <FileText className="w-3.5 h-3.5 text-[#8C7361]" />
-                          <span>History ({loan.payments?.length || 0})</span>
+                          <span>{t('ownerLoans.historyWithCount', { count: loan.payments?.length || 0 }) || `History (${loan.payments?.length || 0})`}</span>
                         </Button>
 
                         <Button
@@ -1050,7 +1050,7 @@ export default function OwnerLoansPage() {
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Optional details, terms, repayment schedule..."
+                  placeholder={t("ownerLoans.notesPlaceholder")}
                   value={logNotes}
                   onChange={(e) => setLogNotes(e.target.value)}
                   className="w-full rounded-xl border border-[#EDE4D5] p-2.5 text-xs text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] focus:outline-none"
@@ -1228,7 +1228,7 @@ export default function OwnerLoansPage() {
                   {(!historyLoan.payments || historyLoan.payments.length === 0) ? (
                     <div className="text-center py-8 text-[#8C7361]">
                       <Clock className="w-8 h-8 mx-auto mb-2 text-[#CBB29F]" />
-                      <p className="text-xs font-semibold">No payments recorded yet against this loan.</p>
+                      <p className="text-xs font-semibold">{t("ownerLoans.noPaymentsRecorded") || "No payments recorded yet against this loan."}</p>
                     </div>
                   ) : (
                     historyLoan.payments.map((p, idx) => (
@@ -1253,7 +1253,7 @@ export default function OwnerLoansPage() {
                           <span className="font-mono font-black text-sm text-emerald-700">
                             +{Number(p.amountPaid).toLocaleString()} ETB
                           </span>
-                          <span className="block text-[10px] font-bold text-[#8C7361] uppercase">PAID</span>
+                          <span className="block text-[10px] font-bold text-[#8C7361] uppercase">{t('common.paid') || 'PAID'}</span>
                         </div>
                       </div>
                     ))
@@ -1262,7 +1262,7 @@ export default function OwnerLoansPage() {
 
                 {/* Summary Bottom Bar */}
                 <div className="pt-3 border-t border-[#EDE4D5] flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#8C7361]">Remaining Due:</span>
+                  <span className="font-bold text-[#8C7361]">{t('ownerLoans.colRemaining') || 'Remaining Due'}:</span>
                   <span className="font-mono font-black text-sm text-rose-600">
                     {Number(historyLoan.remainingBalance).toLocaleString()} ETB
                   </span>

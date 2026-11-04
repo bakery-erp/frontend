@@ -67,7 +67,7 @@ export default function FinancialReportsPage() {
     if (!user) return;
     if (user.role !== 'OWNER') {
       router.push('/production/history');
-      toast.error('Unauthorized access to Financial Reports.');
+      toast.error(t('reports.toastUnauthorizedReports'));
     }
   }, [user, router]);
 
@@ -283,16 +283,16 @@ export default function FinancialReportsPage() {
       ...stockPurchasePayments.map((sp: any) => ({
         id: 'sp-' + sp.id,
         date: sp.createdAt,
-        category: language === 'am' ? 'የጥሬ ዕቃ ብድር ክፍያ' : 'Stock Purchase Loan Payment',
-        description: (sp.loan?.supplierName ? (language === 'am' ? 'አቅራቢ: ' : 'Supplier: ') + sp.loan.supplierName : '') + (sp.note ? ' - ' + sp.note : ''),
+        category: t('reports.catStockLoanPayment'),
+        description: (sp.loan?.supplierName ? (t('suppliers.title') + ': ') + sp.loan.supplierName : '') + (sp.note ? ' - ' + sp.note : ''),
         amount: Number(sp.amount),
         type: 'STOCK_CREDIT_PAYMENT',
       })),
       ...supplierDeliveryPayments.map((sdp: any) => ({
         id: 'sdp-' + sdp.id,
         date: sdp.createdAt,
-        category: language === 'am' ? 'የአቅራቢ ምርት ብድር ክፍያ' : 'Supplier Delivery Payment',
-        description: (sdp.delivery?.supplier?.name ? (language === 'am' ? 'አቅራቢ: ' : 'Supplier: ') + sdp.delivery.supplier.name : '') + (sdp.notes ? ' - ' + sdp.notes : ''),
+        category: t('reports.catSupplierDeliveryPayment'),
+        description: (sdp.delivery?.supplier?.name ? (t('suppliers.title') + ': ') + sdp.delivery.supplier.name : '') + (sdp.notes ? ' - ' + sdp.notes : ''),
         amount: Number(sdp.amount),
         type: 'SUPPLIER_PAYMENT',
       })),
@@ -575,7 +575,7 @@ export default function FinancialReportsPage() {
               </div>
               {paidStockCreditExpenseTotal > 0 && (
                 <div className="flex justify-between text-[#8C7361]">
-                  <span>{language === 'am' ? 'የተከፈለ የዕቃና አቅራቢ ብድር' : 'Paid Stock & Supplier Credits'}:</span>
+                  <span>{t('reports.catStockLoanPayment')}:</span>
                   <span className="font-bold text-emerald-800 font-mono">{money(paidStockCreditExpenseTotal)}</span>
                 </div>
               )}
@@ -667,7 +667,7 @@ export default function FinancialReportsPage() {
               </div>
               <div className="flex justify-between text-[#8C7361]">
                 <span>{t('expenses.badgeDaily')}</span>
-                <span className="font-bold text-[#2C1B10]">{ownerExpensesList.length} entries</span>
+                <span className="font-bold text-[#2C1B10]">{t('reports.entriesCount', { count: ownerExpensesList.length })}</span>
               </div>
             </div>
             <div className="mt-3 text-[11px] font-bold text-purple-800 flex items-center gap-1 group-hover:underline">
@@ -1474,7 +1474,7 @@ export default function FinancialReportsPage() {
                   </div>
                   <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
                     <div className="text-xs text-[#8C7361] font-bold">{t('expenses.badgeDaily')}</div>
-                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-1">{ownerExpensesList.length} entries</div>
+                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-1">{t('reports.entriesCount', { count: ownerExpensesList.length })}</div>
                   </div>
                 </div>
 
@@ -1886,7 +1886,7 @@ export default function FinancialReportsPage() {
                                   </span>
                                   {paid > 0 && (
                                     <span className="text-[10px] text-emerald-700 font-medium block">
-                                      {language === 'am' ? `የተከፈለ፡ ${money(paid)} | ጠቅላላ፡ ${money(cost)}` : `Paid: ${money(paid)} | Total: ${money(cost)}`}
+                                      `${t('common.paid')}: ${money(paid)} | ${t('common.total')}: ${money(cost)}`
                                     </span>
                                   )}
                                 </div>
@@ -1894,7 +1894,7 @@ export default function FinancialReportsPage() {
                                   <span className="font-mono font-extrabold text-rose-700 text-sm">
                                     {money(rem)}
                                   </span>
-                                  <span className="text-[9px] text-[#8C7361] block uppercase">{language === 'am' ? 'ቀሪ ዕዳ' : 'Remaining'}</span>
+                                  <span className="text-[9px] text-[#8C7361] block uppercase">{t('credits.colRemaining')}</span>
                                 </div>
                               </div>
                             </div>
@@ -1938,7 +1938,7 @@ export default function FinancialReportsPage() {
                                   </span>
                                   {paid > 0 && (
                                     <span className="text-[10px] text-emerald-700 font-medium block">
-                                      {language === 'am' ? `የተከፈለ፡ ${money(paid)} | ጠቅላላ፡ ${money(total)}` : `Paid: ${money(paid)} | Total: ${money(total)}`}
+                                      `${t('common.paid')}: ${money(paid)} | ${t('common.total')}: ${money(total)}`
                                     </span>
                                   )}
                                 </div>
@@ -1946,7 +1946,7 @@ export default function FinancialReportsPage() {
                                   <span className="font-mono font-extrabold text-rose-700 text-sm">
                                     {money(rem)}
                                   </span>
-                                  <span className="text-[9px] text-[#8C7361] block uppercase">{language === 'am' ? 'ቀሪ ዕዳ' : 'Remaining'}</span>
+                                  <span className="text-[9px] text-[#8C7361] block uppercase">{t('credits.colRemaining')}</span>
                                 </div>
                               </div>
                             </div>
@@ -1964,7 +1964,7 @@ export default function FinancialReportsPage() {
                         <TableHead>{t('common.date')}</TableHead>
                         <TableHead>{t('reports.supplierCreditorCol')}</TableHead>
                         <TableHead>{t('reports.productMaterialCol')}</TableHead>
-                        <TableHead className="text-right">{language === 'am' ? 'ያልተከፈለ ቀሪ ዕዳ' : language === 'om' ? 'Idaa Hin Kaffalamne' : 'Unpaid Remaining Debt'}</TableHead>
+                        <TableHead className="text-right">{t('credits.colRemaining')}</TableHead>
                         <TableHead className="text-center pr-4">{t('reports.payableStatusCol')}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -2004,7 +2004,7 @@ export default function FinancialReportsPage() {
                                     {d.product?.name || d.stockItem?.name || 'Item'} ({d.quantityReceived} {t('common.pieces')})
                                     {paid > 0 && (
                                       <span className="text-[10px] text-emerald-700 block">
-                                        {language === 'am' ? `የተከፈለ፡ ${money(paid)}` : `Paid: ${money(paid)}`}
+                                        `${t('common.paid')}: ${money(paid)}`
                                       </span>
                                     )}
                                   </TableCell>
@@ -2012,7 +2012,7 @@ export default function FinancialReportsPage() {
                                     <div>{money(rem)}</div>
                                     {paid > 0 && (
                                       <div className="text-[10px] text-[#8C7361] font-normal font-sans">
-                                        {language === 'am' ? `ጠቅላላ: ${money(cost)}` : `Total: ${money(cost)}`}
+                                        `${t('common.total')}: ${money(cost)}`
                                       </div>
                                     )}
                                   </TableCell>
@@ -2049,7 +2049,7 @@ export default function FinancialReportsPage() {
                                     {sl.stockMovement?.stockItem?.name || t('reports.materialStockItemCol')}
                                     {paid > 0 && (
                                       <span className="text-[10px] text-emerald-700 block">
-                                        {language === 'am' ? `የተከፈለ፡ ${money(paid)}` : `Paid: ${money(paid)}`}
+                                        `${t('common.paid')}: ${money(paid)}`
                                       </span>
                                     )}
                                   </TableCell>
@@ -2057,7 +2057,7 @@ export default function FinancialReportsPage() {
                                     <div>{money(rem)}</div>
                                     {paid > 0 && (
                                       <div className="text-[10px] text-[#8C7361] font-normal font-sans">
-                                        {language === 'am' ? `ጠቅላላ: ${money(total)}` : `Total: ${money(total)}`}
+                                        `${t('common.total')}: ${money(total)}`
                                       </div>
                                     )}
                                   </TableCell>

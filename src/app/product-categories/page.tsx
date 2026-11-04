@@ -38,7 +38,7 @@ export default function ProductCategoriesPage() {
     if (!user) return;
     if (user.role !== "OWNER") {
       router.push("/production/history");
-      toast.error("Unauthorized access to Product Categories.");
+      toast.error(t('categories.toastUnauthorizedCategories'));
     }
   }, [user, router]);
 
@@ -84,7 +84,7 @@ export default function ProductCategoriesPage() {
 
     if (catType === "PRODUCED" && (!prodRole || prodRole === "")) {
       setIsSubmitting(false);
-      return toast.error("Production Station / Role is required for PRODUCED categories (Baker, Cake Worker, or Sambusa Worker).");
+      return toast.error(t('categories.toastRoleRequiredForProduced'));
     }
 
     try {
@@ -95,7 +95,7 @@ export default function ProductCategoriesPage() {
         parentId: null,
         productionRole: prodRole && prodRole !== "" ? prodRole : null,
       });
-      toast.success("Category created");
+      toast.success(t('categories.toastCategoryCreated'));
       setIsCategoryOpen(false);
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -128,7 +128,7 @@ export default function ProductCategoriesPage() {
 
     if (type === "PRODUCED" && (!prodRole || prodRole === "")) {
       setIsSubmitting(false);
-      return toast.error("Production Station / Role is required for PRODUCED categories (Baker, Cake Worker, or Sambusa Worker).");
+      return toast.error(t('categories.toastRoleRequiredForProduced'));
     }
 
     try {
@@ -158,7 +158,7 @@ export default function ProductCategoriesPage() {
     if (!categoryToDelete) return;
     try {
       await api.delete(`/product-categories/${categoryToDelete.id}`);
-      toast.success("Category deleted");
+      toast.success(t('categories.toastCategoryDeleted'));
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
     } catch (e: any) {
@@ -216,28 +216,28 @@ export default function ProductCategoriesPage() {
               <div className="space-y-4 mb-4">
                 <div>
                   <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.colCategoryName')} (Ge'ez / በግዕዝ)</label>
-                  <Input name="name" required placeholder="e.g. የዳቦ ምርቶች" className="h-10" />
+                  <Input name="name" required placeholder={t('categories.categoryAmharicPlaceholder')} className="h-10" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.colCategoryName')} (Latin / በላቲን)</label>
-                  <Input name="nameLatin" placeholder="e.g. Bakery Products" className="h-10 font-mono" />
+                  <Input name="nameLatin" placeholder={t('categories.categoryEnglishPlaceholder')} className="h-10 font-mono" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colProductType')}</label>
                   <select name="type" required className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
-                    <option value="PRODUCED">PRODUCED</option>
-                    <option value="RESELL">RESELL</option>
+                    <option value="PRODUCED">{t('products.typeProduced') || 'PRODUCED'}</option>
+                    <option value="RESELL">{t('products.typeResell') || 'RESELL'}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">Production Station / Role</label>
+                  <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.stationRole') || 'Production Station / Role'}</label>
                   <select name="productionRole" className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm">
-                    <option value="">None (All / General)</option>
-                    <option value="BAKER">🥖 Baker (Bread & Buns)</option>
-                    <option value="CAKE_WORKER">🎂 Cake Worker (Cakes & Pastries)</option>
-                    <option value="SAMBUSA_WORKER">🥟 Sambusa Worker (Hot Snacks)</option>
+                    <option value="">{t('categories.stationRoleNone') || 'None (All / General)'}</option>
+                    <option value="BAKER">🥖 {t('production.roleBaker') || 'Baker (Bread & Buns)'}</option>
+                    <option value="CAKE_WORKER">🎂 {t('production.roleCakeWorker') || 'Cake Worker (Cakes & Pastries)'}</option>
+                    <option value="SAMBUSA_WORKER">🥟 {t('production.roleSambusaWorker') || 'Sambusa Worker (Hot Snacks)'}</option>
                   </select>
-                  <p className="mt-1 text-[11px] text-zinc-500">Scopes production batches for workers with this role.</p>
+                  <p className="mt-1 text-[11px] text-zinc-500">{t('categories.stationRoleDesc') || 'Scopes production batches for workers with this role.'}</p>
                 </div>
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
@@ -272,7 +272,7 @@ export default function ProductCategoriesPage() {
               onSubmit={async (event) => {
                 event.preventDefault();
                 if (!subParent) {
-                  toast.error("Please select a parent category");
+                  toast.error(t('categories.toastSelectParentCategory'));
                   return;
                 }
                 setIsSubmitting(true);
@@ -284,7 +284,7 @@ export default function ProductCategoriesPage() {
                     type: subParent.type,
                     parentId: subParent.id,
                   });
-                  toast.success("Subcategory created");
+                  toast.success(t('categories.toastSubcategoryCreated'));
                   setIsSubcategoryOpen(false);
                   setSubParentId("");
                   queryClient.invalidateQueries({ queryKey: ["product-categories"] });
@@ -299,12 +299,12 @@ export default function ProductCategoriesPage() {
             >
               <div className="space-y-4 mb-4">
                 <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.subcategory')} Name (Ge'ez / በግዕዝ)</label>
-                  <Input name="name" required placeholder="e.g. ድፎ ዳቦ" className="h-10" />
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.colCategoryName')} (Ge'ez / በግዕዝ)</label>
+                  <Input name="name" required placeholder={t('categories.subcategoryAmharicPlaceholder')} className="h-10" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.subcategory')} Name (Latin / በላቲን)</label>
-                  <Input name="nameLatin" placeholder="e.g. Difo Dabo" className="h-10 font-mono" />
+                  <label className="text-xs font-semibold text-[#2C1B10] block mb-1">{t('categories.colCategoryName')} (Latin / በላቲን)</label>
+                  <Input name="nameLatin" placeholder={t('categories.subcategoryEnglishPlaceholder')} className="h-10 font-mono" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colParentCategory')}</label>
@@ -315,20 +315,20 @@ export default function ProductCategoriesPage() {
                     onChange={(event) => setSubParentId(event.target.value)}
                     className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm"
                   >
-                    <option value="">Select a parent category</option>
+                    <option value="">{t('categories.selectParentCategory') || 'Select a parent category'}</option>
                     {rootCategories.map((category) => (
                       <option key={category.id} value={category.id}>
-                        {category.name} ({category.type})
+                        {category.name} ({category.type === 'PRODUCED' ? (t('products.typeProduced') || 'PRODUCED') : (t('products.typeResell') || 'RESELL')})
                       </option>
                     ))}
                   </select>
                   {rootCategories.length === 0 && (
-                    <p className="mt-2 text-xs text-zinc-500">Create a top-level category first, then add subcategories under it.</p>
+                    <p className="mt-2 text-xs text-zinc-500">{t('categories.createTopLevelCategoryFirst') || 'Create a top-level category first, then add subcategories under it.'}</p>
                   )}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.colProductType')}</label>
-                  <Input value={subParent?.type || ""} readOnly placeholder="Auto-inherited from parent category" className="h-10 bg-zinc-50" />
+                  <Input value={subParent?.type || ""} readOnly placeholder={t('categories.inheritedRolePlaceholder')} className="h-10 bg-zinc-50" />
                 </div>
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
@@ -362,7 +362,7 @@ export default function ProductCategoriesPage() {
               <h2 className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">{t('categories.title')}</h2>
             </div>
             <span className="text-xs font-bold text-[#8C7361] bg-white px-2.5 py-1 rounded-full border border-[#EDE4D5]">
-              {rootCategories.length} total
+              {t('common.totalItems', { count: rootCategories.length }) || `${rootCategories.length} total`}
             </span>
           </div>
 
@@ -438,7 +438,7 @@ export default function ProductCategoriesPage() {
                     <TableRow>
                       <TableHead>{t('categories.colCategoryName')}</TableHead>
                       <TableHead>{t('categories.colProductType')}</TableHead>
-                      <TableHead>Station / Role</TableHead>
+                      <TableHead>{t('categories.stationRole') || 'Station / Role'}</TableHead>
                       <TableHead className="text-center">{t('categories.colProductsCount')}</TableHead>
                       <TableHead className="text-center">{t('categories.colSubcategories')}</TableHead>
                       <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
@@ -502,7 +502,7 @@ export default function ProductCategoriesPage() {
             <h2 className="text-sm font-extrabold text-[#2C1B10] uppercase tracking-wider">{t('categories.subcategoriesOverview')}</h2>
           </div>
           <span className="text-xs font-bold text-[#8C7361] bg-white px-2.5 py-1 rounded-full border border-[#EDE4D5]">
-            {subcategories.length} total
+            {t('common.totalItems', { count: subcategories.length }) || `${subcategories.length} total`}
           </span>
         </div>
         {isLoading ? (
@@ -510,7 +510,7 @@ export default function ProductCategoriesPage() {
             <TableSkeleton rows={4} columns={5} hasActions={true} />
           </div>
         ) : subcategories.length === 0 ? (
-          <div className="px-4 py-8 text-center text-[#8C7361] font-medium">No subcategories found. Click '+ Add Subcategory' to create one under a parent category.</div>
+          <div className="px-4 py-8 text-center text-[#8C7361] font-medium">{t('categories.noSubcategories') || "No subcategories found. Click '+ Add Subcategory' to create one under a parent category."}</div>
         ) : (
           <>
             {/* Mobile Cards for Subcategories (md:hidden) */}
@@ -551,10 +551,10 @@ export default function ProductCategoriesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('categories.subcategory')} Name</TableHead>
+                    <TableHead>{t('categories.colCategoryName') || 'Category Name'}</TableHead>
                     <TableHead>{t('categories.colParentCategory')}</TableHead>
                     <TableHead>{t('categories.colProductType')}</TableHead>
-                    <TableHead>Station / Role</TableHead>
+                    <TableHead>{t('categories.stationRole') || 'Station / Role'}</TableHead>
                     <TableHead className="text-center">{t('categories.assignedProducts')}</TableHead>
                     <TableHead className="text-right pr-6">{t('common.actions')}</TableHead>
                   </TableRow>
@@ -630,7 +630,7 @@ export default function ProductCategoriesPage() {
                     <label className="text-xs font-semibold text-[#2C1B10] block mb-1">
                       {editingCategory.parentId ? `${t('categories.subcategory')} Name (Latin / በላቲን)` : `${t('categories.colCategoryName')} (Latin / በላቲን)`}
                     </label>
-                    <Input name="nameLatin" defaultValue={editingCategory.nameLatin || ""} placeholder="e.g. Difo Dabo" className="h-10 font-mono" />
+                    <Input name="nameLatin" defaultValue={editingCategory.nameLatin || ""} placeholder={t('categories.subcategoryEnglishPlaceholder')} className="h-10 font-mono" />
                   </div>
 
                   {editingCategory.parentId ? (
@@ -644,7 +644,7 @@ export default function ProductCategoriesPage() {
                           onChange={(event) => setEditParentId(event.target.value)}
                           className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm"
                         >
-                          <option value="" disabled>Select parent category</option>
+                          <option value="" disabled>{t('categories.selectParentCategory') || 'Select parent category'}</option>
                           {rootCategories.map((category) => (
                             <option key={category.id} value={category.id}>
                               {category.name} ({category.type})
@@ -659,7 +659,7 @@ export default function ProductCategoriesPage() {
                           readOnly
                           className="h-10 bg-zinc-50 font-bold"
                         />
-                        <p className="mt-1 text-[11px] text-zinc-500">Auto-inherited from parent category.</p>
+                        <p className="mt-1 text-[11px] text-zinc-500">{t('categories.autoInheritedFromParent') || 'Auto-inherited from parent category.'}</p>
                       </div>
                     </>
                   ) : (
@@ -671,25 +671,25 @@ export default function ProductCategoriesPage() {
                         defaultValue={editingCategory.type}
                         className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm"
                       >
-                        <option value="PRODUCED">PRODUCED</option>
-                        <option value="RESELL">RESELL</option>
+                        <option value="PRODUCED">{t('products.typeProduced') || 'PRODUCED'}</option>
+                        <option value="RESELL">{t('products.typeResell') || 'RESELL'}</option>
                       </select>
                     </div>
                   )}
 
                   <div>
-                    <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">Production Station / Role</label>
+                    <label className="text-xs font-semibold text-[#2C1B10] mb-1 block">{t('categories.stationRole') || 'Production Station / Role'}</label>
                     <select
                       name="productionRole"
                       defaultValue={editingCategory.productionRole || ""}
                       className="w-full border rounded-md h-10 px-3 border-input bg-background text-sm"
                     >
-                      <option value="">None (All / General)</option>
-                      <option value="BAKER">🥖 Baker (Bread & Buns)</option>
-                      <option value="CAKE_WORKER">🎂 Cake Worker (Cakes & Pastries)</option>
-                      <option value="SAMBUSA_WORKER">🥟 Sambusa Worker (Hot Snacks)</option>
+                      <option value="">{t('categories.stationRoleNone') || 'None (All / General)'}</option>
+                      <option value="BAKER">🥖 {t('production.roleBaker') || 'Baker (Bread & Buns)'}</option>
+                      <option value="CAKE_WORKER">🎂 {t('production.roleCakeWorker') || 'Cake Worker (Cakes & Pastries)'}</option>
+                      <option value="SAMBUSA_WORKER">🥟 {t('production.roleSambusaWorker') || 'Sambusa Worker (Hot Snacks)'}</option>
                     </select>
-                    <p className="mt-1 text-[11px] text-zinc-500">Scopes production batches for workers with this role.</p>
+                    <p className="mt-1 text-[11px] text-zinc-500">{t('categories.stationRoleDesc') || 'Scopes production batches for workers with this role.'}</p>
                   </div>
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-2">
@@ -723,9 +723,9 @@ export default function ProductCategoriesPage() {
         isOpen={!!categoryToDelete}
         onClose={() => setCategoryToDelete(null)}
         onConfirm={confirmDeleteCategory}
-        title="Delete Product Category"
-        description={`Are you sure you want to delete '${categoryToDelete?.name}'? This action cannot be undone.`}
-        confirmText="Delete Category"
+        title={t('categories.deleteCategoryTitle') || "Delete Product Category"}
+        description={t('categories.confirmDeleteCategory', { name: categoryToDelete?.name || '' }) || `Are you sure you want to delete '${categoryToDelete?.name}'? This action cannot be undone.`}
+        confirmText={t('categories.deleteCategoryBtn') || "Delete Category"}
         variant="danger"
       />
     </DashboardLayout>
