@@ -342,32 +342,32 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     <DashboardLayout>
       <div className="space-y-6 max-w-6xl mx-auto pb-12">
         {/* Top Navigation & Breadcrumbs */}
-        <div className="flex items-center justify-between gap-2.5 print:hidden">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 print:hidden">
+          <div className="flex items-center gap-2 min-w-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.push("/customer-credits")}
-              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] shrink-0 h-8 px-2.5 text-xs font-bold"
+              className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] shrink-0 h-9 px-3 text-xs font-bold shadow-2xs flex items-center gap-1.5"
             >
-              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-              {t("common.back") || "Back"}
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{t("common.back") || "Back"}</span>
             </Button>
-            <div className="flex items-center text-xs text-[#8C7361] gap-1.5 min-w-0 truncate">
-              <Link href="/customer-credits" className="hover:underline shrink-0 hidden sm:inline">
+            <div className="hidden sm:flex items-center text-xs text-[#8C7361] gap-1.5 min-w-0 truncate">
+              <Link href="/customer-credits" className="hover:underline shrink-0">
                 {t("credits.title") || "Customer Credits"}
               </Link>
-              <ChevronRight className="w-3.5 h-3.5 shrink-0 hidden sm:inline" />
+              <ChevronRight className="w-3.5 h-3.5 shrink-0" />
               <span className="font-bold text-[#2C1B10] truncate">{customer.fullName}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => window.print()}
-              className="hidden sm:inline-flex rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] h-8 text-xs font-bold px-2.5"
+              className="hidden sm:inline-flex rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] h-9 text-xs font-bold px-3 shadow-2xs"
             >
               <Printer className="w-3.5 h-3.5 mr-1.5 text-[#E87A18]" />
               {t("credits.printBtn") || "Print"}
@@ -378,20 +378,21 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 variant="outline"
                 size="sm"
                 onClick={openEditCustomerModal}
-                className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] h-8 text-xs font-bold px-2.5"
+                className="rounded-xl border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] h-9 text-xs font-bold px-3 shadow-2xs shrink-0 flex items-center gap-1.5"
               >
-                <Pencil className="w-3.5 h-3.5 mr-1 text-[#E87A18]" />
-                {t("common.edit") || "Edit"}
+                <Pencil className="w-3.5 h-3.5 text-[#E87A18]" />
+                <span>{t("common.edit") || "Edit"}</span>
               </Button>
             )}
 
             <Button
               size="sm"
               onClick={() => router.push(`/customer-credits/new?customerId=${customer.id}`)}
-              className="rounded-xl bg-[#E87A18] hover:bg-[#D26911] text-white shadow-sm h-8 text-xs font-bold px-2.5 whitespace-nowrap"
+              className="rounded-xl bg-[#E87A18] hover:bg-[#D26911] text-white shadow-xs h-9 text-xs font-black px-3.5 whitespace-nowrap shrink-0 flex items-center gap-1.5"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              {t("credits.newCredit") || "Log Credit"}
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t("credits.newCredit") || "Log Credit"}</span>
+              <span className="sm:hidden">{t("credits.btnNewCreditMobile")}</span>
             </Button>
           </div>
         </div>
@@ -586,33 +587,33 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         </div>
 
         {/* Tab Switcher: Credit Sales vs Repayment History */}
-        <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-2">
+        <div className="flex items-center gap-2 border-b border-[#EDE4D5] pb-2 overflow-x-auto no-scrollbar">
           <Button
             variant={activeTab === "CREDITS" ? "default" : "ghost"}
             size="sm"
             onClick={() => setActiveTab("CREDITS")}
-            className={`rounded-xl font-bold text-xs h-9 px-4 transition-all ${
+            className={`rounded-xl font-bold text-xs h-9 px-3.5 sm:px-4 transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "CREDITS"
                 ? "bg-[#2C1B10] text-white shadow-sm"
                 : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-[#FAF6F0]"
             }`}
           >
-            <CreditCard className="w-3.5 h-3.5 mr-1.5" />
-            Credit Invoices ({customer.credits?.length || 0})
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>{t("credits.tabCreditInvoices", { count: customer.credits?.length || 0 })}</span>
           </Button>
 
           <Button
             variant={activeTab === "PAYMENTS" ? "default" : "ghost"}
             size="sm"
             onClick={() => setActiveTab("PAYMENTS")}
-            className={`rounded-xl font-bold text-xs h-9 px-4 transition-all ${
+            className={`rounded-xl font-bold text-xs h-9 px-3.5 sm:px-4 transition-all shrink-0 flex items-center gap-1.5 ${
               activeTab === "PAYMENTS"
                 ? "bg-[#2C1B10] text-white shadow-sm"
                 : "text-[#8C7361] hover:text-[#2C1B10] hover:bg-[#FAF6F0]"
             }`}
           >
-            <History className="w-3.5 h-3.5 mr-1.5" />
-            Repayment History ({allPayments.length})
+            <History className="w-3.5 h-3.5" />
+            <span>{t("credits.tabRepaymentHistory", { count: allPayments.length })}</span>
           </Button>
         </div>
 
@@ -717,7 +718,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                                 variant="outline"
                                 onClick={() => router.push(`/customer-credits/${cr.id}`)}
                                 className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl"
-                                title="View Credit Details"
+                                title={t("common.view") || "View"}
                               >
                                 <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
                               </Button>
@@ -727,7 +728,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                                   variant="outline"
                                   onClick={() => router.push(`/customer-credits/new?edit=${cr.id}`)}
                                   className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2 rounded-xl"
-                                  title="Edit Credit"
+                                  title={t("common.edit") || "Edit"}
                                 >
                                   <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
                                 </Button>
@@ -823,35 +824,35 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       </div>
 
                       {/* Mobile Actions */}
-                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#F4ECE1]">
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#F4ECE1]">
                         {!isPaid && (
                           <Button
                             size="sm"
                             onClick={() => openPayModal(cr)}
-                            className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs h-8 px-3 rounded-xl shadow-2xs"
+                            className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs h-8.5 px-3 rounded-xl shadow-2xs flex items-center gap-1.5"
                           >
-                            <DollarSign className="w-3.5 h-3.5 mr-1" />
-                            {t("credits.payBtn") || "Settle"}
+                            <DollarSign className="w-3.5 h-3.5" />
+                            <span>{t("credits.payBtn") || "Settle"}</span>
                           </Button>
                         )}
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => router.push(`/customer-credits/${cr.id}`)}
-                          className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl"
+                          className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8.5 px-3 rounded-xl shadow-2xs flex items-center gap-1.5"
                         >
-                          <Eye className="w-3.5 h-3.5 mr-1 text-[#E87A18]" />
-                          View
+                          <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                          <span>{t("common.view") || "View"}</span>
                         </Button>
                         {canManage && (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => router.push(`/customer-credits/new?edit=${cr.id}`)}
-                            className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8 px-2.5 rounded-xl"
+                            className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-8.5 px-3 rounded-xl shadow-2xs flex items-center gap-1.5"
                           >
-                            <Pencil className="w-3.5 h-3.5 mr-1 text-[#8C7361]" />
-                            {t("common.edit") || "Edit"}
+                            <Pencil className="w-3.5 h-3.5 text-[#8C7361]" />
+                            <span>{t("common.edit") || "Edit"}</span>
                           </Button>
                         )}
                       </div>
@@ -908,10 +909,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                               size="sm"
                               variant="outline"
                               onClick={() => router.push(`/customer-credits/${p.creditId}`)}
-                              className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-7 px-2.5 rounded-xl"
+                              className="border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold text-xs h-7.5 px-2.5 rounded-xl flex items-center gap-1"
                             >
-                              <Eye className="w-3.5 h-3.5 mr-1 text-[#E87A18]" />
-                              Invoice
+                              <Eye className="w-3.5 h-3.5 text-[#E87A18]" />
+                              <span>{t("credits.invoiceBtn") || "Invoice"}</span>
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -951,10 +952,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           size="sm"
                           variant="outline"
                           onClick={() => router.push(`/customer-credits/${p.creditId}`)}
-                          className="h-7 text-xs px-2 rounded-lg border-[#EDE4D5] text-[#4A2E1B]"
+                          className="h-7.5 text-xs px-2.5 rounded-lg border-[#EDE4D5] text-[#4A2E1B] hover:bg-[#FAF6F0] font-bold flex items-center gap-1"
                         >
-                          <Eye className="w-3 h-3 mr-1 text-[#E87A18]" />
-                          Invoice
+                          <Eye className="w-3 h-3 text-[#E87A18]" />
+                          <span>{t("credits.invoiceBtn") || "Invoice"}</span>
                         </Button>
                       </div>
 

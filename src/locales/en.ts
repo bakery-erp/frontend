@@ -1156,6 +1156,10 @@ export const en = {
     activeDebt: "With Active Debt",
     settledOnly: "Fully Settled",
     toastCustomerCreated: "Customer created successfully!",
+    tabCreditInvoices: "Credit Invoices ({count})",
+    tabRepaymentHistory: "Repayment History ({count})",
+    btnNewCreditMobile: "New Credit",
+    invoiceBtn: "Invoice",
   },
   products: {
     title: "Bakery Products & Prices",

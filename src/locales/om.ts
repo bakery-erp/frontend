@@ -1158,6 +1158,10 @@ export const om: TranslationDictionary = {
     activeDebt: "Liqii Kan Qaban",
     settledOnly: "Kan Xumuran",
     toastCustomerCreated: "Maamilli milkaa'inaan galmaa'eera!",
+    tabCreditInvoices: "Nagahee Liqii ({count})",
+    tabRepaymentHistory: "Seenaa Kaffaltii ({count})",
+    btnNewCreditMobile: "Liqii Haaraa",
+    invoiceBtn: "Nagahee",
   },
   products: {
     title: "Oomishaalee Daabboo & Gatii",

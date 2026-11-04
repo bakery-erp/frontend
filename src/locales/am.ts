@@ -1158,6 +1158,10 @@ export const am: TranslationDictionary = {
     activeDebt: "ያልተከፈለ ዕዳ ያለባቸው",
     settledOnly: "ያጠናቀቁ",
     toastCustomerCreated: "ደንበኛው በተሳካ ሁኔታ ተመዝግቧል!",
+    tabCreditInvoices: "የብድር ደረሰኞች ({count})",
+    tabRepaymentHistory: "የክፍያ ታሪክ ({count})",
+    btnNewCreditMobile: "አዲስ ብድር",
+    invoiceBtn: "ደረሰኝ",
   },
   products: {
     title: "የዳቦና ኬክ ምርቶችና ዋጋ",
