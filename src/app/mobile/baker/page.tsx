@@ -162,7 +162,7 @@ export default function MobileBakerStation() {
         setHistoryBatches(histRes.data || []);
       }
     } catch (e) {
-      toast.error('Failed to load baker station data');
+      toast.error(t('mobile.failedToLoadData') || 'Failed to load baker station data');
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +183,7 @@ export default function MobileBakerStation() {
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductId) {
-      toast.error('Please select a product');
+      toast.error(t('production.selectProductPrompt') || 'Please select a product');
       return;
     }
 
@@ -211,7 +211,7 @@ export default function MobileBakerStation() {
       
       fetchBakerData();
     } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Batch creation failed');
+      toast.error(e.response?.data?.error || t('production.toastBatchCreateFailed') || 'Batch creation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -265,34 +265,32 @@ export default function MobileBakerStation() {
 
       {/* Shift Toggle & Tab Selector Bar */}
       <div className="p-4 bg-zinc-900 border-b border-zinc-800 space-y-3">
-        {/* Shift Picker (Day / Night) - Visible only for Admin/Owner */}
-        {isGlobalAdmin && (
-          <div className="bg-zinc-950 p-1 rounded-xl border border-zinc-800 flex items-center">
-            <button
-              type="button"
-              onClick={() => setSelectedShift('DAY')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                selectedShift === 'DAY'
-                  ? 'bg-amber-500 text-zinc-950 shadow-md font-extrabold'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Sun className="w-3.5 h-3.5" /> {t('production.dayShiftFull')}
-            </button>
+        {/* Shift Picker (Day / Night) - Visible for all bakery roles */}
+        <div className="bg-zinc-950 p-1 rounded-xl border border-zinc-800 flex items-center">
+          <button
+            type="button"
+            onClick={() => setSelectedShift('DAY')}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              selectedShift === 'DAY'
+                ? 'bg-amber-500 text-zinc-950 shadow-md font-extrabold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5" /> {t('production.dayShiftFull')}
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setSelectedShift('NIGHT')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                selectedShift === 'NIGHT'
-                  ? 'bg-indigo-600 text-white shadow-md font-extrabold'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" /> {t('production.nightShiftFull')}
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => setSelectedShift('NIGHT')}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              selectedShift === 'NIGHT'
+                ? 'bg-indigo-600 text-white shadow-md font-extrabold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Moon className="w-3.5 h-3.5" /> {t('production.nightShiftFull')}
+          </button>
+        </div>
 
         {/* Tab Switcher */}
         <div className="flex space-x-2">

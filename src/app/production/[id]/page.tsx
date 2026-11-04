@@ -148,7 +148,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
       queryClient.invalidateQueries({ queryKey: ["production-worker-counts"] });
       router.push("/production");
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to delete production batch");
+      toast.error(e.response?.data?.error || t("production.toastBatchDeleteFailed") || "Failed to delete production batch");
       setIsDeleting(false);
     }
   };
@@ -185,7 +185,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
       queryClient.invalidateQueries({ queryKey: ["production-batch-detail", batchId] });
       queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to mark as seen");
+      toast.error(e.response?.data?.error || t("production.toastFailedToMarkSeen") || "Failed to mark as seen");
     } finally {
       setIsMarkingSeen(false);
     }
@@ -247,7 +247,7 @@ export default function ProductionBatchDetailPage({ params }: { params: Promise<
       queryClient.invalidateQueries({ queryKey: ["production-batch-detail", batchId] });
       queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to update flag");
+      toast.error(e.response?.data?.error || t("production.toastFailedToUpdateFlag") || "Failed to update flag");
     } finally {
       setIsFlagSubmitting(false);
     }

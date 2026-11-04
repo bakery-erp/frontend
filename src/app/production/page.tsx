@@ -144,7 +144,7 @@ export default function ProductionPage() {
       queryClient.invalidateQueries({ queryKey: ["production-admin-counts"] });
       queryClient.invalidateQueries({ queryKey: ["production-worker-counts"] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to delete production batch");
+      toast.error(err.response?.data?.error || t("production.toastBatchDeleteFailed") || "Failed to delete production batch");
     } finally {
       setIsDeleting(false);
     }
@@ -310,7 +310,7 @@ export default function ProductionPage() {
       toast.success(t('production.markedAsSeenSuccess') || "Marked as seen successfully");
       queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to mark as seen");
+      toast.error(err.response?.data?.error || t('production.toastFailedToMarkSeen') || "Failed to mark as seen");
     } finally {
       setMarkingSeenId(null);
     }
@@ -324,7 +324,7 @@ export default function ProductionPage() {
         toast.success(t('production.flagClearedSuccess') || "Flag resolved successfully");
         queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
       } catch (err: any) {
-        toast.error(err.response?.data?.error || "Failed to resolve flag");
+        toast.error(err.response?.data?.error || t('production.toastFailedToResolveFlag') || "Failed to resolve flag");
       }
     } else {
       setFlaggingBatch(batch);
@@ -345,7 +345,7 @@ export default function ProductionPage() {
       setFlagReasonInput("");
       queryClient.invalidateQueries({ queryKey: ["production-page-batches"] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to flag batch");
+      toast.error(err.response?.data?.error || t('production.toastFailedToFlagBatch') || "Failed to flag batch");
     } finally {
       setIsFlagSubmitting(false);
     }

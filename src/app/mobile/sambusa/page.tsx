@@ -127,7 +127,7 @@ export default function MobileSambusaStation() {
         setHistoryBatches(histRes.data || []);
       }
     } catch (e) {
-      toast.error('Failed to load Sambusa station');
+      toast.error(t('mobile.failedToLoadData') || 'Failed to load Sambusa station');
     } finally {
       setIsLoading(false);
     }
@@ -224,34 +224,32 @@ export default function MobileSambusaStation() {
 
       {/* Shift Toggle & Tab Selector Bar */}
       <div className="p-4 bg-zinc-900 border-b border-zinc-800 space-y-3">
-        {/* Shift Picker (Day / Night) - Visible only for Admin/Owner */}
-        {isGlobalAdmin && (
-          <div className="bg-zinc-950 p-1 rounded-xl border border-zinc-800 flex items-center">
-            <button
-              type="button"
-              onClick={() => setSelectedShift('DAY')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                selectedShift === 'DAY'
-                  ? 'bg-amber-500 text-zinc-950 shadow-md font-extrabold'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Sun className="w-3.5 h-3.5" /> {t('production.dayShiftFull')}
-            </button>
+        {/* Shift Picker (Day / Night) - Visible for all roles */}
+        <div className="bg-zinc-950 p-1 rounded-xl border border-zinc-800 flex items-center">
+          <button
+            type="button"
+            onClick={() => setSelectedShift('DAY')}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              selectedShift === 'DAY'
+                ? 'bg-amber-500 text-zinc-950 shadow-md font-extrabold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5" /> {t('production.dayShiftFull')}
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setSelectedShift('NIGHT')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                selectedShift === 'NIGHT'
-                  ? 'bg-indigo-600 text-white shadow-md font-extrabold'
-              : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" /> {t('production.nightShiftFull')}
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => setSelectedShift('NIGHT')}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              selectedShift === 'NIGHT'
+                ? 'bg-indigo-600 text-white shadow-md font-extrabold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Moon className="w-3.5 h-3.5" /> {t('production.nightShiftFull')}
+          </button>
+        </div>
 
         {/* Tab Switcher */}
         <div className="flex space-x-2">

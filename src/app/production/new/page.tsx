@@ -103,6 +103,40 @@ function ProductionFormContent() {
   const [selectedProducts, setSelectedProducts] = useState<Record<string, string>>({});
   const [selectedMaterials, setSelectedMaterials] = useState<Record<string, string>>({});
 
+  // Refs for Shift Selector focus and auto-scrolling
+  const desktopShiftSelectRef = useRef<HTMLSelectElement | null>(null);
+  const mobileShiftSectionRef = useRef<HTMLDivElement | null>(null);
+  const desktopShiftSectionRef = useRef<HTMLDivElement | null>(null);
+
+  // Requirement 1: If shift hasn't been chosen yet, smoothly scroll to shift selector and focus it
+  const ensureShiftSelected = (): boolean => {
+    if (!shift) {
+      toast.error(t("production.chooseShiftFirst") || "Please choose a shift (Day or Night) first!");
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      if (isMobile) {
+        setMobileStep(1);
+        mobileShiftSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        desktopShiftSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        desktopShiftSelectRef.current?.focus();
+      }
+      return false;
+    }
+    return true;
+  };
+
+  // Requirement 1: Auto-focus on shift when entering page if shift is not chosen yet
+  useEffect(() => {
+    if (!isEditMode && !shift) {
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      if (isMobile) {
+        mobileShiftSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        desktopShiftSelectRef.current?.focus();
+      }
+    }
+  }, [isEditMode]);
+
   // Initial loaded state for edit mode to prevent false positive dirty discard modals
   const initialBatchStateRef = useRef<{
     date: string;
@@ -326,6 +360,7 @@ function ProductionFormContent() {
 
   // Product Selection Handlers
   const toggleProductSelect = (productId: string) => {
+    if (!ensureShiftSelected()) return;
     setSelectedProducts((prev) => {
       const next = { ...prev };
       if (next[productId] !== undefined) {
@@ -352,6 +387,7 @@ function ProductionFormContent() {
   };
 
   const updateProductQty = (productId: string, qty: string) => {
+    if (!ensureShiftSelected()) return;
     setSelectedProducts((prev) => {
       const formatted = formatQtyInput(qty);
       return {
@@ -422,11 +458,7 @@ function ProductionFormContent() {
       return;
     }
 
-    if (!shift) {
-      toast.error("Please choose a shift (Day or Night) before saving the production batch!");
-      setMobileStep(1);
-      const shiftElem = document.getElementById("shift-select") || document.getElementById("shift-selector-container");
-      shiftElem?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!ensureShiftSelected()) {
       return;
     }
 
@@ -697,9 +729,63 @@ function ProductionFormContent() {
 
           {/* Mobile Shift & Date Bar (< md) - Only on Step 1 */}
           {mobileStep === 1 && (
-            <div className="md:hidden bg-white p-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-3">
-              {/* Date Section */}
-              <div className="space-y-1.5">
+            <div className="md:hidden space-y-3">
+              {/* Day / Night Shift Selector Section - FIRST */}
+              <div
+                id="mobile-shift-selector"
+                ref={mobileShiftSectionRef}
+                className={`p-3.5 rounded-2xl border transition-all ${
+                  !shift
+                    ? "bg-amber-50/80 border-amber-400 ring-2 ring-amber-300 shadow-sm"
+                    : "bg-white border-[#EDE4D5] shadow-xs"
+                } space-y-2`}
+              >
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-[#2C1B10] flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                    <span>{t("production.colShift") || "Shift"}</span>
+                    <span className="text-red-500">*</span>
+                  </label>
+                  {!shift ? (
+                    <span className="text-[11px] text-amber-900 font-black animate-pulse bg-amber-200/70 px-2 py-0.5 rounded-full border border-amber-300">
+                      👉 {t("production.chooseShiftPromptNotice") || "Choose shift first"}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      ✓ {shift === "DAY" ? (t("production.dayShiftFull") || "Day Shift") : (t("production.nightShiftFull") || "Night Shift")}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShift("DAY")}
+                    className={`h-12 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                      shift === "DAY"
+                        ? "bg-amber-500 text-zinc-950 border-amber-600 ring-2 ring-amber-300 shadow-sm"
+                        : "bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#EDE4D5]"
+                    }`}
+                  >
+                    <span className="text-base">☀️</span>
+                    <span>{t("production.dayShiftFull") || "Day Shift"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShift("NIGHT")}
+                    className={`h-12 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                      shift === "NIGHT"
+                        ? "bg-indigo-600 text-white border-indigo-700 ring-2 ring-indigo-300 shadow-sm"
+                        : "bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#EDE4D5]"
+                    }`}
+                  >
+                    <span className="text-base">🌙</span>
+                    <span>{t("production.nightShiftFull") || "Night Shift"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Date Section - SECOND */}
+              <div className="bg-white p-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-extrabold text-[#2C1B10] flex items-center gap-1.5">
                     <span className="text-amber-600">📅</span>
@@ -728,51 +814,63 @@ function ProductionFormContent() {
                   </div>
                 )}
               </div>
-
-              {/* Day / Night Shift Selector Section */}
-              <div className="space-y-1.5 pt-2 border-t border-[#F4ECE1]">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-extrabold text-[#2C1B10]">
-                    {t("production.colShift") || "Shift"} <span className="text-red-500">*</span>
-                  </label>
-                  {!shift && (
-                    <span className="text-[10px] text-amber-700 font-extrabold animate-pulse">
-                      * Please select shift
-                    </span>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShift("DAY")}
-                    className={`h-11 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
-                      shift === "DAY"
-                        ? "bg-amber-500 text-zinc-950 border-amber-600 ring-2 ring-amber-300 shadow-sm"
-                        : "bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#EDE4D5]"
-                    }`}
-                  >
-                    <span>☀️</span>
-                    <span>{t("production.dayShiftFull") || "Day Shift"}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShift("NIGHT")}
-                    className={`h-11 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
-                      shift === "NIGHT"
-                        ? "bg-indigo-600 text-white border-indigo-700 ring-2 ring-indigo-300 shadow-sm"
-                        : "bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] hover:bg-[#EDE4D5]"
-                    }`}
-                  >
-                    <span>🌙</span>
-                    <span>{t("production.nightShiftFull") || "Night Shift"}</span>
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
           {/* Shift & Date Header Configuration (Desktop md+) */}
-          <div className={`hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border border-[#EDE4D5] shadow-xs grid-cols-1 ${user?.role === "OWNER" && !isEditMode ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-3 xs:gap-4`}>
+          <div
+            id="desktop-shift-selector-section"
+            ref={desktopShiftSectionRef}
+            className={`hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border transition-all ${
+              !shift ? "border-amber-400 ring-2 ring-amber-200" : "border-[#EDE4D5]"
+            } shadow-xs grid-cols-1 ${user?.role === "OWNER" && !isEditMode ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-3 xs:gap-4`}
+          >
+            {/* Shift Selector is FIRST! */}
+            <div id="shift-selector-container">
+              <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide flex items-center justify-between">
+                <span>{t("production.colShift")} <span className="text-red-500">*</span></span>
+                {!shift && (
+                  <span className="text-[10px] text-amber-700 font-extrabold lowercase animate-pulse">
+                    ({t("production.shiftRequired") || "required first"})
+                  </span>
+                )}
+              </label>
+              <select
+                id="shift-select"
+                ref={desktopShiftSelectRef}
+                value={shift}
+                onChange={(e) => setShift(e.target.value as any)}
+                className={`w-full bg-[#FAF6F0] border rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] transition-all cursor-pointer ${
+                  !shift ? "border-amber-400 ring-2 ring-amber-200 bg-amber-50/50" : "border-[#EDE4D5]"
+                }`}
+                required
+              >
+                <option value="" disabled>-- {t("production.selectShiftPrompt") || "Choose Shift (Required)"} --</option>
+                <option value="DAY">☀️ {t("production.dayShiftFull")}</option>
+                <option value="NIGHT">🌙 {t("production.nightShiftFull")}</option>
+              </select>
+            </div>
+
+            {/* Date is SECOND */}
+            <div>
+              <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
+                {t("common.date")}
+              </label>
+              <AppDatePicker
+                required
+                disabled={!isGlobalAdmin}
+                value={isGlobalAdmin ? date : (isEditMode ? date : new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10))}
+                onChange={(val) => setDate(val)}
+                className="bg-[#FAF6F0] border-[#EDE4D5]"
+              />
+              {!isGlobalAdmin && (
+                <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">
+                  🔒 {t("production.systemDateLabel", { date: formatEthDate(new Date()) })}
+                </p>
+              )}
+            </div>
+
+            {/* Branch is THIRD (if OWNER) */}
             {user?.role === "OWNER" && !isEditMode && (
               <div>
                 <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
@@ -798,41 +896,6 @@ function ProductionFormContent() {
                 </select>
               </div>
             )}
-            <div>
-              <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                {t("common.date")}
-              </label>
-              <AppDatePicker
-                required
-                disabled={!isGlobalAdmin}
-                value={isGlobalAdmin ? date : (isEditMode ? date : new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10))}
-                onChange={(val) => setDate(val)}
-                className="bg-[#FAF6F0] border-[#EDE4D5]"
-              />
-              {!isGlobalAdmin && (
-                <p className="text-[10px] text-[#8C7361] mt-1 font-semibold">
-                  🔒 {t("production.systemDateLabel", { date: formatEthDate(new Date()) })}
-                </p>
-              )}
-            </div>
-            <div id="shift-selector-container">
-              <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide">
-                {t("production.colShift")} <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="shift-select"
-                value={shift}
-                onChange={(e) => setShift(e.target.value as any)}
-                className={`w-full bg-[#FAF6F0] border rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] transition-all ${
-                  !shift ? 'border-amber-400 ring-2 ring-amber-200' : 'border-[#EDE4D5]'
-                }`}
-                required
-              >
-                <option value="" disabled>-- {t("production.selectShiftPrompt") || "Choose Shift (Required)"} --</option>
-                <option value="DAY">☀️ {t("production.dayShiftFull")}</option>
-                <option value="NIGHT">🌙 {t("production.nightShiftFull")}</option>
-              </select>
-            </div>
           </div>
 
           {/* SECTION 1: PRODUCT CATEGORY FILTER & MULTI-PRODUCT SELECTION */}
@@ -852,6 +915,43 @@ function ProductionFormContent() {
                 {totalProductsSelectedCount} {t("production.tabProducts")}
               </span>
             </div>
+
+            {/* Shift Prompt Banner if not yet selected */}
+            {!shift && (
+              <div className="bg-amber-50/90 border-2 border-dashed border-amber-300 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <Clock className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-[#2C1B10]">
+                      {t("production.chooseShiftPromptNotice") || "Please select a shift first to start recording"}
+                    </h4>
+                    <p className="text-[11px] text-[#8C7361] font-semibold mt-0.5">
+                      {t("production.chooseShiftFirst") || "Choose whether this production batch is for the Day Shift or Night Shift."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShift("DAY")}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition-all"
+                  >
+                    <span>☀️</span>
+                    <span>{t("production.dayShiftFull") || "Day Shift"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShift("NIGHT")}
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition-all"
+                  >
+                    <span>🌙</span>
+                    <span>{t("production.nightShiftFull") || "Night Shift"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Category & Subcategory Filter Tabs (shown when multiple categories exist) */}
             {parentCategories.length > 1 && (
@@ -873,6 +973,7 @@ function ProductionFormContent() {
                       }}
                       type="button"
                       onClick={() => {
+                        if (!ensureShiftSelected()) return;
                         setSelectedParentCatId("ALL");
                         setSelectedSubCatId("ALL");
                       }}
@@ -896,6 +997,7 @@ function ProductionFormContent() {
                           }}
                           type="button"
                           onClick={() => {
+                            if (!ensureShiftSelected()) return;
                             setSelectedParentCatId(cat.id);
                             setSelectedSubCatId("ALL");
                           }}
@@ -927,7 +1029,10 @@ function ProductionFormContent() {
                           subCatTabRefs.current["ALL"] = el;
                         }}
                         type="button"
-                        onClick={() => setSelectedSubCatId("ALL")}
+                        onClick={() => {
+                          if (!ensureShiftSelected()) return;
+                          setSelectedSubCatId("ALL");
+                        }}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
                           selectedSubCatId === "ALL"
                             ? "bg-[#E87A18] text-white"
@@ -943,7 +1048,10 @@ function ProductionFormContent() {
                             subCatTabRefs.current[sub.id] = el;
                           }}
                           type="button"
-                          onClick={() => setSelectedSubCatId(sub.id)}
+                          onClick={() => {
+                            if (!ensureShiftSelected()) return;
+                            setSelectedSubCatId(sub.id);
+                          }}
                           className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
                             selectedSubCatId === sub.id
                               ? "bg-[#E87A18] text-white"
@@ -966,6 +1074,11 @@ function ProductionFormContent() {
                 type="text"
                 placeholder={t("production.searchProductsInput")}
                 value={productSearch}
+                onFocus={() => {
+                  if (!shift) {
+                    ensureShiftSelected();
+                  }
+                }}
                 onChange={(e) => setProductSearch(e.target.value)}
                 className="pl-9 bg-white border-[#EDE4D5] rounded-xl text-xs"
               />
@@ -1032,7 +1145,13 @@ function ProductionFormContent() {
                               min="0"
                               placeholder="0"
                               value={qtyVal}
-                              onFocus={(e) => e.target.select()}
+                              onFocus={(e) => {
+                                if (!ensureShiftSelected()) {
+                                  e.target.blur();
+                                  return;
+                                }
+                                e.target.select();
+                              }}
                               onChange={(e) => updateProductQty(p.id, e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -1217,9 +1336,7 @@ function ProductionFormContent() {
                 size="lg"
                 disabled={totalProductsSelectedCount === 0}
                 onClick={() => {
-                  if (!shift) {
-                    toast.error("Please choose a shift (Day or Night) before proceeding!");
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  if (!ensureShiftSelected()) {
                     return;
                   }
                   const hasProductWithQty = Object.entries(selectedProducts).some(([_, qty]) => Number(qty) > 0);
