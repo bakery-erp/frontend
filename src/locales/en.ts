@@ -624,6 +624,15 @@ export const en = {
     qtyTimesPrice: "Qty × Unit Buy Price",
     clickStockDetails: "Click for itemized stock details",
 
+    // Card Home Stock
+    cardHomeStockValuationTitle: "Home Stock Valuation",
+    cardHomeStockValuationSubtitle: "Total value of raw materials stored at home",
+    trackedHomeStockItems: "Tracked Home Stock Items:",
+    totalHomeStockValuationModal: "Total Home Stock Worth",
+    homeStockBadge: "🔒 Private / Home",
+    noHomeStockFound: "No raw materials found in home stock.",
+    searchFilterHomeStockPlaceholder: "Search home stock items by name...",
+
     // Card 6
     cardProductsValuationTitle: "Products in House Valuation",
     cardProductsValuationSubtitle: "Bakery goods & resell stock in store",
@@ -701,6 +710,8 @@ export const en = {
     wealthItem2Desc: "Products sold on credit to customers awaiting debt recovery ({count} active records).",
     wealthItem3Title: "Raw Materials Inventory Asset Value",
     wealthItem3Desc: "Physical raw ingredients in warehouse ({count} items valued at unit purchase cost).",
+    wealthItemHomeStockTitle: "Private Home Stock Inventory Asset Value",
+    wealthItemHomeStockDesc: "Physical raw ingredients stored at home ({count} items valued at unit purchase cost).",
     wealthItem4Title: "In-House Finished Bakery Goods Asset Value",
     wealthItem4Desc: "Bakery items and resell inventory currently on store shelves ({count} product lines).",
     wealthItem5Title: "Expenses / Credits You Have to Give Yet (Payables)",
@@ -986,6 +997,16 @@ export const en = {
     backToStock: "Back to Stock",
     unsavedPermissions: "Unsaved Permissions",
     unsavedPermissionsNotice: "You have unsaved permission changes. Save before switching roles.",
+
+    locationBakery: "Bakery Stock",
+    locationHome: "Home / Private Stock",
+    homeStockBannerTitle: "Private Home Storage (Owner Only)",
+    homeStockBannerDesc: "This inventory is strictly private to you. Workers and staff have zero access and cannot see it.",
+    copyFromBakeryCatalog: "Choose from bakery catalog...",
+    selectExistingItemToCopy: "Copy details from existing bakery item",
+    copyFromHomeCatalog: "Choose from Home Stock...",
+    selectHomeItemToCopy: "Copy details from Home Stock item",
+    homeStockEmpty: "No raw materials recorded in home stock yet.",
 
     title: "Raw Materials & Inventory Stock",
     subtitle: "Monitor inventory levels, supplier deliveries, purchase loans, and stock movements.",

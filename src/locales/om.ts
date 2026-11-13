@@ -626,6 +626,15 @@ export const om: TranslationDictionary = {
     qtyTimesPrice: "Baay'ina × Gatii Bitiisaa",
     clickStockDetails: "Bal'ina meeshaalee kuusaa ilaaluuf cuqi",
 
+    // Card Home Stock
+    cardHomeStockValuationTitle: "Gatii Kuusaa Manaa",
+    cardHomeStockValuationSubtitle: "Gatii meeshaalee dheedhii manatti kuufamanii",
+    trackedHomeStockItems: "Meeshaalee Manaa:",
+    totalHomeStockValuationModal: "Ida'ama Gatii Kuusaa Manaa",
+    homeStockBadge: "🔒 Dhuunfaa / Manaa",
+    noHomeStockFound: "Kuusaa manaatti meeshaan hin argamne.",
+    searchFilterHomeStockPlaceholder: "Meeshaalee manaa barbaadi...",
+
     // Card 6
     cardProductsValuationTitle: "Gatii Oomishaalee Suuqii Keessaa",
     cardProductsValuationSubtitle: "Oomishaalee daabboo fi meeshaalee gurgurtaaf qophaa'an",
@@ -703,6 +712,8 @@ export const om: TranslationDictionary = {
     wealthItem2Desc: "Oomishaalee liqaadhaan gurguramanii deebi'uuf eegan (galmeewwan {count} jiran).",
     wealthItem3Title: "Gatii Qabeenya Kuusaa Meeshaalee Dheedhii",
     wealthItem3Desc: "Meeshaalee dheedhii kuusaa keessa jiran (meeshaalee {count} gatii bittaatiin herreegaman).",
+    wealthItemHomeStockTitle: "Gatii Qabeenya Kuusaa Manaa Dhuunfaa",
+    wealthItemHomeStockDesc: "Meeshaalee dheedhii manatti kuufaman (meeshaalee {count} gatii bittaatiin).",
     wealthItem4Title: "Gatii Qabeenya Oomishaalee Daabboo Suuqii Keessaa",
     wealthItem4Desc: "Oomishaalee daabboo fi gurgurtaaf qophaa'anii tarreeffaman (gosoota oomishaa {count}).",
     wealthItem5Title: "Baasiiwwan / Liqaa Kaffalamuuf Eegan (Idhaawwan)",
@@ -988,6 +999,16 @@ export const om: TranslationDictionary = {
     backToStock: "Gara Kuusaatti Deebi'i",
     unsavedPermissions: "Eeyyamoota Hin Galmoofne",
     unsavedPermissionsNotice: "Jijjiiramoonni hin galmoofne jiru. Gahee biraatti osoo hin darbiniin dura galmeessaa.",
+
+    locationBakery: "Kuusaa Bakka Hojii",
+    locationHome: "Kuusaa Manaa (Dhuunfaa)",
+    homeStockBannerTitle: "Kuusaa Manaa Dhuunfaa (Abbaa Qofa)",
+    homeStockBannerDesc: "Kuusaan kun si qofaaf mul'ata. Hojjettoonni kana hin argan.",
+    copyFromBakeryCatalog: "Kaatalaagii bakka hojii irraa filadhu...",
+    selectExistingItemToCopy: "Oodeeffannoo meeshaa duraanii garagalchi",
+    copyFromHomeCatalog: "Kuusaa Manaa irraa filadhu...",
+    selectHomeItemToCopy: "Oodeeffannoo meeshaa Kuusaa Manaa irraa waraabi",
+    homeStockEmpty: "Kuusaa manaatti meeshaan tokkollee hin galmoofne.",
 
     title: "Meeshaalee Dhiyeessii & Kuusaa",
     subtitle: "Hamma daakuu, sukkaara fi dhadhaa, akkasumas dhiyeessitoota fi liqii hordofi.",

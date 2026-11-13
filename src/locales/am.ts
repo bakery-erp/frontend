@@ -626,6 +626,15 @@ export const am: TranslationDictionary = {
     qtyTimesPrice: "ብዛት × የመግዣ ዋጋ",
     clickStockDetails: "የጥሬ ዕቃዎችን ዝርዝር ለማየት ይጫኑ",
 
+    // Card Home Stock
+    cardHomeStockValuationTitle: "የቤት ጥሬ ዕቃዎች ዋጋ",
+    cardHomeStockValuationSubtitle: "በቤት/በግል የተያዙ ጥሬ ዕቃዎች አጠቃላይ ዋጋ",
+    trackedHomeStockItems: "በቤት የተመዘገቡ ጥሬ ዕቃዎች፦",
+    totalHomeStockValuationModal: "ጠቅላላ የቤት ጥሬ ዕቃዎች ዋጋ",
+    homeStockBadge: "🔒 የግል/የቤት",
+    noHomeStockFound: "በቤት ክምችት ውስጥ የተገኘ ጥሬ ዕቃ የለም።",
+    searchFilterHomeStockPlaceholder: "የቤት ጥሬ ዕቃዎችን በስም ፈልግ...",
+
     // Card 6
     cardProductsValuationTitle: "በመደብር ያሉ ምርቶች ዋጋ",
     cardProductsValuationSubtitle: "በመደብር ያሉ የዳቦ ውጤቶች እና የሽያጭ ዕቃዎች",
@@ -703,6 +712,8 @@ export const am: TranslationDictionary = {
     wealthItem2Desc: "በብድር የተሸጡ ዕቃዎች ስብስብ የሚጠበቅ ({count} ንቁ መዝገቦች)።",
     wealthItem3Title: "የመጋዘን ጥሬ ዕቃዎች የሃብት ዋጋ",
     wealthItem3Desc: "በመጋዘን ውስጥ ያሉ ጥሬ ዕቃዎች ({count} ዕቃዎች በመግዣ ዋጋ ተሰልተዋል)።",
+    wealthItemHomeStockTitle: "የግል የቤት ጥሬ ዕቃዎች የሃብት ዋጋ",
+    wealthItemHomeStockDesc: "በቤት ውስጥ የተቀመጡ ጥሬ ዕቃዎች ({count} ዕቃዎች በግዢ ዋጋ ተሰልተዋል)።",
     wealthItem4Title: "በመደብር ያሉ የተዘጋጁ ምርቶች የሃብት ዋጋ",
     wealthItem4Desc: "በመደርደሪያ ላይ ያሉ የዳቦ ውጤቶች እና መሸጫ ምርቶች ({count} የምርት ዓይነቶች)።",
     wealthItem5Title: "መክፈል ያለብዎት ወጪዎች / ክሬዲቶች (ዕዳዎች)",
@@ -988,6 +999,16 @@ export const am: TranslationDictionary = {
     backToStock: "ወደ ክምችት ተመለስ",
     unsavedPermissions: "ያልተቀመጡ ፈቃዶች",
     unsavedPermissionsNotice: "ያልተቀመጡ የፈቃድ ለውጦች አሉ። ሚና ከመቀየርዎ በፊት ያስቀምጡ።",
+
+    locationBakery: "የዳቦ ቤት ክምችት",
+    locationHome: "የቤት / የግል ክምችት",
+    homeStockBannerTitle: "የግል የቤት ክምችት (ለእርስዎ ብቻ)",
+    homeStockBannerDesc: "ይህ ክምችት ለእርስዎ (ባለቤቱ) ብቻ የሚታይ ነው። ሠራተኞች ወይም አድሚኖች ፈጽሞ አያዩትም።",
+    copyFromBakeryCatalog: "ከዳቦ ቤት ካታሎግ ምረጥ...",
+    selectExistingItemToCopy: "ከዚህ በፊት የተመዘገበ ዕቃ መረጃ ቅዳ",
+    copyFromHomeCatalog: "ከቤት ክምችት ምረጥ...",
+    selectHomeItemToCopy: "ከቤት ክምችት ዕቃ መረጃ ቅዳ",
+    homeStockEmpty: "በቤት ክምችት ውስጥ የተመዘገበ ጥሬ ዕቃ የለም።",
 
     title: "ጥሬ ዕቃዎችና የመጋዘን ክምችት",
     subtitle: "የዱቄት፣ ስኳርና ቅቤ ክምችት፣ የአቅራቢዎች አቅርቦት እና የብድር መዝገብ።",

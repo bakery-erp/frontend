@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/context/AuthContext";
 import { useBranch } from "@/context/BranchContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { AlertCircle, MinusCircle, PlusCircle, Plus, Trash2, Edit3, PackageCheck, History, SlidersHorizontal, CheckCircle2, Home, Store, Lock } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton } from "@/components/ui/skeletons";
 
@@ -36,6 +36,7 @@ interface StockItem {
   minStockLevel?: number;
   branchId: string;
   branch?: Branch;
+  location?: "MAIN" | "HOME";
 }
 
 export const STOCK_CATEGORIES = [
@@ -72,6 +73,10 @@ export default function StockPage() {
     return null;
   }
 
+  // Stock Location Scope (Bakery Workspace vs Private Home)
+  const [activeLocation, setActiveLocation] = useState<'MAIN' | 'HOME'>('MAIN');
+  const effectiveLocation = isOwner ? activeLocation : 'MAIN';
+
   // Quick Filters
   const [filterToday, setFilterToday] = useState(false);
   const [filterLowStock, setFilterLowStock] = useState(false);
@@ -104,6 +109,7 @@ export default function StockPage() {
   const [isCreateLoan, setIsCreateLoan] = useState<boolean>(false);
   const [createPaidAmount, setCreatePaidAmount] = useState<string>("");
   const [createSupplierName, setCreateSupplierName] = useState<string>("");
+  const [isCreateAutoConfirm, setIsCreateAutoConfirm] = useState<boolean>(false);
 
   // Loan state for Restock / Addition
   const [isAddLoan, setIsAddLoan] = useState<boolean>(false);
@@ -189,29 +195,54 @@ export default function StockPage() {
   });
 
   const { data: stockSummary } = useQuery({
-    queryKey: ['stock-summary', selectedBranchId],
+    queryKey: ['stock-summary', selectedBranchId, effectiveLocation],
     queryFn: async () => {
-      const endpoint = selectedBranchId 
-        ? `/stock-movements/summary?branchId=${selectedBranchId}` 
-        : `/stock-movements/summary`;
-      const res = await api.get(endpoint);
+      const params = new URLSearchParams();
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      params.append('location', effectiveLocation);
+      const res = await api.get(`/stock-movements/summary?${params.toString()}`);
       return res.data;
     },
     enabled: isStockStaff,
   });
 
   const { data: items = [], isLoading } = useQuery<StockItem[]>({
-    queryKey: ['stock-items', selectedBranchId],
+    queryKey: ['stock-items', selectedBranchId, effectiveLocation],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const endpoint = selectedBranchId 
-        ? `/stock-items?branchId=${selectedBranchId}` 
-        : `/stock-items`;
-
-      const res = await api.get(endpoint);
+      const params = new URLSearchParams();
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      params.append('location', effectiveLocation);
+      const res = await api.get(`/stock-items?${params.toString()}`);
       return res.data || [];
     },
     enabled: isStockStaff,
+  });
+
+  // Fetch bakery catalog items so owner can easily copy details when adding to Home Stock
+  const { data: bakeryCatalogItems = [] } = useQuery<StockItem[]>({
+    queryKey: ['stock-items-bakery-catalog', selectedBranchId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      params.append('location', 'MAIN');
+      const res = await api.get(`/stock-items?${params.toString()}`);
+      return res.data || [];
+    },
+    enabled: isOwner && effectiveLocation === 'HOME',
+  });
+
+  // Fetch home catalog items so owner can easily copy details when adding to Bakery Stock
+  const { data: homeCatalogItems = [] } = useQuery<StockItem[]>({
+    queryKey: ['stock-items-home-catalog', selectedBranchId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedBranchId) params.append('branchId', selectedBranchId);
+      params.append('location', 'HOME');
+      const res = await api.get(`/stock-items?${params.toString()}`);
+      return res.data || [];
+    },
+    enabled: isOwner && effectiveLocation === 'MAIN',
   });
 
   const { data: dbUsers = [], isLoading: isUsersLoading } = useQuery<{
@@ -243,6 +274,7 @@ export default function StockPage() {
 
     const data = {
       branchId: (formData.get("branchId") as string) || selectedBranchId || user?.branchId || undefined,
+      location: effectiveLocation,
       name: formData.get("name"),
       nameLatin: (formData.get("nameLatin") as string)?.trim() || undefined,
       category,
@@ -252,6 +284,7 @@ export default function StockPage() {
       unitPrice: formData.get("unitPrice") ? Number(formData.get("unitPrice")) : 0,
       minStockLevel: formData.get("minStockLevel") ? Number(formData.get("minStockLevel")) : undefined,
       date: createDate || undefined,
+      autoConfirm: (effectiveLocation === 'HOME') ? true : isCreateAutoConfirm,
       loanInfo: !isEdit && isCreateLoan ? {
         isLoan: true,
         paidAmount: createPaidAmount !== "" ? Number(createPaidAmount) : 0,
@@ -270,15 +303,21 @@ export default function StockPage() {
         toast.success(t("stock.toastStockUpdated"));
       } else {
         await api.post("/stock-items", data);
-        toast.success(t("stock.toastStockCreated"));
+        if (effectiveLocation === 'HOME' || isCreateAutoConfirm || Number(formData.get("currentQuantity")) === 0) {
+          toast.success(t("stock.toastStockCreated"));
+        } else {
+          toast.success(t('stock.toastInwardAwaitingVerification', { name: formData.get("name") as string }));
+        }
       }
       setIsAddOpen(false);
       setEditingItem(null);
       setIsCreateLoan(false);
       setCreatePaidAmount("");
       setCreateSupplierName("");
+      setIsCreateAutoConfirm(false);
       queryClient.invalidateQueries({ queryKey: ['stock-items'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements-pending'] });
       queryClient.invalidateQueries({ queryKey: ['stock-loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
@@ -309,13 +348,14 @@ export default function StockPage() {
       return;
     }
 
-    const effectiveAutoConfirm = isOwner ? isAutoConfirm : false;
+    const isTargetHome = addingItem.location === 'HOME' || effectiveLocation === 'HOME';
+    const effectiveAutoConfirm = (isOwner && isTargetHome) ? true : (isOwner ? isAutoConfirm : false);
     setIsSubmitting(true);
     try {
       await api.post(`/stock-items/${addingItem.id}/add`, {
         quantity: qty,
         unitPrice: parsedUnitPrice,
-        reason: addReason.trim() || "Manual Stock Addition",
+        reason: addReason.trim() || (isTargetHome ? "Home Stock Addition" : "Manual Stock Addition"),
         autoConfirm: effectiveAutoConfirm,
         date: addDate || undefined,
         loanInfo: isAddLoan ? {
@@ -354,7 +394,8 @@ export default function StockPage() {
     e.preventDefault();
     if (!reducingItem) return;
 
-    if (!reduceReceivedBy.trim()) {
+    const received = reduceReceivedBy.trim() || (effectiveLocation === 'HOME' ? (user?.fullName || 'Owner') : '');
+    if (!received) {
       toast.error(t("stock.toastChooseStaff"));
       return;
     }
@@ -369,8 +410,8 @@ export default function StockPage() {
     try {
       await api.post(`/stock-items/${reducingItem.id}/reduce`, {
         quantity: qty,
-        reason: reduceReason.trim() || "Manual Stock Reduction",
-        receivedBy: reduceReceivedBy.trim(),
+        reason: reduceReason.trim() || (effectiveLocation === 'HOME' ? "Home Stock Reduction" : "Manual Stock Reduction"),
+        receivedBy: received,
       });
       toast.success(`Successfully issued ${qty} ${reducingItem.unitType} from ${reducingItem.name}`);
       setReducingItem(null);
@@ -440,15 +481,24 @@ export default function StockPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-[#2C1B10] tracking-tight">{t('stock.title')}</h1>
+          {isOwner && (
+            <p className="text-xs text-[#8C7361] mt-0.5">
+              {effectiveLocation === 'HOME'
+                ? (t('stock.homeStockBannerDesc') || 'ይህ ክምችት ለእርስዎ (ባለቤቱ) ብቻ የሚታይ ነው። ሠራተኞች ወይም አድሚኖች ፈጽሞ አያዩትም።')
+                : (t('stock.subtitle') || 'የመጋዘን ጥሬ ዕቃዎችና ክምችት ቁጥጥር')}
+            </p>
+          )}
         </div>
         {user?.role === "OWNER" && (
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <Link href="/stock/role-materials" className="flex-1 sm:flex-initial">
-              <Button variant="outline" size="default" className="w-full flex items-center justify-center gap-1.5 border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold text-xs sm:text-sm h-10 rounded-xl">
-                <SlidersHorizontal className="w-4 h-4 text-[#8C7361]" />
-                <span>{t('stock.roleStockAccess')}</span>
-              </Button>
-            </Link>
+            {effectiveLocation === 'MAIN' && (
+              <Link href="/stock/role-materials" className="flex-1 sm:flex-initial">
+                <Button variant="outline" size="default" className="w-full flex items-center justify-center gap-1.5 border-[#EDE4D5] hover:bg-[#FAF6F0] font-bold text-xs sm:text-sm h-10 rounded-xl">
+                  <SlidersHorizontal className="w-4 h-4 text-[#8C7361]" />
+                  <span>{t('stock.roleStockAccess')}</span>
+                </Button>
+              </Link>
+            )}
             <Button onClick={() => setIsAddOpen(true)} size="default" className="flex-1 sm:flex-initial h-10 rounded-xl">
               <Plus className="w-4 h-4 shrink-0" />
               <span>{t('stock.newItem')}</span>
@@ -456,6 +506,52 @@ export default function StockPage() {
           </div>
         )}
       </div>
+
+      {/* Owner Location Switcher (Bakery Workspace Stock vs Private Home Stock) */}
+      {isOwner && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl">
+          <div className="flex items-center gap-1.5 p-1 bg-white border border-[#EDE4D5] rounded-xl w-full sm:w-fit shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setActiveLocation('MAIN')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-extrabold text-xs sm:text-sm transition-all cursor-pointer ${
+                effectiveLocation === 'MAIN'
+                  ? 'bg-amber-700 text-white shadow-xs'
+                  : 'text-[#8C7361] hover:text-[#2C1B10]'
+              }`}
+            >
+              <Store className="w-4 h-4" />
+              <span>{t('stock.locationBakery') || 'የዳቦ ቤት ክምችት'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLocation('HOME')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-extrabold text-xs sm:text-sm transition-all cursor-pointer ${
+                effectiveLocation === 'HOME'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-[#8C7361] hover:text-[#2C1B10]'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span>{t('stock.locationHome') || 'የቤት / የግል ክምችት'}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${effectiveLocation === 'HOME' ? 'bg-black/20 text-white' : 'bg-amber-100 text-amber-900'}`}>
+                🔒
+              </span>
+            </button>
+          </div>
+
+          {effectiveLocation === 'HOME' ? (
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-100/70 border border-amber-200/80 px-3 py-1.5 rounded-xl">
+              <Lock className="w-3.5 h-3.5 shrink-0" />
+              <span>{t('stock.homeStockBannerTitle') || 'የግል የቤት ክምችት (ለእርስዎ ብቻ)'}</span>
+            </div>
+          ) : (
+            <div className="text-xs text-[#8C7361] px-2">
+              <span>{t('stock.stockInShop') || 'በመጋዘን ውስጥ ያለ'}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Pending Inward Deliveries Callout for Stock Keeper */}
       {isStockKeeper && pendingApprovals.length > 0 && (
@@ -944,6 +1040,7 @@ export default function StockPage() {
             setIsCreateLoan(false);
             setCreatePaidAmount("");
             setCreateSupplierName("");
+            setIsCreateAutoConfirm(false);
           }
         }}>
           <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
@@ -954,6 +1051,78 @@ export default function StockPage() {
             </DialogHeader>
             <form onSubmit={(e) => handleSubmit(e, !!editingItem)}>
               <div className="grid gap-3.5 py-3">
+                {effectiveLocation === 'HOME' && !editingItem && bakeryCatalogItems.length > 0 && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
+                    <label className="text-[11px] font-bold text-amber-950 block">
+                      {t('stock.selectExistingItemToCopy') || 'ከዚህ በፊት የተመዘገበ ዕቃ መረጃ ቅዳ'}
+                    </label>
+                    <select
+                      className="w-full text-xs h-9 bg-white border border-amber-300 rounded-lg px-2 text-[#2C1B10]"
+                      onChange={(e) => {
+                        const selected = bakeryCatalogItems.find(i => i.id === e.target.value);
+                        if (selected) {
+                          const form = e.target.closest('form');
+                          if (form) {
+                            const nameInput = form.elements.namedItem('name') as HTMLInputElement;
+                            const nameLatinInput = form.elements.namedItem('nameLatin') as HTMLInputElement;
+                            const catSelect = form.elements.namedItem('category') as HTMLSelectElement;
+                            const unitSelect = form.elements.namedItem('unitType') as HTMLSelectElement;
+                            const priceInput = form.elements.namedItem('unitPrice') as HTMLInputElement;
+                            if (nameInput) nameInput.value = selected.name;
+                            if (nameLatinInput && selected.nameLatin) nameLatinInput.value = selected.nameLatin;
+                            if (catSelect && selected.category) catSelect.value = selected.category;
+                            if (unitSelect) unitSelect.value = selected.unitType;
+                            if (priceInput && selected.unitPrice) priceInput.value = String(selected.unitPrice);
+                          }
+                        }
+                      }}
+                    >
+                      <option value="">{t('stock.copyFromBakeryCatalog') || 'ከዳቦ ቤት ካታሎግ ምረጥ...'}</option>
+                      {bakeryCatalogItems.map(bItem => (
+                        <option key={bItem.id} value={bItem.id}>
+                          {bItem.name} ({bItem.unitType}) {bItem.unitPrice ? `- ${bItem.unitPrice} ETB` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {effectiveLocation === 'MAIN' && isOwner && !editingItem && homeCatalogItems.length > 0 && (
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1">
+                    <label className="text-[11px] font-bold text-amber-950 block">
+                      {t('stock.selectHomeItemToCopy') || 'ከቤት ክምችት ዕቃ መረጃ ቅዳ'}
+                    </label>
+                    <select
+                      className="w-full text-xs h-9 bg-white border border-amber-300 rounded-lg px-2 text-[#2C1B10]"
+                      onChange={(e) => {
+                        const selected = homeCatalogItems.find(i => i.id === e.target.value);
+                        if (selected) {
+                          const form = e.target.closest('form');
+                          if (form) {
+                            const nameInput = form.elements.namedItem('name') as HTMLInputElement;
+                            const nameLatinInput = form.elements.namedItem('nameLatin') as HTMLInputElement;
+                            const catSelect = form.elements.namedItem('category') as HTMLSelectElement;
+                            const unitSelect = form.elements.namedItem('unitType') as HTMLSelectElement;
+                            const priceInput = form.elements.namedItem('unitPrice') as HTMLInputElement;
+                            if (nameInput) nameInput.value = selected.name;
+                            if (nameLatinInput && selected.nameLatin) nameLatinInput.value = selected.nameLatin;
+                            if (catSelect && selected.category) catSelect.value = selected.category;
+                            if (unitSelect) unitSelect.value = selected.unitType;
+                            if (priceInput && selected.unitPrice) priceInput.value = String(selected.unitPrice);
+                          }
+                        }
+                      }}
+                    >
+                      <option value="">{t('stock.copyFromHomeCatalog') || 'ከቤት ክምችት ምረጥ...'}</option>
+                      {homeCatalogItems.map(hItem => (
+                        <option key={hItem.id} value={hItem.id}>
+                          {hItem.name} ({hItem.unitType}) {hItem.unitPrice ? `- ${hItem.unitPrice} ETB` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {isGlobalAdmin && !editingItem && (
                   <div>
                     <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase">{t('common.branch')}</label>
@@ -1117,6 +1286,22 @@ export default function StockPage() {
                     )}
                   </div>
                 )}
+                {effectiveLocation === 'MAIN' && isOwner && !editingItem && (
+                  <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 mt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isCreateAutoConfirm} 
+                        onChange={(e) => setIsCreateAutoConfirm(e.target.checked)} 
+                        className="rounded border-zinc-300 text-[#4A2E1B] focus:ring-[#4A2E1B] w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-zinc-800">{t('stock.autoConfirmPrompt')}</span>
+                    </label>
+                    <p className="text-[10px] text-zinc-500 mt-1 pl-6">
+                      {isCreateAutoConfirm ? t('stock.autoConfirmDesc') : t('stock.awaitingVerificationDesc')}
+                    </p>
+                  </div>
+                )}
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2 w-full pt-3">
                 <Button
@@ -1131,7 +1316,7 @@ export default function StockPage() {
                   type="button"
                   variant="outline"
                   size="lg"
-                  onClick={() => { setIsAddOpen(false); setEditingItem(null); }}
+                  onClick={() => { setIsAddOpen(false); setEditingItem(null); setIsCreateAutoConfirm(false); }}
                   className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   {t('common.cancel')}
@@ -1289,7 +1474,7 @@ export default function StockPage() {
                   </div>
                 )}  </div>
 
-                {isOwner && (
+                {isOwner && effectiveLocation !== 'HOME' && addingItem.location !== 'HOME' && (
                   <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
@@ -1403,8 +1588,26 @@ export default function StockPage() {
                 {/* Taken By Dropdown */}
                 <div>
                   <label className="text-xs font-bold text-[#2C1B10] mb-1 block uppercase tracking-wide">
-                    {t('stock.takenByLabel')} *
+                    {effectiveLocation === 'HOME' ? (t('stock.takenByLabel') || 'የወሰደው አካል / መድረሻ') : t('stock.takenByLabel')} *
                   </label>
+                  {effectiveLocation === 'HOME' && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setReduceReceivedBy('ወደ ዳቦ ቤት ተወሰደ (To Bakery Shop)')}
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 cursor-pointer"
+                      >
+                        🚚 ወደ ዳቦ ቤት ተወሰደ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReduceReceivedBy(user?.fullName || 'ባለቤት (Owner)')}
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300 cursor-pointer"
+                      >
+                        👤 ባለቤት ({user?.fullName || 'Owner'})
+                      </button>
+                    </div>
+                  )}
                   <select 
                     required
                     value={reduceReceivedBy} 
@@ -1414,6 +1617,9 @@ export default function StockPage() {
                     <option value="" disabled>
                       {isUsersLoading ? t('stock.loadingStaff') : t('stock.selectStaffMember')}
                     </option>
+                    {effectiveLocation === 'HOME' && (
+                      <option value="ወደ ዳቦ ቤት ተወሰደ (To Bakery Shop)">🚚 ወደ ዳቦ ቤት ተወሰደ (To Bakery Shop)</option>
+                    )}
                     {dbUsers.filter(u => u.isActive !== false).map((u) => (
                       <option key={u.id} value={u.fullName}>
                         {u.fullName} ({u.role?.replace('_', ' ')}{u.branch?.name ? ` • ${u.branch.name}` : ''})

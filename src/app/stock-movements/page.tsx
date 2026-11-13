@@ -16,7 +16,7 @@ import {
   CreditCard, Coins, CheckCircle2, AlertCircle, History, 
   Search, ArrowRightLeft, DollarSign, Package, Calendar, Clock, Receipt, UserCheck,
   MinusCircle, ShieldCheck, Check, X, ChevronLeft, ChevronRight, Loader2,
-  RotateCcw
+  RotateCcw, Home, Store, Lock
 } from "lucide-react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -196,17 +196,27 @@ export default function StockMovementsPage() {
   const [dateFilter, setDateFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // Location filter state for Owner (Bakery vs Private Home Stock)
+  const [movementLocation, setMovementLocation] = useState<"MAIN" | "HOME">("MAIN");
+  const effectiveMovementLocation = isOwner ? movementLocation : "MAIN";
+
+  useEffect(() => {
+    if (effectiveMovementLocation === "HOME" && (activeTab === "approvals" || activeTab === "rejected")) {
+      setActiveTab("movements");
+    }
+  }, [effectiveMovementLocation, activeTab]);
+
   // Loans ledger state
   const [loansPage, setLoansPage] = useState(1);
   const [loansPageSize, setLoansPageSize] = useState(20);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedBranchId, dateFilter, searchQuery]);
+  }, [selectedBranchId, dateFilter, searchQuery, effectiveMovementLocation]);
 
   useEffect(() => {
     setLoansPage(1);
-  }, [selectedBranchId, loanStatusFilter, loanSearch]);
+  }, [selectedBranchId, loanStatusFilter, loanSearch, effectiveMovementLocation]);
 
   const { data: movementsResponse, isLoading: isLoadingMovements } = useQuery<{
     data: StockMovement[];
@@ -215,13 +225,14 @@ export default function StockMovementsPage() {
     limit: number;
     totalPages: number;
   }>({
-    queryKey: ['stock-movements', selectedBranchId, currentPage, pageSize, dateFilter, searchQuery],
+    queryKey: ['stock-movements', selectedBranchId, currentPage, pageSize, dateFilter, searchQuery, effectiveMovementLocation],
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedBranchId) params.append('branchId', selectedBranchId);
       params.append('page', String(currentPage));
       params.append('limit', String(pageSize));
+      params.append('location', effectiveMovementLocation);
       if (dateFilter) {
         params.append('from', dateFilter);
         params.append('to', dateFilter);
@@ -267,7 +278,7 @@ export default function StockMovementsPage() {
       activeLoansCount: number;
     };
   }>({
-    queryKey: ['stock-loans', selectedBranchId, loanStatusFilter, loansPage, loansPageSize, loanSearch],
+    queryKey: ['stock-loans', selectedBranchId, loanStatusFilter, loansPage, loansPageSize, loanSearch, effectiveMovementLocation],
     placeholderData: (prev) => prev,
     enabled: isGlobalAdmin,
     queryFn: async () => {
@@ -276,6 +287,7 @@ export default function StockMovementsPage() {
       if (loanStatusFilter !== "ALL") params.append('status', loanStatusFilter);
       params.append('page', String(loansPage));
       params.append('limit', String(loansPageSize));
+      params.append('location', effectiveMovementLocation);
       if (loanSearch.trim()) params.append('search', loanSearch.trim());
       const res = await api.get(`/stock-movements/loans/list?${params.toString()}`);
       if (Array.isArray(res.data)) {
@@ -305,7 +317,7 @@ export default function StockMovementsPage() {
     queryKey: ['stock-movements-pending', selectedBranchId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const params = new URLSearchParams({ status: 'PENDING_CONFIRMATION', limit: '100' });
+      const params = new URLSearchParams({ status: 'PENDING_CONFIRMATION', limit: '100', location: 'MAIN' });
       if (selectedBranchId) params.append('branchId', selectedBranchId);
       const res = await api.get(`/stock-movements?${params.toString()}`);
       if (Array.isArray(res.data)) return res.data;
@@ -350,7 +362,7 @@ export default function StockMovementsPage() {
     queryKey: ['stock-movements-rejected', selectedBranchId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const params = new URLSearchParams({ status: 'REJECTED', limit: '100' });
+      const params = new URLSearchParams({ status: 'REJECTED', limit: '100', location: 'MAIN' });
       if (selectedBranchId) params.append('branchId', selectedBranchId);
       const res = await api.get(`/stock-movements?${params.toString()}`);
       if (Array.isArray(res.data)) return res.data;
@@ -610,6 +622,52 @@ export default function StockMovementsPage() {
         </div>
       </div>
 
+      {/* Owner Location Switcher (Bakery Workspace Movements vs Private Home Stock Movements) */}
+      {isOwner && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 bg-[#FAF6F0] border border-[#EDE4D5] rounded-2xl">
+          <div className="flex items-center gap-1.5 p-1 bg-white border border-[#EDE4D5] rounded-xl w-full sm:w-fit shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setMovementLocation('MAIN')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-extrabold text-xs sm:text-sm transition-all cursor-pointer ${
+                effectiveMovementLocation === 'MAIN'
+                  ? 'bg-amber-700 text-white shadow-xs'
+                  : 'text-[#8C7361] hover:text-[#2C1B10]'
+              }`}
+            >
+              <Store className="w-4 h-4" />
+              <span>{t('stock.locationBakery') || 'የዳቦ ቤት ክምችት'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMovementLocation('HOME')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-extrabold text-xs sm:text-sm transition-all cursor-pointer ${
+                effectiveMovementLocation === 'HOME'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-[#8C7361] hover:text-[#2C1B10]'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span>{t('stock.locationHome') || 'የቤት / የግል ክምችት'}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${effectiveMovementLocation === 'HOME' ? 'bg-black/20 text-white' : 'bg-amber-100 text-amber-900'}`}>
+                🔒
+              </span>
+            </button>
+          </div>
+
+          {effectiveMovementLocation === 'HOME' ? (
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-100/70 border border-amber-200/80 px-3 py-1.5 rounded-xl">
+              <Lock className="w-3.5 h-3.5 shrink-0" />
+              <span>{t('stock.homeStockBannerTitle') || 'የግል የቤት ክምችት (ለእርስዎ ብቻ)'}</span>
+            </div>
+          ) : (
+            <div className="text-xs text-[#8C7361] px-2">
+              <span>{t('stock.stockInShop') || 'በመጋዘን ውስጥ ያለ'}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Main Mode Tabs with Auto-Centering & Edge Fade Hints */}
       <div className="relative w-full sm:w-fit mb-6 overflow-hidden">
         <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#FAF7EE] to-transparent z-10 sm:hidden" />
@@ -632,7 +690,7 @@ export default function StockMovementsPage() {
             <span>{t('stockMovements.movementsLedger')} ({movements.length})</span>
           </button>
 
-          {canApprove && (
+          {canApprove && effectiveMovementLocation === 'MAIN' && (
             <button
               ref={(el) => { tabRefs.current["approvals"] = el; }}
               onClick={() => setActiveTab("approvals")}
@@ -652,7 +710,7 @@ export default function StockMovementsPage() {
             </button>
           )}
 
-          {isGlobalAdmin && (
+          {isGlobalAdmin && effectiveMovementLocation === 'MAIN' && (
             <button
               ref={(el) => { tabRefs.current["rejected"] = el; }}
               onClick={() => setActiveTab("rejected")}

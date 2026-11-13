@@ -22,6 +22,7 @@ import {
   TrendingDown,
   Wallet,
   Package,
+  Home,
   Layers,
   Calendar,
   ChevronRight,
@@ -36,7 +37,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 
-type ModalType = 'REVENUE' | 'EXPENSE' | 'NET_INCOME' | 'OWNER' | 'STOCK' | 'PRODUCT' | 'NET_WEALTH' | 'CUSTOMER_CREDIT' | 'STOCK_CREDIT' | null;
+type ModalType = 'REVENUE' | 'EXPENSE' | 'NET_INCOME' | 'OWNER' | 'STOCK' | 'PRODUCT' | 'NET_WEALTH' | 'CUSTOMER_CREDIT' | 'STOCK_CREDIT' | 'HOME_STOCK' | null;
 
 interface StockItem {
   id: string;
@@ -111,16 +112,18 @@ export default function FinancialReportsPage() {
       const params: any = { from, to };
       if (selectedBranchId) params.branchId = selectedBranchId;
 
-      const [reportRes, stockRes, prodRes] = await Promise.all([
+      const [reportRes, stockRes, prodRes, homeStockRes] = await Promise.all([
         api.get('/reports/range', { params }).catch(() => ({ data: {} })),
-        api.get('/stock-items', { params: selectedBranchId ? { branchId: selectedBranchId } : {} }).catch(() => ({ data: [] })),
+        api.get('/stock-items', { params: { ...(selectedBranchId ? { branchId: selectedBranchId } : {}), location: 'MAIN' } }).catch(() => ({ data: [] })),
         api.get('/products', { params: selectedBranchId ? { branchId: selectedBranchId } : {} }).catch(() => ({ data: [] })),
+        api.get('/stock-items', { params: { ...(selectedBranchId ? { branchId: selectedBranchId } : {}), location: 'HOME' } }).catch(() => ({ data: [] })),
       ]);
 
       return {
         report: reportRes.data || {},
         stockItems: (Array.isArray(stockRes.data) ? stockRes.data : []) as StockItem[],
         products: (Array.isArray(prodRes.data) ? prodRes.data : []) as ProductItem[],
+        homeStockItems: (Array.isArray(homeStockRes.data) ? homeStockRes.data : []) as StockItem[],
       };
     },
   });
@@ -128,6 +131,7 @@ export default function FinancialReportsPage() {
   const report = pageData?.report || null;
   const stockItems = pageData?.stockItems || [];
   const products = pageData?.products || [];
+  const homeStockItems = pageData?.homeStockItems || [];
 
   // Active Clicked Modal Detail State
   const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -227,6 +231,15 @@ export default function FinancialReportsPage() {
     }, 0);
   }, [stockItems]);
 
+  // 5b. Home Stock Total Monetary Valuation (Owner Only)
+  const homeStockValuation = useMemo(() => {
+    return homeStockItems.reduce((sum, item) => {
+      const qty = Number(item.currentQuantity || 0);
+      const price = Number(item.unitPrice || 0);
+      return sum + qty * price;
+    }, 0);
+  }, [homeStockItems]);
+
   // 6. Products in House Monetary Valuation (Automatically decreases when products are credited)
   const productValuation = useMemo(() => {
     return products.reduce((sum, p) => {
@@ -251,10 +264,10 @@ export default function FinancialReportsPage() {
   const netIncomeMargin = activeRevenueBase > 0 ? (activeDailyNetIncome / activeRevenueBase) * 100 : 0;
 
   // Total Net Wealth:
-  // - Without Credits: Clean Money + Stock Valuation + Product Valuation (Excludes uncollected credits & unpaid supplier debts)
-  const totalNetWealthWithoutCredit = cleanMoneyInHand + stockValuation + productValuation;
-  // - With Credits: Clean Money + Customer Credit (Unpaid Left Amount) + Stock Valuation + Product Valuation - Unpaid Stock Debts
-  const totalNetWealthWithCredit = cleanMoneyInHand + customerCreditRemaining + stockValuation + productValuation - unpaidPayablesTotal;
+  // - Without Credits: Clean Money + Warehouse Stock + Home Stock + Product Valuation (Excludes uncollected credits & unpaid supplier debts)
+  const totalNetWealthWithoutCredit = cleanMoneyInHand + stockValuation + homeStockValuation + productValuation;
+  // - With Credits: Clean Money + Customer Credit (Unpaid Left Amount) + Warehouse Stock + Home Stock + Product Valuation - Unpaid Stock Debts
+  const totalNetWealthWithCredit = cleanMoneyInHand + customerCreditRemaining + stockValuation + homeStockValuation + productValuation - unpaidPayablesTotal;
   const activeTotalNetWealth = netMode === 'WITHOUT_CREDIT' ? totalNetWealthWithoutCredit : totalNetWealthWithCredit;
 
   // Data collections for modal dialogs
@@ -481,7 +494,7 @@ export default function FinancialReportsPage() {
                 </div>
                 <div className="bg-white/10 backdrop-blur-xs rounded-xl p-2.5 border border-white/10">
                   <div className="text-[10px] uppercase font-bold text-amber-300">{t('reports.stockAndProducts')}</div>
-                  <div className="font-mono font-bold text-white text-sm mt-0.5">+{money(stockValuation + productValuation)}</div>
+                  <div className="font-mono font-bold text-white text-sm mt-0.5">+{money(stockValuation + homeStockValuation + productValuation)}</div>
                 </div>
                 <div className={`col-span-2 sm:col-span-3 backdrop-blur-xs rounded-xl p-2 border flex items-center justify-between transition-opacity ${netMode === 'WITH_CREDIT' ? 'bg-rose-500/15 border-rose-500/30' : 'bg-white/5 border-white/5 opacity-50'}`}>
                   <span className="text-[11px] font-bold text-rose-200">
@@ -848,6 +861,50 @@ export default function FinancialReportsPage() {
             </div>
             <div className="mt-3 text-[11px] font-bold text-amber-800 flex items-center gap-1 group-hover:underline">
               <span>{t('reports.clickProductList')}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CARD 9: Home Stock Valuation (Owner Only) */}
+        <Card
+          onClick={() => {
+            setActiveModal('HOME_STOCK');
+            setSearchFilter('');
+          }}
+          className="cursor-pointer group bg-white border-[#EDE4D5] rounded-3xl p-2 shadow-sm hover:shadow-md hover:border-amber-400 transition-all hover:scale-[1.01]"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-xs uppercase font-extrabold text-amber-900 tracking-wider flex items-center gap-1.5">
+                <Home className="w-4 h-4 text-amber-700" />
+                {t('reports.cardHomeStockValuationTitle') || 'የቤት ጥሬ ዕቃዎች ዋጋ'}
+                <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-full font-bold">🔒 {t('reports.homeStockBadge') || 'የግል/የቤት'}</span>
+              </CardTitle>
+              <CardDescription className="text-[11px] text-[#8C7361] mt-0.5">
+                {t('reports.cardHomeStockValuationSubtitle') || 'በቤት/በግል የተያዙ ጥሬ ዕቃዎች አጠቃላይ ዋጋ'}
+              </CardDescription>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+              <Home className="w-5 h-5" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-extrabold text-[#2C1B10] font-mono tracking-tight">
+              {isLoading ? <Skeleton className="h-8 w-36 rounded-lg" /> : money(homeStockValuation)}
+            </div>
+            <div className="mt-3 flex flex-col gap-1 border-t border-[#EDE4D5]/60 pt-2 text-[11px]">
+              <div className="flex justify-between text-[#8C7361]">
+                <span>{t('reports.trackedHomeStockItems') || 'በቤት የተመዘገቡ ጥሬ ዕቃዎች፦'}</span>
+                <span className="font-bold text-[#2C1B10]">{t('reports.materialsCount').replace('{count}', String(homeStockItems.length))}</span>
+              </div>
+              <div className="flex justify-between text-[#8C7361]">
+                <span>{t('reports.valuationFormula') || 'የስሌት ቀመር፦'}</span>
+                <span className="font-semibold text-[#8C7361]">{t('reports.qtyTimesPrice') || 'ብዛት × የመግዣ ዋጋ'}</span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] font-bold text-amber-700 flex items-center gap-1 group-hover:underline">
+              <span>{t('reports.clickStockDetails') || 'የጥሬ ዕቃዎችን ዝርዝር ለማየት ይጫኑ'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </CardContent>
@@ -2256,6 +2313,156 @@ export default function FinancialReportsPage() {
               </div>
             )}
 
+            {/* 5b. HOME STOCK TOTAL AMOUNT & DETAIL MODAL (Owner Only) */}
+            {activeModal === 'HOME_STOCK' && (
+              <div>
+                <DialogHeader className="mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                      <Home className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-lg sm:text-xl font-extrabold text-[#2C1B10] flex items-center gap-2">
+                        <span>{t('reports.cardHomeStockValuationTitle') || 'የቤት ጥሬ ዕቃዎች ዋጋ'}</span>
+                        <span className="text-xs bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-bold">🔒 {t('reports.homeStockBadge') || 'የግል/የቤት'}</span>
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-[#8C7361]">
+                        {t('reports.cardHomeStockValuationSubtitle') || 'በቤት/በግል የተያዙ ጥሬ ዕቃዎች አጠቃላይ ዋጋ'}
+                      </DialogDescription>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.totalHomeStockValuationModal') || 'ጠቅላላ የቤት ጥሬ ዕቃዎች ዋጋ'}</div>
+                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-0.5">{money(homeStockValuation)}</div>
+                  </div>
+                  <div className="bg-[#FAF6F0] p-3.5 rounded-2xl border border-[#EDE4D5]">
+                    <div className="text-xs text-[#8C7361] font-bold">{t('reports.trackedHomeStockItems') || 'በቤት የተመዘገቡ ጥሬ ዕቃዎች፦'}</div>
+                    <div className="text-2xl font-black text-[#2C1B10] font-mono mt-0.5">{t('reports.materialsCount').replace('{count}', String(homeStockItems.length))}</div>
+                  </div>
+                </div>
+
+                <div className="mb-4 relative">
+                  <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+                  <Input
+                    placeholder={t('reports.searchFilterHomeStockPlaceholder') || 'የቤት ጥሬ ዕቃዎችን በስም ፈልግ...'}
+                    value={searchFilter}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="pl-9 h-10 text-xs bg-[#FAF6F0] border-[#EDE4D5] rounded-xl"
+                  />
+                </div>
+
+                {/* Mobile Touch Cards for Home Stock */}
+                <div className="block md:hidden space-y-2.5">
+                  {homeStockItems
+                    .filter((i) => !searchFilter || i.name.toLowerCase().includes(searchFilter.toLowerCase()))
+                    .length === 0 ? (
+                    <div className="text-center py-6 text-xs text-[#8C7361] bg-[#FAF6F0] rounded-xl border border-[#EDE4D5]">
+                      {t('reports.noHomeStockFound') || 'በቤት ክምችት ውስጥ የተገኘ ጥሬ ዕቃ የለም።'}
+                    </div>
+                  ) : (
+                    homeStockItems
+                      .filter((i) => !searchFilter || i.name.toLowerCase().includes(searchFilter.toLowerCase()))
+                      .map((item) => {
+                        const qty = Number(item.currentQuantity || 0);
+                        const price = Number(item.unitPrice || 0);
+                        const val = qty * price;
+                        return (
+                          <div
+                            key={item.id}
+                            className="bg-[#FAF6F0] rounded-xl p-3 border border-[#EDE4D5] space-y-2 shadow-2xs"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-bold text-xs text-[#2C1B10]">
+                                  {item.name}
+                                </span>
+                                <span className="text-[10px] text-[#8C7361] block">
+                                  {t('reports.unitCol')}: {item.unitType}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-1.5 text-xs bg-white p-2 rounded-lg border border-[#EDE4D5] font-mono">
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('stock.stockQuantity')}:</span>
+                                <span className="font-bold text-[#2C1B10]">
+                                  {item.unitType === 'GRAM' ? qty.toLocaleString() : qty.toFixed(2)} {item.unitType === 'GRAM' ? 'g' : item.unitType === 'KG' ? 'kg' : ''}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-[#8C7361] block font-sans">{t('reports.priceCol')}:</span>
+                                <span className="font-bold text-[#2C1B10]">{money(price)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-amber-800 block font-sans">{t('reports.totalCol')}:</span>
+                                <span className="font-extrabold text-amber-900">{money(val)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+
+                {/* Desktop Table for Home Stock */}
+                <div className="hidden md:block overflow-x-auto border border-[#EDE4D5] rounded-2xl bg-white max-h-[50vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="bg-[#FAF6F0] sticky top-0 z-10">
+                      <TableRow>
+                        <TableHead className="text-xs font-bold text-[#2C1B10] pl-4">{t('reports.materialName')}</TableHead>
+                        <TableHead className="text-xs font-bold text-[#2C1B10] text-center">{t('reports.unitCol')}</TableHead>
+                        <TableHead className="text-xs font-bold text-[#2C1B10] text-right">{t('stock.stockQuantity')}</TableHead>
+                        <TableHead className="text-xs font-bold text-[#2C1B10] text-right">{t('reports.priceCol')}</TableHead>
+                        <TableHead className="text-xs font-bold text-[#2C1B10] text-right pr-4">{t('reports.totalCol')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {homeStockItems
+                        .filter((i) => !searchFilter || i.name.toLowerCase().includes(searchFilter.toLowerCase()))
+                        .length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-6 text-xs text-[#8C7361]">
+                            {t('reports.noHomeStockFound') || 'በቤት ክምችት ውስጥ የተገኘ ጥሬ ዕቃ የለም።'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        homeStockItems
+                          .filter((i) => !searchFilter || i.name.toLowerCase().includes(searchFilter.toLowerCase()))
+                          .map((item) => {
+                            const qty = Number(item.currentQuantity || 0);
+                            const price = Number(item.unitPrice || 0);
+                            const val = qty * price;
+                            return (
+                              <TableRow key={item.id} className="hover:bg-[#FAF6F0]/50 transition-colors">
+                                <TableCell className="font-bold text-xs text-[#2C1B10] pl-4">
+                                  {item.name}
+                                </TableCell>
+                                <TableCell className="text-center text-xs text-[#8C7361] font-mono">
+                                  {item.unitType}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs font-bold text-[#2C1B10]">
+                                  {item.unitType === 'GRAM' ? qty.toLocaleString() : qty.toFixed(2)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs text-[#8C7361]">
+                                  {money(price)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs font-extrabold text-amber-900 pr-4">
+                                  {money(val)}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
             {/* 6. PRODUCTS IN THE HOUSE IN MONEY MODAL */}
             {activeModal === 'PRODUCT' && (
               <div>
@@ -2533,11 +2740,32 @@ export default function FinancialReportsPage() {
                     </div>
                   </div>
 
-                  {/* Item 4: Finished Products */}
+                  {/* Item 4: Private Home Stock Inventory */}
+                  <div className="p-4 rounded-2xl bg-amber-100/60 border border-amber-300/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold">
+                        4
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-amber-950 text-sm">{t('reports.wealthItemHomeStockTitle')}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-mono bg-amber-200/80 text-amber-900 font-bold">🔒 {t('stock.homeStockBadge') || 'የቤት / የግል'}</span>
+                        </div>
+                        <div className="text-xs text-amber-800">
+                          {t('reports.wealthItemHomeStockDesc').replace('{count}', String(homeStockItems.length))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right font-mono font-black text-lg text-amber-900">
+                      +{money(homeStockValuation)}
+                    </div>
+                  </div>
+
+                  {/* Item 5: Finished Products */}
                   <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-amber-700 text-white flex items-center justify-center font-bold">
-                        4
+                        5
                       </div>
                       <div>
                         <div className="font-extrabold text-amber-950 text-sm">{t('reports.wealthItem4Title')}</div>
@@ -2551,7 +2779,7 @@ export default function FinancialReportsPage() {
                     </div>
                   </div>
 
-                  {/* Item 5: Unpaid Stock & Supplier Debts (Included if WITH_CREDIT, Muted if WITHOUT_CREDIT) */}
+                  {/* Item 6: Unpaid Stock & Supplier Debts (Included if WITH_CREDIT, Muted if WITHOUT_CREDIT) */}
                   <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-opacity ${
                     netMode === 'WITH_CREDIT'
                       ? 'bg-rose-50/80 border-rose-300'
@@ -2561,7 +2789,7 @@ export default function FinancialReportsPage() {
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
                         netMode === 'WITH_CREDIT' ? 'bg-rose-600 text-white' : 'bg-zinc-400 text-white'
                       }`}>
-                        5
+                        6
                       </div>
                       <div>
                         <div className="font-extrabold text-[#2C1B10] text-sm">
