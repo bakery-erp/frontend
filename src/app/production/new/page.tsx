@@ -89,6 +89,9 @@ function ProductionFormContent() {
   const [shift, setShift] = useState<"DAY" | "NIGHT" | "">("");
   const [mobileStep, setMobileStep] = useState<1 | 2>(1);
 
+  // Worker attribution for Assisted Entry (Owner / Admin)
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+
   // Selection & Filter State
   const [selectedParentCatId, setSelectedParentCatId] = useState<string>("ALL");
   const [selectedSubCatId, setSelectedSubCatId] = useState<string>("ALL");
@@ -195,6 +198,41 @@ function ProductionFormContent() {
 
   const activeBranchId = formBranchId || selectedBranchId;
 
+  // Fetch production workers for Assisted Entry dropdown (Owner & Admin)
+  const { data: staffUsers = [] } = useQuery<any[]>({
+    queryKey: ['production-staff-users', activeBranchId],
+    enabled: isGlobalAdmin,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const branchQuery = activeBranchId ? `?branchId=${activeBranchId}` : "";
+      const res = await api.get(`/users${branchQuery}`);
+      const list = res.data || [];
+      return list.filter((u: any) =>
+        ['BAKER', 'CAKE_WORKER', 'SAMBUSA_WORKER', 'EMPLOYEE'].includes(u.role) && u.isActive !== false
+      );
+    },
+  });
+
+  const handleSelectEmployee = (empId: string) => {
+    setSelectedEmployeeId(empId);
+    if (!empId) return;
+    const emp = staffUsers.find((u) => u.id === empId);
+    if (emp?.role) {
+      // Find matching category by productionRole
+      const matchingCat = categories.find((c) => !c.parentId && c.productionRole === emp.role);
+      if (matchingCat) {
+        setSelectedParentCatId(matchingCat.id);
+        setSelectedSubCatId("ALL");
+      } else {
+        const anyCat = categories.find((c) => c.productionRole === emp.role);
+        if (anyCat) {
+          setSelectedParentCatId(anyCat.parentId || anyCat.id);
+          setSelectedSubCatId(anyCat.parentId ? anyCat.id : "ALL");
+        }
+      }
+    }
+  };
+
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['production-new-form', activeBranchId, editBatchId, user?.role],
     placeholderData: (prev) => prev,
@@ -283,6 +321,9 @@ function ProductionFormContent() {
       }
       if (batch.branchId && !formBranchId) {
         setFormBranchId(batch.branchId);
+      }
+      if (batch.userId && isGlobalAdmin) {
+        setSelectedEmployeeId(batch.userId);
       }
 
       const pMap: Record<string, string> = {};
@@ -508,6 +549,7 @@ function ProductionFormContent() {
         const payload = {
           date: isGlobalAdmin ? date : undefined,
           shift,
+          employeeId: isGlobalAdmin && selectedEmployeeId ? selectedEmployeeId : undefined,
           items: productEntries,
           materialUsages: materialEntries,
         };
@@ -526,6 +568,7 @@ function ProductionFormContent() {
           branchId: branchToUse,
           date: isGlobalAdmin ? date : systemDate,
           shift,
+          employeeId: isGlobalAdmin && selectedEmployeeId ? selectedEmployeeId : undefined,
           items: productEntries,
           materialUsages: materialEntries,
         };
@@ -814,6 +857,38 @@ function ProductionFormContent() {
                   </div>
                 )}
               </div>
+
+              {/* Mobile Produced By / Worker Selector (Owner / Admin) */}
+              {isGlobalAdmin && (
+                <div className="bg-white p-3.5 rounded-2xl border border-[#EDE4D5] shadow-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-extrabold text-[#2C1B10] flex items-center gap-1.5">
+                      <ChefHat className="w-4 h-4 text-[#E87A18]" />
+                      <span>{t("production.colBaker") || "Produced By"}</span>
+                    </label>
+                    <span className="text-[10px] text-emerald-700 font-extrabold">Paper Assisted</span>
+                  </div>
+                  <select
+                    value={selectedEmployeeId}
+                    onChange={(e) => handleSelectEmployee(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 px-3 text-xs font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18]"
+                  >
+                    <option value="">
+                      -- {user?.fullName || "Current User"} ({user?.role === "OWNER" ? "Owner" : "Admin"}) --
+                    </option>
+                    {staffUsers.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.fullName} ({emp.role?.replace('_', ' ')})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-[#8C7361] font-semibold">
+                    {selectedEmployeeId
+                      ? `Mapped to ${staffUsers.find((u) => u.id === selectedEmployeeId)?.fullName || "worker"} (Auto-Approved)`
+                      : "Choose who produced this batch"}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -823,7 +898,11 @@ function ProductionFormContent() {
             ref={desktopShiftSectionRef}
             className={`hidden md:grid bg-white p-4 xs:p-6 rounded-2xl border transition-all ${
               !shift ? "border-amber-400 ring-2 ring-amber-200" : "border-[#EDE4D5]"
-            } shadow-xs grid-cols-1 ${user?.role === "OWNER" && !isEditMode ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-3 xs:gap-4`}
+            } shadow-xs grid-cols-1 sm:grid-cols-2 ${
+              isGlobalAdmin
+                ? (user?.role === "OWNER" && !isEditMode ? "lg:grid-cols-4" : "lg:grid-cols-3")
+                : (user?.role === "OWNER" && !isEditMode ? "sm:grid-cols-3" : "sm:grid-cols-2")
+            } gap-3 xs:gap-4`}
           >
             {/* Shift Selector is FIRST! */}
             <div id="shift-selector-container">
@@ -894,6 +973,37 @@ function ProductionFormContent() {
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {/* Produced By / Worker Assignment (Owner & Admin) */}
+            {isGlobalAdmin && (
+              <div>
+                <label className="text-xs font-extrabold text-[#2C1B10] block mb-1.5 uppercase tracking-wide flex items-center justify-between">
+                  <span>{t("production.colBaker") || "Produced By"}</span>
+                  <span className="text-[10px] text-emerald-700 font-extrabold lowercase">
+                    (paper assisted)
+                  </span>
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => handleSelectEmployee(e.target.value)}
+                  className="w-full bg-[#FAF6F0] border border-[#EDE4D5] rounded-xl h-10 xs:h-11 px-3 text-sm font-bold text-[#2C1B10] focus:ring-2 focus:ring-[#E87A18] cursor-pointer"
+                >
+                  <option value="">
+                    -- {user?.fullName || "Current User"} ({user?.role === "OWNER" ? "Owner" : "Admin"}) --
+                  </option>
+                  {staffUsers.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.fullName} ({emp.role?.replace('_', ' ')})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-[#8C7361] mt-1 font-semibold truncate">
+                  {selectedEmployeeId
+                    ? `Mapped to ${staffUsers.find((u) => u.id === selectedEmployeeId)?.fullName || "worker"} (Auto-Approved)`
+                    : "Auto-switches station when worker chosen"}
+                </p>
               </div>
             )}
           </div>
@@ -1405,6 +1515,21 @@ function ProductionFormContent() {
               <span>📅 {formatEthDate(date)}</span>
               <span>{shift === "NIGHT" ? `🌙 ${t("production.nightShiftFull")}` : `☀️ ${t("production.dayShiftFull")}`}</span>
             </div>
+
+            {/* Produced By / Worker Attribution Notice */}
+            {isGlobalAdmin && (
+              <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between text-[#2C1B10] font-bold">
+                <span className="flex items-center gap-1.5 text-xs text-[#4A2E1B]">
+                  <ChefHat className="w-3.5 h-3.5 text-[#E87A18]" />
+                  <span>{t("production.colBaker") || "Produced By"}:</span>
+                </span>
+                <span className="text-xs font-black text-amber-900">
+                  {selectedEmployeeId
+                    ? `${staffUsers.find((u) => u.id === selectedEmployeeId)?.fullName || "Worker"} (${staffUsers.find((u) => u.id === selectedEmployeeId)?.role?.replace('_', ' ') || ""})`
+                    : `${user?.fullName || "Owner/Admin"} (${user?.role})`}
+                </span>
+              </div>
+            )}
 
             {/* High-Level Overview Stats - Short, punchy, and zero truncation */}
             <div className="grid grid-cols-2 gap-2.5">

@@ -132,6 +132,7 @@ export const am: TranslationDictionary = {
     production: "የምርት መዝገብ",
     dailyProductHistory: "ዕለታዊ የምርት ታሪክ",
     dailySessions: "የቀን ሂሳብ ማጠቃለያና ካዝና",
+    dailyCashLog: "ዕለታዊ የጥሬ ገንዘብ እና ባንክ መዝገብ",
     customerCreditSales: "የደንበኞች የብድር ሽያጭ",
     categories: "የምርት ምድቦች (ዓይነት)",
     products: "የዳቦና ኬክ ምርቶች",

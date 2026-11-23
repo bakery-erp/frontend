@@ -420,6 +420,21 @@ export default function EditUserPage() {
                   </select>
                 )}
               </div>
+
+              {/* Internal Worker Info Banner */}
+              {['BAKER', 'CAKE_WORKER', 'SAMBUSA_WORKER', 'CASHIER', 'EMPLOYEE'].includes(userData.role) && (
+                <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/90 flex items-start gap-2.5">
+                  <span className="text-lg">🔒</span>
+                  <div className="text-xs space-y-1">
+                    <p className="font-extrabold text-amber-950">
+                      የውስጥ ሰራተኛ (Internal Worker - Portal Login Disabled)
+                    </p>
+                    <p className="text-amber-900 text-[11px] leading-relaxed font-medium">
+                      ይህ ሰራተኛ በእጅ በወረቀት ላይ የሚሰራ በመሆኑ ወደ ሲስተሙ መግባት አይችልም። መረጃው በሲስተሙ የሚቀመጠው ለደመወዝ፣ ለዕለታዊ አበል፣ ለብድር፣ ለጥሬ እቃ ርክክብ እና ለምርት ተጠያቂነት ክትትል ብቻ ነው።
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

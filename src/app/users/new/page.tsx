@@ -32,6 +32,9 @@ export default function NewUserPage() {
   const [lastPaidDateVal, setLastPaidDateVal] = useState<string>("");
   const [lastPaidTouched, setLastPaidTouched] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+
+  const isWorkerRole = ['BAKER', 'CAKE_WORKER', 'SAMBUSA_WORKER', 'CASHIER', 'EMPLOYEE'].includes(selectedRole);
 
   const isFormDirty = isFormChanged || !!startDateVal || !!lastPaidDateVal;
   const { showPrompt, setShowPrompt, confirmAction, guardedAction } = useUnsavedChanges(isFormDirty);
@@ -77,14 +80,24 @@ export default function NewUserPage() {
         return;
       }
 
-      const passwordStr = formData.get("password") as string;
-      if (!passwordStr || passwordStr.length < 4) {
-        toast.error(t("users.toastPasswordLength"));
+      const roleStr = (formData.get("role") as string) || selectedRole;
+      const isWorker = ['BAKER', 'CAKE_WORKER', 'SAMBUSA_WORKER', 'CASHIER', 'EMPLOYEE'].includes(roleStr);
+      const passwordStr = (formData.get("password") as string)?.trim();
+
+      if (!isWorker && (!passwordStr || passwordStr.length < 4)) {
+        toast.error(t("users.toastPasswordLength") || "Password must be at least 4 characters long");
         setIsSubmitting(false);
         return;
       }
+      if (isWorker && passwordStr && passwordStr.length < 4) {
+        toast.error(t("users.toastPasswordLength") || "Password must be at least 4 characters long if provided");
+        setIsSubmitting(false);
+        return;
+      }
+      if (isWorker && !passwordStr) {
+        formData.delete("password");
+      }
 
-      const roleStr = formData.get("role") as string;
       if (roleStr === "OWNER" && user?.role !== "OWNER") {
         toast.error(t("users.toastOnlyOwnerCreateOwner"));
         setIsSubmitting(false);
@@ -205,14 +218,46 @@ export default function NewUserPage() {
 
               <div>
                 <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  {t('users.passwordLabel')} <span className="text-rose-600">*</span>
+                  {t('users.systemRoleLabel')} <span className="text-rose-600">*</span>
+                </label>
+                <select
+                  name="role"
+                  required
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
+                >
+                  <option value="" disabled>{t('users.selectRolePlaceholder')}</option>
+                  {(user?.role === "OWNER" ? ROLES : ROLES.filter((r) => r !== "OWNER")).map((r) => (
+                    <option key={r} value={r}>
+                      {getRoleLabel(r)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1B10] block mb-1.5 flex items-center justify-between">
+                  <span>
+                    {t('users.passwordLabel')}{" "}
+                    {isWorkerRole ? (
+                      <span className="text-xs text-[#8C7361] font-normal">(አማራጭ / Optional)</span>
+                    ) : (
+                      <span className="text-rose-600">*</span>
+                    )}
+                  </span>
+                  {isWorkerRole && (
+                    <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      🔒 No Login
+                    </span>
+                  )}
                 </label>
                 <div className="relative">
                   <Input
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={t('users.passwordPlaceholder')}
-                    required
+                    placeholder={isWorkerRole ? "አማራጭ ነው / Optional (Auto-generated)" : t('users.passwordPlaceholder')}
+                    required={!isWorkerRole}
                     className="h-11 rounded-xl border-[#EDE4D5] text-sm pr-10"
                   />
                   <button
@@ -227,24 +272,20 @@ export default function NewUserPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#2C1B10] block mb-1.5">
-                  {t('users.systemRoleLabel')} <span className="text-rose-600">*</span>
-                </label>
-                <select
-                  name="role"
-                  required
-                  defaultValue=""
-                  className="w-full h-11 rounded-xl border border-[#EDE4D5] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#E87A18]"
-                >
-                  <option value="" disabled>{t('users.selectRolePlaceholder')}</option>
-                  {(user?.role === "OWNER" ? ROLES : ROLES.filter((r) => r !== "OWNER")).map((r) => (
-                    <option key={r} value={r}>
-                      {getRoleLabel(r)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Informative Worker Banner */}
+              {isWorkerRole && (
+                <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/90 flex items-start gap-2.5">
+                  <span className="text-lg">🔒</span>
+                  <div className="text-xs space-y-1">
+                    <p className="font-extrabold text-amber-950">
+                      የውስጥ ሰራተኛ (Internal Worker - Portal Login Disabled)
+                    </p>
+                    <p className="text-amber-900 text-[11px] leading-relaxed font-medium">
+                      ይህ ሰራተኛ ምርት በወረቀት ላይ በእጅ የሚሰራ በመሆኑ ወደ ሲስተሙ መግባት አይችልም። መረጃው በሲስተሙ የሚቀመጠው ለደመወዝ፣ ለዕለታዊ አበል፣ ለብድር፣ ለጥሬ እቃ ርክክብ እና ለምርት ተጠያቂነት ክትትል ብቻ ነው። የይለፍ ቃል መሙላት አያስፈልግዎትም።
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -25,6 +25,8 @@ interface DailySession {
   id: string;
   branchId: string;
   date: string;
+  endDate?: string | null;
+  durationHours?: number | null;
   label?: string | null;
   status: 'OPEN' | 'PAUSED' | 'CLOSE_PENDING' | 'CLOSED';
   cashLeftoverAmount?: number | null;
@@ -80,7 +82,10 @@ export default function DailySessionsPage() {
   const currentBranchFilter = selectedBranchId || user?.branchId;
   const todaySession = todaySessions.find((s) => {
     const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
-    if (sDate !== ethTodayYmd) return false;
+    const eDate = s.endDate ? new Date(s.endDate).toISOString().slice(0, 10) : sDate;
+    const isDateInRange = ethTodayYmd >= sDate && ethTodayYmd <= eDate;
+    const isOpen = s.status === 'OPEN' || s.status === 'CLOSE_PENDING';
+    if (!isDateInRange && !isOpen) return false;
     if (currentBranchFilter) return s.branchId === currentBranchFilter;
     return true;
   });
@@ -88,7 +93,10 @@ export default function DailySessionsPage() {
   const branchSessionsToday = branches.map((b) => {
     const sess = todaySessions.find((s) => {
       const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
-      return sDate === ethTodayYmd && s.branchId === b.id;
+      const eDate = s.endDate ? new Date(s.endDate).toISOString().slice(0, 10) : sDate;
+      const isDateInRange = ethTodayYmd >= sDate && ethTodayYmd <= eDate;
+      const isOpen = s.status === 'OPEN' || s.status === 'CLOSE_PENDING';
+      return (isDateInRange || isOpen) && s.branchId === b.id;
     });
     return { branch: b, session: sess };
   });
@@ -382,11 +390,14 @@ export default function DailySessionsPage() {
                   <h3 className="font-extrabold text-base text-[#2C1B10]">
                     {todaySession.label && !todaySession.label.startsWith('Session -')
                       ? todaySession.label
-                      : `Daily Closing — ${formatEthDate(todaySession.date)}`}
+                      : `Daily Closing — ${formatEthDate(todaySession.date)}${todaySession.endDate && todaySession.endDate !== todaySession.date ? ` → ${formatEthDate(todaySession.endDate)}` : ''}`}
                   </h3>
                   {todaySession.status === 'OPEN' && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('sessions.liveSessionOpen')}
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      {todaySession.endDate && ethTodayYmd >= new Date(todaySession.endDate).toISOString().slice(0, 10)
+                        ? '48h Cycle • Day 2 (Ready to Close)'
+                        : '48h Cycle • Day 1 (In Progress)'}
                     </span>
                   )}
                   {todaySession.status === 'CLOSE_PENDING' && (
@@ -401,7 +412,9 @@ export default function DailySessionsPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-[#8C7361] mt-1 flex-wrap font-medium">
-                  <span>📅 {formatEthDate(todaySession.date)}</span>
+                  <span>📅 {formatEthDate(todaySession.date)}{todaySession.endDate && todaySession.endDate !== todaySession.date ? ` → ${formatEthDate(todaySession.endDate)}` : ''}</span>
+                  <span>•</span>
+                  <span>⏱️ {todaySession.durationHours || 48}h Cycle</span>
                   <span>•</span>
                   <span>🏢 {branches.find((b) => b.id === todaySession.branchId)?.name || 'Main Branch'}</span>
                   <span>•</span>
@@ -417,7 +430,7 @@ export default function DailySessionsPage() {
                   onClick={() => router.push(`/daily-sessions/${todaySession.id}/close?mode=edit`)}
                   className="bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl text-xs h-9 shadow-xs w-full sm:w-auto"
                 >
-                  <Lock className="w-3.5 h-3.5 mr-1" /> {isOwner ? (t('sessions.finalize') || 'Finalize Day') : 'Count & Submit'}
+                  <Lock className="w-3.5 h-3.5 mr-1" /> {isOwner ? (t('sessions.finalize') || 'Finalize Day') : 'Count & Submit 48h Close'}
                 </Button>
               )}
               {todaySession.status === 'CLOSE_PENDING' && (
@@ -771,19 +784,24 @@ export default function DailySessionsPage() {
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-[#8C7361] font-medium">{isTodayOnly ? "No past session recorded for today." : "No past sessions found in history. Active session is running above."}</TableCell></TableRow>
             ) : historySessions.map((sess) => {
               const branchName = branches.find((b) => b.id === sess.branchId)?.name || 'Branch';
-              const formattedDate = formatEthDate(sess.date);
+              const formattedStartDate = formatEthDate(sess.date);
+              const formattedEndDate = sess.endDate && sess.endDate !== sess.date ? formatEthDate(sess.endDate) : null;
+              const dateRangeLabel = formattedEndDate ? `${formattedStartDate} → ${formattedEndDate}` : formattedStartDate;
               return (
                 <TableRow key={sess.id}>
                   <TableCell className="font-bold text-[#2C1B10]">
                     {sess.label && !sess.label.startsWith('Session -')
                       ? sess.label
-                      : `Daily Closing — ${formattedDate}`}
+                      : `Daily Closing — ${dateRangeLabel}`}
                   </TableCell>
                   <TableCell className="font-semibold text-xs text-[#8C7361]">
                     <div className="flex items-center">
-                      <CalendarDays className="w-4 h-4 mr-2 text-[#8C7361]" />
-                      {formattedDate}
+                      <CalendarDays className="w-4 h-4 mr-2 text-[#8C7361] shrink-0" />
+                      <span>{dateRangeLabel}</span>
                     </div>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 mt-1 inline-block">
+                      {sess.durationHours || 48}h Cycle
+                    </span>
                   </TableCell>
                   <TableCell className="font-bold text-[#4A2E1B]">{branchName}</TableCell>
                   <TableCell>
