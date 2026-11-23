@@ -130,6 +130,7 @@ export const en = {
     production: "Production Batches",
     dailyProductHistory: "Daily Product History",
     dailySessions: "Daily Closing & Drawer",
+    dailyCashLog: "Daily Cash & Bank Log",
     customerCreditSales: "Customer Credit Sales",
     categories: "Product Categories",
     products: "Products",

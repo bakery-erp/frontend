@@ -132,6 +132,7 @@ export const om: TranslationDictionary = {
     production: "Galmee Oomishaa",
     dailyProductHistory: "Seenaa Oomishaa Guyyaa",
     dailySessions: "Galmee Guyyaa & Saanduqa",
+    dailyCashLog: "Galmee Maallaqa Guyyaa",
     customerCreditSales: "Gurgurtaa Liqii Maamilaa",
     categories: "Gosa Oomishaa",
     products: "Oomishaalee Daabboo",

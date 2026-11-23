@@ -522,6 +522,15 @@ export default function UsersPage() {
                         <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5] py-0.5">
                           {getRoleLabel(u.role)}
                         </Badge>
+                        {['BAKER', 'CAKE_WORKER', 'SAMBUSA_WORKER', 'CASHIER', 'EMPLOYEE'].includes(u.role) || (u as any).canLogin === false ? (
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                            🔒 No Login
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200">
+                            🔑 Portal
+                          </span>
+                        )}
 
                         {(user?.role === "OWNER" || user?.role === "ADMIN") && u.salary != null && (
                           <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
@@ -663,9 +672,20 @@ export default function UsersPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
-                              {getRoleLabel(u.role)}
-                            </Badge>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-extrabold bg-[#FAF6F0] text-[#4A2E1B] border-[#EDE4D5]">
+                                {getRoleLabel(u.role)}
+                              </Badge>
+                              {['BAKER', 'CAKE_WORKER', 'SAMBUSA_WORKER', 'CASHIER', 'EMPLOYEE'].includes(u.role) || (u as any).canLogin === false ? (
+                                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                                  🔒 No Login
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200">
+                                  🔑 Portal
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {u.branch ? (
@@ -955,8 +975,17 @@ export default function UsersPage() {
                 />
                 <div>
                   <h3 className="text-xl font-bold tracking-tight text-zinc-900">{viewingUser.fullName}</h3>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1">
                     <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">{getRoleLabel(viewingUser.role)}</Badge>
+                    {['BAKER', 'CAKE_WORKER', 'SAMBUSA_WORKER', 'CASHIER', 'EMPLOYEE'].includes(viewingUser.role) || (viewingUser as any).canLogin === false ? (
+                      <Badge className="bg-amber-100 text-amber-900 border-amber-300">
+                        🔒 Manual Worker (No Login)
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-blue-100 text-blue-900 border-blue-300">
+                        🔑 Portal Login Active
+                      </Badge>
+                    )}
                     <Badge className={viewingUser.isActive ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}>
                       {viewingUser.isActive ? (t('users.activeAccount') || "Active Account") : (t('users.suspendedAccount') || "Suspended")}
                     </Badge>

@@ -94,6 +94,8 @@ export function isRouteAllowed(role: string | undefined | null, pathname: string
       path.startsWith('/production/') ||
       path === '/daily-sessions' ||
       path.startsWith('/daily-sessions/') ||
+      path === '/daily-cash-logs' ||
+      path.startsWith('/daily-cash-logs/') ||
       path === '/users' ||
       path.startsWith('/users/') ||
       path === '/customer-credits' ||

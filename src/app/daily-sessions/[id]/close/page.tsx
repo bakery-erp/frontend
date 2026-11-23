@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DetailSkeleton, KpiCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { formatEthDate } from "@/lib/ethiopianDate";
 
 interface Product {
   id: string;
@@ -73,6 +74,8 @@ interface SupplierDeliveryItem {
 interface DailySessionDetail {
   id: string;
   date: string;
+  endDate?: string | null;
+  durationHours?: number | null;
   branchId: string;
   branch?: { id: string; name: string };
   status: "OPEN" | "PAUSED" | "CLOSED" | "CLOSE_PENDING";
@@ -218,10 +221,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
       // Non-Admin/Owner (Cashier) is locked in View Mode if CLOSE_PENDING or session is before today.
       const ethTodayYmd = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
       const sessionYmd = s.date ? new Date(s.date).toISOString().slice(0, 10) : "";
+      const sessionEndYmd = s.endDate ? new Date(s.endDate).toISOString().slice(0, 10) : sessionYmd;
       if (s.status === "CLOSED") {
         setIsViewOnly(true);
       } else if (!isAdminOrOwner) {
-        if (s.status === "CLOSE_PENDING" || sessionYmd < ethTodayYmd) {
+        if (s.status === "CLOSE_PENDING" || sessionEndYmd < ethTodayYmd) {
           setIsViewOnly(true);
         } else {
           setIsViewOnly(false);
@@ -231,7 +235,9 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
         setIsViewOnly(false);
       }
 
-      const defaultDayLabel = `Daily Closing - ${new Date(s.date).toISOString().split("T")[0]}`;
+      const defaultDayLabel = s.endDate && s.endDate !== s.date
+        ? `Closing — ${new Date(s.date).toISOString().split("T")[0]} to ${new Date(s.endDate).toISOString().split("T")[0]} (${s.durationHours || 48}h)`
+        : `Daily Closing - ${new Date(s.date).toISOString().split("T")[0]}`;
       const cleanLabel = s.label && !s.label.startsWith("Session -") ? s.label : defaultDayLabel;
       setSessionLabel(cleanLabel);
       setActualCash(s.actualCashAmount != null ? String(s.actualCashAmount) : "");
@@ -618,7 +624,11 @@ export default function SessionClosePage({ params }: { params: Promise<{ id: str
               />
             </div>
             <p className="text-xs text-[#8C7361] mt-1 truncate">
-              Date: <strong className="text-[#2C1B10]">{new Date(session.date).toISOString().split("T")[0]}</strong> | Branch: <strong className="text-[#2C1B10]">{session.branch?.name || "Main Branch"}</strong>
+              Period: <strong className="text-[#2C1B10]">
+                {formatEthDate(session.date)}
+                {session.endDate && session.endDate !== session.date ? ` → ${formatEthDate(session.endDate)}` : ''}
+                {` (${session.durationHours || 48}h Cycle)`}
+              </strong> | Branch: <strong className="text-[#2C1B10]">{session.branch?.name || "Main Branch"}</strong>
             </p>
           </div>
         </div>
